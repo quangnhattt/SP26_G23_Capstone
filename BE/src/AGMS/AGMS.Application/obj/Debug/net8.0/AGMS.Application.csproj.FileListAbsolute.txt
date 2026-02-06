@@ -1,0 +1,16 @@
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\bin\Debug\net8.0\AGMS.Application.deps.json
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\bin\Debug\net8.0\AGMS.Application.dll
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\bin\Debug\net8.0\AGMS.Application.pdb
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\bin\Debug\net8.0\AGMS.Domain.dll
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\bin\Debug\net8.0\AGMS.Domain.pdb
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\AGMS.Application.csproj.AssemblyReference.cache
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\AGMS.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\AGMS.Application.AssemblyInfoInputs.cache
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\AGMS.Application.AssemblyInfo.cs
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\AGMS.Application.csproj.CoreCompileInputs.cache
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\AGMS.Application.sourcelink.json
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\AGMS.App.96792CBF.Up2Date
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\AGMS.Application.dll
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\refint\AGMS.Application.dll
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\AGMS.Application.pdb
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Application\obj\Debug\net8.0\ref\AGMS.Application.dll

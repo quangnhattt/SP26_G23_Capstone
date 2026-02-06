@@ -1,0 +1,6 @@
+@AGMS.WebApi_HostAddress = http://localhost:5259
+
+GET {{AGMS.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
