@@ -1,0 +1,13 @@
+Project: AGMS (FE React + BE .NET Web API) - Clean Architecture 4 layers
+
+Rules:
+- Domain: chỉ chứa Entities/ValueObjects/Enums/Domain logic. KHÔNG EF Core, KHÔNG Http, KHÔNG DI.
+- Application: Use cases (Commands/Queries/Handlers), DTOs, Interfaces. KHÔNG EF Core DbContext.
+- Infrastructure: EF Core DbContext, Repositories implement interfaces, external services adapters.
+- WebApi: Controllers/Endpoints, DI wiring, Swagger/CORS/Auth. Controller chỉ gọi Application (MediatR/service), không viết business logic nặng.
+
+When generating code:
+- Always propose file paths to create/modify before writing code.
+- Keep changes minimal and compile-ready.
+- Update DI registration when adding new services.
+- For APIs: use REST naming, return proper status codes.

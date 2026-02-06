@@ -1,0 +1,18 @@
+# Build/cache
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/.DS_Store
+
+# Frontend
+FE/node_modules/
+FE/dist/
+FE/build/
+
+# Logs
+**/*.log
+
+# Secrets (tuỳ bạn)
+**/.env
+**/appsettings.*.json

@@ -16,3 +16,5 @@ C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Infrastr
 C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Infrastructure\obj\Debug\net8.0\refint\AGMS.Infrastructure.dll
 C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Infrastructure\obj\Debug\net8.0\AGMS.Infrastructure.pdb
 C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Infrastructure\obj\Debug\net8.0\ref\AGMS.Infrastructure.dll
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Infrastructure\bin\Debug\net8.0\AGMS.Infrastructure.runtimeconfig.json
+C:\Users\Vinh\Desktop\Code đồ án\SP26_G23_Capstone\BE\src\AGMS\AGMS.Infrastructure\obj\Debug\net8.0\AGMS.Infrastructure.genruntimeconfig.cache
