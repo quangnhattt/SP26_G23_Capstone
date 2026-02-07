@@ -1,4 +1,4 @@
-using AGMS.Application.Entities;
+using AGMS.Domain.Entities;
 
 namespace AGMS.Application.Contracts;
 

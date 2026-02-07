@@ -1,8 +1,8 @@
 using AGMS.Application.Contracts;
+using AGMS.Domain.Entities;
 using AGMS.Infrastructure.Persistence.Db;
 using Microsoft.EntityFrameworkCore;
 
-using AppVerificationCode = AGMS.Application.Entities.VerificationCode;
 using DbVerificationCode = AGMS.Infrastructure.Persistence.Entities.VerificationCode;
 
 namespace AGMS.Infrastructure.Repositories;
@@ -31,7 +31,7 @@ public class VerificationCodeRepository : IVerificationCodeRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<AppVerificationCode?> GetValidAsync(string contactInfo, string code, string type, DateTime nowUtc, CancellationToken ct)
+    public async Task<VerificationCode?> GetValidAsync(string contactInfo, string code, string type, DateTime nowUtc, CancellationToken ct)
     {
         var entity = await _db.VerificationCodes
             .AsNoTracking()
@@ -42,7 +42,7 @@ public class VerificationCodeRepository : IVerificationCodeRepository
                      && v.ExpiryTime > nowUtc
                      && !v.IsUsed,
                 ct);
-        return entity == null ? null : MapToApp(entity);
+        return entity == null ? null : MapToDomain(entity);
     }
 
     public async Task MarkUsedAsync(int id, CancellationToken ct)
@@ -53,9 +53,9 @@ public class VerificationCodeRepository : IVerificationCodeRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    private static AppVerificationCode MapToApp(DbVerificationCode entity)
+    private static VerificationCode MapToDomain(DbVerificationCode entity)
     {
-        return new AppVerificationCode
+        return new VerificationCode
         {
             Id = entity.Id,
             ContactInfo = entity.ContactInfo,
