@@ -2,7 +2,7 @@ using AGMS.Application.Contracts;
 using AGMS.Infrastructure.Persistence.Db;
 using Microsoft.EntityFrameworkCore;
 
-using AppUser = AGMS.Application.Entities.User;
+using DomainUser = AGMS.Domain.Entities.User;
 using DbUser = AGMS.Infrastructure.Persistence.Entities.User;
 
 namespace AGMS.Infrastructure.Repositories;
@@ -16,23 +16,23 @@ public class UserRepository : IUserRepository
         _db = db;
     }
 
-    public async Task<AppUser?> GetByEmailAsync(string email, CancellationToken ct)
+    public async Task<DomainUser?> GetByEmailAsync(string email, CancellationToken ct)
     {
         var entity = await _db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == email, ct);
-        return entity == null ? null : MapToApp(entity);
+        return entity == null ? null : MapToDomain(entity);
     }
 
-    public async Task<AppUser?> GetByPhoneAsync(string phone, CancellationToken ct)
+    public async Task<DomainUser?> GetByPhoneAsync(string phone, CancellationToken ct)
     {
         var entity = await _db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Phone == phone, ct);
-        return entity == null ? null : MapToApp(entity);
+        return entity == null ? null : MapToDomain(entity);
     }
 
-    public async Task AddAsync(AppUser user, CancellationToken ct)
+    public async Task AddAsync(DomainUser user, CancellationToken ct)
     {
         var entity = MapToPersistence(user);
         _db.Users.Add(entity);
@@ -48,9 +48,9 @@ public class UserRepository : IUserRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    private static AppUser MapToApp(DbUser entity)
+    private static DomainUser MapToDomain(DbUser entity)
     {
-        return new AppUser
+        return new DomainUser
         {
             UserID = entity.UserID,
             UserCode = entity.UserCode,
@@ -66,21 +66,21 @@ public class UserRepository : IUserRepository
         };
     }
 
-    private static DbUser MapToPersistence(AppUser app)
+    private static DbUser MapToPersistence(DomainUser domain)
     {
         return new DbUser
         {
-            UserID = app.UserID,
-            UserCode = app.UserCode,
-            FullName = app.FullName,
-            Username = app.Username,
-            PasswordHash = app.PasswordHash,
-            PasswordSalt = app.PasswordSalt,
-            Email = app.Email,
-            Phone = app.Phone,
-            RoleID = app.RoleID,
-            IsActive = app.IsActive,
-            CreatedDate = app.CreatedDate,
+            UserID = domain.UserID,
+            UserCode = domain.UserCode,
+            FullName = domain.FullName,
+            Username = domain.Username,
+            PasswordHash = domain.PasswordHash,
+            PasswordSalt = domain.PasswordSalt,
+            Email = domain.Email,
+            Phone = domain.Phone,
+            RoleID = domain.RoleID,
+            IsActive = domain.IsActive,
+            CreatedDate = domain.CreatedDate,
             Image = null,
             Gender = null,
             DateOfBirth = null,

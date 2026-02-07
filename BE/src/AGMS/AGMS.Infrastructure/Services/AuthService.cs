@@ -1,6 +1,6 @@
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Auth;
-using AGMS.Application.Entities;
+using AGMS.Domain.Entities;
 using Microsoft.Extensions.Configuration;
 
 namespace AGMS.Infrastructure.Services;
