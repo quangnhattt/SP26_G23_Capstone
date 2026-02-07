@@ -1,0 +1,29 @@
+using AGMS.Application.Contracts;
+using AGMS.Infrastructure.Persistence.Db;
+using AGMS.Infrastructure.Repositories;
+using AGMS.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace AGMS.Infrastructure;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    {
+        var connectionString = configuration["ConnectionStrings:MyCnn"]
+            ?? throw new InvalidOperationException("ConnectionStrings:MyCnn is not configured.");
+
+        services.AddDbContext<CarServiceDbContext>(options =>
+            options.UseSqlServer(connectionString));
+
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IAuthTokenService, AuthTokenService>();
+        services.AddScoped<IAuthService, AuthService>();
+
+        return services;
+    }
+}
