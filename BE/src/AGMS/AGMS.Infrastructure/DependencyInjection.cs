@@ -20,9 +20,11 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IAuthTokenService, AuthTokenService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ICategoryService, CategoryService>();
 
         return services;
     }
