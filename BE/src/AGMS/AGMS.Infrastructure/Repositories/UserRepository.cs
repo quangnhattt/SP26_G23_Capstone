@@ -42,4 +42,13 @@ public class UserRepository : IUserRepository
         entity.PasswordSalt = passwordSalt;
         await _db.SaveChangesAsync(ct);
     }
+    public async Task<IEnumerable<User>> GetUsersExceptAdminAsync(CancellationToken ct)
+    {
+        return await _db.Users
+            .AsNoTracking()
+            .Include(u => u.Role)
+            .Where(u => u.RoleID != 1)  // exclude Admin (RoleID = 1)
+            .OrderBy(u => u.UserID)
+            .ToListAsync(ct);
+    }
 }
