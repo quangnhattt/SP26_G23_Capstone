@@ -61,7 +61,7 @@ public class CategoryService : ICategoryService
         };
     }
 
-    public async Task<IEnumerable<CategoryResponse>> GetAllAsync1(CancellationToken ct)
+    public async Task<IEnumerable<CategoryResponse>> GetAllAsync(CancellationToken ct)
     {
         var categories = await _categoryRepository.GetAllAsync(ct);
         return categories.Select(c => new CategoryResponse
