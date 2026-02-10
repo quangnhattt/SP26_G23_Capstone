@@ -37,7 +37,7 @@ Thumbs.db
 # Package manager specific
 .pnpm-debug.log
 yarn.lock
-package-lock.json
+# package-lock.json  # KHÔNG ignore - cần cho CI/CD với npm!
 
 # Optional: If you're using TypeScript
 *.tsbuildinfo

@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    image: ghcr.io/quangnhattt/agms-backend:master
+    container_name: agms-backend-prod
+    restart: unless-stopped
+    ports:
+      - "9000:8080"
+    networks:
+      - agms-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      # Uncomment to override connection string:
+      # - ConnectionStrings__MyCnn=${CONNECTION_STRING}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  agms-network:
+    name: agms-network
+    driver: bridge

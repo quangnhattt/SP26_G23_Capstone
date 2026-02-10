@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: ghcr.io/quangnhattt/agms-frontend:master
+    container_name: agms-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - agms-network
+    environment:
+      - VITE_API_URL=http://YOUR_SERVER:9000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  agms-network:
+    name: agms-network
+    driver: bridge
+    # Network sẽ được tạo nếu chưa có, hoặc join nếu đã tồn tại

@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: ghcr.io/quangnhattt/agms-frontend:UAT
+    container_name: agms-frontend-uat
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    networks:
+      - agms-network-uat
+    environment:
+      - VITE_API_URL=http://YOUR_SERVER:9001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  agms-network-uat:
+    name: agms-network-uat
+    driver: bridge
+    # Network sẽ được tạo nếu chưa có, hoặc join nếu đã tồn tại
