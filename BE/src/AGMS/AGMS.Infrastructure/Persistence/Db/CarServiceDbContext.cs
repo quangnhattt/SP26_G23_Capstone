@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using AGMS.Infrastructure.Persistence.Entities;
+using AGMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AGMS.Infrastructure.Persistence.Db;
@@ -24,7 +24,7 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<InventoryLotBalance> InventoryLotBalances { get; set; }
 
-    public virtual DbSet<Inventory_Lot> Inventory_Lots { get; set; }
+    public virtual DbSet<InventoryLot> InventoryLots { get; set; }
 
     public virtual DbSet<MaintenanceMedium> MaintenanceMedia { get; set; }
 
@@ -64,11 +64,11 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<Supplier> Suppliers { get; set; }
 
-    public virtual DbSet<Supplier_Product> Supplier_Products { get; set; }
+    public virtual DbSet<SupplierProduct> SupplierProducts { get; set; }
 
     public virtual DbSet<TokenForgetPassword> TokenForgetPasswords { get; set; }
 
-    public virtual DbSet<Transfer_Order> Transfer_Orders { get; set; }
+    public virtual DbSet<TransferOrder> TransferOrders { get; set; }
 
     public virtual DbSet<Unit> Units { get; set; }
 
@@ -225,7 +225,7 @@ public partial class CarServiceDbContext : DbContext
                 .HasConstraintName("FK_Bal_Lot");
         });
 
-        modelBuilder.Entity<Inventory_Lot>(entity =>
+        modelBuilder.Entity<InventoryLot>(entity =>
         {
             entity.HasKey(e => new { e.TransferOrderID, e.LotID }).HasName("PK__Inventor__8EFA4B1A79E6592C");
 
@@ -238,12 +238,12 @@ public partial class CarServiceDbContext : DbContext
                 .HasMaxLength(20)
                 .HasDefaultValue("ACTIVE");
 
-            entity.HasOne(d => d.Lot).WithMany(p => p.Inventory_Lots)
+            entity.HasOne(d => d.Lot).WithMany(p => p.InventoryLots)
                 .HasForeignKey(d => d.LotID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_IL_Lot");
 
-            entity.HasOne(d => d.TransferOrder).WithMany(p => p.Inventory_Lots)
+            entity.HasOne(d => d.TransferOrder).WithMany(p => p.InventoryLots)
                 .HasForeignKey(d => d.TransferOrderID)
                 .HasConstraintName("FK_IL_TO");
         });
@@ -676,7 +676,7 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.Phone).HasMaxLength(20);
         });
 
-        modelBuilder.Entity<Supplier_Product>(entity =>
+        modelBuilder.Entity<SupplierProduct>(entity =>
         {
             entity.HasKey(e => new { e.SupplierID, e.ProductID }).HasName("PK__Supplier__80A6AAFA87294381");
 
@@ -686,12 +686,12 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.Policies).HasMaxLength(500);
 
-            entity.HasOne(d => d.Product).WithMany(p => p.Supplier_Products)
+            entity.HasOne(d => d.Product).WithMany(p => p.SupplierProducts)
                 .HasForeignKey(d => d.ProductID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_SupplierProduct_Product");
 
-            entity.HasOne(d => d.Supplier).WithMany(p => p.Supplier_Products)
+            entity.HasOne(d => d.Supplier).WithMany(p => p.SupplierProducts)
                 .HasForeignKey(d => d.SupplierID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_SupplierProduct_Supplier");
@@ -714,7 +714,7 @@ public partial class CarServiceDbContext : DbContext
                 .HasConstraintName("FK_TokenFP_User");
         });
 
-        modelBuilder.Entity<Transfer_Order>(entity =>
+        modelBuilder.Entity<TransferOrder>(entity =>
         {
             entity.HasKey(e => e.TransferOrderID).HasName("PK__Transfer__4AEC45EE1A3496E1");
 
@@ -728,20 +728,20 @@ public partial class CarServiceDbContext : DbContext
                 .HasDefaultValue("DRAFT");
             entity.Property(e => e.Type).HasMaxLength(30);
 
-            entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.Transfer_OrderApprovedByNavigations)
+            entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.TransferOrderApprovedByNavigations)
                 .HasForeignKey(d => d.ApprovedBy)
                 .HasConstraintName("FK_TO_ApprovedBy");
 
-            entity.HasOne(d => d.CreateByNavigation).WithMany(p => p.Transfer_OrderCreateByNavigations)
+            entity.HasOne(d => d.CreateByNavigation).WithMany(p => p.TransferOrderCreateByNavigations)
                 .HasForeignKey(d => d.CreateBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_TO_CreateBy");
 
-            entity.HasOne(d => d.RelatedMaintenance).WithMany(p => p.Transfer_Orders)
+            entity.HasOne(d => d.RelatedMaintenance).WithMany(p => p.TransferOrders)
                 .HasForeignKey(d => d.RelatedMaintenanceID)
                 .HasConstraintName("FK_TO_Maintenance");
 
-            entity.HasOne(d => d.Supplier).WithMany(p => p.Transfer_Orders)
+            entity.HasOne(d => d.Supplier).WithMany(p => p.TransferOrders)
                 .HasForeignKey(d => d.SupplierID)
                 .HasConstraintName("FK_TO_Supplier");
         });
