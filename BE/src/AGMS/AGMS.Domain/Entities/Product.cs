@@ -20,6 +20,8 @@ public class Product
     public virtual ICollection<AppointmentServiceItem> AppointmentServiceItems { get; set; } = new List<AppointmentServiceItem>();
     public virtual Category? Category { get; set; }
     public virtual ICollection<MaintenancePackageDetail> MaintenancePackageDetails { get; set; } = new List<MaintenancePackageDetail>();
+    public virtual ICollection<ProductItem> ProductItems { get; set; } = new List<ProductItem>();
+
     public virtual ICollection<ServiceDetail> ServiceDetails { get; set; } = new List<ServiceDetail>();
     public virtual ICollection<ServicePartDetail> ServicePartDetails { get; set; } = new List<ServicePartDetail>();
     public virtual ICollection<StockLot> StockLots { get; set; } = new List<StockLot>();

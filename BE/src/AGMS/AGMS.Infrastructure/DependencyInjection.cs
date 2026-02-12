@@ -21,10 +21,12 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IAuthTokenService, AuthTokenService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IUserService, UserService>();
 
         return services;

@@ -48,6 +48,8 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<Product> Products { get; set; }
 
+    public virtual DbSet<ProductItem> ProductItems { get; set; }
+
     public virtual DbSet<RescueRequest> RescueRequests { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
@@ -460,6 +462,18 @@ public partial class CarServiceDbContext : DbContext
             entity.HasOne(d => d.Unit).WithMany(p => p.Products)
                 .HasForeignKey(d => d.UnitID)
                 .HasConstraintName("FK_Product_Unit");
+        });
+
+        modelBuilder.Entity<ProductItem>(entity =>
+        {
+            entity.HasKey(e => e.ProductItemID).HasName("PK__ProductI__1373AD20C27C0679");
+            entity.ToTable("ProductItems");
+            entity.Property(e => e.SerialNumber).HasMaxLength(100);
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.HasOne(d => d.Product).WithMany(p => p.ProductItems)
+                .HasForeignKey(d => d.ProductID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductItems_Product");
         });
 
         modelBuilder.Entity<RescueRequest>(entity =>
