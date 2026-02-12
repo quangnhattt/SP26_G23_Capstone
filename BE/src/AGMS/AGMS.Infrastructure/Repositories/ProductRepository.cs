@@ -81,6 +81,45 @@ public class ProductRepository : IProductRepository
             IsActive = product.IsActive
         };
     }
+    public async Task<PartProductListItemDto> UpdatePartProductAsync(int id, UpdatePartProductDto request, CancellationToken ct)
+    {
+        var product = await _db.Products
+            .Include(p => p.Unit)
+            .Include(p => p.Category)
+            .Include(p => p.ProductItems)
+            .FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
+
+        if (product == null)
+        {
+            return null;
+        }
+        product.Name = request.Name;
+        product.Price = request.Price;
+        product.UnitID = request.UnitId;
+        product.CategoryID = request.CategoryId;
+        product.WarrantyPeriodMonths = request.Warranty;
+        product.MinStockLevel = request.MinStockLevel;
+        product.Description = request.Description;
+        product.Image = request.Image;
+        product.IsActive = request.IsActive;
+        await _db.SaveChangesAsync(ct);
+        var stockQty = product.ProductItems.Count(pi => pi.Status == "IN_STOCK");
+        return new PartProductListItemDto
+        {
+            Id = product.ProductID,
+            Code = product.Code,
+            Name = product.Name,
+            Price = product.Price,
+            Unit = product.Unit != null ? product.Unit.Name : null,
+            Category = product.Category != null ? product.Category.Name : null,
+            Warranty = product.WarrantyPeriodMonths,
+            MinStockLevel = product.MinStockLevel,
+            StockQty = stockQty,
+            Description = product.Description,
+            Image = product.Image,
+            IsActive = product.IsActive,
+        };
+    }
 
 
 }

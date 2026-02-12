@@ -31,4 +31,16 @@ public class ProductController : ControllerBase
         var created = await _productService.AddPartProductAsync(request, ct);
         return CreatedAtAction(nameof(GetPartProducts), new { }, created);
     }
+    [HttpPut("parts/{id:int}")]
+    [ProducesResponseType(typeof(PartProductListItemDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> updatePartProduct(int id, [FromBody] UpdatePartProductDto request, CancellationToken ct)
+    {
+        var updated=await _productService.UpdatePartProductAsync(id, request, ct);
+        if (updated == null)
+        {
+            return NotFound();
+        }
+        return Ok(updated);
+    }
 }

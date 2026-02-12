@@ -20,4 +20,9 @@ public class ProductService : IProductService
     {
         return await _productRepository.AddPartProductAsync(request, ct);
     }
+    public async Task<PartProductListItemDto> UpdatePartProductAsync(int id,UpdatePartProductDto request, CancellationToken ct)
+    {
+        return await _productRepository.UpdatePartProductAsync(id, request, ct);
+
+    }
 }
