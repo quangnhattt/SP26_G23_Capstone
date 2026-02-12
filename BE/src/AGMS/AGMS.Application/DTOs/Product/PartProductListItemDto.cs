@@ -2,6 +2,7 @@ namespace AGMS.Application.DTOs.Product;
 
 public class PartProductListItemDto
 {
+    public int Id { get; set; }
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public decimal Price { get; set; }

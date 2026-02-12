@@ -22,6 +22,7 @@ public class ProductRepository : IProductRepository
             .Where(p => p.Type == "PART")
             .Select(p => new PartProductListItemDto
             {
+                Id = p.ProductID,
                 Code = p.Code,
                 Name = p.Name,
                 Price = p.Price,
@@ -66,6 +67,7 @@ public class ProductRepository : IProductRepository
 
         return new PartProductListItemDto
         {
+            Id = product.ProductID,
             Code = product.Code,
             Name = product.Name,
             Price = product.Price,
