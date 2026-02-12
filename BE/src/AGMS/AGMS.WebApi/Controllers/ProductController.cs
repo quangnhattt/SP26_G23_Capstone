@@ -22,4 +22,13 @@ public class ProductController : ControllerBase
         var response = await _productService.GetPartProductsAsync(ct);
         return Ok(response);
     }
+
+
+    [HttpPost("parts")]
+    [ProducesResponseType(typeof(PartProductListItemDto), StatusCodes.Status201Created)]
+    public async Task<IActionResult> AddPartProduct([FromBody] CreatePartProductDto request, CancellationToken ct)
+    {
+        var created = await _productService.AddPartProductAsync(request, ct);
+        return CreatedAtAction(nameof(GetPartProducts), new { }, created);
+    }
 }

@@ -1,5 +1,6 @@
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Product;
+using AGMS.Domain.Entities;
 using AGMS.Infrastructure.Persistence.Db;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,4 +36,49 @@ public class ProductRepository : IProductRepository
             })
             .ToListAsync(ct);
     }
+    public async Task<PartProductListItemDto> AddPartProductAsync(CreatePartProductDto request, CancellationToken ct)
+    {
+        var product = new Product
+        {
+            Code = request.Code,
+            Name = request.Name,
+            Type = "PART",
+            Price = request.Price,
+            Description = request.Description,
+            Image = request.Image,
+            UnitID = request.UnitId,
+            CategoryID = request.CategoryId,
+            WarrantyPeriodMonths = request.Warranty,
+            MinStockLevel = request.MinStockLevel,
+            IsActive = request.IsActive
+        };
+
+        _db.Products.Add(product);
+        await _db.SaveChangesAsync(ct);
+
+        // Load navigation properties to populate DTO
+        await _db.Entry(product).Reference(p => p.Unit).LoadAsync(ct);
+        await _db.Entry(product).Reference(p => p.Category).LoadAsync(ct);
+
+        var stockQty = await _db.ProductItems
+            .AsNoTracking()
+            .CountAsync(pi => pi.ProductID == product.ProductID && pi.Status == "IN_STOCK", ct);
+
+        return new PartProductListItemDto
+        {
+            Code = product.Code,
+            Name = product.Name,
+            Price = product.Price,
+            Unit = product.Unit != null ? product.Unit.Name : null,
+            Category = product.Category != null ? product.Category.Name : null,
+            Warranty = product.WarrantyPeriodMonths,
+            MinStockLevel = product.MinStockLevel,
+            StockQty = stockQty,
+            Description = product.Description,
+            Image = product.Image,
+            IsActive = product.IsActive
+        };
+    }
+
+
 }

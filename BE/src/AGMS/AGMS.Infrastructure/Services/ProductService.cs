@@ -16,4 +16,8 @@ public class ProductService : IProductService
     {
         return await _productRepository.GetPartProductsAsync(ct);
     }
+    public async Task<PartProductListItemDto> AddPartProductAsync(CreatePartProductDto request, CancellationToken ct)
+    {
+        return await _productRepository.AddPartProductAsync(request, ct);
+    }
 }
