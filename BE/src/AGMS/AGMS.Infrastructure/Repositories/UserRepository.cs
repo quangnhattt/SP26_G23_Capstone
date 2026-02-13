@@ -38,17 +38,72 @@ public class UserRepository : IUserRepository
     {
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
         if (entity == null) return;
+
         entity.PasswordHash = passwordHash;
         entity.PasswordSalt = passwordSalt;
         await _db.SaveChangesAsync(ct);
     }
+
     public async Task<IEnumerable<User>> GetUsersExceptAdminAsync(CancellationToken ct)
     {
         return await _db.Users
             .AsNoTracking()
             .Include(u => u.Role)
-            .Where(u => u.RoleID != 1)  // exclude Admin (RoleID = 1)
+            .Where(u => u.RoleID != 1)
             .OrderBy(u => u.UserID)
             .ToListAsync(ct);
+    }
+
+    public async Task<User?> GetByIdAsync(int userId, CancellationToken ct)
+    {
+        return await _db.Users
+            .AsNoTracking()
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.UserID == userId, ct);
+    }
+
+    public async Task<IEnumerable<User>> SearchUsersExceptAdminAsync(string? q, int? roleId, bool? isActive, CancellationToken ct)
+    {
+        var query = _db.Users
+            .AsNoTracking()
+            .Include(u => u.Role)
+            .Where(u => u.RoleID != 1);
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            query = query.Where(u =>
+                (u.FullName != null && u.FullName.Contains(q)) ||
+                (u.Email != null && u.Email.Contains(q)) ||
+                (u.Phone != null && u.Phone.Contains(q)));
+        }
+
+        if (roleId.HasValue)
+        {
+            query = query.Where(u => u.RoleID == roleId.Value);
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(u => u.IsActive == isActive.Value);
+        }
+
+        return await query
+            .OrderBy(u => u.UserID)
+            .ToListAsync(ct);
+    }
+
+    public async Task UpdateAsync(User user, CancellationToken ct)
+    {
+        _db.Users.Update(user);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetActiveAsync(int userId, bool isActive, CancellationToken ct)
+    {
+        var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
+        if (entity == null) return;
+
+        entity.IsActive = isActive;
+        await _db.SaveChangesAsync(ct);
     }
 }
