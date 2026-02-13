@@ -8,6 +8,13 @@ public class CreateUserRequest
     [MaxLength(200)]
     public string FullName { get; set; } = null!;
 
+    /// <summary>
+    /// Username chosen by admin/user (must be unique and not equal to Email).
+    /// </summary>
+    [Required]
+    [MaxLength(200)]
+    public string Username { get; set; } = null!;
+
     [Required]
     [EmailAddress]
     [MaxLength(200)]
@@ -25,4 +32,12 @@ public class CreateUserRequest
 
     [Required]
     public string ConfirmPassword { get; set; } = null!;
+
+    [MaxLength(20)]
+    public string? Gender { get; set; }
+
+    public DateOnly? DateOfBirth { get; set; }
+
+    [MaxLength(255)]
+    public string? Image { get; set; }
 }

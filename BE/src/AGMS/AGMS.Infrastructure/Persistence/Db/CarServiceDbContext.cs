@@ -785,7 +785,7 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.Email).HasMaxLength(100);
             entity.Property(e => e.FullName).HasMaxLength(100);
             entity.Property(e => e.Gender)
-                .HasMaxLength(1)
+                .HasMaxLength(10)
                 .IsUnicode(false)
                 .IsFixedLength();
             entity.Property(e => e.IsActive).HasDefaultValue(true);

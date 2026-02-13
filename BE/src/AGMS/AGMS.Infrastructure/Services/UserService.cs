@@ -25,17 +25,27 @@ public class UserService : IUserService
     public async Task<UserDetailDto> CreateUserAsync(CreateUserRequest request, CancellationToken ct)
     {
         var fullName = request.FullName.Trim();
+        var username = request.Username?.Trim() ?? string.Empty;
         var email = request.Email.Trim();
         var phone = request.PhoneNumber?.Trim();
 
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException("Email is required.");
 
+        if (string.IsNullOrWhiteSpace(username))
+            throw new ArgumentException("Username is required.");
+
+        if (username.Equals(email, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Username must not equal email.");
+
         if (request.Password != request.ConfirmPassword)
             throw new ArgumentException("Password and confirmation do not match.");
 
         if (request.RoleID is < 2 or > 4)
             throw new ArgumentException("RoleID must be 2 (ServiceAdvisor), 3 (Technician), or 4 (Customer).");
+
+        if (await _userRepository.GetByUsernameAsync(username, ct) != null)
+            throw new ConflictException("Username is already in use.");
 
         if (await _userRepository.GetByEmailAsync(email, ct) != null)
             throw new ConflictException("Email is already in use.");
@@ -47,6 +57,20 @@ public class UserService : IUserService
                 throw new ConflictException("Phone number is already in use.");
         }
 
+        // Validate Gender if provided
+        string? genderValue = null;
+        if (!string.IsNullOrWhiteSpace(request.Gender))
+        {
+            var g = request.Gender.Trim();
+            if (!g.Equals("Male", StringComparison.OrdinalIgnoreCase) &&
+                !g.Equals("Female", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Gender must be either 'Male' or 'Female'.");
+            }
+
+            genderValue = g.Equals("Male", StringComparison.OrdinalIgnoreCase) ? "Male" : "Female";
+        }
+
         var (hash, salt) = _passwordHasher.Hash(request.Password);
         var userCode = "USR" + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
         var now = DateTime.UtcNow;
@@ -56,11 +80,14 @@ public class UserService : IUserService
             UserID = 0,
             UserCode = userCode,
             FullName = fullName,
-            Username = email,
+            Username = username,
             PasswordHash = hash,
             PasswordSalt = salt,
             Email = email,
             Phone = phone,
+            Gender = genderValue,
+            DateOfBirth = request.DateOfBirth,
+            Image = string.IsNullOrWhiteSpace(request.Image) ? null : request.Image.Trim(),
             RoleID = request.RoleID,
             IsActive = true,
             CreatedDate = now
