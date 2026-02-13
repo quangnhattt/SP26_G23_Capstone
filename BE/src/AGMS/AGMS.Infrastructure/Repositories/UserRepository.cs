@@ -100,19 +100,25 @@ public class UserRepository : IUserRepository
     }
 
     public async Task UpdateAsync(User user, CancellationToken ct)
-{
-    var entity = await _db.Users
-        .FirstOrDefaultAsync(u => u.UserID == user.UserID, ct);
+    {
+        var entity = await _db.Users
+            .FirstOrDefaultAsync(u => u.UserID == user.UserID, ct);
 
-    if (entity == null) return;
+        if (entity == null) return;
 
-    entity.FullName = user.FullName;
-    entity.Phone    = user.Phone;
-    entity.RoleID   = user.RoleID;
-    entity.IsActive = user.IsActive;
+        // Chỉ cập nhật các trường được phép chỉnh sửa
+        entity.FullName   = user.FullName;
+        entity.Email      = user.Email;
+        entity.Username   = user.Username;
+        entity.Phone      = user.Phone;
+        entity.Gender     = user.Gender;
+        entity.DateOfBirth = user.DateOfBirth;
+        entity.Image      = user.Image;
+        entity.RoleID     = user.RoleID;
+        entity.IsActive   = user.IsActive;
 
-    await _db.SaveChangesAsync(ct);
-}
+        await _db.SaveChangesAsync(ct);
+    }
 
 
     public async Task SetActiveAsync(int userId, bool isActive, CancellationToken ct)
