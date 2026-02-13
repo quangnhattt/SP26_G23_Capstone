@@ -3,6 +3,7 @@ using AGMS.Application.DTOs.Product;
 using AGMS.Domain.Entities;
 using AGMS.Infrastructure.Persistence.Db;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Metadata.Ecma335;
 
 namespace AGMS.Infrastructure.Repositories;
 
@@ -120,6 +121,30 @@ public class ProductRepository : IProductRepository
             IsActive = product.IsActive,
         };
     }
+    public async Task<bool> DeactivePartProductAsync(int id, CancellationToken ct)
+    {
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
+        if (product == null) return false;
+        if (!product.IsActive)
+        {
+            return true;
+        }
 
+        product.IsActive = false;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+    public async Task<bool> ActivePartProductAsync(int id, CancellationToken ct)
+    {
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Type =="PART" && p.ProductID == id, ct);
+        if (product == null) return false;
+        if (product.IsActive)
+        {
+            return true;
+        }
+        product.IsActive = true;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
 
 }

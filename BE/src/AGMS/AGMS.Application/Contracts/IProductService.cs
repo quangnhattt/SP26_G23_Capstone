@@ -7,4 +7,6 @@ public interface IProductService
     Task<IEnumerable<PartProductListItemDto>> GetPartProductsAsync(CancellationToken ct);
     Task<PartProductListItemDto> AddPartProductAsync(CreatePartProductDto request, CancellationToken ct);
     Task<PartProductListItemDto> UpdatePartProductAsync(int id,UpdatePartProductDto request, CancellationToken ct);    
+    Task<bool> DeactivePartProductAsync(int id, CancellationToken ct);
+    Task<bool> ActivePartProductAsync(int id, CancellationToken ct);
 }

@@ -36,11 +36,37 @@ public class ProductController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> updatePartProduct(int id, [FromBody] UpdatePartProductDto request, CancellationToken ct)
     {
-        var updated=await _productService.UpdatePartProductAsync(id, request, ct);
+        var updated = await _productService.UpdatePartProductAsync(id, request, ct);
         if (updated == null)
         {
             return NotFound();
         }
         return Ok(updated);
     }
+
+    [HttpPatch("parts/{id:int}/deactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeactivePartProduct(int id, CancellationToken ct)
+    {
+        var success = await _productService.DeactivePartProductAsync(id, ct);
+        if (!success)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
+    [HttpPatch("parts/{id:int}/active")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ActivePartProductAsync(int id, CancellationToken ct)
+    {
+        var success=await _productService.ActivePartProductAsync(id, ct);
+        if (!success)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
+
 }

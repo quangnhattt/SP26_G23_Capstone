@@ -25,4 +25,12 @@ public class ProductService : IProductService
         return await _productRepository.UpdatePartProductAsync(id, request, ct);
 
     }
+    public async Task<bool> DeactivePartProductAsync(int id,CancellationToken ct)
+    {
+        return await _productRepository.DeactivePartProductAsync(id, ct);
+    }
+    public async Task<bool> ActivePartProductAsync(int id, CancellationToken ct)
+    {
+        return await _productRepository.ActivePartProductAsync(id, ct);
+    }
 }
