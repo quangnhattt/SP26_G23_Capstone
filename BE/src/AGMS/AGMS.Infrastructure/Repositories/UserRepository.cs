@@ -93,10 +93,20 @@ public class UserRepository : IUserRepository
     }
 
     public async Task UpdateAsync(User user, CancellationToken ct)
-    {
-        _db.Users.Update(user);
-        await _db.SaveChangesAsync(ct);
-    }
+{
+    var entity = await _db.Users
+        .FirstOrDefaultAsync(u => u.UserID == user.UserID, ct);
+
+    if (entity == null) return;
+
+    entity.FullName = user.FullName;
+    entity.Phone    = user.Phone;
+    entity.RoleID   = user.RoleID;
+    entity.IsActive = user.IsActive;
+
+    await _db.SaveChangesAsync(ct);
+}
+
 
     public async Task SetActiveAsync(int userId, bool isActive, CancellationToken ct)
     {
