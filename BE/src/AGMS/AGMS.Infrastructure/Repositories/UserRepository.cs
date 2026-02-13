@@ -21,6 +21,13 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Email == email, ct);
     }
 
+    public async Task<User?> GetByUsernameAsync(string username, CancellationToken ct)
+    {
+        return await _db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Username == username, ct);
+    }
+
     public async Task<User?> GetByPhoneAsync(string phone, CancellationToken ct)
     {
         return await _db.Users

@@ -35,10 +35,24 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(req.Password) || req.Password != req.ConfirmPassword)
             throw new InvalidOperationException("Password and confirmation do not match.");
 
-        if (await _userRepo.GetByEmailAsync(req.Email.Trim(), ct) != null)
+        var fullName = req.FullName.Trim();
+        var username = req.Username?.Trim() ?? string.Empty;
+        var email = req.Email.Trim();
+        var phone = string.IsNullOrWhiteSpace(req.PhoneNumber) ? null : req.PhoneNumber.Trim();
+
+        if (string.IsNullOrWhiteSpace(username))
+            throw new InvalidOperationException("Username is required.");
+
+        if (username.Equals(email, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Username must not equal email.");
+
+        if (await _userRepo.GetByUsernameAsync(username, ct) != null)
+            throw new InvalidOperationException("Username is already registered.");
+
+        if (await _userRepo.GetByEmailAsync(email, ct) != null)
             throw new InvalidOperationException("Email is already registered.");
 
-        if (await _userRepo.GetByPhoneAsync(req.PhoneNumber.Trim(), ct) != null)
+        if (!string.IsNullOrWhiteSpace(phone) && await _userRepo.GetByPhoneAsync(phone, ct) != null)
             throw new InvalidOperationException("Phone number is already registered.");
 
         var roleId = _configuration.GetValue<int>("Auth:DefaultCustomerRoleId");
@@ -53,12 +67,12 @@ public class AuthService : IAuthService
         {
             UserID = 0,
             UserCode = userCode,
-            FullName = req.FullName.Trim(),
-            Username = req.Email.Trim(),
+            FullName = fullName,
+            Username = username,
             PasswordHash = hash,
             PasswordSalt = salt,
-            Email = req.Email.Trim(),
-            Phone = req.PhoneNumber.Trim(),
+            Email = email,
+            Phone = phone,
             RoleID = roleId,
             IsActive = true,
             CreatedDate = now
