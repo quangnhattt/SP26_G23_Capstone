@@ -43,27 +43,36 @@ public class ProductRepository : IProductRepository
         // Always auto-generate Code
         var now = DateTime.UtcNow;
         var random = new Random().Next(100, 999); // Random 3 digits
-        var code = $"P{now:ddHHmm}{random:D3}";
-
-        // Validate CategoryID if provided
+var code = $"P{now:ddHHmm}{random:D3}";
+        // Validate CategoryID if provided: must be a category of type Part
         if (request.CategoryId.HasValue)
         {
-            var categoryExists = await _db.Categories
-                .AnyAsync(c => c.CategoryID == request.CategoryId.Value, ct);
-            if (!categoryExists)
+            var category = await _db.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.CategoryID == request.CategoryId.Value, ct);
+            if (category == null)
             {
-                throw new ArgumentException($"Category with ID {request.CategoryId.Value} does not exist.");
+                throw new ArgumentException("Category does not exist.");
+            }
+            if (category.Type != "Part" && category.Type != "PART")
+            {
+                throw new ArgumentException("Category must be of type Part.");
             }
         }
 
-        // Validate UnitID if provided
+        // Validate UnitID if provided: must be a unit of type Part
         if (request.UnitId.HasValue)
         {
-            var unitExists = await _db.Units
-                .AnyAsync(u => u.UnitID == request.UnitId.Value, ct);
-            if (!unitExists)
+            var unit = await _db.Units
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UnitID == request.UnitId.Value, ct);
+            if (unit == null)
             {
-                throw new ArgumentException($"Unit with ID {request.UnitId.Value} does not exist.");
+                throw new ArgumentException("Unit does not exist.");
+            }
+            if (unit.Type != "Part" && unit.Type != "PART")
+            {
+                throw new ArgumentException("Unit must be of type Part.");
             }
         }
 
@@ -121,6 +130,36 @@ public class ProductRepository : IProductRepository
         {
             return null;
         }
+        // Validate CategoryID if provided: must be a category of type Part
+        if (request.CategoryId.HasValue)
+        {
+            var category = await _db.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.CategoryID == request.CategoryId.Value, ct);
+            if (category == null)
+            {
+                throw new ArgumentException("Category does not exist.");
+            }
+            if (category.Type != "Part" && category.Type != "PART")
+            {
+                throw new ArgumentException("Category must be of type Part.");
+            }
+        }
+        // Validate UnitID if provided: must be a unit of type Part
+        if (request.UnitId.HasValue)
+        {
+            var unit = await _db.Units
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UnitID == request.UnitId.Value, ct);
+            if (unit == null)
+            {
+                throw new ArgumentException("Unit does not exist.");
+            }
+            if (unit.Type != "Part" && unit.Type != "PART")
+            {
+                throw new ArgumentException("Unit must be of type Part.");
+            }
+        }
         product.Name = request.Name;
         product.Price = request.Price;
         product.UnitID = request.UnitId;
@@ -163,7 +202,7 @@ public class ProductRepository : IProductRepository
     }
     public async Task<bool> ActivePartProductAsync(int id, CancellationToken ct)
     {
-        var product = await _db.Products.FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Type =="PART" && p.ProductID == id, ct);
         if (product == null) return false;
         if (product.IsActive)
         {

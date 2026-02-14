@@ -26,22 +26,38 @@ public class ProductController : ControllerBase
 
     [HttpPost("parts")]
     [ProducesResponseType(typeof(PartProductListItemDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddPartProduct([FromBody] CreatePartProductDto request, CancellationToken ct)
     {
-        var created = await _productService.AddPartProductAsync(request, ct);
-        return CreatedAtAction(nameof(GetPartProducts), new { }, created);
+        try
+        {
+            var created = await _productService.AddPartProductAsync(request, ct);
+            return CreatedAtAction(nameof(GetPartProducts), new { }, created);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
     [HttpPut("parts/{id:int}")]
     [ProducesResponseType(typeof(PartProductListItemDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> updatePartProduct(int id, [FromBody] UpdatePartProductDto request, CancellationToken ct)
     {
-        var updated = await _productService.UpdatePartProductAsync(id, request, ct);
-        if (updated == null)
+        try
         {
-            return NotFound();
+            var updated = await _productService.UpdatePartProductAsync(id, request, ct);
+            if (updated == null)
+            {
+                return NotFound();
+            }
+            return Ok(updated);
         }
-        return Ok(updated);
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPatch("parts/{id:int}/deactivate")]
