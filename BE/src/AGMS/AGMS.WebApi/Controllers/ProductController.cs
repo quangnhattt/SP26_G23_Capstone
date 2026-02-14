@@ -85,4 +85,29 @@ public class ProductController : ControllerBase
         return NoContent();
     }
 
+    //Product service 
+
+    [HttpGet("services")]
+    [ProducesResponseType(typeof(IEnumerable<ServiceProductListItemDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetServiceProducts(CancellationToken ct)
+    {
+        var response = await _productService.GetServiceProductsAsync(ct);
+        return Ok(response);
+    }
+    [HttpPost("services")]
+    [ProducesResponseType(typeof(ServiceProductListItemDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddServiceProduct([FromBody] CreateServiceProductDto request, CancellationToken ct)
+    {
+        try
+        {
+            var created = await _productService.AddServiceProductAsync(request, ct);
+            return CreatedAtAction(nameof(GetServiceProducts), new { }, created);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
 }

@@ -33,4 +33,13 @@ public class ProductService : IProductService
     {
         return await _productRepository.ActivePartProductAsync(id, ct);
     }
+    public async Task<IEnumerable<ServiceProductListItemDto>> GetServiceProductsAsync(CancellationToken ct)
+    {
+        return await _productRepository.GetServiceProductsAsync(ct);
+    }
+    public async Task<ServiceProductListItemDto> AddServiceProductAsync(CreateServiceProductDto request, CancellationToken ct)
+    {
+        return await _productRepository.AddServiceProductAsync(request, ct);
+    }
+
 }
