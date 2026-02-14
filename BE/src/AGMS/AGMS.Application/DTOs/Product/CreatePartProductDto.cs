@@ -2,7 +2,6 @@ namespace AGMS.Application.DTOs.Product;
 
 public class CreatePartProductDto
 {
-    public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public decimal Price { get; set; }
     public int? UnitId { get; set; }

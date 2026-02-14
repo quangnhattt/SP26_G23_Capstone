@@ -3,6 +3,7 @@ using AGMS.Application.DTOs.Product;
 using AGMS.Domain.Entities;
 using AGMS.Infrastructure.Persistence.Db;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Metadata.Ecma335;
 
 namespace AGMS.Infrastructure.Repositories;
 
@@ -39,9 +40,36 @@ public class ProductRepository : IProductRepository
     }
     public async Task<PartProductListItemDto> AddPartProductAsync(CreatePartProductDto request, CancellationToken ct)
     {
+        // Always auto-generate Code
+        var now = DateTime.UtcNow;
+        var random = new Random().Next(100, 999); // Random 3 digits
+        var code = $"P{now:ddHHmm}{random:D3}";
+
+        // Validate CategoryID if provided
+        if (request.CategoryId.HasValue)
+        {
+            var categoryExists = await _db.Categories
+                .AnyAsync(c => c.CategoryID == request.CategoryId.Value, ct);
+            if (!categoryExists)
+            {
+                throw new ArgumentException($"Category with ID {request.CategoryId.Value} does not exist.");
+            }
+        }
+
+        // Validate UnitID if provided
+        if (request.UnitId.HasValue)
+        {
+            var unitExists = await _db.Units
+                .AnyAsync(u => u.UnitID == request.UnitId.Value, ct);
+            if (!unitExists)
+            {
+                throw new ArgumentException($"Unit with ID {request.UnitId.Value} does not exist.");
+            }
+        }
+
         var product = new Product
         {
-            Code = request.Code,
+            Code = code,
             Name = request.Name,
             Type = "PART",
             Price = request.Price,
@@ -120,6 +148,30 @@ public class ProductRepository : IProductRepository
             IsActive = product.IsActive,
         };
     }
+    public async Task<bool> DeactivePartProductAsync(int id, CancellationToken ct)
+    {
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
+        if (product == null) return false;
+        if (!product.IsActive)
+        {
+            return true;
+        }
 
+        product.IsActive = false;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+    public async Task<bool> ActivePartProductAsync(int id, CancellationToken ct)
+    {
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
+        if (product == null) return false;
+        if (product.IsActive)
+        {
+            return true;
+        }
+        product.IsActive = true;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
 
 }
