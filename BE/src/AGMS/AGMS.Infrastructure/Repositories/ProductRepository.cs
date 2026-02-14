@@ -3,6 +3,8 @@ using AGMS.Application.DTOs.Product;
 using AGMS.Domain.Entities;
 using AGMS.Infrastructure.Persistence.Db;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Net.WebSockets;
 using System.Reflection.Metadata.Ecma335;
 
 namespace AGMS.Infrastructure.Repositories;
@@ -254,53 +256,115 @@ public class ProductRepository : IProductRepository
             }
         }
 
-            if (request.UnitId.HasValue)
+        if (request.UnitId.HasValue)
+        {
+            var unit = await _db.Units
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UnitID == request.UnitId.Value, ct);
+            if (unit == null)
             {
-                var unit = await _db.Units
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(u => u.UnitID == request.UnitId.Value, ct);
-                if (unit == null)
-                {
-                    throw new ArgumentException("Unit does not exist");
-                }
-                if (unit.Type != "Serivce" && unit.Type != "SERVICE")
-                {
-                    throw new ArgumentException("Unit must be of type SERVICE or Service");
-                }
+                throw new ArgumentException("Unit does not exist");
             }
-            var product = new Product
+            if (unit.Type != "Serivce" && unit.Type != "SERVICE")
             {
-                Code = code,
-                Name = request.Name,
-                Type = "SERVICE",
-                Price = request.Price,
-                Description = request.Description,
-                Image = request.Image,
-                UnitID = request.UnitId,
-                CategoryID = request.CategoryId,
-                EstimatedDurationHours = request.EstimatedDurationHours,
-                WarrantyPeriodMonths = 0,
-                MinStockLevel = 0,
-                IsActive = request.IsActive
-            };
-            _db.Products.Add(product);
+                throw new ArgumentException("Unit must be of type SERVICE or Service");
+            }
+        }
+        var product = new Product
+        {
+            Code = code,
+            Name = request.Name,
+            Type = "SERVICE",
+            Price = request.Price,
+            Description = request.Description,
+            Image = request.Image,
+            UnitID = request.UnitId,
+            CategoryID = request.CategoryId,
+            EstimatedDurationHours = request.EstimatedDurationHours,
+            WarrantyPeriodMonths = 0,
+            MinStockLevel = 0,
+            IsActive = request.IsActive
+        };
+        _db.Products.Add(product);
+        await _db.SaveChangesAsync(ct);
+        await _db.Entry(product).Reference(p => p.Unit).LoadAsync(ct);
+        await _db.Entry(product).Reference(p => p.Category).LoadAsync(ct);
+        return new ServiceProductListItemDto
+        {
+            Id = product.ProductID,
+            Code = product.Code,
+            Name = product.Name,
+            Price = product.Price,
+            Unit = product.Unit != null ? product.Unit.Name : null,
+            Category = product.Category != null ? product.Category.Name : null,
+            EstimatedDurationHours = product.EstimatedDurationHours,
+            Description = product.Description,
+            Image = product.Image,
+            IsActive = product.IsActive
+        };
+
+
+    }
+    public async Task<ServiceProductListItemDto?> UpdateServiceProductAsync(int id, UpdateServiceProductDto request, CancellationToken ct)
+    {
+        var product = await _db.Products
+            .Include(p => p.Unit)
+            .Include(p => p.Category)
+            .FirstOrDefaultAsync(p => (p.Type == "SERVICE" || p.Type == "Service") && p.ProductID == id, ct);
+        if (product == null)
+        {
+            return null;
+        }
+        if (request.CategoryId.HasValue)
+        {
+            var category = await _db.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.CategoryID == request.CategoryId.Value, ct);
+            if (category == null)
+                throw new ArgumentException("Category does not exist");
+            if (category.Type != "Service" && category.Type != "SERVICE")
+                throw new ArgumentException("Category musst be of type Serivce");
+        }
+        if (request.UnitId.HasValue)
+        {
+            var unit = await _db.Units
+                .AsNoTracking().FirstOrDefaultAsync(u => u.UnitID == request.UnitId.Value, ct);
+            if (unit == null)
+            {
+                throw new ArgumentException("Unit does not exist");
+            }
+            if (unit.Type != "SERVICE" && unit.Type != "Service")
+            {
+                throw new ArgumentException("Unit must be of type Service");
+            }
+        } 
+            if (!string.IsNullOrWhiteSpace(request.Code))
+                product.Code = request.Code;
+            product.Name = request.Name;
+            product.Price = request.Price;
+            product.UnitID = request.UnitId;
+            product.CategoryID = request.CategoryId;
+            product.EstimatedDurationHours = request.EstimatedDurationHours;
+            product.Description = request.Description;
+            product.Image = request.Image;
+            product.IsActive= request.IsActive;
             await _db.SaveChangesAsync(ct);
-            await _db.Entry(product).Reference(p => p.Unit).LoadAsync(ct);
+
+            await _db.Entry(product).Reference(p=>p.Unit).LoadAsync(ct);
             await _db.Entry(product).Reference(p => p.Category).LoadAsync(ct);
             return new ServiceProductListItemDto
             {
-                Id = product.ProductID,
-                Code = product.Code,
-                Name = product.Name,
-                Price = product.Price,
-                Unit = product.Unit != null ? product.Unit.Name : null,
-                Category = product.Category != null ? product.Category.Name : null,
-                EstimatedDurationHours = product.EstimatedDurationHours,
-                Description = product.Description,
-                Image = product.Image,
-                IsActive = product.IsActive
-            };
-        
+                Id=product.ProductID,
+                Code=product.Code,
+                Name=product.Name,
+                Price=product.Price,
+                Unit=product.Unit !=null ? product.Unit.Name : null,
+                Category=product.Category !=null ? product.Category.Name : null,
+                EstimatedDurationHours=product.EstimatedDurationHours,
+                Description=product.Description,
+                Image=product.Image,    
+                IsActive=product.IsActive,
 
+            };
+        }
     }
-}

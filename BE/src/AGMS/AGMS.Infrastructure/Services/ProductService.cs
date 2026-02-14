@@ -41,5 +41,8 @@ public class ProductService : IProductService
     {
         return await _productRepository.AddServiceProductAsync(request, ct);
     }
-
+    public async Task<ServiceProductListItemDto?> UpdateServiceProductAsync(int id, UpdateServiceProductDto request, CancellationToken ct)
+    {
+        return await _productRepository.UpdateServiceProductAsync(id, request, ct);
+    }
 }

@@ -77,7 +77,7 @@ public class ProductController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ActivePartProductAsync(int id, CancellationToken ct)
     {
-        var success=await _productService.ActivePartProductAsync(id, ct);
+        var success = await _productService.ActivePartProductAsync(id, ct);
         if (!success)
         {
             return NotFound();
@@ -109,5 +109,26 @@ public class ProductController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+
+    [HttpPut("services/{id:int}")]
+    [ProducesResponseType(typeof(ServiceProductListItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateServiceProduct(int id, [FromBody] UpdateServiceProductDto request, CancellationToken ct)
+    {
+        try
+        {
+            var updated = await _productService.UpdateServiceProductAsync(id, request, ct);
+            if (updated == null)
+                return NotFound();
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
 
 }

@@ -13,5 +13,6 @@ public interface IProductRepository
     //Product Service 
     Task<IEnumerable<ServiceProductListItemDto>> GetServiceProductsAsync(CancellationToken ct);
     Task<ServiceProductListItemDto> AddServiceProductAsync(CreateServiceProductDto request, CancellationToken ct);
+    Task<ServiceProductListItemDto?> UpdateServiceProductAsync(int id, UpdateServiceProductDto request, CancellationToken ct);
 
 }
