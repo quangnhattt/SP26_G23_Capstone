@@ -3,8 +3,6 @@ using AGMS.Domain.Entities;
 using AGMS.Infrastructure.Persistence.Db;
 using Microsoft.EntityFrameworkCore;
 
-using DbVerificationCode = AGMS.Infrastructure.Persistence.Entities.VerificationCode;
-
 namespace AGMS.Infrastructure.Repositories;
 
 public class VerificationCodeRepository : IVerificationCodeRepository
@@ -18,7 +16,7 @@ public class VerificationCodeRepository : IVerificationCodeRepository
 
     public async Task CreateAsync(string contactInfo, string code, string type, DateTime expiryTimeUtc, CancellationToken ct)
     {
-        var entity = new DbVerificationCode
+        var entity = new VerificationCode
         {
             ContactInfo = contactInfo,
             Code = code,
@@ -33,7 +31,7 @@ public class VerificationCodeRepository : IVerificationCodeRepository
 
     public async Task<VerificationCode?> GetValidAsync(string contactInfo, string code, string type, DateTime nowUtc, CancellationToken ct)
     {
-        var entity = await _db.VerificationCodes
+        return await _db.VerificationCodes
             .AsNoTracking()
             .FirstOrDefaultAsync(
                 v => v.ContactInfo == contactInfo
@@ -42,7 +40,6 @@ public class VerificationCodeRepository : IVerificationCodeRepository
                      && v.ExpiryTime > nowUtc
                      && !v.IsUsed,
                 ct);
-        return entity == null ? null : MapToDomain(entity);
     }
 
     public async Task MarkUsedAsync(int id, CancellationToken ct)
@@ -51,19 +48,5 @@ public class VerificationCodeRepository : IVerificationCodeRepository
         if (entity == null) return;
         entity.IsUsed = true;
         await _db.SaveChangesAsync(ct);
-    }
-
-    private static VerificationCode MapToDomain(DbVerificationCode entity)
-    {
-        return new VerificationCode
-        {
-            Id = entity.Id,
-            ContactInfo = entity.ContactInfo,
-            Code = entity.Code,
-            Type = entity.Type,
-            ExpiryTime = entity.ExpiryTime,
-            IsUsed = entity.IsUsed,
-            CreatedDate = entity.CreatedDate
-        };
     }
 }

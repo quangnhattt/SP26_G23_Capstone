@@ -1,9 +1,7 @@
 using AGMS.Application.Contracts;
+using AGMS.Domain.Entities;
 using AGMS.Infrastructure.Persistence.Db;
 using Microsoft.EntityFrameworkCore;
-
-using DomainUser = AGMS.Domain.Entities.User;
-using DbUser = AGMS.Infrastructure.Persistence.Entities.User;
 
 namespace AGMS.Infrastructure.Repositories;
 
@@ -16,26 +14,30 @@ public class UserRepository : IUserRepository
         _db = db;
     }
 
-    public async Task<DomainUser?> GetByEmailAsync(string email, CancellationToken ct)
+    public async Task<User?> GetByEmailAsync(string email, CancellationToken ct)
     {
-        var entity = await _db.Users
+        return await _db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == email, ct);
-        return entity == null ? null : MapToDomain(entity);
     }
 
-    public async Task<DomainUser?> GetByPhoneAsync(string phone, CancellationToken ct)
+    public async Task<User?> GetByUsernameAsync(string username, CancellationToken ct)
     {
-        var entity = await _db.Users
+        return await _db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Username == username, ct);
+    }
+
+    public async Task<User?> GetByPhoneAsync(string phone, CancellationToken ct)
+    {
+        return await _db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Phone == phone, ct);
-        return entity == null ? null : MapToDomain(entity);
     }
 
-    public async Task AddAsync(DomainUser user, CancellationToken ct)
+    public async Task AddAsync(User user, CancellationToken ct)
     {
-        var entity = MapToPersistence(user);
-        _db.Users.Add(entity);
+        _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
     }
 
@@ -43,52 +45,88 @@ public class UserRepository : IUserRepository
     {
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
         if (entity == null) return;
+
         entity.PasswordHash = passwordHash;
         entity.PasswordSalt = passwordSalt;
         await _db.SaveChangesAsync(ct);
     }
 
-    private static DomainUser MapToDomain(DbUser entity)
+    public async Task<IEnumerable<User>> GetUsersExceptAdminAsync(CancellationToken ct)
     {
-        return new DomainUser
-        {
-            UserID = entity.UserID,
-            UserCode = entity.UserCode,
-            FullName = entity.FullName,
-            Username = entity.Username,
-            PasswordHash = entity.PasswordHash,
-            PasswordSalt = entity.PasswordSalt,
-            Email = entity.Email,
-            Phone = entity.Phone,
-            RoleID = entity.RoleID,
-            IsActive = entity.IsActive,
-            CreatedDate = entity.CreatedDate
-        };
+        return await _db.Users
+            .AsNoTracking()
+            .Include(u => u.Role)
+            .Where(u => u.RoleID != 1)
+            .OrderBy(u => u.UserID)
+            .ToListAsync(ct);
     }
 
-    private static DbUser MapToPersistence(DomainUser domain)
+    public async Task<User?> GetByIdAsync(int userId, CancellationToken ct)
     {
-        return new DbUser
+        return await _db.Users
+            .AsNoTracking()
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.UserID == userId, ct);
+    }
+
+    public async Task<IEnumerable<User>> SearchUsersExceptAdminAsync(string? q, int? roleId, bool? isActive, CancellationToken ct)
+    {
+        var query = _db.Users
+            .AsNoTracking()
+            .Include(u => u.Role)
+            .Where(u => u.RoleID != 1);
+
+        if (!string.IsNullOrWhiteSpace(q))
         {
-            UserID = domain.UserID,
-            UserCode = domain.UserCode,
-            FullName = domain.FullName,
-            Username = domain.Username,
-            PasswordHash = domain.PasswordHash,
-            PasswordSalt = domain.PasswordSalt,
-            Email = domain.Email,
-            Phone = domain.Phone,
-            RoleID = domain.RoleID,
-            IsActive = domain.IsActive,
-            CreatedDate = domain.CreatedDate,
-            Image = null,
-            Gender = null,
-            DateOfBirth = null,
-            LastLoginDate = null,
-            TotalSpending = 0,
-            CurrentRankID = null,
-            IsOnRescueMission = false,
-            Skills = null
-        };
+            query = query.Where(u =>
+                (u.FullName != null && u.FullName.Contains(q)) ||
+                (u.Email != null && u.Email.Contains(q)) ||
+                (u.Phone != null && u.Phone.Contains(q)));
+        }
+
+        if (roleId.HasValue)
+        {
+            query = query.Where(u => u.RoleID == roleId.Value);
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(u => u.IsActive == isActive.Value);
+        }
+
+        return await query
+            .OrderBy(u => u.UserID)
+            .ToListAsync(ct);
+    }
+
+    public async Task UpdateAsync(User user, CancellationToken ct)
+    {
+        var entity = await _db.Users
+            .FirstOrDefaultAsync(u => u.UserID == user.UserID, ct);
+
+        if (entity == null) return;
+
+        // Chỉ cập nhật các trường được phép chỉnh sửa
+        entity.FullName   = user.FullName;
+        entity.Email      = user.Email;
+        entity.Username   = user.Username;
+        entity.Phone      = user.Phone;
+        entity.Gender     = user.Gender;
+        entity.DateOfBirth = user.DateOfBirth;
+        entity.Image      = user.Image;
+        entity.RoleID     = user.RoleID;
+        entity.IsActive   = user.IsActive;
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+
+    public async Task SetActiveAsync(int userId, bool isActive, CancellationToken ct)
+    {
+        var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
+        if (entity == null) return;
+
+        entity.IsActive = isActive;
+        await _db.SaveChangesAsync(ct);
     }
 }
