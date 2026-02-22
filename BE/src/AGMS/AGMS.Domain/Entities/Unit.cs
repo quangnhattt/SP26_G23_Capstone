@@ -6,6 +6,6 @@ public class Unit
     public string Name { get; set; } = null!;
     public string? Type { get; set; }
     public string? Description { get; set; }
-
+    public bool IsActive { get; set; } = true; 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 }
