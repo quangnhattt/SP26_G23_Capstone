@@ -13,4 +13,11 @@ namespace AGMS.Application.DTOs.Unit
         public string? Type { get; set; }
         public string? Description { get; set; }
     }
+
+    public class PagedResult<T>
+    {
+        public List<T> Items { get; set; } = new List<T>();
+        public int TotalCount { get; set; }
+        public string? SystemMessage { get; set; }
+    }
 }

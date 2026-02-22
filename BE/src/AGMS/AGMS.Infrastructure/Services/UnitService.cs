@@ -1,6 +1,5 @@
 ﻿using AGMS.Application;
 using AGMS.Application.Contracts; // Gọi Interface Service và Interface Repository
-using AGMS.Application.DTOs.Common;
 using AGMS.Application.DTOs.Unit;
 using System.Threading.Tasks;
 
