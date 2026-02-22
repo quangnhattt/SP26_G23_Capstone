@@ -12,6 +12,7 @@ namespace AGMS.Application.DTOs.Unit
         public string Name { get; set; } = null!;
         public string? Type { get; set; }
         public string? Description { get; set; }
+        public bool IsActive { get; set; }
     }
 
     public class PagedResult<T>
