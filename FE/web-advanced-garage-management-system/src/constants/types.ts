@@ -1,3 +1,5 @@
+import type { Theme } from "@/context/ThemeContext";
+
 export enum AppStorageEnum {
   TOKEN = "token",
   REFRESH_TOKEN = "refresh_token",
@@ -51,4 +53,11 @@ export interface IUser {
   userReferralCode: string;
   profileProgress: number;
   avatar: string;
+}
+
+export interface DeviceProps {
+  isMobile?: any;
+  statusBarHeight?: number;
+  bottomStatusHeight?: number;
+  theme?: Theme;
 }
