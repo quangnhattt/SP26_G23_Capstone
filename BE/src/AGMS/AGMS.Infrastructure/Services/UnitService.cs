@@ -34,7 +34,8 @@ namespace AGMS.Infrastructure.Services
             {
                 Name = request.Name.Trim(),
                 Type = request.Type.Trim().ToUpper(), // Ép hoa chữ PART / SERVICE 
-                Description = request.Description?.Trim()
+                Description = request.Description?.Trim(),
+                IsActive = true
             };
 
             // Bước 3: Gọi Repository để lưu
@@ -46,7 +47,8 @@ namespace AGMS.Infrastructure.Services
                 UnitID = createdUnit.UnitID,
                 Name = createdUnit.Name,
                 Type = createdUnit.Type,
-                Description = createdUnit.Description
+                Description = createdUnit.Description,
+                IsActive = createdUnit.IsActive
             };
 
             // Thành công - Trả về MSG_UNIT03
