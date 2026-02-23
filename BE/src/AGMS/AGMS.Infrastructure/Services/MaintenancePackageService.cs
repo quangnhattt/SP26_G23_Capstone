@@ -1,5 +1,6 @@
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.MaintenanacePackage;
+using AGMS.Domain.Entities;
 
 namespace AGMS.Infrastructure.Services;
 
@@ -41,5 +42,21 @@ public class MaintenancePackageService : IMaintenancePackageService
                     .ToList()
             })
             .ToList();
+    }
+    public async Task<IEnumerable<MaintenancePackageListItemDto>> GetAllPackagesAsync(CancellationToken ct = default)
+    {
+        var list = await _repository.GetAllOrderedByDisplayOrderAsync(ct);
+        return list.Select(p => new MaintenancePackageListItemDto
+        {
+            PackageID = p.PackageID,
+            PackageCode = p.PackageCode,
+            Name = p.Name,
+            Description = p.Description,
+            KilometerMilestone = p.KilometerMilestone,
+            BasePrice = p.BasePrice,
+            DiscountPercent = p.DiscountPercent,
+            FinalPrice = p.FinalPrice,
+            DisplayOrder = p.DisplayOrder
+        }).ToList();
     }
 }

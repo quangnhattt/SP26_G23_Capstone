@@ -21,6 +21,14 @@ namespace AGMS.WebApi.Controllers
             return Ok(result);
         }
 
+        [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<MaintenancePackageListItemDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAll(CancellationToken ct)
+        {
+            var result = await _maintenancePackageService.GetAllPackagesAsync(ct);
+            return Ok(result);
+        }
+
 
     }
 }

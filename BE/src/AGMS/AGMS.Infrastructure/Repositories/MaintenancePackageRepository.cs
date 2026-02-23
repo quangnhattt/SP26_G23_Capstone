@@ -25,4 +25,8 @@ public class MaintenancePackageRepository : IMaintenancePackageRepository
             .ThenBy(pd => pd.DisplayOrder)
             .ToListAsync(ct);
     }
+    public async Task<IEnumerable<MaintenancePackage>> GetAllOrderedByDisplayOrderAsync(CancellationToken ct = default)
+    {
+        return await _dbContext.MaintenancePackages.AsNoTracking().OrderBy(pd => pd.DisplayOrder).ToListAsync(ct);
+    }
 }
