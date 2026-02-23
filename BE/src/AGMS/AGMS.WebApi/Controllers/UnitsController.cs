@@ -1,6 +1,6 @@
 ﻿using AGMS.Application;
-using AGMS.Application.Contracts; // Import Interface IUnitService
-using AGMS.Application.DTOs.Unit; // Import UnitFilterDto
+using AGMS.Application.Contracts; 
+using AGMS.Application.DTOs.Unit;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -9,7 +9,7 @@ namespace AGMS.WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    // [Authorize(Roles = "Admin")] // TẠM THỜI TẮT: Khi nào làm Frontend có tính năng Login (BR-01, BR-03) thì bỏ 2 dấu // đi nhé.
+    // [Authorize(Roles = "Admin")] // TẠM THỜI TẮT
     public class UnitsController : ControllerBase
     {
         private readonly IUnitService _unitService;
@@ -19,16 +19,14 @@ namespace AGMS.WebApi.Controllers
             _unitService = unitService;
         }
 
-        // Chức năng UC59 - View Units of Measure
+        // UC59 - View Units of Measure
         [HttpGet]
         public async Task<IActionResult> GetUnits([FromQuery] UnitFilterDto filter)
         {
             try
             {
-                // Gọi xuống tầng Service để xử lý logic tìm kiếm, phân trang
                 var result = await _unitService.GetUnitsAsync(filter);
 
-                // Xử lý Luồng thay thế (AF-01 và AF-02)
                 if (result.TotalCount == 0)
                 {
                     bool isFiltering = !string.IsNullOrWhiteSpace(filter.SearchTerm) || !string.IsNullOrWhiteSpace(filter.Type);
@@ -38,12 +36,10 @@ namespace AGMS.WebApi.Controllers
                         : "MSG_UNIT01: No units of measure found";
                 }
 
-                // Trả về Normal Flow
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                // Xử lý Exception EX01: Lỗi kết nối DB hoặc lỗi code
                 return StatusCode(500, new
                 {
                     Message = "MSG_SYS01: System error occurred while processing your request.",
@@ -52,33 +48,37 @@ namespace AGMS.WebApi.Controllers
             }
         }
 
-        //Add Unit of Measure
+        // Add Unit of Measure
         [HttpPost]
         public async Task<IActionResult> CreateUnit([FromBody] CreateUnitRequest request)
         {
-            // Xử lý AF-02: Missing required fields
-            // (Nếu .NET bắt lỗi Required trong DTO, nó sẽ văng lỗi vào ModelState)
+            // Kiểm tra các field bắt buộc từ DTO
             if (!ModelState.IsValid)
             {
                 return BadRequest(new { Message = "MSG_UNIT05: Required fields missing", Errors = ModelState });
+            }
+
+            // KIỂM TRA TYPE: Chỉ cho phép "Part" hoặc "Service" (Không phân biệt hoa thường)
+            if (string.IsNullOrWhiteSpace(request.Type) ||
+               (!request.Type.Equals("Part", StringComparison.OrdinalIgnoreCase) &&
+                !request.Type.Equals("Service", StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new { Message = "MSG_UNIT06: Unit type must be strictly 'Part' or 'Service'." });
             }
 
             try
             {
                 var result = await _unitService.AddUnitAsync(request);
 
-                // Xử lý AF-01: Unit already exists
                 if (!result.IsSuccess)
                 {
-                    return Conflict(new { Message = result.Message }); // Trả về HTTP 409 Conflict
+                    return Conflict(new { Message = result.Message });
                 }
 
-                // Normal Flow: Thành công (Step 6)
-                return StatusCode(201, new { Message = result.Message, Data = result.Data }); // HTTP 201 Created
+                return StatusCode(201, new { Message = result.Message, Data = result.Data });
             }
             catch (Exception ex)
             {
-                // Xử lý Exception EX01: Database connection failure
                 return StatusCode(500, new
                 {
                     Message = "MSG_SYS01: System error occurred while processing your request.",
@@ -91,10 +91,17 @@ namespace AGMS.WebApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUnit(int id, [FromBody] UpdateUnitRequest request)
         {
-            // Xử lý AF-02: Missing required fields
             if (!ModelState.IsValid)
             {
                 return BadRequest(new { Message = "MSG_UNIT05: Required fields missing", Errors = ModelState });
+            }
+
+            // KIỂM TRA TYPE: Chỉ cho phép "Part" hoặc "Service" (Không phân biệt hoa thường)
+            if (string.IsNullOrWhiteSpace(request.Type) ||
+               (!request.Type.Equals("Part", StringComparison.OrdinalIgnoreCase) &&
+                !request.Type.Equals("Service", StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new { Message = "MSG_UNIT06: Unit type must be strictly 'Part' or 'Service'." });
             }
 
             try
@@ -103,22 +110,17 @@ namespace AGMS.WebApi.Controllers
 
                 if (!result.IsSuccess)
                 {
-                    // Nếu lỗi là do trùng tên -> 409 Conflict
                     if (result.Message.Contains("MSG_UNIT04"))
                     {
                         return Conflict(new { Message = result.Message });
                     }
-
-                    // Nếu lỗi là không tìm thấy ID -> 404 Not Found
                     return NotFound(new { Message = result.Message });
                 }
 
-                // Normal Flow: Thành công -> 200 OK
                 return Ok(new { Message = result.Message });
             }
             catch (Exception ex)
             {
-                // Xử lý Exception EX01
                 return StatusCode(500, new
                 {
                     Message = "MSG_SYS01: System error occurred while processing your request.",
@@ -127,7 +129,7 @@ namespace AGMS.WebApi.Controllers
             }
         }
 
-        //Delete Unit of Measure
+        // Delete Unit of Measure
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUnit(int id)
         {
@@ -137,17 +139,13 @@ namespace AGMS.WebApi.Controllers
 
                 if (!result.IsSuccess)
                 {
-                    // Nếu lỗi là do đang được sử dụng (AF-01) -> Trả về 400 Bad Request
                     if (result.Message.Contains("MSG_UNIT08"))
                     {
                         return BadRequest(new { Message = result.Message });
                     }
-
-                    // Nếu không tìm thấy -> 404
                     return NotFound(new { Message = result.Message });
                 }
 
-                // Thành công -> 200 OK
                 return Ok(new { Message = result.Message });
             }
             catch (Exception ex)

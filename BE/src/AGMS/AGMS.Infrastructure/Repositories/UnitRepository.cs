@@ -22,10 +22,15 @@ namespace AGMS.Infrastructure.Repositories
         // =========================================================
         public async Task<PagedResult<UnitDto>> GetUnitsAsync(UnitFilterDto filter)
         {
-            // Chỉ lấy những Unit chưa bị xóa (IsActive = true)
-            var query = _context.Units.Where(u => u.IsActive == true).AsQueryable();
+            var query = _context.Units.AsQueryable();
 
-            // 1. Lọc theo từ khóa (Dùng Like để không phân biệt hoa/thường)
+            // 1. Lọc theo trạng thái (Active / Inactive) nếu Frontend có truyền lên
+            if (filter.IsActive.HasValue)
+            {
+                query = query.Where(u => u.IsActive == filter.IsActive.Value);
+            }
+
+            // 2. Lọc theo từ khóa (Dùng Like để không phân biệt hoa/thường)
             if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
             {
                 var searchTerm = $"%{filter.SearchTerm.Trim()}%";
@@ -35,17 +40,17 @@ namespace AGMS.Infrastructure.Repositories
                 );
             }
 
-            // 2. Lọc theo Type
+            // 3. Lọc theo Type
             if (!string.IsNullOrWhiteSpace(filter.Type))
             {
                 var typeKeyword = filter.Type.Trim().ToUpper();
                 query = query.Where(u => u.Type != null && u.Type.ToUpper() == typeKeyword);
             }
 
-            // 3. Đếm tổng số bản ghi thỏa mãn điều kiện
+            // 4. Đếm tổng số bản ghi thỏa mãn điều kiện
             var totalCount = await query.CountAsync();
 
-            // 4. Phân trang & Chuyển đổi sang DTO
+            // 5. Phân trang & Chuyển đổi sang DTO (Bổ sung thêm trường IsActive trả về)
             var items = await query
                 .OrderBy(u => u.Name)
                 .Skip((filter.PageIndex - 1) * filter.PageSize)
@@ -55,7 +60,8 @@ namespace AGMS.Infrastructure.Repositories
                     UnitID = u.UnitID,
                     Name = u.Name,
                     Type = u.Type,
-                    Description = u.Description
+                    Description = u.Description,
+                    IsActive = u.IsActive // Nên trả về cả trạng thái để Frontend biết cái nào đang bị xóa
                 })
                 .ToListAsync();
 
@@ -73,7 +79,7 @@ namespace AGMS.Infrastructure.Repositories
         {
             var normalizedName = name.Trim().ToLower();
             // Check trùng với những thằng ĐANG HOẠT ĐỘNG
-            return await _context.Units.AnyAsync(u => u.Name.ToLower() == normalizedName && u.IsActive == true);
+            return await _context.Units.AnyAsync(u => u.Name.ToLower() == normalizedName);
         }
 
         public async Task<Unit> AddUnitAsync(Unit unit)
@@ -97,8 +103,7 @@ namespace AGMS.Infrastructure.Repositories
             var normalizedName = name.Trim().ToLower();
             return await _context.Units.AnyAsync(u =>
                 u.Name.ToLower() == normalizedName &&
-                u.UnitID != excludeId &&
-                u.IsActive == true);
+                u.UnitID != excludeId);
         }
 
         public async Task UpdateUnitAsync(Unit unit)

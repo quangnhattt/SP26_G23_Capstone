@@ -73,6 +73,7 @@ namespace AGMS.Infrastructure.Services
             existingUnit.Name = request.Name.Trim();
             existingUnit.Type = request.Type.Trim().ToUpper();
             existingUnit.Description = request.Description?.Trim();
+            existingUnit.IsActive = request.IsActive;
 
             // Bước 4: Lưu xuống DB (Step 5)
             await _unitRepository.UpdateUnitAsync(existingUnit);
