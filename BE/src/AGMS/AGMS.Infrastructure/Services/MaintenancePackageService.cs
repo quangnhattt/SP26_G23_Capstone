@@ -1,5 +1,6 @@
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.MaintenanacePackage;
+using AGMS.Application.Exceptions;
 using AGMS.Domain.Entities;
 
 namespace AGMS.Infrastructure.Services;
@@ -58,5 +59,65 @@ public class MaintenancePackageService : IMaintenancePackageService
             FinalPrice = p.FinalPrice,
             DisplayOrder = p.DisplayOrder
         }).ToList();
+    }
+
+    public async Task<MaintenancePackageListItemDto> CreateAsync(CreateMaintenancePackageRequest request, CancellationToken ct = default)
+    {
+        if (request.BasePrice < 0)
+            throw new ArgumentException("BasePrice cannot be negative.");
+        if (request.DiscountPercent < 0 || request.DiscountPercent > 100)
+            throw new ArgumentException("DiscountPercent must be between 0 and 100.");
+
+        var existing = await _repository.GetByPackageCodeAsync(request.PackageCode.Trim(), ct);
+        if (existing != null)
+            throw new ConflictException("PackageCode already exists.");
+
+        var existingOrder = await _repository.GetByDisplayOrderAsync(request.DisplayOrder, ct);
+        if (existingOrder != null)
+            throw new ConflictException("DisplayOrder already exists.");
+
+        var entity = new MaintenancePackage
+        {
+            PackageCode = request.PackageCode.Trim(),
+            Name = request.Name.Trim(),
+            Description = request.Description?.Trim(),
+            KilometerMilestone = request.KilometerMilestone,
+            MonthMilestone = request.MonthMilestone,
+            BasePrice = request.BasePrice,
+            DiscountPercent = request.DiscountPercent,
+            EstimatedDurationHours = request.EstimatedDurationHours,
+            ApplicableBrands = request.ApplicableBrands?.Trim(),
+            Image = request.Image,
+            DisplayOrder = request.DisplayOrder,
+            IsActive = request.IsActive
+        };
+
+        var created = await _repository.AddAsync(entity, ct);
+        var loaded = await _repository.GetByIdAsync(created.PackageID, ct);
+        if (loaded == null)
+            return new MaintenancePackageListItemDto
+            {
+                PackageID = created.PackageID,
+                PackageCode = created.PackageCode,
+                Name = created.Name,
+                Description = created.Description,
+                KilometerMilestone = created.KilometerMilestone,
+                BasePrice = created.BasePrice,
+                DiscountPercent = created.DiscountPercent,
+                DisplayOrder = created.DisplayOrder
+            };
+
+        return new MaintenancePackageListItemDto
+        {
+            PackageID = loaded.PackageID,
+            PackageCode = loaded.PackageCode,
+            Name = loaded.Name,
+            Description = loaded.Description,
+            KilometerMilestone = loaded.KilometerMilestone,
+            BasePrice = loaded.BasePrice,
+            DiscountPercent = loaded.DiscountPercent,
+            FinalPrice = loaded.FinalPrice,
+            DisplayOrder = loaded.DisplayOrder
+        };
     }
 }

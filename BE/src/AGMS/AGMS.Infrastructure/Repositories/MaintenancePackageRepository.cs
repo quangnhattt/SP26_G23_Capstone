@@ -29,4 +29,32 @@ public class MaintenancePackageRepository : IMaintenancePackageRepository
     {
         return await _dbContext.MaintenancePackages.AsNoTracking().OrderBy(pd => pd.DisplayOrder).ToListAsync(ct);
     }
+
+    public async Task<MaintenancePackage?> GetByPackageCodeAsync(string packageCode, CancellationToken ct = default)
+    {
+        return await _dbContext.MaintenancePackages
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.PackageCode == packageCode, ct);
+    }
+
+    public async Task<MaintenancePackage?> GetByDisplayOrderAsync(int displayOrder, CancellationToken ct = default)
+    {
+        return await _dbContext.MaintenancePackages
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.DisplayOrder == displayOrder, ct);
+    }
+
+    public async Task<MaintenancePackage?> GetByIdAsync(int packageId, CancellationToken ct = default)
+    {
+        return await _dbContext.MaintenancePackages
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.PackageID == packageId, ct);
+    }
+
+    public async Task<MaintenancePackage> AddAsync(MaintenancePackage entity, CancellationToken ct = default)
+    {
+        _dbContext.MaintenancePackages.Add(entity);
+        await _dbContext.SaveChangesAsync(ct);
+        return entity;
+    }
 }
