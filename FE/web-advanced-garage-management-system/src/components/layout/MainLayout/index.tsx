@@ -18,7 +18,7 @@ const MainLayout: React.FC = () => {
         <Header/>
         <Content
           style={{
-            marginTop: isMobile ? "80px" : "90px",
+            marginTop: isMobile ? "60px" : "70px",
           }}
         >
           <OutletContent>
@@ -49,9 +49,6 @@ const Content = styled.div`
   overflow: hidden;
   // min-height: calc(100vh - 180px);
   height: 100%;
-
-  margin-top: 115px;
-  // margin-bottom: 80px;
   overflow-x: auto;
 `;
 

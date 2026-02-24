@@ -61,3 +61,10 @@ export interface DeviceProps {
   bottomStatusHeight?: number;
   theme?: Theme;
 }
+
+export interface ILanguage {
+  code: string;
+  name: string;
+  flag: string;
+  fullName: string;
+}
