@@ -1,7 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace AGMS.Domain.Entities;
 
 public class Supplier
 {
+    [Key] 
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)] 
     public int SupplierID { get; set; }
     public string Name { get; set; } = null!;
     public string? Address { get; set; }
