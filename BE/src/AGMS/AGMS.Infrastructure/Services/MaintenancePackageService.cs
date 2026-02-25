@@ -14,40 +14,8 @@ public class MaintenancePackageService : IMaintenancePackageService
         _repository = repository;
     }
 
-    public async Task<IEnumerable<PackageWithProductsDto>> GetPackagesWithActiveProductDetailsAsync(CancellationToken ct = default)
-    {
-        // 1) Lấy tất cả gói (kể cả gói chưa có ProductID nào)
-        var packages = await _repository.GetAllOrderedByDisplayOrderAsync(ct);
-
-        // 2) Lấy chi tiết cho các sản phẩm đang active
-        var details = await _repository.GetPackagesWithActiveProductDetailsAsync(ct);
-
-        // 3) GroupJoin: mỗi package đi kèm 1 tập detail (có thể rỗng)
-        var result = packages
-            .GroupJoin(
-                details,
-                p => p.PackageID,          // key của package
-                d => d.PackageID,          // key của detail
-                (p, dGroup) => new PackageWithProductsDto
-                {
-                    PackageCode = p.PackageCode,
-                    PackageName = p.Name,
-                    PackageTotalPrice = p.FinalPrice,
-                    Products = dGroup
-                        .OrderBy(d => d.DisplayOrder)
-                        .Select(d => new PackageProductItemDto
-                        {
-                            ProductID = d.ProductID,
-                            ProductName = d.Product.Name,
-                            Quantity = d.Quantity,
-                            ProductStatus = d.Product.IsActive,
-                            DisplayOrder = d.DisplayOrder
-                        })
-                        .ToList()
-                });
-
-        return result.ToList();
-    }
+    // GetPackagesWithActiveProductDetailsAsync (trả về list tất cả gói + products) đã được thay thế
+    // bằng API detail theo packageId: GetByIdWithActiveProductsAsync.
     public async Task<IEnumerable<MaintenancePackageListItemDto>> GetAllPackagesAsync(CancellationToken ct = default)
     {
         var list = await _repository.GetAllOrderedByDisplayOrderAsync(ct);
@@ -56,12 +24,9 @@ public class MaintenancePackageService : IMaintenancePackageService
             PackageID = p.PackageID,
             PackageCode = p.PackageCode,
             Name = p.Name,
-            Description = p.Description,
-            KilometerMilestone = p.KilometerMilestone,
             BasePrice = p.BasePrice,
             DiscountPercent = p.DiscountPercent,
             FinalPrice = p.FinalPrice,
-            DisplayOrder = p.DisplayOrder,
             IsActive = p.IsActive
         }).ToList();
     }
@@ -105,11 +70,8 @@ public class MaintenancePackageService : IMaintenancePackageService
                 PackageID = created.PackageID,
                 PackageCode = created.PackageCode,
                 Name = created.Name,
-                Description = created.Description,
-                KilometerMilestone = created.KilometerMilestone,
                 BasePrice = created.BasePrice,
                 DiscountPercent = created.DiscountPercent,
-                DisplayOrder = created.DisplayOrder,
                 IsActive = created.IsActive
             };
 
@@ -118,12 +80,9 @@ public class MaintenancePackageService : IMaintenancePackageService
             PackageID = loaded.PackageID,
             PackageCode = loaded.PackageCode,
             Name = loaded.Name,
-            Description = loaded.Description,
-            KilometerMilestone = loaded.KilometerMilestone,
             BasePrice = loaded.BasePrice,
             DiscountPercent = loaded.DiscountPercent,
             FinalPrice = loaded.FinalPrice,
-            DisplayOrder = loaded.DisplayOrder,
             IsActive = loaded.IsActive
         };
     }
@@ -163,13 +122,51 @@ public class MaintenancePackageService : IMaintenancePackageService
             PackageID = loaded.PackageID,
             PackageCode = loaded.PackageCode,
             Name = loaded.Name,
-            Description = loaded.Description,
-            KilometerMilestone = loaded.KilometerMilestone,
             BasePrice = loaded.BasePrice,
             DiscountPercent = loaded.DiscountPercent,
             FinalPrice = loaded.FinalPrice,
-            DisplayOrder = loaded.DisplayOrder,
             IsActive = loaded.IsActive
+        };
+    }
+
+    public async Task<MaintenancePackageDetailDto> GetByIdWithActiveProductsAsync(int packageId, CancellationToken ct = default)
+    {
+        var package = await _repository.GetByIdAsync(packageId, ct)
+            ?? throw new KeyNotFoundException($"Maintenance package with ID {packageId} not found.");
+
+        // lấy tất cả detail đang active rồi filter theo packageId
+        var allDetails = await _repository.GetPackagesWithActiveProductDetailsAsync(ct);
+        var details = allDetails
+            .Where(d => d.PackageID == packageId)
+            .OrderBy(d => d.DisplayOrder)
+            .ToList();
+
+        return new MaintenancePackageDetailDto
+        {
+            PackageID = package.PackageID,
+            PackageCode = package.PackageCode,
+            Name = package.Name,
+            Description = package.Description,
+            KilometerMilestone = package.KilometerMilestone,
+            MonthMilestone = package.MonthMilestone,
+            BasePrice = package.BasePrice,
+            DiscountPercent = package.DiscountPercent,
+            FinalPrice = package.FinalPrice,
+            EstimatedDurationHours = package.EstimatedDurationHours,
+            ApplicableBrands = package.ApplicableBrands,
+            Image = package.Image,
+            DisplayOrder = package.DisplayOrder,
+            IsActive = package.IsActive,
+            CreatedDate = package.CreatedDate,
+            CreatedBy = package.CreatedBy,
+            Products = details.Select(d => new PackageProductItemDto
+            {
+                ProductID = d.ProductID,
+                ProductName = d.Product.Name,
+                Quantity = d.Quantity,
+                ProductStatus = d.Product.IsActive,
+                DisplayOrder = d.DisplayOrder
+            }).ToList()
         };
     }
 }

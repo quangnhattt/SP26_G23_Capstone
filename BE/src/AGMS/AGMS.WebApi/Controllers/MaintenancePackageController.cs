@@ -15,12 +15,20 @@ public class MaintenancePackageController : ControllerBase
         _maintenancePackageService = maintenancePackageService;
     }
 
-    [HttpGet("with-active-products")]
-    [ProducesResponseType(typeof(IEnumerable<PackageWithProductsDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPackagesWithActiveProductDetails(CancellationToken ct)
+    [HttpGet("{packageId:int}/with-active-products")]
+    [ProducesResponseType(typeof(MaintenancePackageDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPackageDetailWithActiveProducts(int packageId, CancellationToken ct)
     {
-        var result = await _maintenancePackageService.GetPackagesWithActiveProductDetailsAsync(ct);
-        return Ok(result);
+        try
+        {
+            var result = await _maintenancePackageService.GetByIdWithActiveProductsAsync(packageId, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
     [HttpGet]
