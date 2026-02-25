@@ -57,4 +57,10 @@ public class MaintenancePackageRepository : IMaintenancePackageRepository
         await _dbContext.SaveChangesAsync(ct);
         return entity;
     }
+
+    public async Task UpdateAsync(MaintenancePackage entity, CancellationToken ct = default)
+    {
+        _dbContext.MaintenancePackages.Update(entity);
+        await _dbContext.SaveChangesAsync(ct);
+    }
 }

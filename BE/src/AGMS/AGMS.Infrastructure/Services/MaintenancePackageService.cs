@@ -16,33 +16,37 @@ public class MaintenancePackageService : IMaintenancePackageService
 
     public async Task<IEnumerable<PackageWithProductsDto>> GetPackagesWithActiveProductDetailsAsync(CancellationToken ct = default)
     {
-        var list = await _repository.GetPackagesWithActiveProductDetailsAsync(ct);
+        // 1) Lấy tất cả gói (kể cả gói chưa có ProductID nào)
+        var packages = await _repository.GetAllOrderedByDisplayOrderAsync(ct);
 
-        return list
-            .GroupBy(pd => new
-            {
-                pd.Package.PackageCode,
-                pd.Package.Name,
-                pd.Package.FinalPrice
-            })
-            .Select(g => new PackageWithProductsDto
-            {
-                PackageCode = g.Key.PackageCode,
-                PackageName = g.Key.Name,
-                PackageTotalPrice = g.Key.FinalPrice,
-                Products = g
-                    .OrderBy(pd => pd.DisplayOrder)
-                    .Select(pd => new PackageProductItemDto
-                    {
-                        ProductID = pd.ProductID,
-                        ProductName = pd.Product.Name,
-                        Quantity = pd.Quantity,
-                        ProductStatus = pd.Product.IsActive,
-                        DisplayOrder = pd.DisplayOrder
-                    })
-                    .ToList()
-            })
-            .ToList();
+        // 2) Lấy chi tiết cho các sản phẩm đang active
+        var details = await _repository.GetPackagesWithActiveProductDetailsAsync(ct);
+
+        // 3) GroupJoin: mỗi package đi kèm 1 tập detail (có thể rỗng)
+        var result = packages
+            .GroupJoin(
+                details,
+                p => p.PackageID,          // key của package
+                d => d.PackageID,          // key của detail
+                (p, dGroup) => new PackageWithProductsDto
+                {
+                    PackageCode = p.PackageCode,
+                    PackageName = p.Name,
+                    PackageTotalPrice = p.FinalPrice,
+                    Products = dGroup
+                        .OrderBy(d => d.DisplayOrder)
+                        .Select(d => new PackageProductItemDto
+                        {
+                            ProductID = d.ProductID,
+                            ProductName = d.Product.Name,
+                            Quantity = d.Quantity,
+                            ProductStatus = d.Product.IsActive,
+                            DisplayOrder = d.DisplayOrder
+                        })
+                        .ToList()
+                });
+
+        return result.ToList();
     }
     public async Task<IEnumerable<MaintenancePackageListItemDto>> GetAllPackagesAsync(CancellationToken ct = default)
     {
@@ -57,7 +61,8 @@ public class MaintenancePackageService : IMaintenancePackageService
             BasePrice = p.BasePrice,
             DiscountPercent = p.DiscountPercent,
             FinalPrice = p.FinalPrice,
-            DisplayOrder = p.DisplayOrder
+            DisplayOrder = p.DisplayOrder,
+            IsActive = p.IsActive
         }).ToList();
     }
 
@@ -104,7 +109,8 @@ public class MaintenancePackageService : IMaintenancePackageService
                 KilometerMilestone = created.KilometerMilestone,
                 BasePrice = created.BasePrice,
                 DiscountPercent = created.DiscountPercent,
-                DisplayOrder = created.DisplayOrder
+                DisplayOrder = created.DisplayOrder,
+                IsActive = created.IsActive
             };
 
         return new MaintenancePackageListItemDto
@@ -117,7 +123,53 @@ public class MaintenancePackageService : IMaintenancePackageService
             BasePrice = loaded.BasePrice,
             DiscountPercent = loaded.DiscountPercent,
             FinalPrice = loaded.FinalPrice,
-            DisplayOrder = loaded.DisplayOrder
+            DisplayOrder = loaded.DisplayOrder,
+            IsActive = loaded.IsActive
+        };
+    }
+
+    public async Task<MaintenancePackageListItemDto> UpdateAsync(int packageId, UpdateMaintenancePackageRequest request, CancellationToken ct = default)
+    {
+        if (request.BasePrice < 0)
+            throw new ArgumentException("BasePrice cannot be negative.");
+        if (request.DiscountPercent < 0 || request.DiscountPercent > 100)
+            throw new ArgumentException("DiscountPercent must be between 0 and 100.");
+
+        var existing = await _repository.GetByIdAsync(packageId, ct)
+            ?? throw new KeyNotFoundException($"Maintenance package with ID {packageId} not found.");
+
+        var existingOrder = await _repository.GetByDisplayOrderAsync(request.DisplayOrder, ct);
+        if (existingOrder != null && existingOrder.PackageID != packageId)
+            throw new ConflictException("DisplayOrder already exists.");
+
+        existing.Name = request.Name.Trim();
+        existing.Description = request.Description?.Trim();
+        existing.KilometerMilestone = request.KilometerMilestone;
+        existing.MonthMilestone = request.MonthMilestone;
+        existing.BasePrice = request.BasePrice;
+        existing.DiscountPercent = request.DiscountPercent;
+        existing.EstimatedDurationHours = request.EstimatedDurationHours;
+        existing.ApplicableBrands = request.ApplicableBrands?.Trim();
+        existing.Image = request.Image;
+        existing.DisplayOrder = request.DisplayOrder;
+        existing.IsActive = request.IsActive;
+
+        await _repository.UpdateAsync(existing, ct);
+
+        var loaded = await _repository.GetByIdAsync(packageId, ct) ?? existing;
+
+        return new MaintenancePackageListItemDto
+        {
+            PackageID = loaded.PackageID,
+            PackageCode = loaded.PackageCode,
+            Name = loaded.Name,
+            Description = loaded.Description,
+            KilometerMilestone = loaded.KilometerMilestone,
+            BasePrice = loaded.BasePrice,
+            DiscountPercent = loaded.DiscountPercent,
+            FinalPrice = loaded.FinalPrice,
+            DisplayOrder = loaded.DisplayOrder,
+            IsActive = loaded.IsActive
         };
     }
 }
