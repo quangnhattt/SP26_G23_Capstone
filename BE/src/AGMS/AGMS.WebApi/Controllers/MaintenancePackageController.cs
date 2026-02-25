@@ -49,10 +49,16 @@ public class MaintenancePackageController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<MaintenancePackageListItemDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll(CancellationToken ct)
+    public async Task<IActionResult> GetAll([FromQuery] int page = 1, CancellationToken ct = default)
     {
-        var result = await _maintenancePackageService.GetAllPackagesAsync(ct);
-        return Ok(result);
+        const int pageSize = 20;
+        if (page < 1) page = 1;
+
+        var allItems = await _maintenancePackageService.GetAllPackagesAsync(ct);
+        var skip = (page - 1) * pageSize;
+        var paged = allItems.Skip(skip).Take(pageSize);
+
+        return Ok(paged);
     }
 
     [HttpPost]
