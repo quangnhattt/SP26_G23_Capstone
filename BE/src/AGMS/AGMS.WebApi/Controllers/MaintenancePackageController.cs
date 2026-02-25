@@ -91,6 +91,41 @@ public class MaintenancePackageController : ControllerBase
         }
     }
 
+    [HttpPost("{packageId:int}/details")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddProductToPackage(int packageId, [FromBody] AddPackageProductRequest request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            var firstError = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .FirstOrDefault()?.ErrorMessage
+                ?? "Validation failed.";
+            return BadRequest(new { message = firstError });
+        }
+
+        try
+        {
+            await _maintenancePackageService.AddProductToPackageAsync(packageId, request, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPut("{packageId:int}")]
     [ProducesResponseType(typeof(MaintenancePackageByIdDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -189,6 +189,50 @@ public class MaintenancePackageService : IMaintenancePackageService
         };
     }
 
+    public async Task AddProductToPackageAsync(int packageId, AddPackageProductRequest request, CancellationToken ct = default)
+    {
+        if (request.Quantity <= 0)
+            throw new ArgumentException("Quantity must be greater than zero.");
+
+        var package = await _repository.GetByIdAsync(packageId, ct)
+            ?? throw new KeyNotFoundException($"Maintenance package with ID {packageId} not found.");
+
+        // Check duplicate product in the same package
+        var allDetails = await _repository.GetPackagesWithActiveProductDetailsAsync(ct);
+        var packageDetails = allDetails.Where(d => d.PackageID == packageId).ToList();
+        if (packageDetails.Any(d => d.ProductID == request.ProductId))
+            throw new ConflictException("Product already exists in this package.");
+
+        int displayOrder;
+        if (request.DisplayOrder.HasValue)
+        {
+            if (request.DisplayOrder.Value <= 0)
+                throw new ArgumentException("DisplayOrder must be greater than zero.");
+
+            if (packageDetails.Any(d => d.DisplayOrder == request.DisplayOrder.Value))
+                throw new ConflictException("DisplayOrder already exists in this package.");
+
+            displayOrder = request.DisplayOrder.Value;
+        }
+        else
+        {
+            displayOrder = packageDetails.Any()
+                ? packageDetails.Max(d => d.DisplayOrder) + 1
+                : 1;
+        }
+
+        var detail = new MaintenancePackageDetail
+        {
+            PackageID = package.PackageID,
+            ProductID = request.ProductId,
+            Quantity = request.Quantity,
+            IsRequired = request.IsRequired,
+            DisplayOrder = displayOrder
+        };
+
+        await _repository.AddDetailAsync(detail, ct);
+    }
+
     public async Task<MaintenancePackageByIdDto> GetByIdAsync(int packageId, CancellationToken ct = default)
     {
         var package = await _repository.GetByIdAsync(packageId, ct)

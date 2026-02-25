@@ -11,4 +11,6 @@ public interface IMaintenancePackageRepository
     Task<MaintenancePackage?> GetByIdAsync(int packageId, CancellationToken ct = default);
     Task<MaintenancePackage> AddAsync(MaintenancePackage entity, CancellationToken ct = default);
     Task UpdateAsync(MaintenancePackage entity, CancellationToken ct = default);
+
+    Task<MaintenancePackageDetail> AddDetailAsync(MaintenancePackageDetail detail, CancellationToken ct = default);
 }
