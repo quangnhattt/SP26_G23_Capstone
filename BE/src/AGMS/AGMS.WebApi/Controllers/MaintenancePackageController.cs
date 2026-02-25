@@ -15,14 +15,30 @@ public class MaintenancePackageController : ControllerBase
         _maintenancePackageService = maintenancePackageService;
     }
 
-    [HttpGet("{packageId:int}/with-active-products")]
+    [HttpGet("{packageId:int}/details")]
     [ProducesResponseType(typeof(MaintenancePackageDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetPackageDetailWithActiveProducts(int packageId, CancellationToken ct)
+    public async Task<IActionResult> GetPackageDetails(int packageId, CancellationToken ct)
     {
         try
         {
             var result = await _maintenancePackageService.GetByIdWithActiveProductsAsync(packageId, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("{packageId:int}")]
+    [ProducesResponseType(typeof(MaintenancePackageByIdDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int packageId, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _maintenancePackageService.GetByIdAsync(packageId, ct);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -70,7 +86,7 @@ public class MaintenancePackageController : ControllerBase
     }
 
     [HttpPut("{packageId:int}")]
-    [ProducesResponseType(typeof(MaintenancePackageListItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MaintenancePackageByIdDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]

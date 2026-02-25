@@ -87,7 +87,7 @@ public class MaintenancePackageService : IMaintenancePackageService
         };
     }
 
-    public async Task<MaintenancePackageListItemDto> UpdateAsync(int packageId, UpdateMaintenancePackageRequest request, CancellationToken ct = default)
+    public async Task<MaintenancePackageByIdDto> UpdateAsync(int packageId, UpdateMaintenancePackageRequest request, CancellationToken ct = default)
     {
         if (request.BasePrice < 0)
             throw new ArgumentException("BasePrice cannot be negative.");
@@ -96,6 +96,16 @@ public class MaintenancePackageService : IMaintenancePackageService
 
         var existing = await _repository.GetByIdAsync(packageId, ct)
             ?? throw new KeyNotFoundException($"Maintenance package with ID {packageId} not found.");
+
+        // nếu đổi PackageCode thì phải check trùng
+        var trimmedCode = request.PackageCode.Trim();
+        if (!string.Equals(trimmedCode, existing.PackageCode, StringComparison.OrdinalIgnoreCase))
+        {
+            var codeOwner = await _repository.GetByPackageCodeAsync(trimmedCode, ct);
+            if (codeOwner != null && codeOwner.PackageID != packageId)
+                throw new ConflictException("PackageCode already exists.");
+            existing.PackageCode = trimmedCode;
+        }
 
         var existingOrder = await _repository.GetByDisplayOrderAsync(request.DisplayOrder, ct);
         if (existingOrder != null && existingOrder.PackageID != packageId)
@@ -117,15 +127,24 @@ public class MaintenancePackageService : IMaintenancePackageService
 
         var loaded = await _repository.GetByIdAsync(packageId, ct) ?? existing;
 
-        return new MaintenancePackageListItemDto
+        return new MaintenancePackageByIdDto
         {
             PackageID = loaded.PackageID,
             PackageCode = loaded.PackageCode,
             Name = loaded.Name,
+            Description = loaded.Description,
+            KilometerMilestone = loaded.KilometerMilestone,
+            MonthMilestone = loaded.MonthMilestone,
             BasePrice = loaded.BasePrice,
             DiscountPercent = loaded.DiscountPercent,
             FinalPrice = loaded.FinalPrice,
-            IsActive = loaded.IsActive
+            EstimatedDurationHours = loaded.EstimatedDurationHours,
+            ApplicableBrands = loaded.ApplicableBrands,
+            Image = loaded.Image,
+            DisplayOrder = loaded.DisplayOrder,
+            IsActive = loaded.IsActive,
+            CreatedDate = loaded.CreatedDate,
+            CreatedBy = loaded.CreatedBy
         };
     }
 
@@ -167,6 +186,32 @@ public class MaintenancePackageService : IMaintenancePackageService
                 ProductStatus = d.Product.IsActive,
                 DisplayOrder = d.DisplayOrder
             }).ToList()
+        };
+    }
+
+    public async Task<MaintenancePackageByIdDto> GetByIdAsync(int packageId, CancellationToken ct = default)
+    {
+        var package = await _repository.GetByIdAsync(packageId, ct)
+            ?? throw new KeyNotFoundException($"Maintenance package with ID {packageId} not found.");
+
+        return new MaintenancePackageByIdDto
+        {
+            PackageID = package.PackageID,
+            PackageCode = package.PackageCode,
+            Name = package.Name,
+            Description = package.Description,
+            KilometerMilestone = package.KilometerMilestone,
+            MonthMilestone = package.MonthMilestone,
+            BasePrice = package.BasePrice,
+            DiscountPercent = package.DiscountPercent,
+            FinalPrice = package.FinalPrice,
+            EstimatedDurationHours = package.EstimatedDurationHours,
+            ApplicableBrands = package.ApplicableBrands,
+            Image = package.Image,
+            DisplayOrder = package.DisplayOrder,
+            IsActive = package.IsActive,
+            CreatedDate = package.CreatedDate,
+            CreatedBy = package.CreatedBy
         };
     }
 }

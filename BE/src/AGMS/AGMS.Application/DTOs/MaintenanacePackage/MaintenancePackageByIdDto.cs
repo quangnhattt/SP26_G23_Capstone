@@ -1,8 +1,11 @@
 namespace AGMS.Application.DTOs.MaintenanacePackage;
 
-public class MaintenancePackageDetailDto
+/// <summary>
+/// Thông tin gói bảo trì theo PackageID, KHÔNG bao gồm danh sách products.
+/// Dùng cho GET /api/maintenance-packages/{packageId} (load dữ liệu cũ lên form).
+/// </summary>
+public class MaintenancePackageByIdDto
 {
-    // Thông tin gói (đầy đủ trường trong MaintenancePackage)
     public int PackageID { get; set; }
     public string PackageCode { get; set; } = null!;
     public string Name { get; set; } = null!;
@@ -19,8 +22,5 @@ public class MaintenancePackageDetailDto
     public bool IsActive { get; set; }
     public DateTime CreatedDate { get; set; }
     public int? CreatedBy { get; set; }
-
-    // Danh sách sản phẩm đang active trong gói
-    public List<PackageProductItemDto> Products { get; set; } = new();
 }
 

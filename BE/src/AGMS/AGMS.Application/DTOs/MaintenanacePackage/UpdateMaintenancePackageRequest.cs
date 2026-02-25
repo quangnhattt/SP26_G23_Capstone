@@ -5,6 +5,10 @@ namespace AGMS.Application.DTOs.MaintenanacePackage;
 
 public class UpdateMaintenancePackageRequest
 {
+    [Required(ErrorMessage = "PackageCode is required.")]
+    [StringLength(50)]
+    public string PackageCode { get; set; } = null!;
+
     [Required(ErrorMessage = "Name is required.")]
     [StringLength(200)]
     public string Name { get; set; } = null!;
