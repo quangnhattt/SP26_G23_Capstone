@@ -214,4 +214,13 @@ public class MaintenancePackageService : IMaintenancePackageService
             CreatedBy = package.CreatedBy
         };
     }
+
+    public async Task SetActiveStatusAsync(int packageId, bool isActive, CancellationToken ct = default)
+    {
+        var package = await _repository.GetByIdAsync(packageId, ct)
+            ?? throw new KeyNotFoundException($"Maintenance package with ID {packageId} not found.");
+
+        package.IsActive = isActive;
+        await _repository.UpdateAsync(package, ct);
+    }
 }
