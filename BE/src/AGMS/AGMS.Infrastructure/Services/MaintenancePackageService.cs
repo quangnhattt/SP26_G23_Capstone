@@ -180,10 +180,11 @@ public class MaintenancePackageService : IMaintenancePackageService
             CreatedBy = package.CreatedBy,
             Products = details.Select(d => new PackageProductItemDto
             {
+                PackageDetailID = d.PackageDetailID,
                 ProductID = d.ProductID,
                 ProductName = d.Product.Name,
                 Quantity = d.Quantity,
-                ProductStatus = d.Product.IsActive,
+                ProductStatus = d.IsRequired,
                 DisplayOrder = d.DisplayOrder
             }).ToList()
         };
@@ -266,6 +267,15 @@ public class MaintenancePackageService : IMaintenancePackageService
 
         package.IsActive = isActive;
         await _repository.UpdateAsync(package, ct);
+    }
+
+    public async Task SetDetailActiveStatusAsync(int detailId, bool isActive, CancellationToken ct = default)
+    {
+        var detail = await _repository.GetDetailByIdAsync(detailId, ct)
+            ?? throw new KeyNotFoundException($"Maintenance package detail with ID {detailId} not found.");
+
+        detail.IsRequired = isActive;
+        await _repository.UpdateDetailAsync(detail, ct);
     }
 
     public async Task UpdatePackageDetailAsync(

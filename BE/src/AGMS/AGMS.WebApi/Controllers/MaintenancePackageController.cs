@@ -230,4 +230,36 @@ public class MaintenancePackageController : ControllerBase
         }
     }
 
+    [HttpPatch("details/{detailId:int}/active")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PatchDetailActive(int detailId, CancellationToken ct)
+    {
+        try
+        {
+            await _maintenancePackageService.SetDetailActiveStatusAsync(detailId, true, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpPatch("details/{detailId:int}/inactive")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PatchDetailInactive(int detailId, CancellationToken ct)
+    {
+        try
+        {
+            await _maintenancePackageService.SetDetailActiveStatusAsync(detailId, false, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
 }

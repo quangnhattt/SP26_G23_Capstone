@@ -12,5 +12,6 @@ public interface IMaintenancePackageService
     Task SetActiveStatusAsync(int packageId, bool isActive, CancellationToken ct = default);
     Task AddProductToPackageAsync(int packageId, AddPackageProductRequest request, CancellationToken ct = default);
     Task UpdatePackageDetailAsync(int detailId, UpdatePackageProductRequest request, CancellationToken ct = default);
+    Task SetDetailActiveStatusAsync(int detailId, bool isActive, CancellationToken ct = default);
 }
 
