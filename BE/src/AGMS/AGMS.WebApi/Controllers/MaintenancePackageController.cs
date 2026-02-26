@@ -31,6 +31,22 @@ public class MaintenancePackageController : ControllerBase
         }
     }
 
+    [HttpGet("details/{detailId:int}")]
+    [ProducesResponseType(typeof(MaintenancePackageDetailItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDetailById(int detailId, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _maintenancePackageService.GetDetailByIdAsync(detailId, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("{packageId:int}")]
     [ProducesResponseType(typeof(MaintenancePackageByIdDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

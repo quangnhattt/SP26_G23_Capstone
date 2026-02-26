@@ -9,6 +9,7 @@ public interface IMaintenancePackageService
     Task<MaintenancePackageByIdDto> UpdateAsync(int packageId, UpdateMaintenancePackageRequest request, CancellationToken ct = default);
     Task<MaintenancePackageByIdDto> GetByIdAsync(int packageId, CancellationToken ct = default);
     Task<MaintenancePackageDetailDto> GetByIdWithActiveProductsAsync(int packageId, CancellationToken ct = default);
+    Task<MaintenancePackageDetailItemDto> GetDetailByIdAsync(int detailId, CancellationToken ct = default);
     Task SetActiveStatusAsync(int packageId, bool isActive, CancellationToken ct = default);
     Task AddProductToPackageAsync(int packageId, AddPackageProductRequest request, CancellationToken ct = default);
     Task UpdatePackageDetailAsync(int detailId, UpdatePackageProductRequest request, CancellationToken ct = default);

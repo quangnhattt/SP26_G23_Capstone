@@ -190,6 +190,23 @@ public class MaintenancePackageService : IMaintenancePackageService
         };
     }
 
+    public async Task<MaintenancePackageDetailItemDto> GetDetailByIdAsync(int detailId, CancellationToken ct = default)
+    {
+        var detail = await _repository.GetDetailByIdAsync(detailId, ct)
+            ?? throw new KeyNotFoundException($"Maintenance package detail with ID {detailId} not found.");
+
+        return new MaintenancePackageDetailItemDto
+        {
+            PackageDetailID = detail.PackageDetailID,
+            PackageID = detail.PackageID,
+            ProductID = detail.ProductID,
+            Quantity = detail.Quantity,
+            IsRequired = detail.IsRequired,
+            DisplayOrder = detail.DisplayOrder,
+            Notes = detail.Notes
+        };
+    }
+
     public async Task AddProductToPackageAsync(int packageId, AddPackageProductRequest request, CancellationToken ct = default)
     {
         if (request.Quantity <= 0)
