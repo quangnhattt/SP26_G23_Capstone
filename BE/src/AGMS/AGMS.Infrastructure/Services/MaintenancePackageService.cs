@@ -267,4 +267,55 @@ public class MaintenancePackageService : IMaintenancePackageService
         package.IsActive = isActive;
         await _repository.UpdateAsync(package, ct);
     }
+
+    public async Task UpdatePackageDetailAsync(
+        int detailId,
+        UpdatePackageProductRequest request,
+        CancellationToken ct = default)
+    {
+        if (request.Quantity <= 0)
+            throw new ArgumentException("Quantity must be greater than zero.");
+
+        if (request.DisplayOrder.HasValue && request.DisplayOrder.Value <= 0)
+            throw new ArgumentException("DisplayOrder must be greater than zero.");
+
+        var detail = await _repository.GetDetailByIdAsync(detailId, ct)
+            ?? throw new KeyNotFoundException($"Maintenance package detail with ID {detailId} not found.");
+
+        // Lấy các detail của đúng gói (từ detail.PackageID) để kiểm tra trùng Product / DisplayOrder
+        var allDetails = await _repository.GetPackagesWithActiveProductDetailsAsync(ct);
+        var packageDetails = allDetails
+            .Where(d => d.PackageID == detail.PackageID)
+            .ToList();
+
+        // 1) Nếu đổi ProductId thì check trùng product trong cùng gói
+        if (request.ProductId != detail.ProductID)
+        {
+            var duplicateProduct = packageDetails.Any(d => d.ProductID == request.ProductId);
+            if (duplicateProduct)
+                throw new ConflictException("Product already exists in this package.");
+
+            detail.ProductID = request.ProductId;
+        }
+
+        // 2) Nếu có DisplayOrder mới, check trùng trong cùng gói (trừ chính detail hiện tại)
+        if (request.DisplayOrder.HasValue)
+        {
+            var newOrder = request.DisplayOrder.Value;
+            var duplicateOrder = packageDetails.Any(d =>
+                d.DisplayOrder == newOrder &&
+                d.PackageDetailID != detail.PackageDetailID);
+
+            if (duplicateOrder)
+                throw new ConflictException("DisplayOrder already exists in this package.");
+
+            detail.DisplayOrder = newOrder;
+        }
+
+        // 3) Cập nhật các trường còn lại
+        detail.Quantity = request.Quantity;
+        detail.IsRequired = request.IsRequired;
+
+        await _repository.UpdateDetailAsync(detail, ct);
+    }
 }

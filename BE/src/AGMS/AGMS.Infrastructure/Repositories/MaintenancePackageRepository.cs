@@ -70,4 +70,16 @@ public class MaintenancePackageRepository : IMaintenancePackageRepository
         await _dbContext.SaveChangesAsync(ct);
         return detail;
     }
+
+    public async Task<MaintenancePackageDetail?> GetDetailByIdAsync(int detailId, CancellationToken ct = default)
+    {
+        return await _dbContext.MaintenancePackageDetails
+            .FirstOrDefaultAsync(d => d.PackageDetailID == detailId, ct);
+    }
+
+    public async Task UpdateDetailAsync(MaintenancePackageDetail detail, CancellationToken ct = default)
+    {
+        _dbContext.MaintenancePackageDetails.Update(detail);
+        await _dbContext.SaveChangesAsync(ct);
+    }
 }

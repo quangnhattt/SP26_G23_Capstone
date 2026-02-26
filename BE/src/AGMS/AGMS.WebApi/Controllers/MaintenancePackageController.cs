@@ -192,4 +192,42 @@ public class MaintenancePackageController : ControllerBase
             return NotFound(new { message = ex.Message });
         }
     }
+
+    [HttpPut("details/{detailId:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdatePackageDetail(
+        int detailId,
+        [FromBody] UpdatePackageProductRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            var firstError = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .FirstOrDefault()?.ErrorMessage
+                ?? "Validation failed.";
+            return BadRequest(new { message = firstError });
+        }
+        try
+        {
+            await _maintenancePackageService.UpdatePackageDetailAsync(detailId, request, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
 }
