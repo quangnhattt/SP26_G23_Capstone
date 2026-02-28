@@ -1,5 +1,5 @@
 import React from "react";
-import UAParser from "ua-parser-js";
+import { UAParser } from "ua-parser-js";
 
 export type DeviceContextType = "mobile" | "tablet" | "desktop";
 
