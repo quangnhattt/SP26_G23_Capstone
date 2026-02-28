@@ -10,6 +10,14 @@ export interface ILoginPayload {
   type: TypeLoginEnum;
 }
 
+/**
+ * Login with email (body: email, password)
+ */
+export interface ILoginWithEmailPayload {
+  email: string;
+  password: string;
+}
+
 interface ILoginResponse {
   requestId: string;
   errorCode: string;
@@ -23,6 +31,18 @@ export const login = async (payload: ILoginPayload) => {
     payload
   );
   return data;
+};
+
+export const loginWithEmail = async (payload: ILoginWithEmailPayload) => {
+  const { data } = await AxiosClient.post<ILoginResponse>(
+    "/api/auth/login",
+    payload
+  );
+  const result = data?.result ?? data;
+  return {
+    accessToken: result?.accessToken ?? result?.access_token,
+    refreshToken: result?.refreshToken ?? result?.refresh_token,
+  };
 };
 
 /**
@@ -71,8 +91,38 @@ export const logout = async (payload: ILogoutPayload) => {
   return response.data;
 };
 
+/**
+ * Register
+ */
+export interface IRegisterPayload {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export const register = async (payload: IRegisterPayload) => {
+  const username =
+    "user_" +
+    payload.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") +
+    "_" +
+    Date.now().toString(36);
+  const { data } = await AxiosClient.post("/api/auth/register", {
+    fullName: payload.fullName,
+    username,
+    email: payload.email,
+    phoneNumber: payload.phoneNumber || null,
+    password: payload.password,
+    confirmPassword: payload.confirmPassword,
+  });
+  return data;
+};
+
 export const authService = {
   login,
+  loginWithEmail,
+  register,
   refreshToken,
   logout,
   // registerRequest,

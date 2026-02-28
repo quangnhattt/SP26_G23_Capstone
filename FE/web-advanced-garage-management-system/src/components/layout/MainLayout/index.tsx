@@ -6,6 +6,7 @@ import type React from "react";
 import { Outlet } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../Header";
+import Footer from "../Footer";
 
 const MainLayout: React.FC = () => {
   const { theme } = useTheme();
@@ -13,7 +14,7 @@ const MainLayout: React.FC = () => {
   const { height } = useWindowDimensions();
 
   return (
-    <div>
+    <>
       <Container style={{ backgroundColor: theme.black, minHeight: height }}>
         <Header/>
         <Content
@@ -25,9 +26,10 @@ const MainLayout: React.FC = () => {
             <Outlet />
           </OutletContent>
         </Content>
+        <Footer/>
       </Container>
       <MobileDrawer />
-    </div>
+    </>
   );
 };
 
@@ -38,7 +40,8 @@ const Container = styled.div`
   flex-direction: column;
   background-color: #0e1225;
   flex: 1;
-  height: 100%;
+  width: 100%;
+  min-height: 100vh;
   overflow: hidden;
   overflow-x: auto;
 `;

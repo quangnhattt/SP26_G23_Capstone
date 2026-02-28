@@ -1,23 +1,15 @@
 import React from "react";
-import styled from "styled-components";
-import AppLoading from "@/assets/icons/Apploading2.gif";
+import styled, { keyframes } from "styled-components";
+
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
 
 const Splash = React.memo(() => {
   return (
     <Container>
       <Content>
-        <img
-          src={AppLoading}
-          alt="Loading..."
-          style={{
-            width: "100px",
-            height: "100px",
-            justifySelf: "center",
-            justifyContent: "center",
-            alignItems: "center",
-            display: "flex",
-          }}
-        />
+        <Spinner />
       </Content>
     </Container>
   );
@@ -38,4 +30,13 @@ const Content = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 24px;
+`;
+
+const Spinner = styled.div`
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #69a9f9;
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
 `;

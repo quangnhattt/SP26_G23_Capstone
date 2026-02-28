@@ -1,5 +1,7 @@
 import "./App.css";
-import { useTheme, ThemeProvider as CustomThemeProvider } from "./context/ThemeContext";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useTheme } from "./context/ThemeContext";
 import { DeviceProvider } from "./context/DeviceContext";
 import { UAParser } from "ua-parser-js";
 import GlobalStyle from "./constants/globalStyle";
@@ -14,7 +16,7 @@ import { LoadingProvider } from "./context/LoadingContent";
 import QueryProvider from "./context/QueryProvider";
 import AppRoutes from "./routes/AppRoutes";
 
-function AppContent() {
+function App() {
   const { theme } = useTheme();
 
   let initialDeviceType: "mobile" | "tablet" | "desktop" = "desktop";
@@ -27,6 +29,7 @@ function AppContent() {
 
   return (
     <DeviceProvider initialDeviceType={initialDeviceType}>
+      <ToastContainer position="top-right" autoClose={3000} />
       <GlobalStyle theme={theme} />
       <ThemeProvider theme={theme}>
         <I18nextProvider i18n={i18next}>
@@ -34,7 +37,7 @@ function AppContent() {
             <Provider store={store}>
               <LoadingProvider>
                 <QueryProvider>
-                  <AppRoutes/>
+                  <AppRoutes />
                 </QueryProvider>
               </LoadingProvider>
             </Provider>
@@ -42,14 +45,6 @@ function AppContent() {
         </I18nextProvider>
       </ThemeProvider>
     </DeviceProvider>
-  );
-}
-
-function App() {
-  return (
-    <CustomThemeProvider>
-      <AppContent />
-    </CustomThemeProvider>
   );
 }
 

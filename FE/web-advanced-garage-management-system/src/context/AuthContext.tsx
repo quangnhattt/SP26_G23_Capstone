@@ -1,4 +1,8 @@
-import { authService, type ILoginPayload } from "@/apis/auth";
+import {
+  authService,
+  type ILoginPayload,
+  type ILoginWithEmailPayload,
+} from "@/apis/auth";
 import LocalStorage from "@/apis/LocalStorage";
 import { userService } from "@/apis/user";
 import { AppStorageEnum, type IUser } from "@/constants/types";
@@ -24,6 +28,7 @@ interface AuthContextType {
     isUpdatePhone?: boolean,
     returnUrl?: string
   ) => Promise<void>;
+  loginWithEmail: (payload: ILoginWithEmailPayload) => Promise<void>;
   logout: () => Promise<void>;
   setIsInitializing: (isInitializing: boolean) => void;
 }
@@ -35,6 +40,7 @@ export const AuthContext = React.createContext<AuthContextType>({
   getUser: async () => {},
   updateUser: () => {},
   login: async () => {},
+  loginWithEmail: async () => {},
   logout: async () => {},
   setIsInitializing: () => {},
 });
@@ -67,6 +73,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const { mutate: loginMutate } = useMutation({
     mutationKey: ["login"],
     mutationFn: authService.login,
+  });
+
+  const { mutate: loginWithEmailMutate } = useMutation({
+    mutationKey: ["loginWithEmail"],
+    mutationFn: authService.loginWithEmail,
   });
 
   const { mutateAsync: logoutMutate } = useMutation({
@@ -223,6 +234,55 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   );
 
   /**
+   * ===== LOGIN WITH EMAIL =====
+   */
+  const loginWithEmail = React.useCallback(
+    async (payload: ILoginWithEmailPayload) => {
+      showLoading();
+      queryClient.removeQueries({ queryKey: ["get-balance"], exact: true });
+
+      loginWithEmailMutate(payload, {
+        onSuccess: (tokens) => {
+          setCustomToken({
+            token_access: tokens.accessToken,
+            token_refresh: tokens.refreshToken,
+          });
+
+          //@ts-ignore
+          userMutate(null, {
+            onSuccess: (data) => {
+              setUser(data);
+              setLanguageFromUser(data);
+              hideLoading();
+              dispatch(setVisibleLogin(false));
+              dispatch(setVisibleRegister(false));
+              navigate(ROUTER_PAGE.home, { replace: true });
+            },
+            onError: (error) => {
+              hideLoading();
+              toast.error(error?.response?.data?.message ?? "Login failed");
+            },
+          });
+        },
+        onError: (e) => {
+          hideLoading();
+          toast.error(e?.response?.data?.message ?? "Đăng nhập thất bại");
+        },
+      });
+    },
+    [
+      showLoading,
+      queryClient,
+      loginWithEmailMutate,
+      setCustomToken,
+      userMutate,
+      hideLoading,
+      dispatch,
+      navigate,
+    ]
+  );
+
+  /**
    * ===== LOGOUT =====
    */
   const logout = React.useCallback(async () => {
@@ -246,6 +306,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         user,
         getUser,
         login,
+        loginWithEmail,
         updateUser,
         logout,
         setIsInitializing,

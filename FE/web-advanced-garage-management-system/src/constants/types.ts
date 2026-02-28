@@ -64,7 +64,7 @@ export interface DeviceProps {
 
 export interface ILanguage {
   code: string;
-  name: string;
-  flag: string;
-  fullName: string;
+  name?: string;
+  flag?: string;
+  fullName?: string;
 }
