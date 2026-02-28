@@ -5,14 +5,16 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// CORS - cho phép FE gọi API từ domain khác
+// CORS - WithOrigins = origin của FE (nơi gửi request), KHÔNG phải BE
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
-                "http://42.96.15.55:3001",   // React/Vite dev
-                "http://42.96.15.55:3000")
+                "http://localhost:5173",     // FE Vite dev (Referer từ ảnh)
+                "http://localhost:3000",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:3000")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
