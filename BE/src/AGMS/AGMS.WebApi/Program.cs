@@ -8,7 +8,7 @@ builder.Services.AddControllers();
 // CORS - WithOrigins = origin của FE (nơi gửi request), KHÔNG phải BE
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAllEnvironments", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
             "http://localhost:5173",
