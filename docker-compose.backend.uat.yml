@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    image: ghcr.io/quangnhattt/agms-backend:UAT
+    container_name: agms-backend-uat
+    restart: unless-stopped
+    ports:
+      - "9001:8080"
+    networks:
+      - agms-network-uat
+    environment:
+      - ASPNETCORE_ENVIRONMENT=UAT
+      # Uncomment to override connection string:
+      # - ConnectionStrings__MyCnn=${CONNECTION_STRING_UAT}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  agms-network-uat:
+    name: agms-network-uat
+    driver: bridge

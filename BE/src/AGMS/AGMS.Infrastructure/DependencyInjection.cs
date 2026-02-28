@@ -1,3 +1,4 @@
+using AGMS.Application;
 using AGMS.Application.Contracts;
 using AGMS.Infrastructure.Persistence.Db;
 using AGMS.Infrastructure.Repositories;
@@ -22,12 +23,20 @@ public static class DependencyInjection
         services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IMaintenancePackageRepository, MaintenancePackageRepository>();
+        services.AddScoped<IUnitRepository, Repositories.UnitRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IAuthTokenService, AuthTokenService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IUnitService, UnitService>();
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<IMaintenancePackageService, MaintenancePackageService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<ISupplierRepository, SupplierRepository>();
+        services.AddScoped<ISupplierService, SupplierService>();
+        services.AddScoped<IMembershipRankRepository, MembershipRankRepository>();
+        services.AddScoped<IMembershipRankService, MembershipRankService>();
 
         return services;
     }
