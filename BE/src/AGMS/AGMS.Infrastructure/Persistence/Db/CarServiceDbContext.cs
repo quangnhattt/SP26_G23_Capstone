@@ -80,6 +80,8 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<WarrantyClaim> WarrantyClaims { get; set; }
 
+    public virtual DbSet<VehicleIntakeCondition> VehicleIntakeConditions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Appointment>(entity =>
@@ -853,6 +855,34 @@ public partial class CarServiceDbContext : DbContext
             entity.HasOne(d => d.ResultingMaintenance).WithMany(p => p.WarrantyClaimResultingMaintenances)
                 .HasForeignKey(d => d.ResultingMaintenanceID)
                 .HasConstraintName("FK_WC_ResultingMaintenance");
+        });
+
+        modelBuilder.Entity<VehicleIntakeCondition>(entity =>
+        {
+            entity.ToTable("VehicleIntakeCondition");
+
+            entity.Property(e => e.PositionCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            entity.Property(e => e.ConditionType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+
+            entity.Property(e => e.Note)
+                .HasMaxLength(255);
+
+            entity.Property(e => e.CheckInTime)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Car).WithMany(p => p.VehicleIntakeConditions)
+                .HasForeignKey(d => d.CarId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_VehicleIntakeCondition_Car");
+
+            entity.HasOne(d => d.Appointment).WithMany(p => p.VehicleIntakeConditions)
+                .HasForeignKey(d => d.AppointmentId)
+                .HasConstraintName("FK_VehicleIntakeCondition_Appointment");
         });
 
         OnModelCreatingPartial(modelBuilder);
