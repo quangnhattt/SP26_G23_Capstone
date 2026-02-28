@@ -8,15 +8,16 @@ builder.Services.AddControllers();
 // CORS - WithOrigins = origin của FE (nơi gửi request), KHÔNG phải BE
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddPolicy("AllowAllEnvironments", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:5173",     // FE Vite dev (Referer từ ảnh)
-                "http://localhost:3000",
-                "http://127.0.0.1:5173",
-                "http://127.0.0.1:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+            "http://localhost:5173",
+            "https://localhost:7151",
+            "http://42.96.15.55:3001",
+            "http://42.96.15.55:9001"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod();
     });
 });
 
