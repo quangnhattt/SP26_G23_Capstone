@@ -4,8 +4,8 @@ import { AppStorageEnum } from "@/constants/types";
 import LocalStorage from "./LocalStorage";
 import isJwtTokenValid from "@/utils/jsJwtTokenValid";
 
-export const API_URL = "http://42.96.15.55:3001"; //UAT
-// export const API_URL = "http://42.96.15.55:3000"; //production
+export const API_URL = "http://42.96.15.55:9001"; //UAT
+// export const API_URL = "http://42.96.15.55:9000"; //production
 
 const getLanguage = () => LocalStorage.getLanguage() || "en";
 
