@@ -13,6 +13,9 @@ const LocalStorage = {
     }
     return darkMode === "true";
   },
+  setIframeSession: (string: string) =>
+    localStorage.setItem("iframeSession", string),
+  getIframeSession: () => localStorage.getItem("iframeSession"),
 };
 
 export default LocalStorage;

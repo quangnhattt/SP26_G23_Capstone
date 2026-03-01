@@ -5,6 +5,7 @@ namespace AGMS.Application.DTOs.MaintenanacePackage;
 /// </summary>
 public class PackageProductItemDto
 {
+    public int PackageDetailID { get; set; }
     public int ProductID { get; set; }
     public string ProductName { get; set; } = null!;
     public decimal Quantity { get; set; }
