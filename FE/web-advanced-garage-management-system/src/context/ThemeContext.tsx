@@ -8,6 +8,11 @@ import {
 } from "react";
 
 export interface Theme {
+  colors: {
+    primary: string;
+    background: string;
+    text: string;
+  };
   primaryColor: string;
   backgroundColor: string;
   backgroundColor1: string;
@@ -49,6 +54,11 @@ export interface ThemeContextType {
 
 const themes: { light: Theme; dark: Theme } = {
   light: {
+    colors: {
+      primary: "#FFFFFF",
+      background: "#FFFFFF",
+      text: "#192756",
+    },
     primaryColor: "#FFFFFF",
     primaryColor2: "#FFFFFF",
     backgroundColor: "#FFFFFF",
@@ -82,6 +92,11 @@ const themes: { light: Theme; dark: Theme } = {
     textHighlight: "#192756",
   },
   dark: {
+    colors: {
+      primary: "#081930",
+      background: "#121212",
+      text: "#FFFFFF",
+    },
     primaryColor: "#081930",
     primaryColor2: "#0F2255",
     backgroundColor: "#121212",

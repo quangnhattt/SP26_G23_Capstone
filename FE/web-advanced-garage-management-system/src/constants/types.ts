@@ -1,34 +1,44 @@
 import type { Theme } from "@/context/ThemeContext";
 
-export enum AppStorageEnum {
-  TOKEN = "token",
-  REFRESH_TOKEN = "refresh_token",
-  PHONE = "phone",
-  USER_ID = "user_id",
-  PASSWORD_PHONE = "password_phone",
-  PASSWORD_USER_ID = "password_user_id",
-  TYPE_LOGIN = "type_login",
-  CATEGORIES = "categories",
-  GAMES = "games",
-  RELOAD_CATEGORIES = "reload_categories",
-  RELOAD_GAMES = "reload_games",
-}
+export const AppStorageEnum = {
+  TOKEN: "token",
+  REFRESH_TOKEN: "refresh_token",
+  PHONE: "phone",
+  USER_ID: "user_id",
+  PASSWORD_PHONE: "password_phone",
+  PASSWORD_USER_ID: "password_user_id",
+  TYPE_LOGIN: "type_login",
+  CATEGORIES: "categories",
+  GAMES: "games",
+  RELOAD_CATEGORIES: "reload_categories",
+  RELOAD_GAMES: "reload_games",
+} as const;
 
-export enum ResponseStatusEnum {
-  SUCCESSFULLY = "Successfully",
-  FAIL = "Fail",
-}
+export type AppStorageEnum = (typeof AppStorageEnum)[keyof typeof AppStorageEnum];
 
-export enum TypeLoginEnum {
-  MSISDN = "MSISDN",
-  USERNAME = "USERNAME",
-  EMAIL = "EMAIL",
-}
+export const ResponseStatusEnum = {
+  SUCCESSFULLY: "Successfully",
+  FAIL: "Fail",
+} as const;
 
-export enum GenderEnum {
-  MALE = "MALE",
-  FEMALE = "FEMALE",
-}
+export type ResponseStatusEnum =
+  (typeof ResponseStatusEnum)[keyof typeof ResponseStatusEnum];
+
+export const TypeLoginEnum = {
+  MSISDN: "MSISDN",
+  USERNAME: "USERNAME",
+  EMAIL: "EMAIL",
+} as const;
+
+export type TypeLoginEnum =
+  (typeof TypeLoginEnum)[keyof typeof TypeLoginEnum];
+
+export const GenderEnum = {
+  MALE: "MALE",
+  FEMALE: "FEMALE",
+} as const;
+
+export type GenderEnum = (typeof GenderEnum)[keyof typeof GenderEnum];
 
 export interface IUser {
   id: string;

@@ -3,6 +3,7 @@ import {
   type ILoginPayload,
   type ILoginWithEmailPayload,
 } from "@/apis/auth";
+import type { AxiosError } from "axios";
 import LocalStorage from "@/apis/LocalStorage";
 import { userService } from "@/apis/user";
 import { AppStorageEnum, type IUser } from "@/constants/types";
@@ -25,6 +26,7 @@ interface AuthContextType {
   updateUser: (updated: Partial<IUser>) => void;
   login: (
     e: ILoginPayload,
+    isDeposit?: boolean,
     isUpdatePhone?: boolean,
     returnUrl?: string
   ) => Promise<void>;
@@ -219,13 +221,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               },
               onError: (error) => {
                 hideLoading();
-                toast.error(error.response.data.message);
+                const err = error as AxiosError<{ message?: string }>;
+                toast.error(err?.response?.data?.message ?? "Login failed");
               },
             });
           },
           onError: (e) => {
             hideLoading();
-            toast.error(e?.response?.data?.message ?? "Login failed");
+            const err = e as AxiosError<{ message?: string }>;
+            toast.error(err?.response?.data?.message ?? "Login failed");
           },
         }
       );
@@ -260,13 +264,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             },
             onError: (error) => {
               hideLoading();
-              toast.error(error?.response?.data?.message ?? "Login failed");
+              const err = error as AxiosError<{ message?: string }>;
+              toast.error(err?.response?.data?.message ?? "Login failed");
             },
           });
         },
         onError: (e) => {
           hideLoading();
-          toast.error(e?.response?.data?.message ?? "Đăng nhập thất bại");
+          const err = e as AxiosError<{ message?: string }>;
+          toast.error(err?.response?.data?.message ?? "Đăng nhập thất bại");
         },
       });
     },
@@ -297,7 +303,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     logoutMutate({ refreshToken });
     navigate(ROUTER_PAGE.home, { replace: true });
-  }, [setCustomToken, setUser, logoutMutate, navigate]);
+  }, [setCustomToken, logoutMutate, navigate]);
 
   return (
     <AuthContext.Provider

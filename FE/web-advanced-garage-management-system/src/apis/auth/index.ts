@@ -26,11 +26,21 @@ interface ILoginResponse {
 }
 
 export const login = async (payload: ILoginPayload) => {
-  const data = await AxiosClient.post<ILoginResponse>(
+  const { data } = await AxiosClient.post<ILoginResponse>(
     "/api/auth/login",
     payload
   );
-  return data;
+  const result = data?.result ?? (data as unknown as Record<string, unknown>);
+  const r = result as {
+    accessToken?: string;
+    refreshToken?: string;
+    access_token?: string;
+    refresh_token?: string;
+  };
+  return {
+    accessToken: r?.accessToken ?? r?.access_token ?? "",
+    refreshToken: r?.refreshToken ?? r?.refresh_token ?? "",
+  };
 };
 
 export const loginWithEmail = async (payload: ILoginWithEmailPayload) => {
@@ -38,10 +48,16 @@ export const loginWithEmail = async (payload: ILoginWithEmailPayload) => {
     "/api/auth/login",
     payload
   );
-  const result = data?.result ?? data;
+  const result = data?.result ?? (data as unknown as Record<string, unknown>);
+  const r = result as {
+    accessToken?: string;
+    refreshToken?: string;
+    access_token?: string;
+    refresh_token?: string;
+  };
   return {
-    accessToken: result?.accessToken ?? result?.access_token,
-    refreshToken: result?.refreshToken ?? result?.refresh_token,
+    accessToken: r?.accessToken ?? r?.access_token ?? "",
+    refreshToken: r?.refreshToken ?? r?.refresh_token ?? "",
   };
 };
 
