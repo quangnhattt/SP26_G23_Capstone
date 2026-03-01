@@ -38,6 +38,10 @@ public static class DependencyInjection
         services.AddScoped<IMembershipRankRepository, MembershipRankRepository>();
         services.AddScoped<IMembershipRankService, MembershipRankService>();
 
+        // Module cứu hộ (UC-RES-01 đến UC-RES-06)
+        services.AddScoped<IRescueRequestRepository, RescueRequestRepository>();
+        services.AddScoped<IRescueRequestService, RescueRequestService>();
+
         return services;
     }
 }
