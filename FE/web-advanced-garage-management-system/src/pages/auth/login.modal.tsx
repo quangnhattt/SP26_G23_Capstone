@@ -29,7 +29,11 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
   const [rememberMe, setRememberMe] = useState(false);
 
   const handleClose = () => {
-    onClose ? onClose() : navigate(ROUTER_PAGE.home);
+    if (onClose) {
+      onClose();
+    } else {
+      navigate(ROUTER_PAGE.home);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -56,7 +56,7 @@ export interface IUser {
 }
 
 export interface DeviceProps {
-  isMobile?: any;
+  isMobile?: boolean;
   statusBarHeight?: number;
   bottomStatusHeight?: number;
   theme?: Theme;

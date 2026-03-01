@@ -23,7 +23,11 @@ export const errorValidPhone = () => ({
   },
 });
 
-export const errorConfirmPassword = ({ getFieldValue }: any) => ({
+export const errorConfirmPassword = ({
+  getFieldValue,
+}: {
+  getFieldValue: (name: string) => unknown;
+}) => ({
   validator(_: Rule, value: string) {
     if (!value) return Promise.resolve();
     if (!value || getFieldValue("password") === value) {

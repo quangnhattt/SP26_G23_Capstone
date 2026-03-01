@@ -21,9 +21,11 @@ export const useLanguage = (): {
     if (!i18n.language || i18n.language === "en") {
       const localLanguage =
         (LocalStorage.getLanguage() as LanguageType) || "vi";
-      localLanguage && handleChangeLanguage(localLanguage);
+      if (localLanguage) {
+        handleChangeLanguage(localLanguage);
+      }
     }
-  }, [handleChangeLanguage]);
+  }, [handleChangeLanguage, i18n.language]);
 
   return useMemo(
     () => ({

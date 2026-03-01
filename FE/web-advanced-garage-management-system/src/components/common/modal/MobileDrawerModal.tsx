@@ -5,9 +5,7 @@ import { appSelector, setVisibleDrawer } from "@/store/slices/appSlice";
 import { useTheme } from "@/context/ThemeContext";
 import "./DrawerModal.css";
 
-interface LoginModalProps {
-  // You can add any additional props you need for the modal here
-}
+type LoginModalProps = Record<string, unknown>;
 
 export interface LoginModalHandle {
   openModal: () => void;
