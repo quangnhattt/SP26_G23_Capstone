@@ -1,23 +1,29 @@
 import MobileDrawer from "@/components/common/modal/MobileDrawerModal";
-import { useTheme } from "@/context/ThemeContext";
+import { ROUTER_PAGE } from "@/routes/contants";
 import useDevice from "@/hooks/useDevice";
 import useWindowDimensions from "@/hooks/useWindowDimension";
 import type React from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../Header";
 import Footer from "../Footer";
 
 const MainLayout: React.FC = () => {
-  const { theme } = useTheme();
   const { isMobile } = useDevice();
   const { height } = useWindowDimensions();
+  const { pathname } = useLocation();
+  const isLightPage =
+    pathname === ROUTER_PAGE.contact || pathname === ROUTER_PAGE.about;
 
   return (
     <>
-      <Container style={{ backgroundColor: theme.black, minHeight: height }}>
+      <Container
+        $isContactPage={isLightPage}
+        style={{ minHeight: height }}
+      >
         <Header/>
         <Content
+          $isContactPage={isLightPage}
           style={{
             marginTop: isMobile ? "60px" : "70px",
           }}
@@ -35,10 +41,10 @@ const MainLayout: React.FC = () => {
 
 export default MainLayout;
 
-const Container = styled.div`
+const Container = styled.div<{ $isContactPage?: boolean }>`
   display: flex;
   flex-direction: column;
-  background-color: #0e1225;
+  background-color: ${({ $isContactPage }) => ($isContactPage ? "#ffffff" : "#0e1225")};
   flex: 1;
   width: 100%;
   min-height: 100vh;
@@ -46,17 +52,19 @@ const Container = styled.div`
   overflow-x: auto;
 `;
 
-const Content = styled.div`
+const Content = styled.div<{ $isContactPage?: boolean }>`
   display: flex;
   flex: 1;
   overflow: hidden;
-  // min-height: calc(100vh - 180px);
   height: 100%;
   overflow-x: auto;
+  background-color: ${({ $isContactPage }) => ($isContactPage ? "#ffffff" : "transparent")};
 `;
 
 const OutletContent = styled.div`
   display: flex;
   flex: 1;
   flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
 `;

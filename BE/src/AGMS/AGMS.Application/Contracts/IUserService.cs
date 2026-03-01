@@ -11,4 +11,7 @@ public interface IUserService
     Task<IEnumerable<UserListItemDto>> SearchUsersAsync(string? q, int? roleId, bool? isActive, CancellationToken ct);
     Task DeactivateUserAsync(int userId, CancellationToken ct);
     Task ActivateUserAsync(int userId, CancellationToken ct);
+
+    Task<UserDetailDto> GetCurrentUserAsync(int userId, CancellationToken ct);
+    Task<UserDetailDto> UpdateCurrentUserProfileAsync(int userId, UpdateMyProfileRequest request, CancellationToken ct);
 }

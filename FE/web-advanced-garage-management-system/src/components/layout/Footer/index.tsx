@@ -108,6 +108,7 @@ export default Footer;
 const FooterWrapper = styled.footer`
   background: #ffffff;
   width: 100%;
+  border-top: 1px solid #e9ecef;
 `;
 
 const FooterTop = styled.div`

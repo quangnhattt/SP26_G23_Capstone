@@ -233,6 +233,63 @@ public class UserService : IUserService
         await _userRepository.SetActiveAsync(userId, true, ct);
     }
 
+    public async Task<UserDetailDto> GetCurrentUserAsync(int userId, CancellationToken ct)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, ct)
+                   ?? throw new KeyNotFoundException($"User with ID {userId} not found.");
+
+        return MapToDetail(user);
+    }
+
+    public async Task<UserDetailDto> UpdateCurrentUserProfileAsync(int userId, UpdateMyProfileRequest request, CancellationToken ct)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, ct)
+                   ?? throw new KeyNotFoundException($"User with ID {userId} not found.");
+
+        var fullName = request.FullName.Trim();
+        if (string.IsNullOrWhiteSpace(fullName))
+            throw new ArgumentException("FullName is required.", nameof(request.FullName));
+
+        var newPhone = request.PhoneNumber?.Trim();
+
+        // Phone: nếu được cung cấp và thay đổi thì check unique
+        if (!string.IsNullOrWhiteSpace(newPhone))
+        {
+            var existingByPhone = await _userRepository.GetByPhoneAsync(newPhone, ct);
+            if (existingByPhone != null && existingByPhone.UserID != userId)
+                throw new ConflictException("Phone number is already in use.");
+        }
+
+        // Gender (optional, Male/Female)
+        if (!string.IsNullOrWhiteSpace(request.Gender))
+        {
+            var g = request.Gender.Trim();
+            if (!g.Equals("Male", StringComparison.OrdinalIgnoreCase) &&
+                !g.Equals("Female", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Gender must be either 'Male' or 'Female'.");
+            }
+
+            user.Gender = g.Equals("Male", StringComparison.OrdinalIgnoreCase) ? "Male" : "Female";
+        }
+        else
+        {
+            user.Gender = null;
+        }
+
+        user.FullName = fullName;
+        user.Phone = newPhone;
+        user.Image = string.IsNullOrWhiteSpace(request.Image) ? null : request.Image.Trim();
+        user.DateOfBirth = request.DateOfBirth;
+
+        await _userRepository.UpdateAsync(user, ct);
+
+        var updated = await _userRepository.GetByIdAsync(userId, ct)
+                      ?? throw new InvalidOperationException("Failed to load updated user.");
+
+        return MapToDetail(updated);
+    }
+
     private static UserListItemDto MapToListItem(User u) => new()
     {
         UserID = u.UserID,
@@ -264,6 +321,11 @@ public class UserService : IUserService
         RoleID = u.RoleID,
         RoleName = u.Role.RoleName,
         IsActive = u.IsActive,
-        CreatedDate = u.CreatedDate
+        CreatedDate = u.CreatedDate,
+        LastLoginDate = u.LastLoginDate,
+        TotalSpending = u.TotalSpending,
+        CurrentRankID = u.CurrentRankID,
+        IsOnRescueMission = u.IsOnRescueMission,
+        Skills = u.Skills
     };
 }
