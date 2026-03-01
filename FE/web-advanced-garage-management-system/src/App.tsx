@@ -1,35 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import "./App.css";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useTheme } from "./context/ThemeContext";
+import { DeviceProvider } from "./context/DeviceContext";
+import { UAParser } from "ua-parser-js";
+import GlobalStyle from "./constants/globalStyle";
+import { ThemeProvider } from "styled-components";
+import { I18nextProvider } from "react-i18next";
+import i18next from "i18next";
+import { ConfigProvider } from "antd";
+import en_US from "antd/lib/locale/en_US";
+import { Provider } from "react-redux";
+import store from "./store/store";
+import { LoadingProvider } from "./context/LoadingContent";
+import QueryProvider from "./context/QueryProvider";
+import AppRoutes from "./routes/AppRoutes";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { theme } = useTheme();
+
+  let initialDeviceType: "mobile" | "tablet" | "desktop" = "desktop";
+  if (typeof window !== "undefined") {
+    const parser = new UAParser();
+    const result = parser.getResult();
+    initialDeviceType =
+      (result.device.type as "mobile" | "tablet" | "desktop") || "desktop";
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count isdfdf {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <DeviceProvider initialDeviceType={initialDeviceType}>
+      <ToastContainer position="top-right" autoClose={3000} />
+      <GlobalStyle theme={theme} />
+      <ThemeProvider theme={theme}>
+        <I18nextProvider i18n={i18next}>
+          <ConfigProvider locale={en_US}>
+            <Provider store={store}>
+              <LoadingProvider>
+                <QueryProvider>
+                  <AppRoutes />
+                </QueryProvider>
+              </LoadingProvider>
+            </Provider>
+          </ConfigProvider>
+        </I18nextProvider>
+      </ThemeProvider>
+    </DeviceProvider>
+  );
 }
 
-export default App
+export default App;

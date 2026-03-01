@@ -4,12 +4,15 @@ import { AppStorageEnum } from "@/constants/types";
 import LocalStorage from "./LocalStorage";
 import isJwtTokenValid from "@/utils/jsJwtTokenValid";
 
-export const API_URL = "http://42.96.15.55:3001"; //UAT
-// export const API_URL = "http://42.96.15.55:3000"; //production
+export const API_URL = "http://42.96.15.55:9001"; //UAT
+// export const API_URL = "http://42.96.15.55:9000"; //production
 
 const getLanguage = () => LocalStorage.getLanguage() || "en";
 
-const setAuthHeader = (token: string | null, headers: any) => {
+const setAuthHeader = (
+  token: string | null,
+  headers: Record<string, string>
+) => {
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -36,7 +39,7 @@ const refreshToken = async () => {
   }
 
   // Cache the refresh promise
-  refreshPromise = new Promise<string>(async (resolve, reject) => {
+  refreshPromise = (async () => {
     try {
       const res = await authService.refreshToken({
         refreshToken: token_refresh,
@@ -50,18 +53,18 @@ const refreshToken = async () => {
       refreshSubscribers.forEach((callback) => callback(newAccessToken));
       refreshSubscribers = []; // Clear the queue
 
-      resolve(newAccessToken);
+      return newAccessToken;
     } catch (error) {
       console.error("Token refresh failed", error);
       handleLogout();
 
       refreshSubscribers = [];
-      reject(new Error("Failed to refresh token. Please log in again."));
+      throw new Error("Failed to refresh token. Please log in again.");
     } finally {
       isRefreshing = false;
       refreshPromise = null;
     }
-  });
+  })();
 
   return refreshPromise;
 };

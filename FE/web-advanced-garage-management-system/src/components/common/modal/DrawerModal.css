@@ -1,0 +1,47 @@
+.modal-overlay {
+  /* background: rgba(0, 0, 0, 0.75);
+  opacity: 1;
+
+  z-index: 1110;
+  overflow: hidden;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center; */
+  overflow: hidden;
+}
+
+/* .modal-overlay.ReactModal__Overlay--after-open {
+
+  backdrop-filter: blur(8px);
+}
+.modal-overlay.ReactModal__Overlay--before-close {
+ 
+  backdrop-filter: blur(0px);
+} */
+
+.modal-content {
+  overflow-y: clip;
+  padding: 0;
+  border-width: 0px;
+  border-radius: 4px;
+  pointer-events: auto;
+  height: 100%;
+  margin-top: 0;
+  margin-right: 0;
+  right: 0;
+  top: 0;
+  z-index: 1100;
+  position: absolute;
+  left: 40px;
+  transform: translate(-50%, 0%) translateX(100%);
+  transition: transform 100ms ease-in-out;
+}
+
+.modal-content.ReactModal__Content--after-open {
+  transform: translate(-100%, 0%) translateX(100%);
+}
+
+.modal-content.ReactModal__Content--before-close {
+  transform: translate(-50%, 0%) translateX(150%);
+}

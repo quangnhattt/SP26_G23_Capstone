@@ -1,4 +1,9 @@
-import { authService, type ILoginPayload } from "@/apis/auth";
+import {
+  authService,
+  type ILoginPayload,
+  type ILoginWithEmailPayload,
+} from "@/apis/auth";
+import type { AxiosError } from "axios";
 import LocalStorage from "@/apis/LocalStorage";
 import { userService } from "@/apis/user";
 import { AppStorageEnum, type IUser } from "@/constants/types";
@@ -21,9 +26,11 @@ interface AuthContextType {
   updateUser: (updated: Partial<IUser>) => void;
   login: (
     e: ILoginPayload,
+    isDeposit?: boolean,
     isUpdatePhone?: boolean,
     returnUrl?: string
   ) => Promise<void>;
+  loginWithEmail: (payload: ILoginWithEmailPayload) => Promise<void>;
   logout: () => Promise<void>;
   setIsInitializing: (isInitializing: boolean) => void;
 }
@@ -35,6 +42,7 @@ export const AuthContext = React.createContext<AuthContextType>({
   getUser: async () => {},
   updateUser: () => {},
   login: async () => {},
+  loginWithEmail: async () => {},
   logout: async () => {},
   setIsInitializing: () => {},
 });
@@ -46,7 +54,7 @@ type AuthProviderProps = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isMobile } = useDevice();
+  useDevice();
   const { showLoading, hideLoading } = useLoading();
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
@@ -69,18 +77,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     mutationFn: authService.login,
   });
 
+  const { mutate: loginWithEmailMutate } = useMutation({
+    mutationKey: ["loginWithEmail"],
+    mutationFn: authService.loginWithEmail,
+  });
+
   const { mutateAsync: logoutMutate } = useMutation({
     mutationKey: ["logout"],
     mutationFn: authService.logout,
     retry: 1,
   });
 
-  const setLanguageFromUser = (userData: IUser) => {
+  const setLanguageFromUser = React.useCallback((userData: IUser) => {
     if (userData.language && userData.language !== i18next.language) {
       LocalStorage.saveLanguage(userData.language);
       i18next.changeLanguage(userData.language);
     }
-  };
+  }, []);
 
   /**
    * ===== TOKEN HANDLER =====
@@ -113,7 +126,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     async (token_access?: string, token_refresh?: string) => {
       await setCustomToken({ token_access, token_refresh });
 
-      //@ts-ignore
+      // @ts-expect-error - mutate expects variables but we pass null for initial fetch
       userMutate(null, {
         onSuccess: (data) => {
           setUser(data);
@@ -128,7 +141,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         },
       });
     },
-    [setCustomToken, userMutate]
+    [setCustomToken, userMutate, setLanguageFromUser]
   );
 
   /**
@@ -152,7 +165,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [storeAuthResult]);
 
   const getUser = async () => {
-    //@ts-ignore
+    // @ts-expect-error - mutate expects variables but we pass null for initial fetch
     userMutate(null, {
       onSuccess: (data) => {
         setUser(data);
@@ -188,7 +201,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               token_refresh: data.refreshToken,
             });
 
-            //@ts-ignore
+            // @ts-expect-error - mutate expects variables but we pass null for initial fetch
             userMutate(null, {
               onSuccess: (data) => {
                 setUser(data);
@@ -208,18 +221,72 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               },
               onError: (error) => {
                 hideLoading();
-                toast.error(error.response.data.message);
+                const err = error as AxiosError<{ message?: string }>;
+                toast.error(err?.response?.data?.message ?? "Login failed");
               },
             });
           },
           onError: (e) => {
             hideLoading();
-            toast.error(e?.response?.data?.message ?? "Login failed");
+            const err = e as AxiosError<{ message?: string }>;
+            toast.error(err?.response?.data?.message ?? "Login failed");
           },
         }
       );
     },
-    [showLoading, queryClient, loginMutate, setCustomToken, userMutate, setUser, setLanguageFromUser, hideLoading, dispatch, navigate]
+    [showLoading, queryClient, loginMutate, setCustomToken, userMutate, setLanguageFromUser, hideLoading, dispatch, navigate]
+  );
+
+  /**
+   * ===== LOGIN WITH EMAIL =====
+   */
+  const loginWithEmail = React.useCallback(
+    async (payload: ILoginWithEmailPayload) => {
+      showLoading();
+      queryClient.removeQueries({ queryKey: ["get-balance"], exact: true });
+
+      loginWithEmailMutate(payload, {
+        onSuccess: (tokens) => {
+          setCustomToken({
+            token_access: tokens.accessToken,
+            token_refresh: tokens.refreshToken,
+          });
+
+          // @ts-expect-error - mutate expects variables but we pass null for initial fetch
+          userMutate(null, {
+            onSuccess: (data) => {
+              setUser(data);
+              setLanguageFromUser(data);
+              hideLoading();
+              dispatch(setVisibleLogin(false));
+              dispatch(setVisibleRegister(false));
+              navigate(ROUTER_PAGE.home, { replace: true });
+            },
+            onError: (error) => {
+              hideLoading();
+              const err = error as AxiosError<{ message?: string }>;
+              toast.error(err?.response?.data?.message ?? "Login failed");
+            },
+          });
+        },
+        onError: (e) => {
+          hideLoading();
+          const err = e as AxiosError<{ message?: string }>;
+          toast.error(err?.response?.data?.message ?? "Đăng nhập thất bại");
+        },
+      });
+    },
+    [
+      showLoading,
+      queryClient,
+      loginWithEmailMutate,
+      setCustomToken,
+      userMutate,
+      setLanguageFromUser,
+      hideLoading,
+      dispatch,
+      navigate,
+    ]
   );
 
   /**
@@ -236,7 +303,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     logoutMutate({ refreshToken });
     navigate(ROUTER_PAGE.home, { replace: true });
-  }, [setCustomToken, setUser, logoutMutate, navigate]);
+  }, [setCustomToken, logoutMutate, navigate]);
 
   return (
     <AuthContext.Provider
@@ -246,6 +313,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         user,
         getUser,
         login,
+        loginWithEmail,
         updateUser,
         logout,
         setIsInitializing,

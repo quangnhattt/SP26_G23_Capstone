@@ -10,5 +10,6 @@ namespace AGMS.Application.Contracts
         Task<MembershipRankDto?> GetRankByIdAsync(int id);
         Task<(bool IsSuccess, string Message, MembershipRankDto? Data)> CreateRankAsync(CreateMembershipRankRequest request);
         Task<(bool IsSuccess, string Message)> UpdateRankAsync(int id, UpdateMembershipRankRequest request);
+        Task<(bool IsSuccess, string Message)> ChangeStatusAsync(int id, bool isActive);
     }
 }
