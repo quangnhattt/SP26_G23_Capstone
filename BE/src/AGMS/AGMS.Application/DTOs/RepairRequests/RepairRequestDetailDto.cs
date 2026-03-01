@@ -8,11 +8,11 @@ public class RepairRequestDetailDto
     public string Title { get; set; } = null!;
     public string Description { get; set; } = null!;
     public List<string> Symptoms { get; set; } = new();
-    public List<int> ServiceIds { get; set; } = new();
+    public string ServiceType { get; set; } = null!;
+    public int? RequestedPackageId { get; set; }
     public int? TechnicianId { get; set; }
     public string PreferredDate { get; set; } = null!;
     public string PreferredTime { get; set; } = null!;
     public DateTime CreatedDateUtc { get; set; }
     public string Status { get; set; } = null!;
 }
-

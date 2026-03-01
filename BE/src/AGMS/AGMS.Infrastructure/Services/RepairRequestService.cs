@@ -62,7 +62,6 @@ public class RepairRequestService : IRepairRequestService
             Services = services
         };
 
-        // Maintenance-by-km recommendation logic (best-effort, non-breaking)
         if (!string.IsNullOrWhiteSpace(serviceType)
             && serviceType.Equals("maintenance", StringComparison.OrdinalIgnoreCase)
             && carId.HasValue)
@@ -83,7 +82,6 @@ public class RepairRequestService : IRepairRequestService
 
                 if (packages.Count > 0)
                 {
-                    // Pick packages whose KilometerMilestone is closest to current odometer
                     var recommended = packages
                         .OrderBy(p => Math.Abs((p.KilometerMilestone ?? 0) - carKm))
                         .Take(5)
@@ -108,10 +106,6 @@ public class RepairRequestService : IRepairRequestService
 
     public async Task<IEnumerable<TechnicianListItemDto>> GetTechniciansAsync(IEnumerable<int>? serviceIds, CancellationToken ct)
     {
-        // Currently we don't have a strong mapping between services and technicians.
-        // For now, we return all active technicians (RoleID == 3).
-        // TODO: When skill/service mapping is available, filter technicians by selected services.
-
         var technicians = await _db.Users
             .AsNoTracking()
             .Where(u => u.RoleID == 3 && u.IsActive)
@@ -131,10 +125,9 @@ public class RepairRequestService : IRepairRequestService
 
     public async Task<RepairRequestPreviewResponse> PreviewAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
-        // Reuse the same validation and costing logic as CreateAsync, but without saving.
-        var (services, _, _) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
+        var (car, technician, package, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
 
-        var (totalCost, totalMinutes) = CalculateTotals(services);
+        var (totalCost, totalMinutes) = GetEstimatedCostAndMinutes(appointmentServiceType, package);
 
         return new RepairRequestPreviewResponse
         {
@@ -146,22 +139,21 @@ public class RepairRequestService : IRepairRequestService
 
     public async Task<RepairRequestDetailDto> CreateAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
-        var (services, car, technician) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
-        var (totalCost, _) = CalculateTotals(services);
+        var (car, technician, package, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
 
-        // Map incoming serviceType (UI) to MaintenanceType (DB) and validate
-        var maintenanceType = MapMaintenanceType(request.ServiceType);
+        var (totalCost, _) = GetEstimatedCostAndMinutes(appointmentServiceType, package);
+        var maintenanceType = MapMaintenanceTypeForCarMaintenance(request.ServiceType);
 
         var preferredDate = ParsePreferredDate(request.PreferredDate);
         var preferredTime = ParsePreferredTime(request.PreferredTime);
         var appointmentDateTime = preferredDate.ToDateTime(preferredTime);
 
-        // Create Appointment
         var appointment = new Appointment
         {
             CarID = car.CarID,
             AppointmentDate = appointmentDateTime,
-            RequestedPackageID = null,
+            ServiceType = appointmentServiceType,
+            RequestedPackageID = appointmentServiceType == "MAINTENANCE" ? request.RequestedPackageId : null,
             Status = "PENDING",
             Notes = BuildNotes(request),
             CreatedBy = userId,
@@ -171,19 +163,6 @@ public class RepairRequestService : IRepairRequestService
         _db.Appointments.Add(appointment);
         await _db.SaveChangesAsync(ct);
 
-        // Create AppointmentServiceItems for selected services
-        foreach (var svc in services)
-        {
-            var item = new AppointmentServiceItem
-            {
-                AppointmentID = appointment.AppointmentID,
-                ProductID = svc.ProductID,
-                Quantity = 1m
-            };
-            _db.AppointmentServiceItems.Add(item);
-        }
-
-        // Create initial CarMaintenance record to track technician assignment
         var maintenance = new CarMaintenance
         {
             CarID = car.CarID,
@@ -217,7 +196,8 @@ public class RepairRequestService : IRepairRequestService
             Title = request.Title,
             Description = request.Description,
             Symptoms = request.Symptoms.ToList(),
-            ServiceIds = services.Select(s => s.ProductID).ToList(),
+            ServiceType = appointmentServiceType,
+            RequestedPackageId = appointment.RequestedPackageID,
             TechnicianId = technician?.UserID,
             PreferredDate = request.PreferredDate,
             PreferredTime = request.PreferredTime,
@@ -226,45 +206,51 @@ public class RepairRequestService : IRepairRequestService
         };
     }
 
-    private async Task<(List<Product> services, Car car, User? technician)> ValidateAndLoadCoreDataAsync(
+    /// <summary>
+    /// Validates request and returns (Car, Technician?, Package?, AppointmentServiceType).
+    /// Throws ArgumentException for business rule violations (400).
+    /// </summary>
+    private async Task<(Car car, User? technician, MaintenancePackage? package, string appointmentServiceType)> ValidateAndLoadCoreDataAsync(
         RepairRequestCreateRequest request,
         int userId,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
-        {
             throw new ArgumentException("Title is required.", nameof(request.Title));
-        }
         if (string.IsNullOrWhiteSpace(request.Description))
-        {
             throw new ArgumentException("Description is required.", nameof(request.Description));
-        }
-        if (request.ServiceIds == null || request.ServiceIds.Count == 0)
+        if (string.IsNullOrWhiteSpace(request.ServiceType))
+            throw new ArgumentException("ServiceType is required. Use 'repair' or 'maintenance'.", nameof(request.ServiceType));
+
+        var normalizedType = request.ServiceType.Trim().ToLowerInvariant();
+        if (normalizedType != "repair" && normalizedType != "maintenance")
+            throw new ArgumentException("ServiceType must be 'repair' or 'maintenance'.", nameof(request.ServiceType));
+
+        // REPAIR => RequestedPackageId MUST be null
+        if (normalizedType == "repair")
         {
-            throw new ArgumentException("At least one service must be selected.", nameof(request.ServiceIds));
+            if (request.RequestedPackageId.HasValue)
+                throw new ArgumentException("RequestedPackageId must not be set when ServiceType is 'repair'.", nameof(request.RequestedPackageId));
         }
 
-        // Validate and normalize serviceType (if provided) but do not change Preview logic:
-        // this will still only validate input and throw on invalid values.
-        _ = MapMaintenanceType(request.ServiceType);
+        // MAINTENANCE => RequestedPackageId required, package must exist and be active
+        MaintenancePackage? package = null;
+        if (normalizedType == "maintenance")
+        {
+            if (!request.RequestedPackageId.HasValue)
+                throw new ArgumentException("RequestedPackageId is required when ServiceType is 'maintenance'.", nameof(request.RequestedPackageId));
 
-        // Validate car belongs to current user
+            package = await _db.MaintenancePackages
+                .FirstOrDefaultAsync(p => p.PackageID == request.RequestedPackageId.Value && p.IsActive, ct);
+
+            if (package == null)
+                throw new ArgumentException("Maintenance package not found or inactive.", nameof(request.RequestedPackageId));
+        }
+
         var car = await _db.Cars
             .FirstOrDefaultAsync(c => c.CarID == request.CarId && c.OwnerID == userId, ct)
             ?? throw new InvalidOperationException("Car not found or does not belong to current user.");
 
-        // Load services
-        var distinctServiceIds = request.ServiceIds.Distinct().ToList();
-        var services = await _db.Products
-            .Where(p => distinctServiceIds.Contains(p.ProductID) && (p.Type == "SERVICE" || p.Type == "Service") && p.IsActive)
-            .ToListAsync(ct);
-
-        if (services.Count != distinctServiceIds.Count)
-        {
-            throw new InvalidOperationException("One or more selected services are invalid or inactive.");
-        }
-
-        // Validate technician if provided
         User? technician = null;
         if (request.TechnicianId.HasValue)
         {
@@ -273,71 +259,56 @@ public class RepairRequestService : IRepairRequestService
                 ?? throw new InvalidOperationException("Technician not found or inactive.");
         }
 
-        // Validate date/time parsing (will throw ArgumentException if invalid)
         _ = ParsePreferredDate(request.PreferredDate);
         _ = ParsePreferredTime(request.PreferredTime);
 
-        return (services, car, technician);
+        var appointmentServiceType = normalizedType == "repair" ? "REPAIR" : "MAINTENANCE";
+        return (car, technician, package, appointmentServiceType);
     }
 
-    private static (decimal totalCost, int totalMinutes) CalculateTotals(IEnumerable<Product> services)
+    private static (decimal totalCost, int totalMinutes) GetEstimatedCostAndMinutes(string appointmentServiceType, MaintenancePackage? package)
     {
-        decimal totalCost = 0m;
-        var totalMinutes = 0;
+        if (appointmentServiceType == "REPAIR")
+            return (0m, 0);
 
-        foreach (var svc in services)
-        {
-            totalCost += svc.Price;
+        if (package == null)
+            return (0m, 0);
 
-            if (svc.EstimatedDurationHours.HasValue)
-            {
-                var minutes = (int)Math.Round((double)(svc.EstimatedDurationHours.Value * 60m));
-                totalMinutes += minutes;
-            }
-        }
-
-        return (totalCost, totalMinutes);
+        var cost = package.FinalPrice ?? package.BasePrice;
+        var minutes = package.EstimatedDurationHours.HasValue
+            ? (int)Math.Round((double)(package.EstimatedDurationHours.Value * 60m))
+            : 0;
+        return (cost, minutes);
     }
 
-    private static string MapMaintenanceType(string? serviceType)
+    /// <summary>
+    /// Maps request ServiceType to CarMaintenance.MaintenanceType (CK_RO_Type: RESCUE, WARRANTY, REPAIR, REGULAR).
+    /// </summary>
+    private static string MapMaintenanceTypeForCarMaintenance(string? serviceType)
     {
         if (string.IsNullOrWhiteSpace(serviceType))
-        {
-            // Default behavior: treat missing serviceType as normal regular maintenance/repair
             return "REGULAR";
-        }
 
         var normalized = serviceType.Trim().ToLowerInvariant();
-
         return normalized switch
         {
             "maintenance" => "REGULAR",
             "repair" => "REPAIR",
-            "rescue" => "RESCUE",
-            "warranty" => "WARRANTY",
-            _ => throw new ArgumentException(
-                "serviceType must be one of: maintenance, repair, rescue, warranty.",
-                nameof(serviceType))
+            _ => "REGULAR"
         };
     }
 
     private static DateOnly ParsePreferredDate(string date)
     {
         if (!DateOnly.TryParse(date, out var result))
-        {
             throw new ArgumentException("PreferredDate must be a valid date in format yyyy-MM-dd.", nameof(date));
-        }
-
         return result;
     }
 
     private static TimeOnly ParsePreferredTime(string time)
     {
         if (!TimeOnly.TryParse(time, out var result))
-        {
             throw new ArgumentException("PreferredTime must be a valid time in format HH:mm.", nameof(time));
-        }
-
         return result;
     }
 
@@ -346,8 +317,6 @@ public class RepairRequestService : IRepairRequestService
         var symptoms = request.Symptoms != null && request.Symptoms.Count > 0
             ? string.Join(", ", request.Symptoms)
             : "N/A";
-
         return $"Title: {request.Title}\nDescription: {request.Description}\nSymptoms: {symptoms}";
     }
 }
-

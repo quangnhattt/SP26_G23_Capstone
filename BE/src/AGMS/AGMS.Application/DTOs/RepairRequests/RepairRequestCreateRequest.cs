@@ -17,27 +17,24 @@ public class RepairRequestCreateRequest
 
     public List<string> Symptoms { get; set; } = new();
 
-    [Required]
-    [MinLength(1)]
-    public List<int> ServiceIds { get; set; } = new();
+    /// <summary>
+    /// Appointment type: 'repair' or 'maintenance'. Stored as REPAIR or MAINTENANCE in DB.
+    /// REPAIR => RequestedPackageId must be null. MAINTENANCE => RequestedPackageId required.
+    /// </summary>
+    [Required(ErrorMessage = "ServiceType is required. Use 'repair' or 'maintenance'.")]
+    [RegularExpression("^(?i)(repair|maintenance)$", ErrorMessage = "ServiceType must be 'repair' or 'maintenance'.")]
+    public string ServiceType { get; set; } = null!;
+
+    /// <summary>
+    /// Required when ServiceType is 'maintenance'. Must be null when ServiceType is 'repair'.
+    /// </summary>
+    public int? RequestedPackageId { get; set; }
 
     public int? TechnicianId { get; set; }
 
-    /// <summary>
-    /// Preferred date in ISO format (yyyy-MM-dd).
-    /// </summary>
     [Required]
     public string PreferredDate { get; set; } = null!;
 
-    /// <summary>
-    /// Preferred time, e.g. HH:mm.
-    /// </summary>
     [Required]
     public string PreferredTime { get; set; } = null!;
-
-    /// <summary>
-    /// Optional serviceType hint, e.g. "maintenance" to trigger maintenance-by-km logic.
-    /// </summary>
-    public string? ServiceType { get; set; }
 }
-
