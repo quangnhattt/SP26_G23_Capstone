@@ -5,20 +5,26 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// CORS - WithOrigins = origin của FE (nơi GỬI request), không phải BE
+// CORS - Development: mở all origin/port cho FE. UAT/Production: chỉ origin trong danh sách.
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:5173",      // Local dev (Vite)
+                "http://localhost:5173",
                 "http://localhost:3000",
                 "http://127.0.0.1:5173",
                 "http://127.0.0.1:3000",
-                "http://42.96.15.55:3001")    // FE UAT (BE chạy port 9001)
+                "http://42.96.15.55:3001")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
+    });
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
@@ -38,7 +44,8 @@ var app = builder.Build();
     app.UseSwaggerUI();
 // }    
 
-app.UseCors("AllowFrontend");  // Đặt trước UseHttpsRedirection để preflight OPTIONS không bị redirect
+// Mở tất cả cổng/origin cho FE (như ý "cứ cho open đi")
+app.UseCors("AllowAll");
 
 if (!app.Environment.IsDevelopment())
 {
