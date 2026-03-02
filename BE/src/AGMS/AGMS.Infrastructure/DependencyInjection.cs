@@ -37,7 +37,9 @@ public static class DependencyInjection
         services.AddScoped<ISupplierService, SupplierService>();
         services.AddScoped<IMembershipRankRepository, MembershipRankRepository>();
         services.AddScoped<IMembershipRankService, MembershipRankService>();
-
+        services.AddScoped<IRolePermissionService, RolePermissionService>();
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<IPermissionGroupService, PermissionGroupService>();
         return services;
     }
 }
