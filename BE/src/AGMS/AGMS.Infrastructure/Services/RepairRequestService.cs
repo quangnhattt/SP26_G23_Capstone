@@ -125,9 +125,9 @@ public class RepairRequestService : IRepairRequestService
 
     public async Task<RepairRequestPreviewResponse> PreviewAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
-        var (car, technician, package, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
+        var (car, technician, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
 
-        var (totalCost, totalMinutes) = GetEstimatedCostAndMinutes(appointmentServiceType, package);
+        var (totalCost, totalMinutes) = GetEstimatedCostAndMinutes(appointmentServiceType);
 
         return new RepairRequestPreviewResponse
         {
@@ -139,9 +139,9 @@ public class RepairRequestService : IRepairRequestService
 
     public async Task<RepairRequestDetailDto> CreateAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
-        var (car, technician, package, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
+        var (car, technician, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
 
-        var (totalCost, _) = GetEstimatedCostAndMinutes(appointmentServiceType, package);
+        var (totalCost, _) = GetEstimatedCostAndMinutes(appointmentServiceType);
         var maintenanceType = MapMaintenanceTypeForCarMaintenance(request.ServiceType);
 
         var preferredDate = ParsePreferredDate(request.PreferredDate);
@@ -153,7 +153,9 @@ public class RepairRequestService : IRepairRequestService
             CarID = car.CarID,
             AppointmentDate = appointmentDateTime,
             ServiceType = appointmentServiceType,
-            RequestedPackageID = appointmentServiceType == "MAINTENANCE" ? request.RequestedPackageId : null,
+            // Booking flow no longer sets any RequestedPackageID. This will be
+            // handled by a later module when a concrete package is chosen.
+            RequestedPackageID = null,
             Status = "PENDING",
             Notes = BuildNotes(request),
             CreatedBy = userId,
@@ -193,11 +195,8 @@ public class RepairRequestService : IRepairRequestService
             AppointmentId = appointment.AppointmentID,
             CarId = car.CarID,
             CreatedByUserId = userId,
-            Title = request.Title,
             Description = request.Description,
-            Symptoms = request.Symptoms.ToList(),
             ServiceType = appointmentServiceType,
-            RequestedPackageId = appointment.RequestedPackageID,
             TechnicianId = technician?.UserID,
             PreferredDate = request.PreferredDate,
             PreferredTime = request.PreferredTime,
@@ -207,45 +206,22 @@ public class RepairRequestService : IRepairRequestService
     }
 
     /// <summary>
-    /// Validates request and returns (Car, Technician?, Package?, AppointmentServiceType).
+    /// Validates request and returns (Car, Technician?, AppointmentServiceType).
     /// Throws ArgumentException for business rule violations (400).
     /// </summary>
-    private async Task<(Car car, User? technician, MaintenancePackage? package, string appointmentServiceType)> ValidateAndLoadCoreDataAsync(
+    private async Task<(Car car, User? technician, string appointmentServiceType)> ValidateAndLoadCoreDataAsync(
         RepairRequestCreateRequest request,
         int userId,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request.Title))
-            throw new ArgumentException("Title is required.", nameof(request.Title));
         if (string.IsNullOrWhiteSpace(request.Description))
             throw new ArgumentException("Description is required.", nameof(request.Description));
         if (string.IsNullOrWhiteSpace(request.ServiceType))
-            throw new ArgumentException("ServiceType is required. Use 'repair' or 'maintenance'.", nameof(request.ServiceType));
+            throw new ArgumentException("ServiceType is required. Use 'REPAIR' or 'MAINTENANCE'.", nameof(request.ServiceType));
 
         var normalizedType = request.ServiceType.Trim().ToLowerInvariant();
         if (normalizedType != "repair" && normalizedType != "maintenance")
-            throw new ArgumentException("ServiceType must be 'repair' or 'maintenance'.", nameof(request.ServiceType));
-
-        // REPAIR => RequestedPackageId MUST be null
-        if (normalizedType == "repair")
-        {
-            if (request.RequestedPackageId.HasValue)
-                throw new ArgumentException("RequestedPackageId must not be set when ServiceType is 'repair'.", nameof(request.RequestedPackageId));
-        }
-
-        // MAINTENANCE => RequestedPackageId required, package must exist and be active
-        MaintenancePackage? package = null;
-        if (normalizedType == "maintenance")
-        {
-            if (!request.RequestedPackageId.HasValue)
-                throw new ArgumentException("RequestedPackageId is required when ServiceType is 'maintenance'.", nameof(request.RequestedPackageId));
-
-            package = await _db.MaintenancePackages
-                .FirstOrDefaultAsync(p => p.PackageID == request.RequestedPackageId.Value && p.IsActive, ct);
-
-            if (package == null)
-                throw new ArgumentException("Maintenance package not found or inactive.", nameof(request.RequestedPackageId));
-        }
+            throw new ArgumentException("ServiceType must be 'REPAIR' or 'MAINTENANCE'.", nameof(request.ServiceType));
 
         var car = await _db.Cars
             .FirstOrDefaultAsync(c => c.CarID == request.CarId && c.OwnerID == userId, ct)
@@ -263,22 +239,14 @@ public class RepairRequestService : IRepairRequestService
         _ = ParsePreferredTime(request.PreferredTime);
 
         var appointmentServiceType = normalizedType == "repair" ? "REPAIR" : "MAINTENANCE";
-        return (car, technician, package, appointmentServiceType);
+        return (car, technician, appointmentServiceType);
     }
 
-    private static (decimal totalCost, int totalMinutes) GetEstimatedCostAndMinutes(string appointmentServiceType, MaintenancePackage? package)
+    private static (decimal totalCost, int totalMinutes) GetEstimatedCostAndMinutes(string appointmentServiceType)
     {
-        if (appointmentServiceType == "REPAIR")
-            return (0m, 0);
-
-        if (package == null)
-            return (0m, 0);
-
-        var cost = package.FinalPrice ?? package.BasePrice;
-        var minutes = package.EstimatedDurationHours.HasValue
-            ? (int)Math.Round((double)(package.EstimatedDurationHours.Value * 60m))
-            : 0;
-        return (cost, minutes);
+        // Booking flow no longer includes package selection; estimated totals
+        // are handled later when concrete services/packages are chosen.
+        return (0m, 0);
     }
 
     /// <summary>
@@ -314,9 +282,8 @@ public class RepairRequestService : IRepairRequestService
 
     private static string BuildNotes(RepairRequestCreateRequest request)
     {
-        var symptoms = request.Symptoms != null && request.Symptoms.Count > 0
-            ? string.Join(", ", request.Symptoms)
-            : "N/A";
-        return $"Title: {request.Title}\nDescription: {request.Description}\nSymptoms: {symptoms}";
+        // Business requirement: only persist the free-form description
+        // that the user entered into the Notes column.
+        return request.Description;
     }
 }

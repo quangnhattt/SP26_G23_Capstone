@@ -7,15 +7,13 @@ public class RepairRequestCreateRequest
     [Required]
     public int CarId { get; set; }
 
-    [Required]
-    [MaxLength(200)]
-    public string Title { get; set; } = null!;
-
+    /// <summary>
+    /// Free-form description entered by the customer. This is the only text
+    /// field persisted into the Notes column.
+    /// </summary>
     [Required]
     [MaxLength(2000)]
     public string Description { get; set; } = null!;
-
-    public List<string> Symptoms { get; set; } = new();
 
     /// <summary>
     /// Appointment type: 'repair' or 'maintenance'. Stored as REPAIR or MAINTENANCE in DB.
