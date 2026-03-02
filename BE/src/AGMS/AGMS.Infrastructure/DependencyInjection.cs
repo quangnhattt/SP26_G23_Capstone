@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IMaintenancePackageRepository, MaintenancePackageRepository>();
+        services.AddScoped<ICarMaintenanceRepository, CarMaintenanceRepository>();
         services.AddScoped<IUnitRepository, Repositories.UnitRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IAuthTokenService, AuthTokenService>();
@@ -33,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitService, UnitService>();
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IMaintenancePackageService, MaintenancePackageService>();
+        services.AddScoped<ICarMaintenanceService, CarMaintenanceService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<ISupplierService, SupplierService>();
