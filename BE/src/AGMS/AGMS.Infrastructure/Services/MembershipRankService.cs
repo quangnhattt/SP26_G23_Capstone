@@ -106,5 +106,29 @@ namespace AGMS.Infrastructure.Services
 
             return (true, "MSG_MR08: Membership Rank updated successfully.");
         }
+
+        public async Task<(bool IsSuccess, string Message)> ChangeStatusAsync(int id, bool isActive)
+        {
+            // 1. Tìm xem Hạng này có tồn tại không
+            var existingRank = await _repository.GetByIdAsync(id);
+            if (existingRank == null)
+            {
+                return (false, "MSG_MR07: Membership Rank not found.");
+            }
+
+            // 2. Kiểm tra xem nó có đang ở đúng trạng thái đó rồi không (tránh update thừa)
+            if (existingRank.IsActive == isActive)
+            {
+                var statusStr = isActive ? "active" : "inactive";
+                return (false, $"MSG_MR11: Membership Rank is already {statusStr}.");
+            }
+
+            // 3. Cập nhật trạng thái và Lưu xuống DB
+            existingRank.IsActive = isActive;
+            await _repository.UpdateAsync(existingRank);
+
+            var actionStr = isActive ? "activated" : "deactivated";
+            return (true, $"MSG_MR12: Membership Rank {actionStr} successfully.");
+        }
     }
 }

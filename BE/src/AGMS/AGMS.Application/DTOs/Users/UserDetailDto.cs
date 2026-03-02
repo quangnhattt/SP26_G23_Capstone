@@ -15,4 +15,9 @@ public class UserDetailDto
     public string RoleName { get; set; } = null!;
     public bool IsActive { get; set; }
     public DateTime CreatedDate { get; set; }
+    public DateTime? LastLoginDate { get; set; }
+    public decimal TotalSpending { get; set; }
+    public int? CurrentRankID { get; set; }
+    public bool IsOnRescueMission { get; set; }
+    public string? Skills { get; set; }
 }

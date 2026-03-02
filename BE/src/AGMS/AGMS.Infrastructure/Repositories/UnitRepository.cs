@@ -52,7 +52,7 @@ namespace AGMS.Infrastructure.Repositories
 
             // 5. Phân trang & Chuyển đổi sang DTO (Bổ sung thêm trường IsActive trả về)
             var items = await query
-                .OrderBy(u => u.Name)
+                .OrderBy(u => u.UnitID)
                 .Skip((filter.PageIndex - 1) * filter.PageSize)
                 .Take(filter.PageSize)
                 .Select(u => new UnitDto

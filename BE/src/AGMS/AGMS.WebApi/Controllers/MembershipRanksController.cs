@@ -60,5 +60,27 @@ namespace AGMS.WebApi.Controllers
 
             return Ok(new { message = result.Message });
         }
+
+        [HttpPatch("{id}/activate")]
+        public async Task<IActionResult> ActivateRank(int id)
+        {
+            var result = await _membershipRankService.ChangeStatusAsync(id, true);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new { message = result.Message });
+            }
+            return Ok(new { message = result.Message });
+        }
+
+        [HttpPatch("{id}/deactivate")]
+        public async Task<IActionResult> DeactivateRank(int id)
+        {
+            var result = await _membershipRankService.ChangeStatusAsync(id, false);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new { message = result.Message });
+            }
+            return Ok(new { message = result.Message });
+        }
     }
 }
