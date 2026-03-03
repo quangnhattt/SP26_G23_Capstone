@@ -129,4 +129,22 @@ public class UserRepository : IUserRepository
         entity.IsActive = isActive;
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task DeleteAsync(int userId, CancellationToken ct)
+    {
+        var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
+        if (entity == null) return;
+
+        _db.Users.Remove(entity);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetEmailVerifiedAsync(int userId, bool isVerified, CancellationToken ct)
+    {
+        var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
+        if (entity == null) return;
+
+        entity.IsEmailVerified = isVerified;
+        await _db.SaveChangesAsync(ct);
+    }
 }
