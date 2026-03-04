@@ -143,6 +143,307 @@ public class RescueRequestService : IRescueRequestService
         return MapToDetail(updated);
     }
 
+    // =========================================================================
+    // UC-RES-02: Điều phối & Sửa ven đường
+    // =========================================================================
+
+    /// <summary>
+    /// SA assign kỹ thuật viên cho nhiệm vụ cứu hộ (UC-RES-02 Step 1-2).
+    /// BR-17: chỉ SA được assign. BR-18: chỉ từ PROPOSED_ROADSIDE.
+    /// BR-28: technician phải rảnh. SMC03 + SMC10.
+    /// Status: PROPOSED_ROADSIDE → DISPATCHED.
+    /// </summary>
+    public async Task<RescueRequestDetailDto> AssignTechnicianAsync(int rescueId, AssignTechnicianDto request, CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        // Kiểm tra trạng thái hợp lệ (BR-18)
+        if (!RescueStatus.AllowedForAssignTechnician.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể assign kỹ thuật viên. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSED_ROADSIDE.");
+
+        // Validate SA (BR-17 — SMC04: Only Service Advisors can assign technicians)
+        var sa = await _userRepo.GetByIdAsync(request.ServiceAdvisorId, ct)
+            ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
+        if (sa.RoleID != UserRole.ServiceAdvisor)
+            throw new ArgumentException("Chỉ Service Advisor mới có quyền điều phối kỹ thuật viên.");
+
+        // Validate kỹ thuật viên tồn tại và đang rảnh (BR-28)
+        var tech = await _userRepo.GetByIdAsync(request.TechnicianId, ct)
+            ?? throw new KeyNotFoundException("Kỹ thuật viên không tồn tại.");
+        if (tech.RoleID != UserRole.Technician)
+            throw new ArgumentException("Người dùng không phải kỹ thuật viên.");
+        if (!tech.IsActive)
+            throw new InvalidOperationException("Kỹ thuật viên không còn hoạt động.");
+        if (tech.IsOnRescueMission)
+            throw new InvalidOperationException("Kỹ thuật viên đang trong một nhiệm vụ cứu hộ khác.");
+
+        // Cập nhật rescue: DISPATCHED + gán technician (SMC05)
+        rescue.AssignedTechnicianID     = request.TechnicianId;
+        rescue.EstimatedArrivalDateTime = request.EstimatedArrivalDateTime;
+        rescue.Status                   = RescueStatus.Dispatched;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        // Đặt trước kỹ thuật viên — đánh dấu đang trong nhiệm vụ (SMC10: Reserve technician)
+        await _userRepo.SetOnRescueMissionAsync(request.TechnicianId, true, ct);
+
+        var updated = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new InvalidOperationException("Không thể tải yêu cầu cứu hộ sau khi cập nhật.");
+        return MapToDetail(updated);
+    }
+
+    /// <summary>
+    /// Technician nhận job và xác nhận đang trên đường (UC-RES-02 Step 3).
+    /// Validate: phải là assigned technician, BR-18 (DISPATCHED). SMC05.
+    /// Status: DISPATCHED → EN_ROUTE.
+    /// </summary>
+    public async Task<RescueRequestDetailDto> AcceptJobAsync(int rescueId, TechnicianActionDto request, CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForAcceptJob.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể nhận job. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: DISPATCHED.");
+
+        // Validate đúng kỹ thuật viên được assign
+        if (rescue.AssignedTechnicianID != request.TechnicianId)
+            throw new ArgumentException("Bạn không phải kỹ thuật viên được phân công cho yêu cầu này.");
+
+        rescue.Status = RescueStatus.EnRoute;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        var updated = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new InvalidOperationException("Không thể tải yêu cầu cứu hộ sau khi cập nhật.");
+        return MapToDetail(updated);
+    }
+
+    /// <summary>
+    /// Technician báo đã đến hiện trường xe (UC-RES-02 Step 4). SMC05.
+    /// Status: EN_ROUTE → ON_SITE.
+    /// </summary>
+    public async Task<RescueRequestDetailDto> ArriveAsync(int rescueId, TechnicianActionDto request, CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForArrive.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể cập nhật trạng thái đến nơi. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: EN_ROUTE.");
+
+        if (rescue.AssignedTechnicianID != request.TechnicianId)
+            throw new ArgumentException("Bạn không phải kỹ thuật viên được phân công cho yêu cầu này.");
+
+        rescue.Status = RescueStatus.OnSite;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        var updated = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new InvalidOperationException("Không thể tải yêu cầu cứu hộ sau khi cập nhật.");
+        return MapToDetail(updated);
+    }
+
+    /// <summary>
+    /// Ghi nhận chấp thuận/từ chối sửa chữa tại chỗ của Customer (UC-RES-02 Step 5, BR-RES-01).
+    /// consentGiven=true → giữ ON_SITE, tiếp tục chẩn đoán.
+    /// consentGiven=false → PROPOSED_TOWING (AF-02), release technician.
+    /// </summary>
+    public async Task<RescueRequestDetailDto> RecordConsentAsync(int rescueId, CustomerConsentDto request, CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForConsent.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể ghi nhận chấp thuận. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: ON_SITE.");
+
+        if (!request.ConsentGiven)
+        {
+            // AF-02: Khách hàng từ chối → chuyển sang đề xuất kéo xe, release technician
+            rescue.Status = RescueStatus.ProposedTowing;
+            await _rescueRepo.UpdateAsync(rescue, ct);
+
+            if (rescue.AssignedTechnicianID.HasValue)
+                await _userRepo.SetOnRescueMissionAsync(rescue.AssignedTechnicianID.Value, false, ct);
+        }
+        // consentGiven=true: không thay đổi status, tiếp tục flow UC-RES-02
+
+        var updated = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new InvalidOperationException("Không thể tải yêu cầu cứu hộ sau khi cập nhật.");
+        return MapToDetail(updated);
+    }
+
+    /// <summary>
+    /// Technician bắt đầu chẩn đoán tại hiện trường (UC-RES-02 Step 6).
+    /// canRepairOnSite=true → tạo Repair Order (BR-07, BR-11 check), status → DIAGNOSING.
+    /// canRepairOnSite=false → AF-01: PROPOSED_TOWING, release technician.
+    /// </summary>
+    public async Task<RescueRequestDetailDto> StartDiagnosisAsync(int rescueId, StartDiagnosisDto request, CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForDiagnosis.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể bắt đầu chẩn đoán. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: ON_SITE.");
+
+        if (rescue.AssignedTechnicianID != request.TechnicianId)
+            throw new ArgumentException("Bạn không phải kỹ thuật viên được phân công cho yêu cầu này.");
+
+        if (!request.CanRepairOnSite)
+        {
+            // AF-01: Không thể sửa tại chỗ → chuyển sang kéo xe, release technician
+            rescue.Status = RescueStatus.ProposedTowing;
+            await _rescueRepo.UpdateAsync(rescue, ct);
+
+            if (rescue.AssignedTechnicianID.HasValue)
+                await _userRepo.SetOnRescueMissionAsync(rescue.AssignedTechnicianID.Value, false, ct);
+
+            var notFixed = await _rescueRepo.GetByIdAsync(rescueId, ct)
+                ?? throw new InvalidOperationException("Không thể tải yêu cầu cứu hộ sau khi cập nhật.");
+            return MapToDetail(notFixed);
+        }
+
+        // Kiểm tra xe chưa có Repair Order active (BR-11 — SMR11: Duplicate active RO)
+        if (await _rescueRepo.HasActiveMaintenanceForCarAsync(rescue.CarID, ct))
+            throw new InvalidOperationException("Xe đã có Repair Order đang xử lý. Không thể tạo thêm. (BR-11)");
+
+        // Tạo Repair Order mới cho sửa chữa ven đường (BR-07, SMR07)
+        var maintenance = new CarMaintenance
+        {
+            CarID           = rescue.CarID,
+            MaintenanceType = RescueMaintenanceType.Roadside,
+            Status          = CarMaintenanceStatus.Waiting,
+            Notes           = request.DiagnosisNotes.Trim(),
+            CreatedBy       = request.TechnicianId,
+            AssignedTechnicianID = request.TechnicianId,
+            TotalAmount     = 0,
+            DiscountAmount  = 0,
+            MemberDiscountAmount  = 0,
+            MemberDiscountPercent = 0,
+            MaintenanceDate = DateTime.UtcNow,
+            CreatedDate     = DateTime.UtcNow
+        };
+        var created = await _rescueRepo.CreateMaintenanceAsync(maintenance, ct);
+
+        // Liên kết Repair Order vào rescue + chuyển status DIAGNOSING
+        rescue.ResultingMaintenanceID = created.MaintenanceID;
+        rescue.Status                 = RescueStatus.Diagnosing;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        var updated = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new InvalidOperationException("Không thể tải yêu cầu cứu hộ sau khi cập nhật.");
+        return MapToDetail(updated);
+    }
+
+    /// <summary>
+    /// Ghi nhận vật tư/dịch vụ sử dụng trong quá trình sửa chữa (UC-RES-02 Step 7, BR-20, SMC08).
+    /// Lần gọi đầu tiên (DIAGNOSING → REPAIRING): chuyển trạng thái rescue.
+    /// Trả về toàn bộ danh sách items đã ghi + subtotal.
+    /// </summary>
+    public async Task<RepairItemsResultDto> AddRepairItemsAsync(int rescueId, AddRepairItemsDto request, CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForRepairItems.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể ghi vật tư. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: DIAGNOSING hoặc REPAIRING.");
+
+        if (!rescue.ResultingMaintenanceID.HasValue)
+            throw new InvalidOperationException("Chưa có Repair Order. Vui lòng hoàn tất bước chẩn đoán trước.");
+
+        var maintenanceId = rescue.ResultingMaintenanceID.Value;
+
+        // Validate và thêm từng vật tư/dịch vụ (BR-20)
+        foreach (var item in request.Items)
+        {
+            var product = await _rescueRepo.GetProductByIdAsync(item.ProductId, ct)
+                ?? throw new KeyNotFoundException($"Sản phẩm ID={item.ProductId} không tồn tại hoặc không còn hoạt động.");
+
+            var serviceDetail = new ServiceDetail
+            {
+                MaintenanceID = maintenanceId,
+                ProductID     = item.ProductId,
+                Quantity      = item.Quantity,
+                UnitPrice     = item.UnitPrice,
+                ItemStatus    = "APPROVED",
+                IsAdditional  = false,
+                FromPackage   = false,
+                Notes         = item.Notes?.Trim()
+            };
+            await _rescueRepo.AddServiceDetailAsync(serviceDetail, ct);
+        }
+
+        // Lần gọi đầu tiên (DIAGNOSING): chuyển sang REPAIRING
+        if (rescue.Status == RescueStatus.Diagnosing)
+        {
+            rescue.Status = RescueStatus.Repairing;
+            await _rescueRepo.UpdateAsync(rescue, ct);
+        }
+
+        // Tổng hợp danh sách items và tính subtotal
+        var allItems = (await _rescueRepo.GetRepairItemsAsync(maintenanceId, ct)).ToList();
+        var subtotal = allItems.Sum(i => i.TotalPrice);
+
+        // Cập nhật TotalAmount trong Repair Order
+        var maintenance = await _rescueRepo.GetMaintenanceByIdAsync(maintenanceId, ct);
+        if (maintenance != null)
+        {
+            maintenance.TotalAmount = subtotal;
+            await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
+        }
+
+        return new RepairItemsResultDto
+        {
+            RescueId      = rescueId,
+            Status        = rescue.Status == RescueStatus.Diagnosing ? RescueStatus.Repairing : rescue.Status,
+            MaintenanceId = maintenanceId,
+            RepairItems   = allItems,
+            Subtotal      = subtotal
+        };
+    }
+
+    /// <summary>
+    /// Technician hoàn thành sửa chữa và báo cáo SA (UC-RES-02 Step 8).
+    /// Status: REPAIRING → REPAIR_COMPLETE. Release technician (IsOnRescueMission=false). SMC05.
+    /// </summary>
+    public async Task<RescueRequestDetailDto> CompleteRepairAsync(int rescueId, CompleteRepairDto request, CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForCompleteRepair.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể hoàn thành sửa chữa. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: REPAIRING.");
+
+        if (rescue.AssignedTechnicianID != request.TechnicianId)
+            throw new ArgumentException("Bạn không phải kỹ thuật viên được phân công cho yêu cầu này.");
+
+        // Lưu ghi chú hoàn thành vào Repair Order
+        if (rescue.ResultingMaintenanceID.HasValue && !string.IsNullOrWhiteSpace(request.CompletionNotes))
+        {
+            var maintenance = await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID.Value, ct);
+            if (maintenance != null)
+            {
+                // Nối thêm ghi chú hoàn thành vào sau ghi chú chẩn đoán hiện có
+                var existingNotes = string.IsNullOrWhiteSpace(maintenance.Notes) ? "" : maintenance.Notes + "\n";
+                maintenance.Notes = existingNotes + $"[Hoàn thành] {request.CompletionNotes.Trim()}";
+                await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
+            }
+        }
+
+        // Chuyển trạng thái REPAIR_COMPLETE, release technician
+        rescue.Status = RescueStatus.RepairComplete;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        await _userRepo.SetOnRescueMissionAsync(request.TechnicianId, false, ct);
+
+        var updated = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new InvalidOperationException("Không thể tải yêu cầu cứu hộ sau khi cập nhật.");
+        return MapToDetail(updated);
+    }
+
     // -------------------------------------------------------------------------
     // Private mapping methods — nhất quán với pattern UserService.MapToDetail()
     // -------------------------------------------------------------------------
