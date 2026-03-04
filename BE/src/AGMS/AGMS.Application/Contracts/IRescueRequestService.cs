@@ -3,7 +3,7 @@ using AGMS.Application.DTOs.Rescue;
 namespace AGMS.Application.Contracts;
 
 /// <summary>
-/// Contract nghiệp vụ cho module cứu hộ (UC-RES-01)
+/// Contract nghiệp vụ cho module cứu hộ (UC-RES-01 đến UC-RES-02)
 /// </summary>
 public interface IRescueRequestService
 {
@@ -35,4 +35,55 @@ public interface IRescueRequestService
     /// Validate: BR-17 (SA có quyền), BR-18 (status workflow)
     /// </summary>
     Task<RescueRequestDetailDto> ProposeAsync(int rescueId, ProposeRescueDto request, CancellationToken ct);
+
+    // -------------------------------------------------------------------------
+    // UC-RES-02: Điều phối & Sửa ven đường
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// SA assign kỹ thuật viên và đặt trước cho nhiệm vụ cứu hộ (UC-RES-02 Step 1-2).
+    /// Validate: BR-17 (chỉ SA), BR-18 (PROPOSED_ROADSIDE), technician rảnh (BR-28).
+    /// Status: PROPOSED_ROADSIDE → DISPATCHED. SMC03, SMC10.
+    /// </summary>
+    Task<RescueRequestDetailDto> AssignTechnicianAsync(int rescueId, AssignTechnicianDto request, CancellationToken ct);
+
+    /// <summary>
+    /// Technician nhận job và xác nhận đang trên đường (UC-RES-02 Step 3).
+    /// Validate: BR-18 (DISPATCHED), phải là assigned technician.
+    /// Status: DISPATCHED → EN_ROUTE. SMC05.
+    /// </summary>
+    Task<RescueRequestDetailDto> AcceptJobAsync(int rescueId, TechnicianActionDto request, CancellationToken ct);
+
+    /// <summary>
+    /// Technician báo đã đến hiện trường (UC-RES-02 Step 4).
+    /// Validate: BR-18 (EN_ROUTE), phải là assigned technician.
+    /// Status: EN_ROUTE → ON_SITE. SMC05.
+    /// </summary>
+    Task<RescueRequestDetailDto> ArriveAsync(int rescueId, TechnicianActionDto request, CancellationToken ct);
+
+    /// <summary>
+    /// Ghi nhận sự chấp thuận/từ chối sửa chữa tại chỗ của Customer (UC-RES-02 Step 5, BR-RES-01).
+    /// consentGiven=true → ON_SITE (tiếp tục chẩn đoán).
+    /// consentGiven=false → PROPOSED_TOWING (AF-02, chuyển sang UC-RES-03).
+    /// </summary>
+    Task<RescueRequestDetailDto> RecordConsentAsync(int rescueId, CustomerConsentDto request, CancellationToken ct);
+
+    /// <summary>
+    /// Technician bắt đầu chẩn đoán tại chỗ (UC-RES-02 Step 6).
+    /// canRepairOnSite=true → tạo Repair Order (BR-07, BR-11), status → DIAGNOSING.
+    /// canRepairOnSite=false → PROPOSED_TOWING (AF-01), release technician.
+    /// </summary>
+    Task<RescueRequestDetailDto> StartDiagnosisAsync(int rescueId, StartDiagnosisDto request, CancellationToken ct);
+
+    /// <summary>
+    /// Ghi nhận vật tư/dịch vụ sử dụng trong quá trình sửa chữa (UC-RES-02 Step 7, BR-20).
+    /// Lần gọi đầu: status → REPAIRING. Trả về toàn bộ items đã ghi + subtotal. SMC08.
+    /// </summary>
+    Task<RepairItemsResultDto> AddRepairItemsAsync(int rescueId, AddRepairItemsDto request, CancellationToken ct);
+
+    /// <summary>
+    /// Technician hoàn thành sửa chữa và báo cáo SA (UC-RES-02 Step 8).
+    /// Status: REPAIRING → REPAIR_COMPLETE. Release technician (IsOnRescueMission=false). SMC05.
+    /// </summary>
+    Task<RescueRequestDetailDto> CompleteRepairAsync(int rescueId, CompleteRepairDto request, CancellationToken ct);
 }
