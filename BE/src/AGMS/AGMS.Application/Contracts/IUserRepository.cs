@@ -10,8 +10,10 @@ public interface IUserRepository
     Task AddAsync(User user, CancellationToken ct);
     Task UpdatePasswordAsync(int userId, string passwordHash, string? passwordSalt, CancellationToken ct);
         Task<IEnumerable<User>> GetUsersExceptAdminAsync(CancellationToken ct);
-  Task<User?> GetByIdAsync(int userId, CancellationToken ct);
+    Task<User?> GetByIdAsync(int userId, CancellationToken ct);
     Task<IEnumerable<User>> SearchUsersExceptAdminAsync(string? q, int? roleId, bool? isActive, CancellationToken ct);
     Task UpdateAsync(User user, CancellationToken ct);
     Task SetActiveAsync(int userId, bool isActive, CancellationToken ct);
+    Task DeleteAsync(int userId, CancellationToken ct);
+    Task SetEmailVerifiedAsync(int userId, bool isVerified, CancellationToken ct);
 }

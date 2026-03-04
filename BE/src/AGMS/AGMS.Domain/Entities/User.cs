@@ -21,6 +21,7 @@ public class User
     public int? CurrentRankID { get; set; }
     public bool IsOnRescueMission { get; set; }
     public string? Skills { get; set; }
+    public bool IsEmailVerified { get; set; }
 
     public virtual ICollection<Appointment> AppointmentConfirmedByNavigations { get; set; } = new List<Appointment>();
     public virtual ICollection<Appointment> AppointmentCreatedByNavigations { get; set; } = new List<Appointment>();
