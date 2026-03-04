@@ -13,4 +13,5 @@ public interface IAppointmentRepository
 
     // Lấy RoleID của user theo userId
     Task<int?> GetUserRoleIdAsync(int userId, CancellationToken ct);
+    Task ApproveAsync(int appointmentId, int approvedByUserId, CancellationToken ct);
 }
