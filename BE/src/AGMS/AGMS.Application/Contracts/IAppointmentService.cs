@@ -10,4 +10,5 @@ public interface IAppointmentService
     // Lấy chi tiết appointment. Customer chỉ xem được của mình, SA xem tất cả
     Task<AppointmentDetailDto?> GetDetailAsync(int appointmentId, int currentUserId, bool isServiceAdvisor, CancellationToken ct);
     Task ApproveAsync(int appointmentId, int currentUserId, CancellationToken ct);
+    Task RejectAsync(int appointmentId, int rejectBuildUserId, CancellationToken ct);
 }

@@ -112,4 +112,20 @@ public class AppointmentRepository : IAppointmentRepository
 
         await _db.SaveChangesAsync(ct);
     }
+    public async Task RejectAsync(int appointmentId, int rejectedByUserId,CancellationToken ct) {
+        {
+            var appointment =await _db.Appointments
+                .FirstOrDefaultAsync(a=>a.AppointmentID == appointmentId,ct)
+                ?? throw new KeyNotFoundException("Appointment not found.");
+            if(appointment.Status != "PENDING")
+            {
+                throw new InvalidOperationException("Only PENDING appointments can be rejected");
+
+            }
+            appointment.Status = "CANCELLED";
+            appointment.ConfirmedBy = rejectedByUserId;
+            appointment.ConfirmedDate = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+
+        } }
 }
