@@ -26,11 +26,39 @@ public static class RescueStatus
     public const string Cancelled        = "CANCELLED";
     public const string Spam             = "SPAM";
 
-    /// <summary>
-    /// Trạng thái hợp lệ để SA gửi đề xuất (BR-18)
-    /// </summary>
+    /// <summary>Trạng thái hợp lệ để SA gửi đề xuất (BR-18) — UC-RES-01</summary>
     public static readonly IReadOnlySet<string> AllowedForPropose =
         new HashSet<string> { Pending, Reviewing };
+
+    // --- UC-RES-02: Status sets cho từng bước dispatch & roadside repair ---
+
+    /// <summary>SA assign kỹ thuật viên — chỉ khi đề xuất sửa tại chỗ đã gửi (BR-18)</summary>
+    public static readonly IReadOnlySet<string> AllowedForAssignTechnician =
+        new HashSet<string> { ProposedRoadside };
+
+    /// <summary>Technician nhận job — chỉ khi đã được điều phối (BR-18)</summary>
+    public static readonly IReadOnlySet<string> AllowedForAcceptJob =
+        new HashSet<string> { Dispatched };
+
+    /// <summary>Technician báo đến nơi — chỉ khi đang trên đường (BR-18)</summary>
+    public static readonly IReadOnlySet<string> AllowedForArrive =
+        new HashSet<string> { EnRoute };
+
+    /// <summary>Customer chấp thuận/từ chối sửa — khi technician đã đến hiện trường (BR-RES-01)</summary>
+    public static readonly IReadOnlySet<string> AllowedForConsent =
+        new HashSet<string> { OnSite };
+
+    /// <summary>Technician bắt đầu chẩn đoán — khi đã được duyệt tại hiện trường (BR-18)</summary>
+    public static readonly IReadOnlySet<string> AllowedForDiagnosis =
+        new HashSet<string> { OnSite };
+
+    /// <summary>Ghi vật tư/dịch vụ (BR-20) — sau chẩn đoán hoặc trong khi đang sửa</summary>
+    public static readonly IReadOnlySet<string> AllowedForRepairItems =
+        new HashSet<string> { Diagnosing, Repairing };
+
+    /// <summary>Hoàn thành sửa chữa — chỉ khi đang trong trạng thái sửa (BR-18)</summary>
+    public static readonly IReadOnlySet<string> AllowedForCompleteRepair =
+        new HashSet<string> { Repairing };
 }
 
 /// <summary>
@@ -40,6 +68,27 @@ public static class RescueType
 {
     public const string Roadside = "ROADSIDE";
     public const string Towing   = "TOWING";
+}
+
+/// <summary>
+/// Hằng số loại Repair Order tạo từ cứu hộ — dùng trong CarMaintenance.MaintenanceType
+/// </summary>
+public static class RescueMaintenanceType
+{
+    /// <summary>Sửa chữa tại chỗ ven đường (UC-RES-02)</summary>
+    public const string Roadside = "RESCUE_ROADSIDE";
+    /// <summary>Kéo xe về xưởng (UC-RES-03)</summary>
+    public const string Towing   = "RESCUE_TOWING";
+}
+
+/// <summary>
+/// Trạng thái Repair Order dùng để validate BR-11 (active RO check)
+/// </summary>
+public static class CarMaintenanceStatus
+{
+    public const string Waiting   = "WAITING";
+    public const string Completed = "COMPLETED";
+    public const string Cancelled = "CANCELLED";
 }
 
 /// <summary>
