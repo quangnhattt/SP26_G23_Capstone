@@ -1,61 +1,26 @@
 using AGMS.Application.Contracts;
-using AGMS.Application.DTOs.Product;
 using AGMS.Application.DTOs.RepairRequests;
 using AGMS.Domain.Entities;
-using AGMS.Infrastructure.Persistence.Db;
-using Microsoft.EntityFrameworkCore;
 
 namespace AGMS.Infrastructure.Services;
 
 public class RepairRequestService : IRepairRequestService
 {
-    private readonly CarServiceDbContext _db;
+    private readonly IRepairRequestRepository _repo;
 
-    public RepairRequestService(CarServiceDbContext db)
+    public RepairRequestService(IRepairRequestRepository repo)
     {
-        _db = db;
+        _repo = repo;
     }
 
     public async Task<IEnumerable<CustomerCarListItemDto>> GetCustomerCarsAsync(int userId, CancellationToken ct)
     {
-        return await _db.Cars
-            .AsNoTracking()
-            .Where(c => c.OwnerID == userId)
-            .OrderByDescending(c => c.CreatedDate)
-            .Select(c => new CustomerCarListItemDto
-            {
-                CarId = c.CarID,
-                LicensePlate = c.LicensePlate,
-                Brand = c.Brand,
-                Model = c.Model,
-                Year = c.Year,
-                Color = c.Color,
-                CurrentOdometer = c.CurrentOdometer,
-                LastMaintenanceDate = c.LastMaintenanceDate,
-                NextMaintenanceDate = c.NextMaintenanceDate
-            })
-            .ToListAsync(ct);
+        return await _repo.GetCustomerCarsAsync(userId, ct);
     }
 
     public async Task<ServiceSelectionResponseDto> GetServicesAsync(string? serviceType, int? carId, CancellationToken ct)
     {
-        var services = await _db.Products
-            .AsNoTracking()
-            .Where(p => (p.Type == "SERVICE" || p.Type == "Service") && p.IsActive)
-            .Select(p => new ServiceProductListItemDto
-            {
-                Id = p.ProductID,
-                Code = p.Code,
-                Name = p.Name,
-                Price = p.Price,
-                Unit = p.Unit != null ? p.Unit.Name : null,
-                Category = p.Category != null ? p.Category.Name : null,
-                EstimatedDurationHours = p.EstimatedDurationHours,
-                Description = p.Description,
-                Image = p.Image,
-                IsActive = p.IsActive
-            })
-            .ToListAsync(ct);
+        var services = await _repo.GetActiveServiceProductsAsync(ct);
 
         var response = new ServiceSelectionResponseDto
         {
@@ -66,19 +31,13 @@ public class RepairRequestService : IRepairRequestService
             && serviceType.Equals("maintenance", StringComparison.OrdinalIgnoreCase)
             && carId.HasValue)
         {
-            var car = await _db.Cars
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.CarID == carId.Value, ct);
+            var car = await _repo.GetCarByIdAsync(carId.Value, ct);
 
             if (car != null && car.CurrentOdometer > 0)
             {
                 var carKm = car.CurrentOdometer;
 
-                var packages = await _db.MaintenancePackages
-                    .AsNoTracking()
-                    .Where(p => p.IsActive && p.KilometerMilestone != null)
-                    .OrderBy(p => p.KilometerMilestone)
-                    .ToListAsync(ct);
+                var packages = (await _repo.GetActiveMaintenancePackagesAsync(ct)).ToList();
 
                 if (packages.Count > 0)
                 {
@@ -106,21 +65,7 @@ public class RepairRequestService : IRepairRequestService
 
     public async Task<IEnumerable<TechnicianListItemDto>> GetTechniciansAsync(IEnumerable<int>? serviceIds, CancellationToken ct)
     {
-        var technicians = await _db.Users
-            .AsNoTracking()
-            .Where(u => u.RoleID == 3 && u.IsActive)
-            .OrderBy(u => u.FullName)
-            .Select(u => new TechnicianListItemDto
-            {
-                TechnicianId = u.UserID,
-                FullName = u.FullName,
-                Email = u.Email,
-                Phone = u.Phone,
-                Skills = u.Skills
-            })
-            .ToListAsync(ct);
-
-        return technicians;
+        return await _repo.GetActiveTechniciansAsync(ct);
     }
 
     public async Task<RepairRequestPreviewResponse> PreviewAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
@@ -153,8 +98,6 @@ public class RepairRequestService : IRepairRequestService
             CarID = car.CarID,
             AppointmentDate = appointmentDateTime,
             ServiceType = appointmentServiceType,
-            // Booking flow no longer sets any RequestedPackageID. This will be
-            // handled by a later module when a concrete package is chosen.
             RequestedPackageID = null,
             Status = "PENDING",
             Notes = BuildNotes(request),
@@ -162,8 +105,7 @@ public class RepairRequestService : IRepairRequestService
             CreatedDate = DateTime.UtcNow
         };
 
-        _db.Appointments.Add(appointment);
-        await _db.SaveChangesAsync(ct);
+        await _repo.AddAppointmentAsync(appointment, ct);
 
         var maintenance = new CarMaintenance
         {
@@ -187,8 +129,7 @@ public class RepairRequestService : IRepairRequestService
             CompletedDate = null
         };
 
-        _db.CarMaintenances.Add(maintenance);
-        await _db.SaveChangesAsync(ct);
+        await _repo.AddCarMaintenanceAsync(maintenance, ct);
 
         return new RepairRequestDetailDto
         {
@@ -205,14 +146,7 @@ public class RepairRequestService : IRepairRequestService
         };
     }
 
-    /// <summary>
-    /// Validates request and returns (Car, Technician?, AppointmentServiceType).
-    /// Throws ArgumentException for business rule violations (400).
-    /// </summary>
-    private async Task<(Car car, User? technician, string appointmentServiceType)> ValidateAndLoadCoreDataAsync(
-        RepairRequestCreateRequest request,
-        int userId,
-        CancellationToken ct)
+    private async Task<(Car car, User? technician, string appointmentServiceType)> ValidateAndLoadCoreDataAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Description))
             throw new ArgumentException("Description is required.", nameof(request.Description));
@@ -223,15 +157,13 @@ public class RepairRequestService : IRepairRequestService
         if (normalizedType != "repair" && normalizedType != "maintenance")
             throw new ArgumentException("ServiceType must be 'REPAIR' or 'MAINTENANCE'.", nameof(request.ServiceType));
 
-        var car = await _db.Cars
-            .FirstOrDefaultAsync(c => c.CarID == request.CarId && c.OwnerID == userId, ct)
+        var car = await _repo.GetCarByIdAndOwnerAsync(request.CarId, userId, ct)
             ?? throw new InvalidOperationException("Car not found or does not belong to current user.");
 
         User? technician = null;
         if (request.TechnicianId.HasValue)
         {
-            technician = await _db.Users
-                .FirstOrDefaultAsync(u => u.UserID == request.TechnicianId.Value && u.RoleID == 3 && u.IsActive, ct)
+            technician = await _repo.GetActiveTechnicianByIdAsync(request.TechnicianId.Value, ct)
                 ?? throw new InvalidOperationException("Technician not found or inactive.");
         }
 
@@ -244,14 +176,9 @@ public class RepairRequestService : IRepairRequestService
 
     private static (decimal totalCost, int totalMinutes) GetEstimatedCostAndMinutes(string appointmentServiceType)
     {
-        // Booking flow no longer includes package selection; estimated totals
-        // are handled later when concrete services/packages are chosen.
         return (0m, 0);
     }
 
-    /// <summary>
-    /// Maps request ServiceType to CarMaintenance.MaintenanceType (CK_RO_Type: RESCUE, WARRANTY, REPAIR, REGULAR).
-    /// </summary>
     private static string MapMaintenanceTypeForCarMaintenance(string? serviceType)
     {
         if (string.IsNullOrWhiteSpace(serviceType))
@@ -282,8 +209,6 @@ public class RepairRequestService : IRepairRequestService
 
     private static string BuildNotes(RepairRequestCreateRequest request)
     {
-        // Business requirement: only persist the free-form description
-        // that the user entered into the Notes column.
         return request.Description;
     }
 }

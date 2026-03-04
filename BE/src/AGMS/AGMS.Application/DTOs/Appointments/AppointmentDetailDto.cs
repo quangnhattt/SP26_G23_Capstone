@@ -1,11 +1,8 @@
 namespace AGMS.Application.DTOs.Appointments;
 
-/// <summary>
-/// Full detail DTO for a single appointment (detail screen).
-/// </summary>
+// DTO chi tiết appointment (detail screen)
 public class AppointmentDetailDto
 {
-    // ─── Appointment core (all columns) ───
     public int AppointmentId { get; set; }
     public int CarId { get; set; }
     public DateTime AppointmentDate { get; set; }
@@ -18,16 +15,9 @@ public class AppointmentDetailDto
     public int? ConfirmedBy { get; set; }
     public DateTime? ConfirmedDate { get; set; }
 
-    // ─── Car ───
     public CarInfoDto Car { get; set; } = null!;
-
-    // ─── Customer (CreatedBy user) ───
     public CustomerInfoDto Customer { get; set; } = null!;
-
-    // ─── Package (if any) ───
     public PackageInfoDto? Package { get; set; }
-
-    // ─── CarMaintenance linked to this appointment (if any) ───
     public CarMaintenanceInfoDto? Maintenance { get; set; }
 }
 

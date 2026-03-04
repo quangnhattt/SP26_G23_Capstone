@@ -1,8 +1,6 @@
 namespace AGMS.Application.DTOs.Appointments;
 
-/// <summary>
-/// Query filter parameters for GET /api/appointments.
-/// </summary>
+// Query filter parameters cho GET /api/appointments
 public class AppointmentFilterDto
 {
     public string? Status { get; set; }
@@ -10,9 +8,5 @@ public class AppointmentFilterDto
     public DateTime? ToDate { get; set; }
     public string? ServiceType { get; set; }
     public int? CarId { get; set; }
-
-    /// <summary>
-    /// SA-only: filter by a specific customer's userId.
-    /// </summary>
-    public int? CustomerId { get; set; }
+    public int? CustomerId { get; set; } // SA-only
 }

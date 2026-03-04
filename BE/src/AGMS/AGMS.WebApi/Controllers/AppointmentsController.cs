@@ -1,10 +1,8 @@
 using System.Security.Claims;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Appointments;
-using AGMS.Infrastructure.Persistence.Db;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AGMS.WebApi.Controllers;
 
@@ -14,42 +12,29 @@ namespace AGMS.WebApi.Controllers;
 public class AppointmentsController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
-    private readonly CarServiceDbContext _db;
+    private readonly IAppointmentRepository _appointmentRepo;
 
-    public AppointmentsController(IAppointmentService appointmentService, CarServiceDbContext db)
+    public AppointmentsController(IAppointmentService appointmentService, IAppointmentRepository appointmentRepo)
     {
         _appointmentService = appointmentService;
-        _db = db;
+        _appointmentRepo = appointmentRepo;
     }
 
-    /// <summary>
-    /// GET /api/appointments
-    /// Customer: returns only their appointments.
-    /// SA (RoleID = 2): returns all appointments.
-    /// Supports optional query filters: status, fromDate, toDate, serviceType, carId, customerId (SA only).
-    /// </summary>
+    // GET /api/appointments — Customer: chỉ thấy của mình. SA (RoleID=2): thấy tất cả
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<AppointmentListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetList(
-        [FromQuery] AppointmentFilterDto filter,
-        CancellationToken ct)
+    public async Task<IActionResult> GetList([FromQuery] AppointmentFilterDto filter, CancellationToken ct)
     {
         var (userId, error) = ExtractUserId();
         if (error != null) return error;
 
         var isSA = await IsServiceAdvisorAsync(userId, ct);
-
         var items = await _appointmentService.GetListAsync(userId, isSA, filter, ct);
         return Ok(items);
     }
 
-    /// <summary>
-    /// GET /api/appointments/{id}
-    /// Customer: can only view their own appointment.
-    /// SA (RoleID = 2): can view any appointment.
-    /// Returns full detail including Car, Customer, Package, and CarMaintenance info.
-    /// </summary>
+    // GET /api/appointments/{id} — Customer: chỉ xem của mình. SA: xem tất cả
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(AppointmentDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -60,7 +45,6 @@ public class AppointmentsController : ControllerBase
         if (error != null) return error;
 
         var isSA = await IsServiceAdvisorAsync(userId, ct);
-
         var detail = await _appointmentService.GetDetailAsync(id, userId, isSA, ct);
 
         if (detail == null)
@@ -68,8 +52,6 @@ public class AppointmentsController : ControllerBase
 
         return Ok(detail);
     }
-
-    // ──────────────── helpers ────────────────
 
     private (int userId, IActionResult? error) ExtractUserId()
     {
@@ -79,18 +61,10 @@ public class AppointmentsController : ControllerBase
         return (uid, null);
     }
 
-    /// <summary>
-    /// Look up the current user's RoleID from the database.
-    /// RoleID == 2 → Service Advisor.
-    /// </summary>
+    // RoleID == 2 → Service Advisor
     private async Task<bool> IsServiceAdvisorAsync(int userId, CancellationToken ct)
     {
-        var user = await _db.Users
-            .AsNoTracking()
-            .Where(u => u.UserID == userId)
-            .Select(u => new { u.RoleID })
-            .FirstOrDefaultAsync(ct);
-
-        return user?.RoleID == 2;
+        var roleId = await _appointmentRepo.GetUserRoleIdAsync(userId, ct);
+        return roleId == 2;
     }
 }
