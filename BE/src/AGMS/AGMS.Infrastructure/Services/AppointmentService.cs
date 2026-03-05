@@ -91,4 +91,24 @@ public class AppointmentService : IAppointmentService
 
         return detail;
     }
+
+    /// <summary>
+    /// Chỉ user có RoleID = 2 (Service Advisor) mới được gọi. Controller đã check, Service check lại để chắc chắn.
+    /// </summary>
+    public async Task ApproveAsync(int appointmentId, int currentUserId, CancellationToken ct)
+    {
+        var roleId = await _repo.GetUserRoleIdAsync(currentUserId, ct);
+        if (roleId != 2)
+            throw new UnauthorizedAccessException("Only Service Advisor (RoleID = 2) can approve appointments.");
+
+        await _repo.ApproveAsync(appointmentId, currentUserId, ct);
+    }
+
+    public async Task RejectAsync(int appointmentId, int currentUserId, CancellationToken ct)
+    {
+        var roleID= await _repo.GetUserRoleIdAsync(currentUserId, ct);
+        if(roleID!=2)
+            throw new UnauthorizedAccessException("Only Service Advisor (RoleID = 2) can reject appointments.");
+        await _repo.RejectAsync(appointmentId, currentUserId, ct);
+    }
 }
