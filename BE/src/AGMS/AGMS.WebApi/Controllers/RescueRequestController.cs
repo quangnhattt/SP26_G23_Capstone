@@ -323,6 +323,117 @@ public class RescueRequestController : ControllerBase
         }
     }
 
+    // =========================================================================
+    // UC-RES-03: Dịch vụ kéo xe
+    // =========================================================================
+
+    // PATCH /api/rescue-requests/{id}/dispatch-towing
+    /// <summary>
+    /// SA điều phối dịch vụ kéo xe (UC-RES-03 C1).
+    /// BR-17: chỉ SA. BR-18: PROPOSED_TOWING → TOWING_DISPATCHED. SMC05, SMC11.
+    /// </summary>
+    [HttpPatch("{id:int}/dispatch-towing")]
+    [ProducesResponseType(typeof(TowingDispatchResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> DispatchTowing(int id, [FromBody] DispatchTowingDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.DispatchTowingAsync(id, request, ct);
+            return Ok(new { data = result, message = "Dịch vụ kéo xe đã được điều phối. Đề xuất đã gửi đến khách hàng." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // BR-17: Không đúng role SA
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BR-18: Trạng thái không hợp lệ
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // PATCH /api/rescue-requests/{id}/accept-towing
+    /// <summary>
+    /// Customer chấp nhận dịch vụ kéo xe (UC-RES-03 C2).
+    /// BR-18: TOWING_DISPATCHED → TOWING_ACCEPTED.
+    /// AF-01: Customer từ chối → gọi cancel endpoint (UC-RES-06).
+    /// </summary>
+    [HttpPatch("{id:int}/accept-towing")]
+    [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> AcceptTowing(int id, [FromBody] AcceptTowingDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.AcceptTowingAsync(id, request, ct);
+            return Ok(new { data = result, message = "Khách hàng đã chấp nhận dịch vụ kéo xe." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // Không đúng khách hàng sở hữu rescue
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BR-18: Trạng thái không hợp lệ
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // PATCH /api/rescue-requests/{id}/complete-towing
+    /// <summary>
+    /// SA hoàn tất kéo xe và tạo Repair Order tự động (UC-RES-03 C3).
+    /// BR-19: tạo CarMaintenance RESCUE_TOWING. BR-18: TOWING_ACCEPTED → TOWED. BR-11: no active RO. SMC07.
+    /// </summary>
+    [HttpPatch("{id:int}/complete-towing")]
+    [ProducesResponseType(typeof(CompleteTowingResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> CompleteTowing(int id, [FromBody] CompleteTowingDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.CompleteTowingAsync(id, request, ct);
+            return Ok(new
+            {
+                data    = result,
+                message = $"Xe đã được kéo về. Repair Order #{result.ResultingMaintenance?.MaintenanceId} đã được tạo."
+            });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // BR-17: Không đúng role SA
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BR-11: Xe đã có active RO — SMR11 | BR-18: Trạng thái không hợp lệ
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
     // PATCH /api/rescue-requests/{id}/propose
     /// <summary>
     /// SA gửi đề xuất sửa tại chỗ hoặc kéo xe cho khách hàng (UC-RES-01 Step 5-6).
