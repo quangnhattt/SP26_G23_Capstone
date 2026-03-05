@@ -444,6 +444,145 @@ public class RescueRequestService : IRescueRequestService
         return MapToDetail(updated);
     }
 
+    // =========================================================================
+    // UC-RES-03: Dịch vụ kéo xe
+    // =========================================================================
+
+    /// <summary>
+    /// SA điều phối dịch vụ kéo xe (UC-RES-03 Step 1-2).
+    /// BR-17: chỉ SA. BR-18: chỉ từ PROPOSED_TOWING. SMC05, SMC11.
+    /// Status: PROPOSED_TOWING → TOWING_DISPATCHED.
+    /// Lưu ý: TowingNotes được echo từ request (entity không có field riêng).
+    /// </summary>
+    public async Task<TowingDispatchResultDto> DispatchTowingAsync(int rescueId, DispatchTowingDto request, CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        // Kiểm tra trạng thái hợp lệ (BR-18)
+        if (!RescueStatus.AllowedForDispatchTowing.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể điều phối kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSED_TOWING.");
+
+        // Validate SA tồn tại và đúng role (BR-17 — SMC04)
+        var sa = await _userRepo.GetByIdAsync(request.ServiceAdvisorId, ct)
+            ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
+        if (sa.RoleID != UserRole.ServiceAdvisor)
+            throw new ArgumentException("Chỉ Service Advisor mới có quyền điều phối dịch vụ kéo xe.");
+
+        // Cập nhật rescue: chuyển type về TOWING và status → TOWING_DISPATCHED (SMC05, SMC11)
+        rescue.RescueType               = RescueType.Towing;
+        rescue.Status                   = RescueStatus.TowingDispatched;
+        rescue.ServiceFee               = request.TowingServiceFee ?? rescue.ServiceFee;
+        rescue.EstimatedArrivalDateTime = request.EstimatedArrival;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        // Echo lại thông tin điều phối trong response (TowingNotes không persist vào entity)
+        return new TowingDispatchResultDto
+        {
+            RescueId        = rescueId,
+            Status          = RescueStatus.TowingDispatched,
+            RescueType      = RescueType.Towing,
+            TowingNotes     = request.TowingNotes,
+            EstimatedArrival = request.EstimatedArrival,
+            TowingServiceFee = request.TowingServiceFee
+        };
+    }
+
+    /// <summary>
+    /// Customer chấp nhận dịch vụ kéo xe (UC-RES-03 Step 3).
+    /// BR-18: chỉ từ TOWING_DISPATCHED. Validate phải là CustomerID của rescue.
+    /// Status: TOWING_DISPATCHED → TOWING_ACCEPTED.
+    /// AF-01: Customer từ chối → gọi cancel endpoint (UC-RES-06) — không xử lý ở đây.
+    /// </summary>
+    public async Task<RescueRequestDetailDto> AcceptTowingAsync(int rescueId, AcceptTowingDto request, CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        // Kiểm tra trạng thái hợp lệ (BR-18)
+        if (!RescueStatus.AllowedForAcceptTowing.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể chấp nhận kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_DISPATCHED.");
+
+        // Validate đúng khách hàng sở hữu rescue (BR-03)
+        if (rescue.CustomerID != request.CustomerId)
+            throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
+
+        rescue.Status = RescueStatus.TowingAccepted;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        var updated = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new InvalidOperationException("Không thể tải yêu cầu cứu hộ sau khi cập nhật.");
+        return MapToDetail(updated);
+    }
+
+    /// <summary>
+    /// SA hoàn tất kéo xe và tạo Repair Order tự động (UC-RES-03 Step 4).
+    /// BR-17: chỉ SA. BR-18: chỉ từ TOWING_ACCEPTED. BR-11: xe không có active RO.
+    /// BR-19: tạo CarMaintenance RESCUE_TOWING → liên kết ResultingMaintenanceID. SMC07.
+    /// Status: TOWING_ACCEPTED → TOWED.
+    /// </summary>
+    public async Task<CompleteTowingResultDto> CompleteTowingAsync(int rescueId, CompleteTowingDto request, CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        // Kiểm tra trạng thái hợp lệ (BR-18)
+        if (!RescueStatus.AllowedForCompleteTowing.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể hoàn tất kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_ACCEPTED.");
+
+        // Validate SA tồn tại và đúng role (BR-17)
+        var sa = await _userRepo.GetByIdAsync(request.ServiceAdvisorId, ct)
+            ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
+        if (sa.RoleID != UserRole.ServiceAdvisor)
+            throw new ArgumentException("Chỉ Service Advisor mới có quyền hoàn tất dịch vụ kéo xe.");
+
+        // Kiểm tra xe chưa có Repair Order active (BR-11 — SMR11)
+        if (await _rescueRepo.HasActiveMaintenanceForCarAsync(rescue.CarID, ct))
+            throw new InvalidOperationException("Xe đã có Repair Order đang xử lý. Không thể tạo thêm. (BR-11)");
+
+        // Tạo Repair Order cho kéo xe về xưởng (BR-19 — SMC07, SMR07)
+        var now = DateTime.UtcNow;
+        var maintenance = new Domain.Entities.CarMaintenance
+        {
+            CarID                 = rescue.CarID,
+            MaintenanceType       = RescueMaintenanceType.Towing,
+            Status                = CarMaintenanceStatus.Waiting,
+            Notes                 = string.IsNullOrWhiteSpace(request.RepairOrderNotes)
+                                        ? null
+                                        : request.RepairOrderNotes.Trim(),
+            CreatedBy             = request.ServiceAdvisorId,
+            TotalAmount           = 0,
+            DiscountAmount        = 0,
+            MemberDiscountAmount  = 0,
+            MemberDiscountPercent = 0,
+            MaintenanceDate       = now,
+            CreatedDate           = now
+        };
+        var created = await _rescueRepo.CreateMaintenanceAsync(maintenance, ct);
+
+        // Liên kết Repair Order vào rescue + đánh dấu xe đã được kéo về
+        rescue.ResultingMaintenanceID = created.MaintenanceID;
+        rescue.Status                 = RescueStatus.Towed;
+        rescue.CompletedDate          = now;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        return new CompleteTowingResultDto
+        {
+            RescueId = rescueId,
+            Status   = RescueStatus.Towed,
+            ResultingMaintenance = new TowingMaintenanceDto
+            {
+                MaintenanceId   = created.MaintenanceID,
+                MaintenanceType = created.MaintenanceType,
+                Status          = created.Status,
+                CreatedDate     = created.CreatedDate
+            }
+        };
+    }
+
     // -------------------------------------------------------------------------
     // Private mapping methods — nhất quán với pattern UserService.MapToDetail()
     // -------------------------------------------------------------------------
