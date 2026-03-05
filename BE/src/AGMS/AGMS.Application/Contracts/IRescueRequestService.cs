@@ -3,7 +3,7 @@ using AGMS.Application.DTOs.Rescue;
 namespace AGMS.Application.Contracts;
 
 /// <summary>
-/// Contract nghiệp vụ cho module cứu hộ (UC-RES-01 đến UC-RES-02)
+/// Contract nghiệp vụ cho module cứu hộ (UC-RES-01 đến UC-RES-03)
 /// </summary>
 public interface IRescueRequestService
 {
@@ -86,4 +86,30 @@ public interface IRescueRequestService
     /// Status: REPAIRING → REPAIR_COMPLETE. Release technician (IsOnRescueMission=false). SMC05.
     /// </summary>
     Task<RescueRequestDetailDto> CompleteRepairAsync(int rescueId, CompleteRepairDto request, CancellationToken ct);
+
+    // -------------------------------------------------------------------------
+    // UC-RES-03: Dịch vụ kéo xe
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// SA điều phối dịch vụ kéo xe (UC-RES-03 Step 1-2).
+    /// Validate: BR-17 (chỉ SA), BR-18 (PROPOSED_TOWING).
+    /// Status: PROPOSED_TOWING → TOWING_DISPATCHED. SMC05, SMC11.
+    /// </summary>
+    Task<TowingDispatchResultDto> DispatchTowingAsync(int rescueId, DispatchTowingDto request, CancellationToken ct);
+
+    /// <summary>
+    /// Customer chấp nhận dịch vụ kéo xe (UC-RES-03 Step 3).
+    /// Validate: BR-18 (TOWING_DISPATCHED), phải là CustomerID của rescue.
+    /// Status: TOWING_DISPATCHED → TOWING_ACCEPTED.
+    /// AF-01: Customer từ chối → gọi cancel endpoint (UC-RES-06).
+    /// </summary>
+    Task<RescueRequestDetailDto> AcceptTowingAsync(int rescueId, AcceptTowingDto request, CancellationToken ct);
+
+    /// <summary>
+    /// SA hoàn tất kéo xe và tạo Repair Order tự động (UC-RES-03 Step 4).
+    /// Validate: BR-17 (chỉ SA), BR-18 (TOWING_ACCEPTED), BR-11 (không có active RO).
+    /// Status: TOWING_ACCEPTED → TOWED. BR-19: tạo CarMaintenance RESCUE_TOWING. SMC07.
+    /// </summary>
+    Task<CompleteTowingResultDto> CompleteTowingAsync(int rescueId, CompleteTowingDto request, CancellationToken ct);
 }
