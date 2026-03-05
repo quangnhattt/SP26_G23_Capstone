@@ -1,5 +1,6 @@
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Auth;
+using AGMS.Application.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AGMS.WebApi.Controllers;
@@ -33,6 +34,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Login([FromBody] LoginRequest req, CancellationToken ct)
     {
@@ -40,6 +42,14 @@ public class AuthController : ControllerBase
         {
             var response = await _authService.LoginAsync(req, ct);
             return Ok(response);
+        }
+        catch (EmailNotVerifiedException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = ex.Message,
+                requiresEmailVerification = true
+            });
         }
         catch (InvalidOperationException ex)
         {

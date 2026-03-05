@@ -17,7 +17,6 @@ public class Product
     public bool IsActive { get; set; }
     public DateTime CreatedDate { get; set; }
 
-    public virtual ICollection<AppointmentServiceItem> AppointmentServiceItems { get; set; } = new List<AppointmentServiceItem>();
     public virtual Category? Category { get; set; }
     public virtual ICollection<MaintenancePackageDetail> MaintenancePackageDetails { get; set; } = new List<MaintenancePackageDetail>();
     public virtual ICollection<ProductItem> ProductItems { get; set; } = new List<ProductItem>();

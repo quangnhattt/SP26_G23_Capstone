@@ -8,13 +8,13 @@ using Microsoft.AspNetCore.Mvc;
 namespace AGMS.WebApi.Controllers;
 
 [ApiController]
-[Route("api/me")]
+[Route("api/user/info")]
 [Authorize]
-public class MeController : ControllerBase
+public class UserInfoController : ControllerBase
 {
     private readonly IUserService _userService;
 
-    public MeController(IUserService userService)
+    public UserInfoController(IUserService userService)
     {
         _userService = userService;
     }

@@ -14,8 +14,6 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<Appointment> Appointments { get; set; }
 
-    public virtual DbSet<AppointmentServiceItem> AppointmentServiceItems { get; set; }
-
     public virtual DbSet<Car> Cars { get; set; }
 
     public virtual DbSet<CarMaintenance> CarMaintenances { get; set; }
@@ -80,6 +78,8 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<WarrantyClaim> WarrantyClaims { get; set; }
 
+    public virtual DbSet<VehicleIntakeCondition> VehicleIntakeConditions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Appointment>(entity =>
@@ -90,6 +90,9 @@ public partial class CarServiceDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.ServiceType)
+                .HasMaxLength(20)
+                .HasDefaultValue("REPAIR");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValue("PENDING");
@@ -111,25 +114,6 @@ public partial class CarServiceDbContext : DbContext
             entity.HasOne(d => d.RequestedPackage).WithMany(p => p.Appointments)
                 .HasForeignKey(d => d.RequestedPackageID)
                 .HasConstraintName("FK_Appointments_Package");
-        });
-
-        modelBuilder.Entity<AppointmentServiceItem>(entity =>
-        {
-            entity.HasKey(e => new { e.AppointmentID, e.ProductID }).HasName("PK__Appointm__458D30CCC31EE0AA");
-
-            entity.Property(e => e.Notes).HasMaxLength(255);
-            entity.Property(e => e.Quantity)
-                .HasDefaultValue(1m)
-                .HasColumnType("decimal(10, 2)");
-
-            entity.HasOne(d => d.Appointment).WithMany(p => p.AppointmentServiceItems)
-                .HasForeignKey(d => d.AppointmentID)
-                .HasConstraintName("FK_ApptItem_Appt");
-
-            entity.HasOne(d => d.Product).WithMany(p => p.AppointmentServiceItems)
-                .HasForeignKey(d => d.ProductID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ApptItem_Product");
         });
 
         modelBuilder.Entity<Car>(entity =>
@@ -853,6 +837,34 @@ public partial class CarServiceDbContext : DbContext
             entity.HasOne(d => d.ResultingMaintenance).WithMany(p => p.WarrantyClaimResultingMaintenances)
                 .HasForeignKey(d => d.ResultingMaintenanceID)
                 .HasConstraintName("FK_WC_ResultingMaintenance");
+        });
+
+        modelBuilder.Entity<VehicleIntakeCondition>(entity =>
+        {
+            entity.ToTable("VehicleIntakeCondition");
+
+            entity.Property(e => e.PositionCode)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            entity.Property(e => e.ConditionType)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+
+            entity.Property(e => e.Note)
+                .HasMaxLength(255);
+
+            entity.Property(e => e.CheckInTime)
+                .HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Car).WithMany(p => p.VehicleIntakeConditions)
+                .HasForeignKey(d => d.CarId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_VehicleIntakeCondition_Car");
+
+            entity.HasOne(d => d.Appointment).WithMany(p => p.VehicleIntakeConditions)
+                .HasForeignKey(d => d.AppointmentId)
+                .HasConstraintName("FK_VehicleIntakeCondition_Appointment");
         });
 
         OnModelCreatingPartial(modelBuilder);

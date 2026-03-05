@@ -7,37 +7,32 @@ public class RepairRequestCreateRequest
     [Required]
     public int CarId { get; set; }
 
-    [Required]
-    [MaxLength(200)]
-    public string Title { get; set; } = null!;
-
+    /// <summary>
+    /// Free-form description entered by the customer. This is the only text
+    /// field persisted into the Notes column.
+    /// </summary>
     [Required]
     [MaxLength(2000)]
     public string Description { get; set; } = null!;
 
-    public List<string> Symptoms { get; set; } = new();
+    /// <summary>
+    /// Appointment type: 'repair' or 'maintenance'. Stored as REPAIR or MAINTENANCE in DB.
+    /// REPAIR => RequestedPackageId must be null. MAINTENANCE => RequestedPackageId required.
+    /// </summary>
+    [Required(ErrorMessage = "ServiceType is required. Use 'repair' or 'maintenance'.")]
+    [RegularExpression("^(?i)(repair|maintenance)$", ErrorMessage = "ServiceType must be 'repair' or 'maintenance'.")]
+    public string ServiceType { get; set; } = null!;
 
-    [Required]
-    [MinLength(1)]
-    public List<int> ServiceIds { get; set; } = new();
+    /// <summary>
+    /// Required when ServiceType is 'maintenance'. Must be null when ServiceType is 'repair'.
+    /// </summary>
+    public int? RequestedPackageId { get; set; }
 
     public int? TechnicianId { get; set; }
 
-    /// <summary>
-    /// Preferred date in ISO format (yyyy-MM-dd).
-    /// </summary>
     [Required]
     public string PreferredDate { get; set; } = null!;
 
-    /// <summary>
-    /// Preferred time, e.g. HH:mm.
-    /// </summary>
     [Required]
     public string PreferredTime { get; set; } = null!;
-
-    /// <summary>
-    /// Optional serviceType hint, e.g. "maintenance" to trigger maintenance-by-km logic.
-    /// </summary>
-    public string? ServiceType { get; set; }
 }
-
