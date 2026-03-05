@@ -862,9 +862,9 @@ public partial class CarServiceDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_VehicleIntakeCondition_Car");
 
-            entity.HasOne(d => d.Appointment).WithMany(p => p.VehicleIntakeConditions)
-                .HasForeignKey(d => d.AppointmentId)
-                .HasConstraintName("FK_VehicleIntakeCondition_Appointment");
+            entity.HasOne(d => d.Maintenance).WithMany(p => p.VehicleIntakeConditions)
+                .HasForeignKey(d => d.MaintenanceID)
+                .HasConstraintName("FK_VehicleIntakeCondition_Maintenance");
         });
 
         OnModelCreatingPartial(modelBuilder);
