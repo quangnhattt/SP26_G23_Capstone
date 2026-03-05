@@ -59,6 +59,20 @@ public static class RescueStatus
     /// <summary>Hoàn thành sửa chữa — chỉ khi đang trong trạng thái sửa (BR-18)</summary>
     public static readonly IReadOnlySet<string> AllowedForCompleteRepair =
         new HashSet<string> { Repairing };
+
+    // --- UC-RES-03: Status sets cho từng bước điều phối kéo xe ---
+
+    /// <summary>SA điều phối kéo xe — chỉ khi đề xuất kéo xe đã được tạo (BR-18)</summary>
+    public static readonly IReadOnlySet<string> AllowedForDispatchTowing =
+        new HashSet<string> { ProposedTowing };
+
+    /// <summary>Customer chấp nhận kéo xe — khi dịch vụ kéo đã được điều phối (BR-18)</summary>
+    public static readonly IReadOnlySet<string> AllowedForAcceptTowing =
+        new HashSet<string> { TowingDispatched };
+
+    /// <summary>SA hoàn tất kéo xe và tạo Repair Order (BR-19) — khi customer đã chấp nhận (BR-18)</summary>
+    public static readonly IReadOnlySet<string> AllowedForCompleteTowing =
+        new HashSet<string> { TowingAccepted };
 }
 
 /// <summary>
