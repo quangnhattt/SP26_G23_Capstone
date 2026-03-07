@@ -36,6 +36,10 @@ namespace AGMS.Infrastructure.Repositories
                     TechnicianName=m.AssignedTechnician != null ? m.AssignedTechnician.FullName : null
                 }).ToListAsync(ct);
         }
+        public async Task<bool> IsStaffUserAsync(int userId, CancellationToken ct= default)
+        {
+            return await _db.Users.AsNoTracking().AnyAsync(u => u.UserID == userId && u.RoleID == 2 && u.IsActive, ct);
+        }
 
     }
 }

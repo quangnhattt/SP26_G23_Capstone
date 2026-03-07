@@ -9,6 +9,7 @@ namespace AGMS.Application.Contracts
 {
     public interface ICarMaintenanceIntakeRepository
     {
+        Task<bool> IsStaffUserAsync(int userId, CancellationToken ct = default);
         Task<IEnumerable<IntakeListItemDto>> GetWaitingIntakesAsync(CancellationToken ct = default);
     }
 }

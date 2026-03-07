@@ -19,5 +19,9 @@ namespace AGMS.Infrastructure.Services
         {
             return await _repository.GetWaitingIntakesAsync(ct);
         }
-    }
+        public async Task<bool> IsStaffUserAsync(int userId, CancellationToken ct = default)
+        {
+            return await _repository.IsStaffUserAsync(userId, ct);
+        }
+    } 
 }
