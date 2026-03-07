@@ -47,7 +47,8 @@ public static class DependencyInjection
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IPermissionGroupRepository, PermissionGroupRepository>();
         services.AddScoped<IPermissionRepository, PermissionRepository>();
-
+        services.AddScoped<ICarMaintenanceIntakeRepository, CarMaintenanceIntakeRepository>();
+        services.AddScoped<ICarMaintenanceIntakeService, CarMaintenanceIntakeService>();
         // Module cứu hộ (UC-RES-01 đến UC-RES-06)
         services.AddScoped<IRescueRequestRepository, RescueRequestRepository>();
         services.AddScoped<IRescueRequestService, RescueRequestService>();
