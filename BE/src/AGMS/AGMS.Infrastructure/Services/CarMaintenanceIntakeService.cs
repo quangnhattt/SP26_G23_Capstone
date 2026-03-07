@@ -1,5 +1,6 @@
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Intake;
+using AGMS.Application.DTOs.ServiceOrder;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,5 +30,10 @@ namespace AGMS.Infrastructure.Services
         {
             return await _repository.IsStaffUserAsync(userId, ct);
         }
-    } 
+        public async Task<ServiceOrderIntakeDetailDto?> GetIntakeDetailAsync(int maintenanceId, CancellationToken ct = default)
+        {
+            return await _repository.GetIntakeDetailAsync(maintenanceId, ct);
+        }
+
+    }
 }
