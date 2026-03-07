@@ -1,8 +1,6 @@
 ﻿using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Permission;
 using AGMS.Domain.Entities;
-using AGMS.Infrastructure.Persistence.Db;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,34 +9,25 @@ namespace AGMS.Infrastructure.Services
 {
     public class PermissionService : IPermissionService
     {
-        private readonly CarServiceDbContext _context;
+        private readonly IPermissionRepository _permissionRepo;
+        private readonly IPermissionGroupRepository _groupRepo;
 
-        public PermissionService(CarServiceDbContext context)
+        public PermissionService(IPermissionRepository permissionRepo, IPermissionGroupRepository groupRepo)
         {
-            _context = context;
+            _permissionRepo = permissionRepo;
+            _groupRepo = groupRepo;
         }
 
         public async Task<int> CreatePermissionAsync(PermissionCreateDto request)
         {
-            // 1. Kiểm tra GroupID có tồn tại
-            var groupExists = await _context.PermissionGroups.AnyAsync(g => g.GroupID == request.GroupID);
-            if (!groupExists)
+            if (await _groupRepo.GetByIdAsync(request.GroupID) == null)
                 throw new Exception($"Không tìm thấy Nhóm quyền với ID = {request.GroupID}");
 
-            // 2. Validate tính duy nhất của Name
-            var nameExists = await _context.Permissions
-                .AnyAsync(p => p.Name.ToLower() == request.Name.ToLower());
-            if (nameExists)
+            if (await _permissionRepo.ExistsByNameAsync(request.Name))
                 throw new Exception($"Tên quyền '{request.Name}' đã tồn tại trong hệ thống.");
 
-            // 3. Validate tính duy nhất của URL (Chỉ kiểm tra nếu URL có giá trị)
-            if (!string.IsNullOrWhiteSpace(request.URL))
-            {
-                var urlExists = await _context.Permissions
-                    .AnyAsync(p => p.URL.ToLower() == request.URL.ToLower());
-                if (urlExists)
-                    throw new Exception($"Đường dẫn URL '{request.URL}' đã được sử dụng cho một quyền khác.");
-            }
+            if (!string.IsNullOrWhiteSpace(request.URL) && await _permissionRepo.ExistsByUrlAsync(request.URL))
+                throw new Exception($"Đường dẫn URL '{request.URL}' đã được sử dụng cho một quyền khác.");
 
             var permission = new Permission
             {
@@ -48,65 +37,42 @@ namespace AGMS.Infrastructure.Services
                 GroupID = request.GroupID
             };
 
-            _context.Permissions.Add(permission);
-            await _context.SaveChangesAsync();
-
+            await _permissionRepo.AddAsync(permission);
             return permission.PermissionID;
         }
 
         public async Task<bool> UpdatePermissionAsync(int permissionId, PermissionUpdateDto request)
         {
-            var permission = await _context.Permissions.FirstOrDefaultAsync(p => p.PermissionID == permissionId);
-            if (permission == null)
-                throw new Exception($"Không tìm thấy Quyền với ID = {permissionId}");
+            var permission = await _permissionRepo.GetByIdAsync(permissionId);
+            if (permission == null) throw new Exception($"Không tìm thấy Quyền với ID = {permissionId}");
 
-            // 1. Kiểm tra GroupID có tồn tại
-            var groupExists = await _context.PermissionGroups.AnyAsync(g => g.GroupID == request.GroupID);
-            if (!groupExists)
+            if (await _groupRepo.GetByIdAsync(request.GroupID) == null)
                 throw new Exception($"Không tìm thấy Nhóm quyền với ID = {request.GroupID}");
 
-            // 2. Validate tính duy nhất của Name (Loại trừ ID của chính quyền đang cập nhật)
-            var nameExists = await _context.Permissions
-                .AnyAsync(p => p.Name.ToLower() == request.Name.ToLower() && p.PermissionID != permissionId);
-            if (nameExists)
+            if (await _permissionRepo.ExistsByNameAsync(request.Name, permissionId))
                 throw new Exception($"Tên quyền '{request.Name}' đã tồn tại trong hệ thống.");
 
-            // 3. Validate tính duy nhất của URL (Loại trừ ID hiện tại)
-            if (!string.IsNullOrWhiteSpace(request.URL))
-            {
-                var urlExists = await _context.Permissions
-                    .AnyAsync(p => p.URL.ToLower() == request.URL.ToLower() && p.PermissionID != permissionId);
-                if (urlExists)
-                    throw new Exception($"Đường dẫn URL '{request.URL}' đã được sử dụng cho một quyền khác.");
-            }
+            if (!string.IsNullOrWhiteSpace(request.URL) && await _permissionRepo.ExistsByUrlAsync(request.URL, permissionId))
+                throw new Exception($"Đường dẫn URL '{request.URL}' đã được sử dụng cho một quyền khác.");
 
-            // Cập nhật dữ liệu
             permission.Name = request.Name;
             permission.URL = request.URL;
             permission.Description = request.Description;
             permission.GroupID = request.GroupID;
 
-            await _context.SaveChangesAsync();
+            await _permissionRepo.UpdateAsync(permission);
             return true;
         }
 
         public async Task<bool> DeletePermissionAsync(int permissionId)
         {
-            var permission = await _context.Permissions
-                .Include(p => p.Roles)
-                .FirstOrDefaultAsync(p => p.PermissionID == permissionId);
+            var permission = await _permissionRepo.GetByIdWithRolesAsync(permissionId);
+            if (permission == null) throw new Exception($"Không tìm thấy Quyền với ID = {permissionId}");
 
-            if (permission == null)
-                throw new Exception($"Không tìm thấy Quyền với ID = {permissionId}");
-
-            // Ràng buộc toàn vẹn: Không cho phép xóa nếu đang có Role tham chiếu tới quyền này
             if (permission.Roles != null && permission.Roles.Any())
                 throw new Exception("Không thể xóa quyền này vì đang có nhóm người dùng (Role) sử dụng.");
 
-            // Thực hiện Xóa cứng (Hard Delete) từ cơ sở dữ liệu
-            _context.Permissions.Remove(permission);
-
-            await _context.SaveChangesAsync();
+            await _permissionRepo.DeleteAsync(permission);
             return true;
         }
     }
