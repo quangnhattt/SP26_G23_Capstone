@@ -17,6 +17,12 @@ public class CarMaintenanceService : ICarMaintenanceService
     {
         return await _repository.GetServiceOrdersForStaffAsync(ct);
     }
+
+    public async Task<ServiceOrderIntakeDetailDto?> GetServiceOrderIntakeDetailAsync(int maintenanceId, CancellationToken ct = default)
+    {
+        return await _repository.GetServiceOrderIntakeDetailAsync(maintenanceId, ct);
+    }
+
     public async Task<WalkInServiceOrderCreateResponseDto> CreateWalkInServiceOrderAsync(WalkInServiceOrderCreateRequest request, int createByUserId, CancellationToken ct = default)
     {
         return await _repository.CreateWalkInServiceOrderAsync(request, createByUserId, ct);

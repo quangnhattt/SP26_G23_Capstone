@@ -29,6 +29,18 @@ public class ServiceOrdersController : ControllerBase
         return Ok(items);
     }
 
+    [HttpGet("{maintenanceId:int}")]
+    [ProducesResponseType(typeof(ServiceOrderIntakeDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetServiceOrderIntakeDetail(int maintenanceId, CancellationToken ct)
+    {
+        var detail = await _carMaintenanceService.GetServiceOrderIntakeDetailAsync(maintenanceId, ct);
+        if (detail == null)
+            return NotFound(new { message = "Service order not found." });
+
+        return Ok(detail);
+    }
+
     [HttpPost("walk-in")]
     [ProducesResponseType(typeof(WalkInServiceOrderCreateResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
