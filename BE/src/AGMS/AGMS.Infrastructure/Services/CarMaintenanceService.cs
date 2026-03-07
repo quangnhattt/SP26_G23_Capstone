@@ -1,6 +1,5 @@
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.ServiceOrder;
-using System.Numerics;
 
 namespace AGMS.Infrastructure.Services;
 
@@ -21,11 +20,6 @@ public class CarMaintenanceService : ICarMaintenanceService
     public async Task<ServiceOrderIntakeDetailDto?> GetServiceOrderIntakeDetailAsync(int maintenanceId, CancellationToken ct = default)
     {
         return await _repository.GetServiceOrderIntakeDetailAsync(maintenanceId, ct);
-    }
-
-    public async Task<WalkInServiceOrderCreateResponseDto> CreateWalkInServiceOrderAsync(WalkInServiceOrderCreateRequest request, int createByUserId, CancellationToken ct = default)
-    {
-        return await _repository.CreateWalkInServiceOrderAsync(request, createByUserId, ct);
     }
 }
 

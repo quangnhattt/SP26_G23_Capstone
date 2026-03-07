@@ -1,4 +1,4 @@
-﻿using AGMS.Application.DTOs.Intake;
+using AGMS.Application.DTOs.Intake;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +11,7 @@ namespace AGMS.Application.Contracts
     {
         Task<bool> IsStaffUserAsync(int userId, CancellationToken ct = default);
         Task<IEnumerable<IntakeListItemDto>> GetWaitingIntakesAsync(CancellationToken ct = default);
+        Task<IntakeWalkInCreateResponseDto> CreateWalkInIntakeAsync(IntakeWalkInCreateRequest request, int createdByUserId, CancellationToken ct = default);
     }
 }
 

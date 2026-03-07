@@ -2,7 +2,6 @@ using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.ServiceOrder;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace AGMS.WebApi.Controllers;
 
@@ -41,39 +40,5 @@ public class ServiceOrdersController : ControllerBase
         return Ok(detail);
     }
 
-    [HttpPost("walk-in")]
-    [ProducesResponseType(typeof(WalkInServiceOrderCreateResponseDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CreateWalkInServiceOrder([FromBody] WalkInServiceOrderCreateRequest request, CancellationToken ct)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        var createdByUserId = 0;
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!string.IsNullOrWhiteSpace(userIdClaim) && int.TryParse(userIdClaim, out var uid))
-        {
-            createdByUserId = uid;
-        }
-
-        try
-        {
-            var result = await _carMaintenanceService.CreateWalkInServiceOrderAsync(request, createdByUserId, ct);
-            return StatusCode(StatusCodes.Status201Created, result);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
 }
 

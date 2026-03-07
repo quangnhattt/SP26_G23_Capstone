@@ -1,4 +1,4 @@
-﻿using AGMS.Application.Contracts;
+using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Intake;
 using System;
 using System.Collections.Generic;
@@ -19,6 +19,12 @@ namespace AGMS.Infrastructure.Services
         {
             return await _repository.GetWaitingIntakesAsync(ct);
         }
+
+        public async Task<IntakeWalkInCreateResponseDto> CreateWalkInIntakeAsync(IntakeWalkInCreateRequest request, int createdByUserId, CancellationToken ct = default)
+        {
+            return await _repository.CreateWalkInIntakeAsync(request, createdByUserId, ct);
+        }
+
         public async Task<bool> IsStaffUserAsync(int userId, CancellationToken ct = default)
         {
             return await _repository.IsStaffUserAsync(userId, ct);
