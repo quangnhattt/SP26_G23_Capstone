@@ -20,6 +20,41 @@ public class AppointmentsController : ControllerBase
         _appointmentRepo = appointmentRepo;
     }
 
+    // POST /api/appointments/{id}/approve — SA bấm nút Approve: chỉ đổi trạng thái, không trả DTO
+    [HttpPost("{id:int}/approve")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Approve(int id, CancellationToken ct)
+    {
+        var (userId, error) = ExtractUserId();
+        if (error != null) return error;
+
+        var isSA = await IsServiceAdvisorAsync(userId, ct);
+        if (!isSA)
+            return Forbid();
+
+        try
+        {
+            await _appointmentService.ApproveAsync(id, userId, ct);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid(); // Chỉ RoleID = 2 (SA) mới được approve
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     // GET /api/appointments — Customer: chỉ thấy của mình. SA (RoleID=2): thấy tất cả
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<AppointmentListItemDto>), StatusCodes.Status200OK)]
@@ -67,4 +102,36 @@ public class AppointmentsController : ControllerBase
         var roleId = await _appointmentRepo.GetUserRoleIdAsync(userId, ct);
         return roleId == 2;
     }
+    [HttpPost("{id:int}/reject")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Reject(int id, CancellationToken ct)
+    {
+        var (userId, error) = ExtractUserId();
+        if (error != null) return error;
+        var isSA = await IsServiceAdvisorAsync(userId, ct);
+        if (!isSA)
+            return Forbid();
+        try
+        {
+            await _appointmentService.RejectAsync(id, userId, ct);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    } 
 }

@@ -843,16 +843,25 @@ public partial class CarServiceDbContext : DbContext
         {
             entity.ToTable("VehicleIntakeCondition");
 
-            entity.Property(e => e.PositionCode)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-
-            entity.Property(e => e.ConditionType)
+            entity.Property(e => e.FrontStatus)
                 .HasMaxLength(20)
                 .IsUnicode(false);
 
-            entity.Property(e => e.Note)
-                .HasMaxLength(255);
+            entity.Property(e => e.RearStatus)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+
+            entity.Property(e => e.LeftStatus)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+
+            entity.Property(e => e.RightStatus)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+
+            entity.Property(e => e.RoofStatus)
+                .HasMaxLength(20)
+                .IsUnicode(false);
 
             entity.Property(e => e.CheckInTime)
                 .HasDefaultValueSql("(sysutcdatetime())");
@@ -862,9 +871,9 @@ public partial class CarServiceDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_VehicleIntakeCondition_Car");
 
-            entity.HasOne(d => d.Appointment).WithMany(p => p.VehicleIntakeConditions)
-                .HasForeignKey(d => d.AppointmentId)
-                .HasConstraintName("FK_VehicleIntakeCondition_Appointment");
+            entity.HasOne(d => d.Maintenance).WithMany(p => p.VehicleIntakeConditions)
+                .HasForeignKey(d => d.MaintenanceID)
+                .HasConstraintName("FK_VehicleIntakeCondition_Maintenance");
         });
 
         OnModelCreatingPartial(modelBuilder);

@@ -37,6 +37,7 @@ public class CarMaintenance
     public virtual ICollection<ServiceEvaluation> ServiceEvaluations { get; set; } = new List<ServiceEvaluation>();
     public virtual ICollection<ServicePartDetail> ServicePartDetails { get; set; } = new List<ServicePartDetail>();
     public virtual ICollection<TransferOrder> TransferOrders { get; set; } = new List<TransferOrder>();
+    public virtual ICollection<VehicleIntakeCondition> VehicleIntakeConditions { get; set; } = new List<VehicleIntakeCondition>();
     public virtual ICollection<WarrantyClaim> WarrantyClaimOriginalMaintenances { get; set; } = new List<WarrantyClaim>();
     public virtual ICollection<WarrantyClaim> WarrantyClaimResultingMaintenances { get; set; } = new List<WarrantyClaim>();
 }
