@@ -8,7 +8,7 @@ namespace AGMS.WebApi.Controllers;
 
 [ApiController]
 [Route("api/service-orders")]
-//[Authorize]
+[Authorize]
 public class ServiceOrdersController : ControllerBase
 {
     private readonly ICarMaintenanceService _carMaintenanceService;

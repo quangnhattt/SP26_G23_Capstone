@@ -101,7 +101,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         {
             var customer = await ResolveCustomerAsync(request.Customer, ct);
             var car = await ResolveCarAsync(request.Car, customer.UserID, ct);
-            var createdBy = await ResolveCreatedByUserIdAsync(createdByUserId, customer.UserID, ct);
+            var createdBy = await ResolveCreatedByUserIdAsync(createdByUserId, ct);
             var maintenance = new CarMaintenance
             {
                 CarID = car.CarID,
@@ -305,15 +305,19 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         await _db.SaveChangesAsync(ct);
         return car;
     }
-    private async Task<int> ResolveCreatedByUserIdAsync(int createdByUserId, int fallbackCustomerId, CancellationToken ct)
+    private async Task<int> ResolveCreatedByUserIdAsync(int createdByUserId, CancellationToken ct)
     {
-        if (createdByUserId > 0)
-        {
-            var exists = await _db.Users.AnyAsync(u => u.UserID == createdByUserId, ct);
-            if (exists) return createdByUserId;
-        }
+        if (createdByUserId <= 0)
+            throw new InvalidOperationException("Bạn cần đăng nhập user roleId = 2 để tạo phiếu walk-in.");
 
-        return fallbackCustomerId;
+        var isStaffCreator = await _db.Users.AnyAsync(
+            u => u.UserID == createdByUserId && u.RoleID == 2 && u.IsActive,
+            ct);
+
+        if (!isStaffCreator)
+            throw new InvalidOperationException("User hiện tại không hợp lệ để tạo phiếu walk-in (yêu cầu roleId = 2).");
+
+        return createdByUserId;
     }
 
     private static string NormalizMode(string? mode, string fieldName)
