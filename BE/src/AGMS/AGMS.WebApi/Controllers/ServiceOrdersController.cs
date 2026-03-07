@@ -27,18 +27,5 @@ public class ServiceOrdersController : ControllerBase
         var items = await _carMaintenanceService.GetServiceOrdersAsync(ct);
         return Ok(items);
     }
-
-    [HttpGet("{maintenanceId:int}")]
-    [ProducesResponseType(typeof(ServiceOrderIntakeDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetServiceOrderIntakeDetail(int maintenanceId, CancellationToken ct)
-    {
-        var detail = await _carMaintenanceService.GetServiceOrderIntakeDetailAsync(maintenanceId, ct);
-        if (detail == null)
-            return NotFound(new { message = "Service order not found." });
-
-        return Ok(detail);
-    }
-
 }
 
