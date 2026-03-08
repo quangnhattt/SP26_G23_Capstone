@@ -16,4 +16,3 @@ coverage
 .idea
 .yarn
 .yarnrc.yml
-yarn.lock
