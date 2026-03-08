@@ -1,8 +1,6 @@
 ﻿using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Permission;
 using AGMS.Domain.Entities;
-using AGMS.Infrastructure.Persistence.Db;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,47 +10,40 @@ namespace AGMS.Infrastructure.Services
 {
     public class PermissionGroupService : IPermissionGroupService
     {
-        private readonly CarServiceDbContext _context;
+        private readonly IPermissionGroupRepository _groupRepo;
 
-        public PermissionGroupService(CarServiceDbContext context)
+        public PermissionGroupService(IPermissionGroupRepository groupRepo)
         {
-            _context = context;
+            _groupRepo = groupRepo;
         }
 
         public async Task<List<PermissionGroupDto>> GetAllGroupsAsync()
         {
-            return await _context.PermissionGroups
-                .Select(g => new PermissionGroupDto
-                {
-                    GroupID = g.GroupID,
-                    GroupName = g.GroupName,
-                    Description = g.Description
-                })
-                .ToListAsync();
+            var groups = await _groupRepo.GetAllAsync();
+            return groups.Select(g => new PermissionGroupDto
+            {
+                GroupID = g.GroupID,
+                GroupName = g.GroupName,
+                Description = g.Description
+            }).ToList();
         }
 
         public async Task<PermissionGroupDto?> GetGroupByIdAsync(int groupId)
         {
-            var group = await _context.PermissionGroups
-                .Where(g => g.GroupID == groupId)
-                .Select(g => new PermissionGroupDto
-                {
-                    GroupID = g.GroupID,
-                    GroupName = g.GroupName,
-                    Description = g.Description
-                })
-                .FirstOrDefaultAsync();
+            var group = await _groupRepo.GetByIdAsync(groupId);
+            if (group == null) return null;
 
-            return group;
+            return new PermissionGroupDto
+            {
+                GroupID = group.GroupID,
+                GroupName = group.GroupName,
+                Description = group.Description
+            };
         }
 
         public async Task<int> CreateGroupAsync(PermissionGroupCreateDto request)
         {
-            // Kiểm tra tính duy nhất của GroupName
-            var nameExists = await _context.PermissionGroups
-                .AnyAsync(g => g.GroupName.ToLower() == request.GroupName.ToLower());
-
-            if (nameExists)
+            if (await _groupRepo.ExistsByNameAsync(request.GroupName))
                 throw new Exception($"Tên nhóm quyền '{request.GroupName}' đã tồn tại.");
 
             var newGroup = new PermissionGroup
@@ -61,45 +52,34 @@ namespace AGMS.Infrastructure.Services
                 Description = request.Description
             };
 
-            _context.PermissionGroups.Add(newGroup);
-            await _context.SaveChangesAsync();
-
+            await _groupRepo.AddAsync(newGroup);
             return newGroup.GroupID;
         }
 
         public async Task<bool> UpdateGroupAsync(int groupId, PermissionGroupUpdateDto request)
         {
-            var group = await _context.PermissionGroups.FirstOrDefaultAsync(g => g.GroupID == groupId);
-            if (group == null)
-                throw new Exception($"Không tìm thấy Nhóm quyền với ID = {groupId}");
+            var group = await _groupRepo.GetByIdAsync(groupId);
+            if (group == null) throw new Exception($"Không tìm thấy Nhóm quyền với ID = {groupId}");
 
-            // Kiểm tra tính duy nhất của GroupName, loại trừ chính nhóm đang được cập nhật
-            var nameExists = await _context.PermissionGroups
-                .AnyAsync(g => g.GroupName.ToLower() == request.GroupName.ToLower() && g.GroupID != groupId);
-
-            if (nameExists)
+            if (await _groupRepo.ExistsByNameAsync(request.GroupName, groupId))
                 throw new Exception($"Tên nhóm quyền '{request.GroupName}' đã tồn tại.");
 
             group.GroupName = request.GroupName;
             group.Description = request.Description;
 
-            await _context.SaveChangesAsync();
+            await _groupRepo.UpdateAsync(group);
             return true;
         }
 
         public async Task<bool> DeleteGroupAsync(int groupId)
         {
-            var group = await _context.PermissionGroups.FirstOrDefaultAsync(g => g.GroupID == groupId);
-            if (group == null)
-                throw new Exception($"Không tìm thấy Nhóm quyền với ID = {groupId}");
+            var group = await _groupRepo.GetByIdAsync(groupId);
+            if (group == null) throw new Exception($"Không tìm thấy Nhóm quyền với ID = {groupId}");
 
-            // Ràng buộc toàn vẹn: Không cho phép xóa nếu có quyền con (Permission) thuộc nhóm này
-            var hasChildPermissions = await _context.Permissions.AnyAsync(p => p.GroupID == groupId);
-            if (hasChildPermissions)
+            if (await _groupRepo.HasChildPermissionsAsync(groupId))
                 throw new Exception("Không thể xóa nhóm quyền này vì vẫn còn các quyền con (Permissions) đang trực thuộc. Vui lòng chuyển hoặc xóa các quyền con trước.");
 
-            _context.PermissionGroups.Remove(group);
-            await _context.SaveChangesAsync();
+            await _groupRepo.DeleteAsync(group);
             return true;
         }
     }

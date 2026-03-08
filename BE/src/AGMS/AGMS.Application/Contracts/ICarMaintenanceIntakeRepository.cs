@@ -1,0 +1,18 @@
+using AGMS.Application.DTOs.Intake;
+using AGMS.Application.DTOs.ServiceOrder;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace AGMS.Application.Contracts
+{
+    public interface ICarMaintenanceIntakeRepository
+    {
+        Task<bool> IsStaffUserAsync(int userId, CancellationToken ct = default);
+        Task<IEnumerable<IntakeListItemDto>> GetWaitingIntakesAsync(CancellationToken ct = default);
+        Task<IntakeWalkInCreateResponseDto> CreateWalkInIntakeAsync(IntakeWalkInCreateRequest request, int createdByUserId, CancellationToken ct = default);
+        Task<ServiceOrderIntakeDetailDto?> GetIntakeDetailAsync(int maintenanceId, CancellationToken ct = default);
+    }
+}

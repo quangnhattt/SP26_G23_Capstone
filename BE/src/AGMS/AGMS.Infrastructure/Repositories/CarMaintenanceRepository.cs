@@ -21,6 +21,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             .Include(m => m.Car)
                 .ThenInclude(c => c.Owner)
             .Include(m => m.AssignedTechnician)
+            .Where(m=>m.Status != "WAITING")
             .OrderByDescending(m => m.MaintenanceID)
             .Select(m => new ServiceOrderListItemDto
             {
@@ -36,4 +37,3 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             .ToListAsync(ct);
     }
 }
-
