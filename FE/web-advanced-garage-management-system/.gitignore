@@ -36,8 +36,6 @@ Thumbs.db
 
 # Package manager specific
 .pnpm-debug.log
-yarn.lock
-package-lock.json
 
 # Optional: If you're using TypeScript
 *.tsbuildinfo
