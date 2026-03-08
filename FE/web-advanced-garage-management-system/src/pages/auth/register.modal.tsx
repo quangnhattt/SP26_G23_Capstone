@@ -35,7 +35,11 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleClose = () => {
-    onClose ? onClose() : navigate(ROUTER_PAGE.home);
+    if (onClose) {
+      onClose();
+    } else {
+      navigate(ROUTER_PAGE.home);
+    }
   };
 
   const handleSwitchToLogin = () => {
@@ -98,10 +102,13 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
       } else {
         navigate(ROUTER_PAGE.auth.login, { replace: true });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string; Message?: string } };
+      };
       const message =
-        error?.response?.data?.message ??
-        error?.response?.data?.Message ??
+        err?.response?.data?.message ??
+        err?.response?.data?.Message ??
         "Đăng ký thất bại";
       toast.error(message);
     } finally {

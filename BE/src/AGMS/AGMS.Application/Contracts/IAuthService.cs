@@ -8,4 +8,7 @@ public interface IAuthService
     Task<LoginResponse> LoginAsync(LoginRequest req, CancellationToken ct);
     Task<ForgotPasswordOtpResponse> RequestForgotPasswordOtpAsync(ForgotPasswordRequest req, CancellationToken ct);
     Task ResetPasswordWithOtpAsync(ResetPasswordRequest req, CancellationToken ct);
+
+    Task SendEmailVerificationOtpAsync(EmailVerificationSendOtpRequest req, CancellationToken ct);
+    Task VerifyEmailOtpAsync(EmailVerificationVerifyOtpRequest req, CancellationToken ct);
 }

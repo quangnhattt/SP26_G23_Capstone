@@ -22,7 +22,7 @@ const Footer = () => {
           <BrandColumn>
             <BrandSection onClick={() => handleNavigate(ROUTER_PAGE.home)}>
               <img
-                style={{ height: 26, width: 26 }}
+                style={{ height: 75, width: 75 }}
                 src={images.logo_app}
                 alt="Logo"
               />
@@ -108,6 +108,7 @@ export default Footer;
 const FooterWrapper = styled.footer`
   background: #ffffff;
   width: 100%;
+  border-top: 1px solid #e9ecef;
 `;
 
 const FooterTop = styled.div`

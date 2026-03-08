@@ -1,0 +1,222 @@
+import styled from "styled-components";
+
+const HeroSection = () => {
+  return (
+    <HeroSectionContainer>
+      <HeroContainer>
+        <HeroSubtitle>Hệ thống quản lý garage thông minh</HeroSubtitle>
+        <HeroTitle>
+          Chăm sóc xe của bạn
+          <br />
+          <HeroHighlight>chuyên nghiệp</HeroHighlight> và{" "}
+          <HeroHighlight>minh bạch</HeroHighlight>
+        </HeroTitle>
+        <HeroDescription>
+          Đặt lịch sửa chữa, theo dõi tiến độ, thanh toán trực tuyến - tất cả
+          trong một nền tảng. Trải nghiệm dịch vụ garage hiện đại với công nghệ
+          quản lý thông minh.
+        </HeroDescription>
+        <ButtonGroup>
+          <ButtonRow>
+            <PrimaryButton>
+              <svg
+                width="16"
+                height="16"
+                fill="currentColor"
+                viewBox="0 0 16 16"
+              >
+                <path d="M8 0a.5.5 0 0 1 .5.5v7h7a.5.5 0 0 1 0 1h-7v7a.5.5 0 0 1-1 0v-7h-7a.5.5 0 0 1 0-1h7v-7A.5.5 0 0 1 8 0z" />
+              </svg>
+              Đặt lịch ngay
+            </PrimaryButton>
+            <SecondaryButton>
+              Xem Portal Khách hàng
+              <svg
+                width="16"
+                height="16"
+                fill="currentColor"
+                viewBox="0 0 16 16"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
+                />
+              </svg>
+            </SecondaryButton>
+          </ButtonRow>
+          <AdminLink href="#">
+            Truy cập Admin Dashboard
+            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+              <path
+                fillRule="evenodd"
+                d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"
+              />
+            </svg>
+          </AdminLink>
+        </ButtonGroup>
+      </HeroContainer>
+    </HeroSectionContainer>
+  );
+};
+
+export default HeroSection;
+
+const HeroSectionContainer = styled.section`
+  padding: 2.5rem 0;
+  background-color: #f3f4f6;
+  overflow-x: hidden;
+   &:first-child {
+    border-top: none;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1.5rem 0;
+  }
+`;
+
+const HeroContainer = styled.div`
+  max-width: 72rem;
+  margin: 0 auto;
+  text-align: center;
+  padding: 0 1rem;
+  width: 100%;
+`;
+
+const HeroSubtitle = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+  font-weight: 400;
+`;
+
+const HeroTitle = styled.h1`
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1.5rem;
+  line-height: 1.1;
+
+  @media (max-width: 768px) {
+    font-size: 2.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    font-size: 4rem;
+  }
+`;
+
+const HeroHighlight = styled.span`
+  color: #1d4ed8;
+  font-weight: 700;
+`;
+
+const HeroDescription = styled.p`
+  font-size: 1.125rem;
+  color: #6b7280;
+  margin-bottom: 2.5rem;
+  max-width: 50rem;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.7;
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    gap: 1rem;
+  }
+`;
+
+const PrimaryButton = styled.button`
+  background-color: #1d4ed8;
+  color: white;
+  padding: 0.875rem 1.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background-color: #1e40af;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  border: 1px solid #e5e7eb;
+  color: #111827;
+  padding: 0.875rem 1.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #d1d5db;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const AdminLink = styled.a`
+  color: #6b7280;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+  font-weight: 500;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #1d4ed8;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;

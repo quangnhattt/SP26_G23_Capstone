@@ -22,4 +22,5 @@ public class Car
     public virtual User Owner { get; set; } = null!;
     public virtual ICollection<RescueRequest> RescueRequests { get; set; } = new List<RescueRequest>();
     public virtual ICollection<WarrantyClaim> WarrantyClaims { get; set; } = new List<WarrantyClaim>();
+    public virtual ICollection<VehicleIntakeCondition> VehicleIntakeConditions { get; set; } = new List<VehicleIntakeCondition>();
 }

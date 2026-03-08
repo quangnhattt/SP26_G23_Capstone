@@ -1,4 +1,4 @@
-import { Rule } from "antd/lib/form";
+import type { Rule } from "antd/lib/form";
 
 // const REG_PHONE = /((^(\+84|84|0|0084){1})(3|5|7|8|9))+([0-9]{8})$/;
 const MOBI = /((^(\+84|84|0|0084){1})(3)(2|3|4|5|6|7|8|9))+([0-9]{7})$/;
@@ -23,7 +23,11 @@ export const errorValidPhone = () => ({
   },
 });
 
-export const errorConfirmPassword = ({ getFieldValue }: any) => ({
+export const errorConfirmPassword = ({
+  getFieldValue,
+}: {
+  getFieldValue: (name: string) => unknown;
+}) => ({
   validator(_: Rule, value: string) {
     if (!value) return Promise.resolve();
     if (!value || getFieldValue("password") === value) {

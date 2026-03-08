@@ -3,6 +3,7 @@ import {
   type ILoginPayload,
   type ILoginWithEmailPayload,
 } from "@/apis/auth";
+import type { AxiosError } from "axios";
 import LocalStorage from "@/apis/LocalStorage";
 import { userService } from "@/apis/user";
 import { AppStorageEnum, type IUser } from "@/constants/types";
@@ -25,6 +26,7 @@ interface AuthContextType {
   updateUser: (updated: Partial<IUser>) => void;
   login: (
     e: ILoginPayload,
+    isDeposit?: boolean,
     isUpdatePhone?: boolean,
     returnUrl?: string
   ) => Promise<void>;
@@ -52,7 +54,7 @@ type AuthProviderProps = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isMobile } = useDevice();
+  useDevice();
   const { showLoading, hideLoading } = useLoading();
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
@@ -86,12 +88,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     retry: 1,
   });
 
-  const setLanguageFromUser = (userData: IUser) => {
+  const setLanguageFromUser = React.useCallback((userData: IUser) => {
     if (userData.language && userData.language !== i18next.language) {
       LocalStorage.saveLanguage(userData.language);
       i18next.changeLanguage(userData.language);
     }
-  };
+  }, []);
 
   /**
    * ===== TOKEN HANDLER =====
@@ -124,7 +126,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     async (token_access?: string, token_refresh?: string) => {
       await setCustomToken({ token_access, token_refresh });
 
-      //@ts-ignore
+      // @ts-expect-error - mutate expects variables but we pass null for initial fetch
       userMutate(null, {
         onSuccess: (data) => {
           setUser(data);
@@ -139,7 +141,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         },
       });
     },
-    [setCustomToken, userMutate]
+    [setCustomToken, userMutate, setLanguageFromUser]
   );
 
   /**
@@ -163,7 +165,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [storeAuthResult]);
 
   const getUser = async () => {
-    //@ts-ignore
+    // @ts-expect-error - mutate expects variables but we pass null for initial fetch
     userMutate(null, {
       onSuccess: (data) => {
         setUser(data);
@@ -199,7 +201,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               token_refresh: data.refreshToken,
             });
 
-            //@ts-ignore
+            // @ts-expect-error - mutate expects variables but we pass null for initial fetch
             userMutate(null, {
               onSuccess: (data) => {
                 setUser(data);
@@ -219,18 +221,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               },
               onError: (error) => {
                 hideLoading();
-                toast.error(error.response.data.message);
+                const err = error as AxiosError<{ message?: string }>;
+                toast.error(err?.response?.data?.message ?? "Login failed");
               },
             });
           },
           onError: (e) => {
             hideLoading();
-            toast.error(e?.response?.data?.message ?? "Login failed");
+            const err = e as AxiosError<{ message?: string }>;
+            toast.error(err?.response?.data?.message ?? "Login failed");
           },
         }
       );
     },
-    [showLoading, queryClient, loginMutate, setCustomToken, userMutate, setUser, setLanguageFromUser, hideLoading, dispatch, navigate]
+    [showLoading, queryClient, loginMutate, setCustomToken, userMutate, setLanguageFromUser, hideLoading, dispatch, navigate]
   );
 
   /**
@@ -248,7 +252,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             token_refresh: tokens.refreshToken,
           });
 
-          //@ts-ignore
+          // @ts-expect-error - mutate expects variables but we pass null for initial fetch
           userMutate(null, {
             onSuccess: (data) => {
               setUser(data);
@@ -260,13 +264,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             },
             onError: (error) => {
               hideLoading();
-              toast.error(error?.response?.data?.message ?? "Login failed");
+              const err = error as AxiosError<{ message?: string }>;
+              toast.error(err?.response?.data?.message ?? "Login failed");
             },
           });
         },
         onError: (e) => {
           hideLoading();
-          toast.error(e?.response?.data?.message ?? "Đăng nhập thất bại");
+          const err = e as AxiosError<{ message?: string }>;
+          toast.error(err?.response?.data?.message ?? "Đăng nhập thất bại");
         },
       });
     },
@@ -276,6 +282,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       loginWithEmailMutate,
       setCustomToken,
       userMutate,
+      setLanguageFromUser,
       hideLoading,
       dispatch,
       navigate,
@@ -296,7 +303,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     logoutMutate({ refreshToken });
     navigate(ROUTER_PAGE.home, { replace: true });
-  }, [setCustomToken, setUser, logoutMutate, navigate]);
+  }, [setCustomToken, logoutMutate, navigate]);
 
   return (
     <AuthContext.Provider
