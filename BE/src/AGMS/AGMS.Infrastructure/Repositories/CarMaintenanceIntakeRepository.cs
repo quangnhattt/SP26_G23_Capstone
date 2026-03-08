@@ -710,5 +710,28 @@ namespace AGMS.Infrastructure.Repositories
                 }
             }
         }
+        public async Task<bool> StartDiagnosisAsync(int maintenanceId, IntakeStartDiagnosisRequest request, int updatedByUserId, CancellationToken ct = default)
+        {
+            await ResolveCreatedByUserIdAsync(updatedByUserId, ct);
+            var maintenance = await _db.CarMaintenances.FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+            if (maintenance == null)
+                return false;
+            if (!string.Equals(maintenance.Status, "WAITING", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Only intake records with status WAITING can be moved to IN_DIAGNOSIS.");
+
+            var oldStatus = maintenance.Status;
+            maintenance.Status = "IN_DIAGNOSIS";
+            _db.MaintenanceStatusLogs.Add(new MaintenanceStatusLog
+            {
+                MaintenanceID = maintenanceId,
+                OldStatus = oldStatus,
+                NewStatus = "IN_DIAGNOSIS",
+                ChangedBy = updatedByUserId,
+                ChangedDate = DateTime.UtcNow,
+                Note = string.IsNullOrWhiteSpace(request.Note) ? "Moved to In_DIAGNOSIS from intake." : request.Note.Trim()
+            });
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
     }
 }

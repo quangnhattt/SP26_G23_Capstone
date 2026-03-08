@@ -145,5 +145,42 @@ namespace AGMS.WebApi.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpPatch("{maintenanceId:int}/status/in-diagnosis")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> StartDiagnosis(int maintenanceId, [FromBody] IntakeStartDiagnosisRequest request, CancellationToken ct)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(claim) || !int.TryParse(claim, out int userId))
+                return Unauthorized(new { message = "Invalid or missing user id claim." });
+
+            var isStaff = await _intakeService.IsStaffUserAsync(userId, ct);
+            if (!isStaff)
+                return Forbid();
+
+            try
+            {
+                var ok = await _intakeService.StartDiagnosisAsync(maintenanceId, request, userId, ct);
+                if (!ok)
+                    return NotFound(new { message = $"No intake found for maintenance ID {maintenanceId}." });
+
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }
