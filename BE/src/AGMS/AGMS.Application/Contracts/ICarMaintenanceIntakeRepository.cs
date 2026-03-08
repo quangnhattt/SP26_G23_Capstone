@@ -14,5 +14,6 @@ namespace AGMS.Application.Contracts
         Task<IEnumerable<IntakeListItemDto>> GetWaitingIntakesAsync(CancellationToken ct = default);
         Task<IntakeWalkInCreateResponseDto> CreateWalkInIntakeAsync(IntakeWalkInCreateRequest request, int createdByUserId, CancellationToken ct = default);
         Task<ServiceOrderIntakeDetailDto?> GetIntakeDetailAsync(int maintenanceId, CancellationToken ct = default);
+        Task<ServiceOrderIntakeDetailDto?> UpdateIntakeAsync(int maintenanceId, IntakeUpdateRequest request, int updatedByUserId, CancellationToken ct = default);
     }
 }

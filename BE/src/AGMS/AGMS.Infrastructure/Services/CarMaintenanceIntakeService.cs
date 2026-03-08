@@ -34,6 +34,10 @@ namespace AGMS.Infrastructure.Services
         {
             return await _repository.GetIntakeDetailAsync(maintenanceId, ct);
         }
+        public async Task<ServiceOrderIntakeDetailDto?> UpdateIntakeAsync(int maintenanceId, IntakeUpdateRequest request, int updatedByUserId, CancellationToken ct = default)
+        {
+            return await _repository.UpdateIntakeAsync(maintenanceId, request, updatedByUserId, ct);
 
+        }
     }
 }

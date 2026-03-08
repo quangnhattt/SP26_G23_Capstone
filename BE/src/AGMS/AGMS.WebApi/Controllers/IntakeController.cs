@@ -101,5 +101,49 @@ namespace AGMS.WebApi.Controllers
             }
 
         }
+
+
+        [HttpPut("{maintenanceId:int}")]
+        [ProducesResponseType(typeof(ServiceOrderIntakeDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateIntake(int maintenanceId, [FromBody] IntakeUpdateRequest request, CancellationToken ct)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(claim) || !int.TryParse(claim, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid or missing user id claim." });
+            }
+            var IsStaff = await _intakeService.IsStaffUserAsync(userId, ct);
+            if (!IsStaff)
+            {
+                return Forbid();
+            }
+            try
+            {
+                var detail = await _intakeService.UpdateIntakeAsync(maintenanceId, request, userId, ct);
+                if (detail == null)
+                {
+                    return NotFound(new { message = $"No intake found for maintenance ID {maintenanceId}." });
+                }
+                return Ok(detail);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

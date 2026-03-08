@@ -393,7 +393,7 @@ namespace AGMS.Infrastructure.Repositories
         {
             var maintenance = await _db.CarMaintenances.AsNoTracking().
                 Include(m => m.Car).ThenInclude(c => c.Owner)
-                .Include(m=>m.MaintenancePackageUsages).ThenInclude(u=>u.Package)
+                .Include(m => m.MaintenancePackageUsages).ThenInclude(u => u.Package)
                 .Include(m => m.ServiceDetails).ThenInclude(d => d.Product)
                 .Include(m => m.ServicePartDetails).ThenInclude(d => d.Product)
                 .Include(m => m.VehicleIntakeConditions)
@@ -463,7 +463,7 @@ namespace AGMS.Infrastructure.Repositories
                 }).ToList(),
                 VehicleIntakeConditions = maintenance.VehicleIntakeConditions.OrderBy(x => x.Id).Select(x => new IntakeConditionItemDto
                 {
-                    IntakeConditionId=x.Id,
+                    IntakeConditionId = x.Id,
                     CheckInTime = x.CheckInTime,
                     FrontStatus = x.FrontStatus,
                     RearStatus = x.RearStatus,
@@ -473,6 +473,242 @@ namespace AGMS.Infrastructure.Repositories
                     IntakeConditionNote = x.ConditionNote
                 }).ToList()
             };
+        }
+
+        public async Task<ServiceOrderIntakeDetailDto?> UpdateIntakeAsync(int maintenanceId, IntakeUpdateRequest request, int UpdateByUserId, CancellationToken ct = default)
+        {
+            if (request.Maintenance == null) throw new ArgumentException("Maintenance update info is required");
+
+            var maintenanceType = NormalizeMaintenanceType(request.Maintenance.MaintenanceType);
+            var serviceDetails = request.ServiceDetails ?? new List<IntakeUpdateServiceDetailItemDto>();
+            var partDetails = request.PartDetails ?? new List<IntakeUpdatePartDetailItemDto>();
+            var intakeConditions = request.VehicleCondition ?? new List<IntakeUpdateVehicleIntakeConditionItemDto>();
+            await ResolveCreatedByUserIdAsync(UpdateByUserId, ct);
+            var maintenance = await _db.CarMaintenances
+                .Include(m => m.Car).ThenInclude(c => c.Owner)
+                .Include(m => m.MaintenancePackageUsages)
+                .Include(m => m.ServiceDetails)
+                .Include(m => m.ServicePartDetails)
+                .Include(m => m.VehicleIntakeConditions)
+                .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+            if (maintenance == null)
+                return null;
+            if (!string.Equals(maintenance.Status, "WAITING", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Only intakes with status 'WAITING' can be updated.");
+            if (request.Maintenance.AssignedTechnicianId.HasValue)
+            {
+                var techExists = await _db.Users.AnyAsync(u => u.UserID == request.Maintenance.AssignedTechnicianId.Value && u.RoleID == 3 && u.IsActive, ct);
+                if (!techExists) throw new KeyNotFoundException("Assigned technician not found or inactive");
+            }
+            if (request.Maintenance.BayId.HasValue)
+            {
+                var bayExists = await _db.ServiceBays.AnyAsync(b => b.BayID == request.Maintenance.BayId.Value && b.IsActive, ct);
+                if (!bayExists) throw new KeyNotFoundException("Service bay not found or inactive");
+            }
+            MaintenancePackage? selectedPackage = null;
+            var selectedPackageId = request.PackageSelection?.SelectedPackageId;
+            var packageProductIds = new HashSet<int>();
+
+
+            if (selectedPackageId.HasValue)
+            {
+                selectedPackage = await _db.MaintenancePackages.FirstOrDefaultAsync(p => p.PackageID == selectedPackageId.Value && p.IsActive, ct);
+                if (selectedPackage == null) throw new KeyNotFoundException("Selected maintenance package not found or inactive");
+                var packageProduct = await _db.MaintenancePackageDetails.Where(d => d.PackageID == selectedPackageId.Value).Select(d => d.ProductID).ToListAsync(ct);
+                packageProductIds = packageProduct.ToHashSet();
+            }
+            var allProductIds = serviceDetails.Select(x => x.ProductId).Concat(partDetails.Select(x => x.ProductId)).Distinct().ToList();
+
+            var productMap = await _db.Products.Where(p => allProductIds.Contains(p.ProductID) && p.IsActive).ToDictionaryAsync(p => p.ProductID, ct);
+            var missing = allProductIds.Where(id => !productMap.ContainsKey(id)).ToList();
+            if (missing.Count > 0) throw new KeyNotFoundException($"Product not found or inactive: {string.Join(",", missing)}");
+            foreach (var s in serviceDetails)
+            {
+                if (!string.Equals(productMap[s.ProductId].Type?.Trim(), "SERVICE", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException($"ProductID {s.ProductId} is not a service type product");
+            }
+
+            foreach (var p in partDetails)
+            {
+                if (!string.Equals(productMap[p.ProductId].Type?.Trim(), "PART", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException($"ProductID {p.ProductId} is not a part");
+            }
+
+            var packageAmount = selectedPackage?.FinalPrice ?? selectedPackage?.BasePrice ?? 0m;
+            var serviceAmount = serviceDetails.Sum(x => x.Quantity * productMap[x.ProductId].Price);
+            var partAmount = partDetails.Sum(x => x.Quantity * productMap[x.ProductId].Price);
+            var totalAmount = packageAmount + serviceAmount + partAmount;
+            await using var tx = await _db.Database.BeginTransactionAsync(ct);
+            try
+            {
+                await ApplyCustomerAndCarUpdateAsync(maintenance, request, ct);
+                maintenance.MaintenanceType = maintenanceType;
+                maintenance.Notes = request.Maintenance.Notes;
+                maintenance.AssignedTechnicianID = request.Maintenance.AssignedTechnicianId;
+                maintenance.BayID = request.Maintenance.BayId;
+                maintenance.TotalAmount = totalAmount;
+                if (maintenance.MaintenancePackageUsages.Any())
+                    _db.MaintenancePackageUsages.RemoveRange(maintenance.MaintenancePackageUsages);
+                if (maintenance.ServiceDetails.Any())
+                    _db.ServiceDetails.RemoveRange(maintenance.ServiceDetails);
+                if (maintenance.ServicePartDetails.Any())
+                    _db.ServicePartDetails.RemoveRange(maintenance.ServicePartDetails);
+                if (maintenance.VehicleIntakeConditions.Any())
+                    _db.VehicleIntakeConditions.RemoveRange(maintenance.VehicleIntakeConditions);
+                if (selectedPackage != null)
+                {
+                    _db.MaintenancePackageUsages.Add(new MaintenancePackageUsage
+                    {
+                        Maintenance = maintenance,
+                        PackageID = selectedPackage.PackageID,
+                        AppliedPrice = packageAmount,
+                        DiscountAmount = Math.Max(0m, selectedPackage.BasePrice - packageAmount),
+                        AppliedDate = DateTime.UtcNow
+                    });
+                }
+                foreach (var s in serviceDetails)
+                {
+                    var fromPackage = selectedPackageId.HasValue && packageProductIds.Contains(s.ProductId);
+                    _db.ServiceDetails.Add(new ServiceDetail
+                    {
+                        Maintenance = maintenance,
+                        ProductID = s.ProductId,
+                        Quantity = s.Quantity,
+                        UnitPrice = productMap[s.ProductId].Price,
+                        ItemStatus = "APPROVED",
+                        IsAdditional = !fromPackage,
+                        FromPackage = fromPackage,
+                        PackageID = fromPackage ? selectedPackageId : null,
+                        Notes = s.Notes
+                    });
+                }
+                foreach (var p in partDetails)
+                {
+                    var fromPackage = selectedPackageId.HasValue && packageProductIds.Contains(p.ProductId);
+                    _db.ServicePartDetails.Add(new ServicePartDetail
+                    {
+                        Maintenance = maintenance,
+                        ProductID = p.ProductId,
+                        Quantity = p.Quantity,
+                        UnitPrice = productMap[p.ProductId].Price,
+                        ItemStatus = "APPROVED",
+                        IsAdditional = !fromPackage,
+                        InventoryStatus = "PENDING",
+                        IssuedQuantity = 0,
+                        FromPackage = fromPackage,
+                        PackageID = fromPackage ? selectedPackageId : null,
+                        Notes = p.Notes
+                    });
+                }
+                foreach (var c in intakeConditions)
+                {
+                    _db.VehicleIntakeConditions.Add(new VehicleIntakeCondition
+                    {
+                        CarId = maintenance.CarID,
+                        Maintenance = maintenance,
+                        CheckInTime = DateTime.UtcNow,
+                        FrontStatus = c.FrontStatus,
+                        RearStatus = c.RearStatus,
+                        LeftStatus = c.LeftStatus,
+                        RightStatus = c.RightStatus,
+                        RoofStatus = c.RoofStatus,
+                        ConditionNote = c.ConditionNotes
+                    });
+                }
+                await _db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+
+
+            }
+            catch
+            {
+                await tx.RollbackAsync(ct);
+                throw;
+            }
+            return await GetIntakeDetailAsync(maintenanceId, ct);
+        }
+
+
+        private async Task ApplyCustomerAndCarUpdateAsync(CarMaintenance maintenance, IntakeUpdateRequest request, CancellationToken ct)
+        {
+            var owner = maintenance.Car.Owner;
+            if (request.Customer != null)
+            {
+                var customer = request.Customer;
+                if (customer.FullName != null)
+                {
+                    if (string.IsNullOrWhiteSpace(customer.FullName))
+                        throw new ArgumentException("customer.fullName cannot be empty");
+                    owner.FullName = customer.FullName.Trim();
+                }
+                if (customer.Phone != null)
+                {
+                    var phone = customer.Phone.Trim();
+                    if (string.IsNullOrWhiteSpace(phone))
+                        throw new ArgumentException("customer.phone cannot be empty");
+                    if (await _db.Users.AnyAsync(u => u.UserID != owner.UserID && u.Phone == phone, ct))
+                        throw new InvalidOperationException("Phone number already exists");
+                    if (await _db.Users.AnyAsync(u => u.UserID != owner.UserID && u.Username == phone, ct))
+                        throw new InvalidOperationException("Username already exists");
+                    owner.Phone = phone;
+                    owner.Username = phone;
+                }
+                if (customer.Email != null)
+                {
+                    var email = customer.Email.Trim();
+                    if (string.IsNullOrWhiteSpace(email))
+                        throw new ArgumentException("customer.email cannot be empty");
+                    if (await _db.Users.AnyAsync(u => u.UserID != owner.UserID && u.Email == email, ct))
+                        throw new ArgumentException("Email already exists");
+                    owner.Email = email;
+                }
+                if (customer.Dob.HasValue)
+                    owner.DateOfBirth = customer.Dob.Value;
+                if (request.Car != null)
+                {
+                    var carUpdate = request.Car;
+                    var car = maintenance.Car;
+                    if (carUpdate.LicensePlate != null)
+                    {
+                        var plate = carUpdate.LicensePlate.Trim().ToUpperInvariant();
+                        if (string.IsNullOrWhiteSpace(plate))
+                            throw new ArgumentException("car.licensePlate cannot be empty");
+                        if (await _db.Cars.AnyAsync(c => c.CarID != car.CarID && c.LicensePlate == plate, ct))
+                            throw new InvalidOperationException("License plate already exists");
+                        car.LicensePlate = plate;
+                    }
+                    if (car.Brand != null)
+                    {
+                        if (string.IsNullOrWhiteSpace(carUpdate.Brand))
+                            throw new ArgumentException("car.brand cannot be empty");
+                        car.Brand = carUpdate.Brand.Trim();
+                    }
+                    if (carUpdate.Model != null)
+                    {
+                        if (string.IsNullOrWhiteSpace(carUpdate.Model))
+                            throw new ArgumentException("car.model cannot be empty");
+                        car.Model = carUpdate.Model.Trim();
+                    }
+                    if (carUpdate.Year.HasValue)
+                    {
+                        if (carUpdate.Year.Value < 1900)
+                            throw new ArgumentException("car.year is invalid");
+                        car.Year = carUpdate.Year.Value;
+                    }
+                    if (carUpdate.Color != null)
+                        car.Color = string.IsNullOrWhiteSpace(carUpdate.Color) ? null : carUpdate.Color.Trim();
+                    if (carUpdate.EngineNumber != null)
+                        car.EngineNumber = string.IsNullOrWhiteSpace(carUpdate.EngineNumber) ? null : carUpdate.EngineNumber.Trim();
+                    if (carUpdate.ChassisNumber != null)
+                        car.ChassisNumber = string.IsNullOrWhiteSpace(carUpdate.ChassisNumber) ? null : carUpdate.ChassisNumber.Trim();
+                    if (carUpdate.CurrentOdometer.HasValue)
+                    {
+                        if (carUpdate.CurrentOdometer.Value < 0)
+                            throw new ArgumentException("car.currentOdometer must be >=0 ");
+                        car.CurrentOdometer = carUpdate.CurrentOdometer.Value;
+                    }
+                }
+            }
         }
     }
 }
