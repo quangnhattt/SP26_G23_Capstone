@@ -98,12 +98,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'yarn'
-          cache-dependency-path: './FE/web-advanced-garage-management-system/yarn.lock'
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
         working-directory: ./FE/web-advanced-garage-management-system
-        run: corepack enable && yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Lint
         working-directory: ./FE/web-advanced-garage-management-system
