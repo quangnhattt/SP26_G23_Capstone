@@ -12,8 +12,6 @@ namespace AGMS.Domain.Entities
 
         public int ProductID { get; set; }
 
-        public int? LotID { get; set; }
-
         public string SerialNumber { get; set; } = null!;
 
         public string Status { get; set; } = null!;

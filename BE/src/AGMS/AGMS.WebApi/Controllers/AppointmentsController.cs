@@ -34,7 +34,7 @@ public class AppointmentsController : ControllerBase
 
         var isSA = await IsServiceAdvisorAsync(userId, ct);
         if (!isSA)
-            return Forbid();
+            return Forbid(); 
 
         try
         {

@@ -20,9 +20,7 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<Category> Categories { get; set; }
 
-    public virtual DbSet<InventoryLotBalance> InventoryLotBalances { get; set; }
-
-    public virtual DbSet<InventoryLot> InventoryLots { get; set; }
+    public virtual DbSet<InventoryTransaction> InventoryTransactions { get; set; }
 
     public virtual DbSet<MaintenanceMedium> MaintenanceMedia { get; set; }
 
@@ -46,6 +44,8 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<Product> Products { get; set; }
 
+    public virtual DbSet<ProductInventory> ProductInventories { get; set; }
+
     public virtual DbSet<ProductItem> ProductItems { get; set; }
 
     public virtual DbSet<RescueRequest> RescueRequests { get; set; }
@@ -60,8 +60,6 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<ServicePartDetail> ServicePartDetails { get; set; }
 
-    public virtual DbSet<StockLot> StockLots { get; set; }
-
     public virtual DbSet<Supplier> Suppliers { get; set; }
 
     public virtual DbSet<SupplierProduct> SupplierProducts { get; set; }
@@ -69,6 +67,8 @@ public partial class CarServiceDbContext : DbContext
     public virtual DbSet<TokenForgetPassword> TokenForgetPasswords { get; set; }
 
     public virtual DbSet<TransferOrder> TransferOrders { get; set; }
+
+    public virtual DbSet<TransferOrderDetail> TransferOrderDetails { get; set; }
 
     public virtual DbSet<Unit> Units { get; set; }
 
@@ -196,42 +196,27 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.Type).HasMaxLength(20);
         });
 
-        modelBuilder.Entity<InventoryLotBalance>(entity =>
+        modelBuilder.Entity<InventoryTransaction>(entity =>
         {
-            entity.HasKey(e => e.LotID).HasName("PK__Inventor__4160EF4D500AC4C5");
+            entity.HasKey(e => e.TransactionID).HasName("PK__Inventor__55433A4B501C5D2B");
 
-            entity.ToTable("InventoryLotBalance");
+            entity.ToTable("InventoryTransaction");
 
-            entity.Property(e => e.LotID).ValueGeneratedNever();
-            entity.Property(e => e.LastUpdated).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.Balance).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Note).HasMaxLength(255);
+            entity.Property(e => e.Quantity).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.TransactionDate).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.TransactionType).HasMaxLength(20);
 
-            entity.HasOne(d => d.Lot).WithOne(p => p.InventoryLotBalance)
-                .HasForeignKey<InventoryLotBalance>(d => d.LotID)
+            entity.HasOne(d => d.Product).WithMany(p => p.InventoryTransactions)
+                .HasForeignKey(d => d.ProductID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Bal_Lot");
-        });
+                .HasConstraintName("FK_InvTrans_Product");
 
-        modelBuilder.Entity<InventoryLot>(entity =>
-        {
-            entity.HasKey(e => new { e.TransferOrderID, e.LotID }).HasName("PK__Inventor__8EFA4B1A79E6592C");
-
-            entity.ToTable("Inventory_Lot");
-
-            entity.HasIndex(e => e.TransferOrderID, "IX_InventoryLot_TO");
-
-            entity.Property(e => e.Price).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.Status)
-                .HasMaxLength(20)
-                .HasDefaultValue("ACTIVE");
-
-            entity.HasOne(d => d.Lot).WithMany(p => p.InventoryLots)
-                .HasForeignKey(d => d.LotID)
+            entity.HasOne(d => d.Reference).WithMany(p => p.InventoryTransactions)
+                .HasForeignKey(d => d.ReferenceID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_IL_Lot");
-
-            entity.HasOne(d => d.TransferOrder).WithMany(p => p.InventoryLots)
-                .HasForeignKey(d => d.TransferOrderID)
-                .HasConstraintName("FK_IL_TO");
+                .HasConstraintName("FK_InvTrans_TO");
         });
 
         modelBuilder.Entity<MaintenanceMedium>(entity =>
@@ -448,6 +433,23 @@ public partial class CarServiceDbContext : DbContext
                 .HasConstraintName("FK_Product_Unit");
         });
 
+        modelBuilder.Entity<ProductInventory>(entity =>
+        {
+            entity.HasKey(e => e.ProductID).HasName("PK__ProductI__B40CC6ED073DFA53");
+
+            entity.ToTable("ProductInventory");
+
+            entity.Property(e => e.ProductID).ValueGeneratedNever();
+            entity.Property(e => e.LastUpdated).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.Quantity).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.ReservedQuantity).HasColumnType("decimal(10, 2)");
+
+            entity.HasOne(d => d.Product).WithOne(p => p.ProductInventory)
+                .HasForeignKey<ProductInventory>(d => d.ProductID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductInventory_Product");
+        });
+
         modelBuilder.Entity<ProductItem>(entity =>
         {
             entity.HasKey(e => e.ProductItemID).HasName("PK__ProductI__1373AD20C27C0679");
@@ -616,10 +618,6 @@ public partial class CarServiceDbContext : DbContext
                 .HasForeignKey(d => d.IssuedTransferOrderID)
                 .HasConstraintName("FK_Part_IssuedTO");
 
-            entity.HasOne(d => d.Lot).WithMany(p => p.ServicePartDetails)
-                .HasForeignKey(d => d.LotID)
-                .HasConstraintName("FK_Part_Lot");
-
             entity.HasOne(d => d.Maintenance).WithMany(p => p.ServicePartDetails)
                 .HasForeignKey(d => d.MaintenanceID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -637,26 +635,6 @@ public partial class CarServiceDbContext : DbContext
             entity.HasOne(d => d.ReservedTransferOrder).WithMany(p => p.ServicePartDetailReservedTransferOrders)
                 .HasForeignKey(d => d.ReservedTransferOrderID)
                 .HasConstraintName("FK_Part_ReservedTO");
-        });
-
-        modelBuilder.Entity<StockLot>(entity =>
-        {
-            entity.HasKey(e => e.LotID).HasName("PK__StockLot__4160EF4D8A779128");
-
-            entity.ToTable("StockLot");
-
-            entity.HasIndex(e => e.ProductID, "IX_StockLot_Product");
-
-            entity.HasIndex(e => new { e.ProductID, e.LotNumber }, "UX_StockLot").IsUnique();
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.LotNumber).HasMaxLength(100);
-            entity.Property(e => e.UnitCost).HasColumnType("decimal(18, 2)");
-
-            entity.HasOne(d => d.Product).WithMany(p => p.StockLots)
-                .HasForeignKey(d => d.ProductID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_StockLot_Product");
         });
 
         modelBuilder.Entity<Supplier>(entity =>
@@ -742,6 +720,26 @@ public partial class CarServiceDbContext : DbContext
             entity.HasOne(d => d.Supplier).WithMany(p => p.TransferOrders)
                 .HasForeignKey(d => d.SupplierID)
                 .HasConstraintName("FK_TO_Supplier");
+        });
+
+        modelBuilder.Entity<TransferOrderDetail>(entity =>
+        {
+            entity.HasKey(e => e.OrderDetailID).HasName("PK__Transfer__D3B9D30CD8B2C55A");
+
+            entity.ToTable("Transfer_Order_Detail");
+
+            entity.Property(e => e.Notes).HasMaxLength(255);
+            entity.Property(e => e.Quantity).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.TransferOrderDetails)
+                .HasForeignKey(d => d.ProductID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TODetail_Product");
+
+            entity.HasOne(d => d.TransferOrder).WithMany(p => p.TransferOrderDetails)
+                .HasForeignKey(d => d.TransferOrderID)
+                .HasConstraintName("FK_TODetail_TO");
         });
 
         modelBuilder.Entity<Unit>(entity =>
