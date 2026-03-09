@@ -3,7 +3,7 @@ using AGMS.Application.DTOs.Rescue;
 namespace AGMS.Application.Contracts;
 
 /// <summary>
-/// Contract nghiệp vụ cho module cứu hộ (UC-RES-01 đến UC-RES-04)
+/// Contract nghiệp vụ cho module cứu hộ (UC-RES-01 đến UC-RES-06)
 /// </summary>
 public interface IRescueRequestService
 {
@@ -151,4 +151,46 @@ public interface IRescueRequestService
     /// Sau thanh toán: CarMaintenance.Status = COMPLETED (BR-22). SMP03, SMP05.
     /// </summary>
     Task<PaymentResultDto> ProcessPaymentAsync(int rescueId, ProcessPaymentDto request, CancellationToken ct);
+
+    // -------------------------------------------------------------------------
+    // UC-RES-05: Tranh chấp hóa đơn
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Customer tạo khiếu nại hóa đơn (UC-RES-05 E1).
+    /// Validate: BR-18 (INVOICE_SENT), CustomerId = CustomerID (BR-03).
+    /// Status: INVOICE_SENT → INVOICE_DISPUTED. BR-26: audit. SMC12.
+    /// Reason được ghi vào CarMaintenance.Notes với prefix [DISPUTE].
+    /// </summary>
+    Task<DisputeCreatedResultDto> CreateDisputeAsync(int rescueId, CreateDisputeDto request, CancellationToken ct);
+
+    /// <summary>
+    /// SA xử lý tranh chấp và gửi lại hóa đơn (UC-RES-05 E2).
+    /// Validate: BR-17 (chỉ SA), BR-18 (INVOICE_DISPUTED).
+    /// reissue=true: tính lại hóa đơn với giá điều chỉnh (BR-24 member discount giữ nguyên).
+    /// reissue=false: giữ nguyên hóa đơn cũ và gửi lại.
+    /// Status: INVOICE_DISPUTED → INVOICE_SENT. BR-26: audit. SMP02 (nếu reissue).
+    /// ResolutionNotes được ghi vào CarMaintenance.Notes với prefix [RESOLUTION].
+    /// </summary>
+    Task<ResolveDisputeResultDto> ResolveDisputeAsync(int rescueId, ResolveDisputeDto request, CancellationToken ct);
+
+    // -------------------------------------------------------------------------
+    // UC-RES-06: Hủy / Spam
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// SA hủy yêu cầu cứu hộ (UC-RES-06 F1).
+    /// Validate: BR-03 (role SA), BR-18 (không hủy khi COMPLETED hoặc đã CANCELLED).
+    /// Side effects: release technician nếu đang trên nhiệm vụ, cancel CarMaintenance nếu có.
+    /// Status: bất kỳ (trừ COMPLETED/CANCELLED) → CANCELLED. BR-26: audit. SMC06.
+    /// </summary>
+    Task<CancelRescueResultDto> CancelAsync(int rescueId, CancelRescueDto request, CancellationToken ct);
+
+    /// <summary>
+    /// SA/System đánh dấu yêu cầu cứu hộ là Spam (UC-RES-06 F2, AF-01).
+    /// Validate: BR-03 (role SA), BR-18 (chỉ PENDING | REVIEWING).
+    /// Flow: PENDING/REVIEWING → SPAM (tức thì) → CANCELLED. BR-26: audit. SMC14, SMC06.
+    /// SpamReason được ghi vào audit log.
+    /// </summary>
+    Task<MarkSpamResultDto> MarkSpamAsync(int rescueId, MarkSpamDto request, CancellationToken ct);
 }
