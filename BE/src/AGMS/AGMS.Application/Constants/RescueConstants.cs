@@ -73,6 +73,24 @@ public static class RescueStatus
     /// <summary>SA hoàn tất kéo xe và tạo Repair Order (BR-19) — khi customer đã chấp nhận (BR-18)</summary>
     public static readonly IReadOnlySet<string> AllowedForCompleteTowing =
         new HashSet<string> { TowingAccepted };
+
+    // --- UC-RES-04: Status sets cho từng bước hóa đơn & thanh toán ---
+
+    /// <summary>SA tạo hóa đơn — sau khi sửa ven đường hoàn tất hoặc xe đã kéo về (BR-18)</summary>
+    public static readonly IReadOnlySet<string> AllowedForCreateInvoice =
+        new HashSet<string> { RepairComplete, Towed };
+
+    /// <summary>SA gửi hóa đơn — sau khi hóa đơn đã được tạo (BR-18, BR-25)</summary>
+    public static readonly IReadOnlySet<string> AllowedForSendInvoice =
+        new HashSet<string> { Invoiced };
+
+    /// <summary>Customer chấp nhận hóa đơn — sau khi SA đã gửi (BR-18)</summary>
+    public static readonly IReadOnlySet<string> AllowedForAcceptInvoice =
+        new HashSet<string> { InvoiceSent };
+
+    /// <summary>Customer thanh toán — chỉ khi hóa đơn đã được chấp nhận (BR-18, BR-23)</summary>
+    public static readonly IReadOnlySet<string> AllowedForProcessPayment =
+        new HashSet<string> { PaymentPending };
 }
 
 /// <summary>
@@ -103,6 +121,53 @@ public static class CarMaintenanceStatus
     public const string Waiting   = "WAITING";
     public const string Completed = "COMPLETED";
     public const string Cancelled = "CANCELLED";
+}
+
+/// <summary>
+/// Trạng thái hóa đơn cứu hộ — map từ RescueRequest.Status (BR-18)
+/// </summary>
+public static class InvoiceStatus
+{
+    public const string Created  = "CREATED";
+    public const string Sent     = "SENT";
+    public const string Accepted = "ACCEPTED";
+    public const string Paid     = "PAID";
+    public const string Disputed = "DISPUTED";
+
+    /// <summary>Map trạng thái rescue sang trạng thái hóa đơn tương ứng</summary>
+    public static string FromRescueStatus(string rescueStatus) => rescueStatus switch
+    {
+        RescueStatus.Invoiced        => Created,
+        RescueStatus.InvoiceSent     => Sent,
+        RescueStatus.PaymentPending  => Accepted,
+        RescueStatus.Completed       => Paid,
+        RescueStatus.InvoiceDisputed => Disputed,
+        _                            => Created
+    };
+}
+
+/// <summary>
+/// Phương thức thanh toán hợp lệ (UC-RES-04, BR-23)
+/// </summary>
+public static class PaymentMethod
+{
+    public const string Cash     = "CASH";
+    public const string Card     = "CARD";
+    public const string Transfer = "TRANSFER";
+    public const string Ewallet  = "EWALLET";
+
+    /// <summary>Tập hợp các phương thức thanh toán được hỗ trợ</summary>
+    public static readonly IReadOnlySet<string> ValidMethods =
+        new HashSet<string> { Cash, Card, Transfer, Ewallet };
+}
+
+/// <summary>
+/// Trạng thái giao dịch thanh toán (UC-RES-04 BR-23)
+/// </summary>
+public static class PaymentStatus
+{
+    public const string Success = "SUCCESS";
+    public const string Failed  = "FAILED";
 }
 
 /// <summary>
