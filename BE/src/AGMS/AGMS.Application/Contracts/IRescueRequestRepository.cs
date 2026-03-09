@@ -81,4 +81,20 @@ public interface IRescueRequestRepository
     /// Active = Status không phải COMPLETED hoặc CANCELLED.
     /// </summary>
     Task<bool> HasActiveMaintenanceForCarAsync(int carId, CancellationToken ct);
+
+    // -------------------------------------------------------------------------
+    // UC-RES-04: Hóa đơn & Thanh toán
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Tạo giao dịch thanh toán cho rescue (BR-23, SMP05).
+    /// Liên kết với Repair Order qua MaintenanceID.
+    /// </summary>
+    Task<PaymentTransaction> CreatePaymentTransactionAsync(PaymentTransaction entity, CancellationToken ct);
+
+    /// <summary>
+    /// Lấy giao dịch thanh toán gần nhất của một Repair Order.
+    /// Dùng để kiểm tra trạng thái thanh toán trong D2 GET invoice.
+    /// </summary>
+    Task<PaymentTransaction?> GetPaymentByMaintenanceIdAsync(int maintenanceId, CancellationToken ct);
 }
