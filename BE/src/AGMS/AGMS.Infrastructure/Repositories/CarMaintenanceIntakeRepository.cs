@@ -120,11 +120,13 @@ namespace AGMS.Infrastructure.Repositories
                 var car = await ResolveCarAsync(request.Car, customer.UserID, ct);
                 var createdBy = await ResolveCreatedByUserIdAsync(createdByUserId, ct);
 
+                var createdUtc = DateTime.UtcNow;
                 var maintenance = new CarMaintenance
                 {
                     CarID = car.CarID,
                     AppointmentID = null,
-                    MaintenanceDate = DateTime.UtcNow,
+                    // MaintenanceDate is finalized when intake is moved to IN_DIAGNOSIS.
+                    MaintenanceDate = new DateTime(1900, 1, 1),
                     Odometer = car.CurrentOdometer,
                     Status = "WAITING",
                     TotalAmount = totalAmount,
@@ -138,7 +140,7 @@ namespace AGMS.Infrastructure.Repositories
                     CreatedBy = createdBy,
                     AssignedTechnicianID = request.Maintenance.AssignedTechnicianId,
                     TechnicianHistory = null,
-                    CreatedDate = DateTime.UtcNow,
+                    CreatedDate = createdUtc,
                     CompletedDate = null
                 };
 
@@ -719,15 +721,18 @@ namespace AGMS.Infrastructure.Repositories
             if (!string.Equals(maintenance.Status, "WAITING", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Only intake records with status WAITING can be moved to IN_DIAGNOSIS.");
 
+            var changedAt = DateTime.UtcNow;
             var oldStatus = maintenance.Status;
             maintenance.Status = "IN_DIAGNOSIS";
+            // Actual maintenance handling starts at diagnosis stage.
+            maintenance.MaintenanceDate = changedAt;
             _db.MaintenanceStatusLogs.Add(new MaintenanceStatusLog
             {
                 MaintenanceID = maintenanceId,
                 OldStatus = oldStatus,
                 NewStatus = "IN_DIAGNOSIS",
                 ChangedBy = updatedByUserId,
-                ChangedDate = DateTime.UtcNow,
+                ChangedDate = changedAt,
                 Note = string.IsNullOrWhiteSpace(request.Note) ? "Moved to In_DIAGNOSIS from intake." : request.Note.Trim()
             });
             await _db.SaveChangesAsync(ct);
