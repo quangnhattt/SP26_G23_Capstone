@@ -18,12 +18,13 @@ public class Product
     public DateTime CreatedDate { get; set; }
 
     public virtual Category? Category { get; set; }
+    public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
     public virtual ICollection<MaintenancePackageDetail> MaintenancePackageDetails { get; set; } = new List<MaintenancePackageDetail>();
+    public virtual ProductInventory? ProductInventory { get; set; }
     public virtual ICollection<ProductItem> ProductItems { get; set; } = new List<ProductItem>();
-
     public virtual ICollection<ServiceDetail> ServiceDetails { get; set; } = new List<ServiceDetail>();
     public virtual ICollection<ServicePartDetail> ServicePartDetails { get; set; } = new List<ServicePartDetail>();
-    public virtual ICollection<StockLot> StockLots { get; set; } = new List<StockLot>();
     public virtual ICollection<SupplierProduct> SupplierProducts { get; set; } = new List<SupplierProduct>();
+    public virtual ICollection<TransferOrderDetail> TransferOrderDetails { get; set; } = new List<TransferOrderDetail>();
     public virtual Unit? Unit { get; set; }
 }

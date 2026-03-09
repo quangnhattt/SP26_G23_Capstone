@@ -14,7 +14,6 @@ public class ServicePartDetail
     public int IssuedQuantity { get; set; }
     public int? ReservedTransferOrderID { get; set; }
     public int? IssuedTransferOrderID { get; set; }
-    public int? LotID { get; set; }
     public DateOnly? InstallationDate { get; set; }
     public DateOnly? WarrantyExpireDate { get; set; }
     public bool FromPackage { get; set; }
@@ -22,7 +21,6 @@ public class ServicePartDetail
     public string? Notes { get; set; }
 
     public virtual TransferOrder? IssuedTransferOrder { get; set; }
-    public virtual StockLot? Lot { get; set; }
     public virtual CarMaintenance Maintenance { get; set; } = null!;
     public virtual MaintenancePackage? Package { get; set; }
     public virtual Product Product { get; set; } = null!;

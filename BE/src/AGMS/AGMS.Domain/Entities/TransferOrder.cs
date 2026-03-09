@@ -15,9 +15,10 @@ public class TransferOrder
 
     public virtual User? ApprovedByNavigation { get; set; }
     public virtual User CreateByNavigation { get; set; } = null!;
-    public virtual ICollection<InventoryLot> InventoryLots { get; set; } = new List<InventoryLot>();
+    public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
     public virtual CarMaintenance? RelatedMaintenance { get; set; }
     public virtual ICollection<ServicePartDetail> ServicePartDetailIssuedTransferOrders { get; set; } = new List<ServicePartDetail>();
     public virtual ICollection<ServicePartDetail> ServicePartDetailReservedTransferOrders { get; set; } = new List<ServicePartDetail>();
     public virtual Supplier? Supplier { get; set; }
+    public virtual ICollection<TransferOrderDetail> TransferOrderDetails { get; set; } = new List<TransferOrderDetail>();
 }
