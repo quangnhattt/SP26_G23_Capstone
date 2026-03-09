@@ -91,6 +91,32 @@ public static class RescueStatus
     /// <summary>Customer thanh toán — chỉ khi hóa đơn đã được chấp nhận (BR-18, BR-23)</summary>
     public static readonly IReadOnlySet<string> AllowedForProcessPayment =
         new HashSet<string> { PaymentPending };
+
+    // --- UC-RES-05: Status sets cho tranh chấp hóa đơn ---
+
+    /// <summary>Customer khiếu nại — chỉ khi hóa đơn đã gửi (BR-18, BR-26)</summary>
+    public static readonly IReadOnlySet<string> AllowedForDispute =
+        new HashSet<string> { InvoiceSent };
+
+    /// <summary>SA xử lý tranh chấp — chỉ khi đang trong trạng thái tranh chấp (BR-18, BR-26)</summary>
+    public static readonly IReadOnlySet<string> AllowedForResolveDispute =
+        new HashSet<string> { InvoiceDisputed };
+
+    // --- UC-RES-06: Hủy / Spam ---
+
+    /// <summary>
+    /// Trạng thái không thể hủy (BR-18).
+    /// Cancel bị chặn khi rescue đã hoàn tất thanh toán (COMPLETED).
+    /// </summary>
+    public static readonly IReadOnlySet<string> NotCancellable =
+        new HashSet<string> { Completed, Cancelled };
+
+    /// <summary>
+    /// Trạng thái hợp lệ để đánh dấu Spam (BR-18, SMC14).
+    /// Chỉ cho phép khi yêu cầu còn ở giai đoạn tiếp nhận ban đầu.
+    /// </summary>
+    public static readonly IReadOnlySet<string> AllowedForMarkSpam =
+        new HashSet<string> { Pending, Reviewing };
 }
 
 /// <summary>
