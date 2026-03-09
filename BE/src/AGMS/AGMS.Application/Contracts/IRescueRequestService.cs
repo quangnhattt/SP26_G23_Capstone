@@ -3,7 +3,7 @@ using AGMS.Application.DTOs.Rescue;
 namespace AGMS.Application.Contracts;
 
 /// <summary>
-/// Contract nghiệp vụ cho module cứu hộ (UC-RES-01 đến UC-RES-03)
+/// Contract nghiệp vụ cho module cứu hộ (UC-RES-01 đến UC-RES-04)
 /// </summary>
 public interface IRescueRequestService
 {
@@ -112,4 +112,43 @@ public interface IRescueRequestService
     /// Status: TOWING_ACCEPTED → TOWED. BR-19: tạo CarMaintenance RESCUE_TOWING. SMC07.
     /// </summary>
     Task<CompleteTowingResultDto> CompleteTowingAsync(int rescueId, CompleteTowingDto request, CancellationToken ct);
+
+    // -------------------------------------------------------------------------
+    // UC-RES-04: Hóa đơn & Thanh toán
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// SA tạo hóa đơn cứu hộ (UC-RES-04 D1).
+    /// BR-17: chỉ SA. BR-18: REPAIR_COMPLETE | TOWED.
+    /// BR-24: tính memberDiscount tự động từ Customer.CurrentRank.DiscountPercent.
+    /// Status: → INVOICED. SMP02, SMP06.
+    /// </summary>
+    Task<CreateInvoiceResultDto> CreateInvoiceAsync(int rescueId, CreateInvoiceDto request, CancellationToken ct);
+
+    /// <summary>
+    /// Lấy thông tin hóa đơn và danh sách vật tư/dịch vụ (UC-RES-04 D2).
+    /// Dùng cho cả SA lẫn Customer. Rescue phải đã ở trạng thái >= INVOICED.
+    /// </summary>
+    Task<InvoiceWithItemsResponseDto> GetInvoiceAsync(int rescueId, CancellationToken ct);
+
+    /// <summary>
+    /// SA gửi hóa đơn cho Customer (UC-RES-04 D3).
+    /// BR-17: chỉ SA. BR-18: INVOICED → INVOICE_SENT. BR-25: bảo mật tài chính. SMC05.
+    /// </summary>
+    Task<SendInvoiceResultDto> SendInvoiceAsync(int rescueId, SendInvoiceDto request, CancellationToken ct);
+
+    /// <summary>
+    /// Customer chấp nhận hóa đơn (UC-RES-04 D4).
+    /// Validate: CustomerId = CustomerID của rescue (BR-03). BR-18: INVOICE_SENT → PAYMENT_PENDING.
+    /// AF-01: Customer không chấp nhận → gọi dispute endpoint (UC-RES-05).
+    /// </summary>
+    Task<AcceptInvoiceResultDto> AcceptInvoiceAsync(int rescueId, AcceptInvoiceDto request, CancellationToken ct);
+
+    /// <summary>
+    /// Customer thanh toán (UC-RES-04 D5).
+    /// BR-18: PAYMENT_PENDING → COMPLETED. BR-23: ghi nhận giao dịch. BR-26: audit.
+    /// Validate: amount khớp finalAmount (BR-23), paymentMethod hợp lệ (SMP07).
+    /// Sau thanh toán: CarMaintenance.Status = COMPLETED (BR-22). SMP03, SMP05.
+    /// </summary>
+    Task<PaymentResultDto> ProcessPaymentAsync(int rescueId, ProcessPaymentDto request, CancellationToken ct);
 }
