@@ -245,10 +245,10 @@ namespace AGMS.Infrastructure.Repositories
         private static string NormalizeMaintenanceType(string? maintenanceType)
         {
             if (string.IsNullOrWhiteSpace(maintenanceType))
-                return "REGULAR";
+                return "MAINTENANCE";
             var t = maintenanceType.Trim().ToUpperInvariant();
-            if (t != "REGULAR" && t != "REPAIR")
-                throw new ArgumentException("maintenance.maintenanceType must be either 'REGULAR' or 'REPAIR'");
+            if (t != "MAINTENANCE" && t != "REPAIR" && t != "RESCUE")
+                throw new ArgumentException("maintenance.maintenanceType must be 'MAINTENANCE', 'REPAIR', or 'RESCUE'");
             return t;
         }
 

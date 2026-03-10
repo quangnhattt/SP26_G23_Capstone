@@ -182,14 +182,15 @@ public class RepairRequestService : IRepairRequestService
     private static string MapMaintenanceTypeForCarMaintenance(string? serviceType)
     {
         if (string.IsNullOrWhiteSpace(serviceType))
-            return "REGULAR";
+            return "MAINTENANCE";
 
         var normalized = serviceType.Trim().ToLowerInvariant();
         return normalized switch
         {
-            "maintenance" => "REGULAR",
+            "maintenance" => "MAINTENANCE",
             "repair" => "REPAIR",
-            _ => "REGULAR"
+            "rescue" => "RESCUE",
+            _ => "MAINTENANCE"
         };
     }
 
