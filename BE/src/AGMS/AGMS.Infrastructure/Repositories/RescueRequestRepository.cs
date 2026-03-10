@@ -172,8 +172,8 @@ public class RescueRequestRepository : IRescueRequestRepository
     }
 
     /// <summary>
-    /// Cập nhật Notes, Status, TotalAmount và CompletedDate của Repair Order.
-    /// Chỉ cập nhật các trường có thể thay đổi trong workflow cứu hộ.
+    /// Cập nhật Repair Order: Notes, Status, tất cả trường tài chính và CompletedDate.
+    /// Mở rộng để phục vụ cả UC-RES-02 (TotalAmount) lẫn UC-RES-04 (invoice fields).
     /// </summary>
     public async Task UpdateMaintenanceAsync(CarMaintenance maintenance, CancellationToken ct)
     {
@@ -181,10 +181,18 @@ public class RescueRequestRepository : IRescueRequestRepository
             .FirstOrDefaultAsync(m => m.MaintenanceID == maintenance.MaintenanceID, ct);
         if (entity == null) return;
 
+        // Trường cơ bản
         entity.Notes         = maintenance.Notes;
         entity.Status        = maintenance.Status;
         entity.TotalAmount   = maintenance.TotalAmount;
         entity.CompletedDate = maintenance.CompletedDate;
+
+        // Trường tài chính — cập nhật khi tạo hóa đơn (UC-RES-04 D1, BR-24)
+        entity.DiscountAmount        = maintenance.DiscountAmount;
+        entity.MemberDiscountAmount  = maintenance.MemberDiscountAmount;
+        entity.MemberDiscountPercent = maintenance.MemberDiscountPercent;
+        entity.FinalAmount           = maintenance.FinalAmount;
+        entity.RankAtTimeOfService   = maintenance.RankAtTimeOfService;
 
         await _db.SaveChangesAsync(ct);
     }
@@ -244,5 +252,33 @@ public class RescueRequestRepository : IRescueRequestRepository
             .AnyAsync(m => m.CarID == carId
                         && m.Status != CarMaintenanceStatus.Completed
                         && m.Status != CarMaintenanceStatus.Cancelled, ct);
+    }
+
+    // -------------------------------------------------------------------------
+    // UC-RES-04: Hóa đơn & Thanh toán
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Tạo giao dịch thanh toán mới cho Repair Order (BR-23).
+    /// PaymentTransaction liên kết với CarMaintenance qua MaintenanceID.
+    /// </summary>
+    public async Task<PaymentTransaction> CreatePaymentTransactionAsync(PaymentTransaction entity, CancellationToken ct)
+    {
+        _db.PaymentTransactions.Add(entity);
+        await _db.SaveChangesAsync(ct);
+        return entity;
+    }
+
+    /// <summary>
+    /// Lấy giao dịch thanh toán gần nhất của một Repair Order.
+    /// Sắp xếp theo ngày mới nhất để lấy đúng giao dịch cuối cùng.
+    /// </summary>
+    public async Task<PaymentTransaction?> GetPaymentByMaintenanceIdAsync(int maintenanceId, CancellationToken ct)
+    {
+        return await _db.PaymentTransactions
+            .AsNoTracking()
+            .Where(p => p.MaintenanceID == maintenanceId)
+            .OrderByDescending(p => p.PaymentDate)
+            .FirstOrDefaultAsync(ct);
     }
 }
