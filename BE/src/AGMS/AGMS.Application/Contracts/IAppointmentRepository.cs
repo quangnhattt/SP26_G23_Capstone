@@ -15,5 +15,6 @@ public interface IAppointmentRepository
     Task<int?> GetUserRoleIdAsync(int userId, CancellationToken ct);
     Task ApproveAsync(int appointmentId, int approvedByUserId, CancellationToken ct);
     Task RejectAsync(int appointmentId, int rejectedByUserId, CancellationToken ct);
+    Task CheckInAsync(int appointmentId, int checkedInByUserId, CancellationToken ct);
 
 }

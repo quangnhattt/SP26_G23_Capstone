@@ -152,7 +152,7 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.MaintenanceDate).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.MaintenanceType)
                 .HasMaxLength(20)
-                .HasDefaultValue("REGULAR");
+                .HasDefaultValue("MAINTENANCE");
             entity.Property(e => e.MemberDiscountAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.MemberDiscountPercent).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.Notes).HasMaxLength(500);

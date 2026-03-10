@@ -111,4 +111,13 @@ public class AppointmentService : IAppointmentService
             throw new UnauthorizedAccessException("Only Service Advisor (RoleID = 2) can reject appointments.");
         await _repo.RejectAsync(appointmentId, currentUserId, ct);
     }
+
+    public async Task CheckInAsync(int appointmentId, int currentUserId, CancellationToken ct)
+    {
+        var roleId = await _repo.GetUserRoleIdAsync(currentUserId, ct);
+        if (roleId != 2)
+            throw new UnauthorizedAccessException("Only Service Advisor (RoleID = 2) can check in appointments.");
+
+        await _repo.CheckInAsync(appointmentId, currentUserId, ct);
+    }
 }
