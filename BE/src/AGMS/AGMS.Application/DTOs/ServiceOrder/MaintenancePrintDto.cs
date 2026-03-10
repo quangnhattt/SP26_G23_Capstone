@@ -18,6 +18,7 @@ namespace AGMS.Application.DTOs.ServiceOrder
         public string? EngineNumber { get; set; }
         public string? ChassisNumber { get; set; }
         public int? Odometer { get; set; }
+        public string Status { get; set; } = string.Empty;
         public DateTime? CreatedDate { get; set; }
         public DateTime MaintenanceDate { get; set; }
         public List<MaintenanceLineItemDto> LineItems { get; set; } = new();
@@ -25,11 +26,12 @@ namespace AGMS.Application.DTOs.ServiceOrder
     }
     public class MaintenanceLineItemDto
     {
-        public string SourceType { get; set; }=string.Empty;
+        public string SourceType { get; set; } = string.Empty;
         public string ItemCode { get; set; } = string.Empty;
         public string ItemName { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public string? Notes { get; set; }
+        public string? ItemStatus { get; set; }
     }
 }

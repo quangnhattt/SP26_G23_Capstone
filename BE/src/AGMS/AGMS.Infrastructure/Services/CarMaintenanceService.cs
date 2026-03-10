@@ -20,5 +20,20 @@ public class CarMaintenanceService : ICarMaintenanceService
     {
         return await _repository.GetMaintenancePrintAsync(maintenanceId, ct);
     }
+
+    public async Task ProposeAdditionalItemsAsync(int maintenanceId, ProposeAdditionalItemsRequest request, CancellationToken ct = default)
+    {
+        await _repository.ProposeAdditionalItemsAsync(maintenanceId, request, ct);
+    }
+
+    public async Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, CancellationToken ct = default)
+    {
+        return await _repository.GetAdditionalItemsAsync(maintenanceId, ct);
+    }
+
+    public async Task RespondToAdditionalItemsAsync(int maintenanceId, RespondAdditionalItemsRequest request, CancellationToken ct = default)
+    {
+        await _repository.RespondToAdditionalItemsAsync(maintenanceId, request, ct);
+    }
 }
 
