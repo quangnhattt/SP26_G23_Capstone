@@ -16,5 +16,9 @@ public class CarMaintenanceService : ICarMaintenanceService
     {
         return await _repository.GetServiceOrdersForStaffAsync(ct);
     }
+    public async Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId, CancellationToken ct = default)
+    {
+        return await _repository.GetMaintenancePrintAsync(maintenanceId, ct);
+    }
 }
 

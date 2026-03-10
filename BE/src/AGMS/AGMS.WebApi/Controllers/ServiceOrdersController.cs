@@ -27,5 +27,17 @@ public class ServiceOrdersController : ControllerBase
         var items = await _carMaintenanceService.GetServiceOrdersAsync(ct);
         return Ok(items);
     }
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(MaintenancePrintDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMaintenancePrint(int id, CancellationToken ct)
+    {
+        var result = await _carMaintenanceService.GetMaintenancePrintAsync(id, ct);
+
+        if (result == null)
+            return NotFound(new { message = $"Không tìm thấy phiếu bảo dưỡng với ID = {id}." });
+
+        return Ok(result);
+    }
 }
 

@@ -10,5 +10,6 @@ namespace AGMS.Application.Contracts
     public interface ICarMaintenanceRepository
     {
         Task<IEnumerable<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(CancellationToken ct = default);
+        Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId,CancellationToken ct=default);
     }
 }
