@@ -434,6 +434,330 @@ public class RescueRequestController : ControllerBase
         }
     }
 
+    // =========================================================================
+    // UC-RES-04: Hóa đơn & Thanh toán
+    // =========================================================================
+
+    // POST /api/rescue-requests/{id}/invoice
+    /// <summary>
+    /// SA tạo hóa đơn cứu hộ (UC-RES-04 D1).
+    /// BR-17: chỉ SA. BR-18: REPAIR_COMPLETE | TOWED → INVOICED.
+    /// BR-24: tự động tính member discount. SMP02, SMP06.
+    /// </summary>
+    [HttpPost("{id:int}/invoice")]
+    [ProducesResponseType(typeof(CreateInvoiceResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> CreateInvoice(int id, [FromBody] CreateInvoiceDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.CreateInvoiceAsync(id, request, ct);
+            return StatusCode(StatusCodes.Status201Created,
+                new { data = result, message = "Hóa đơn đã được tạo thành công." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // BR-17: Không đúng role SA | manualDiscount > baseAmount
+            return ex.Message.Contains("Service Advisor")
+                ? StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message })
+                : BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BR-18: Trạng thái không hợp lệ
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // GET /api/rescue-requests/{id}/invoice
+    /// <summary>
+    /// Lấy thông tin hóa đơn và danh sách vật tư/dịch vụ (UC-RES-04 D2).
+    /// Actor: SA hoặc Customer.
+    /// </summary>
+    [HttpGet("{id:int}/invoice")]
+    [ProducesResponseType(typeof(InvoiceWithItemsResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> GetInvoice(int id, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.GetInvoiceAsync(id, ct);
+            return Ok(new { data = result, message = "Success" });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // PATCH /api/rescue-requests/{id}/invoice/send
+    /// <summary>
+    /// SA gửi hóa đơn cho Customer (UC-RES-04 D3).
+    /// BR-17: chỉ SA. BR-18: INVOICED → INVOICE_SENT. BR-25: bảo mật tài chính. SMC05.
+    /// </summary>
+    [HttpPatch("{id:int}/invoice/send")]
+    [ProducesResponseType(typeof(SendInvoiceResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> SendInvoice(int id, [FromBody] SendInvoiceDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.SendInvoiceAsync(id, request, ct);
+            return Ok(new { data = result, message = "Hóa đơn đã được gửi đến khách hàng." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // BR-17: Không đúng role SA
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BR-18: Trạng thái không hợp lệ
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // PATCH /api/rescue-requests/{id}/invoice/accept
+    /// <summary>
+    /// Customer chấp nhận hóa đơn (UC-RES-04 D4).
+    /// BR-18: INVOICE_SENT → PAYMENT_PENDING.
+    /// AF-01: Customer khiếu nại → gọi dispute endpoint (UC-RES-05).
+    /// </summary>
+    [HttpPatch("{id:int}/invoice/accept")]
+    [ProducesResponseType(typeof(AcceptInvoiceResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> AcceptInvoice(int id, [FromBody] AcceptInvoiceDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.AcceptInvoiceAsync(id, request, ct);
+            return Ok(new { data = result, message = "Hóa đơn đã được chấp nhận. Vui lòng tiến hành thanh toán." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // Không đúng khách hàng sở hữu rescue
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BR-18: Trạng thái không hợp lệ
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // POST /api/rescue-requests/{id}/invoice/payment
+    /// <summary>
+    /// Customer thanh toán (UC-RES-04 D5).
+    /// BR-23: ghi nhận giao dịch. BR-18: PAYMENT_PENDING → COMPLETED.
+    /// Validate: amount khớp finalAmount (BR-23), method hợp lệ (SMP07). SMP03, SMP05.
+    /// </summary>
+    [HttpPost("{id:int}/invoice/payment")]
+    [ProducesResponseType(typeof(PaymentResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ProcessPayment(int id, [FromBody] ProcessPaymentDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.ProcessPaymentAsync(id, request, ct);
+            return Ok(new { data = result, message = "Thanh toán thành công. Cảm ơn bạn đã sử dụng dịch vụ." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // Sai customer ownership hoặc số tiền không khớp (BR-23)
+            return ex.Message.Contains("không phải khách hàng")
+                ? StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message })
+                : BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // SMP07: Phương thức không hợp lệ | BR-18: Trạng thái không hợp lệ
+            return ex.Message.Contains("không được hỗ trợ")
+                ? UnprocessableEntity(new { message = ex.Message })
+                : BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // =========================================================================
+    // UC-RES-05: Tranh chấp hóa đơn
+    // =========================================================================
+
+    // POST /api/rescue-requests/{id}/invoice/dispute
+    /// <summary>
+    /// Customer tạo khiếu nại hóa đơn (UC-RES-05 E1).
+    /// BR-18: INVOICE_SENT → INVOICE_DISPUTED. BR-26: audit. SMC12.
+    /// </summary>
+    [HttpPost("{id:int}/invoice/dispute")]
+    [ProducesResponseType(typeof(DisputeCreatedResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> CreateDispute(int id, [FromBody] CreateDisputeDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.CreateDisputeAsync(id, request, ct);
+            return StatusCode(StatusCodes.Status201Created,
+                new { data = result, message = "Khiếu nại đã được ghi nhận. SA sẽ xem xét và phản hồi." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // BR-03: Không phải customer của rescue này
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BR-18: Trạng thái không hợp lệ
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // PATCH /api/rescue-requests/{id}/invoice/resolve-dispute
+    /// <summary>
+    /// SA xử lý tranh chấp và gửi lại hóa đơn (UC-RES-05 E2).
+    /// BR-17: chỉ SA. BR-18: INVOICE_DISPUTED → INVOICE_SENT. BR-26: audit.
+    /// reissue=true: phát hành hóa đơn điều chỉnh. reissue=false: gửi lại hóa đơn cũ.
+    /// </summary>
+    [HttpPatch("{id:int}/invoice/resolve-dispute")]
+    [ProducesResponseType(typeof(ResolveDisputeResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ResolveDispute(int id, [FromBody] ResolveDisputeDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.ResolveDisputeAsync(id, request, ct);
+            var message = result.Invoice.IsReissued
+                ? "Tranh chấp đã được xử lý. Hóa đơn điều chỉnh đã được gửi lại cho khách hàng."
+                : "Tranh chấp đã được xem xét. Hóa đơn gốc đã được gửi lại.";
+            return Ok(new { data = result, message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // BR-17: Không đúng role SA | AdjustedServiceFee validation
+            return ex.Message.Contains("Service Advisor")
+                ? StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message })
+                : BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BR-18: Trạng thái không hợp lệ
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // =========================================================================
+    // UC-RES-06: Hủy / Spam
+    // =========================================================================
+
+    // PATCH /api/rescue-requests/{id}/cancel
+    /// <summary>
+    /// SA hủy yêu cầu cứu hộ (UC-RES-06 F1).
+    /// BR-18: không hủy khi COMPLETED/CANCELLED. BR-26: audit. SMC06.
+    /// Side effects: release technician, cancel CarMaintenance nếu có.
+    /// </summary>
+    [HttpPatch("{id:int}/cancel")]
+    [ProducesResponseType(typeof(CancelRescueResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Cancel(int id, [FromBody] CancelRescueDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.CancelAsync(id, request, ct);
+            return Ok(new { data = result, message = "Yêu cầu cứu hộ đã bị hủy." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // BR-03: Không đúng role SA
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BR-18: Không thể hủy (COMPLETED hoặc đã CANCELLED)
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // PATCH /api/rescue-requests/{id}/mark-spam
+    /// <summary>
+    /// SA/System đánh dấu Spam yêu cầu cứu hộ (UC-RES-06 F2, AF-01).
+    /// BR-18: chỉ PENDING | REVIEWING. BR-26: audit. SMC14, SMC06.
+    /// Flow: PENDING/REVIEWING → SPAM → CANCELLED.
+    /// </summary>
+    [HttpPatch("{id:int}/mark-spam")]
+    [ProducesResponseType(typeof(MarkSpamResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> MarkSpam(int id, [FromBody] MarkSpamDto request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _rescueService.MarkSpamAsync(id, request, ct);
+            return Ok(new { data = result, message = "Yêu cầu đã bị đánh dấu Spam và hủy." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            // BR-03: Không đúng role SA
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // BR-18: Không đúng trạng thái PENDING/REVIEWING
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
     // PATCH /api/rescue-requests/{id}/propose
     /// <summary>
     /// SA gửi đề xuất sửa tại chỗ hoặc kéo xe cho khách hàng (UC-RES-01 Step 5-6).
