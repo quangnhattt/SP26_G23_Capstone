@@ -31,6 +31,8 @@ public static class DependencyInjection
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<IRepairRequestRepository, RepairRequestRepository>();
         services.AddScoped<IRepairRequestService, RepairRequestService>();
+        services.AddScoped<ICarRepository, CarRepository>();
+        services.AddScoped<ICarService, CarService>();
         services.AddScoped<IAppointmentRepository, AppointmentRepository>();
         services.AddScoped<IAppointmentService, AppointmentService>();
         services.AddScoped<IAuthService, AuthService>();
