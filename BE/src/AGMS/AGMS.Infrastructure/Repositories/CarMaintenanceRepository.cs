@@ -44,45 +44,36 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             .AsNoTracking()
             .Include(m => m.Car)
             .Include(m => m.MaintenancePackageUsages).ThenInclude(mpu => mpu.Package)
-            .ThenInclude(pkg => pkg.MaintenancePackageDetails)
-            .ThenInclude(mpd => mpd.Product)
             .Include(m => m.ServiceDetails).ThenInclude(sd => sd.Product)
             .Include(m => m.ServicePartDetails).ThenInclude(spd => spd.Product).FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
         if (maintenance == null)
         {
             return null;
         }
-        var packageItems = maintenance.MaintenancePackageUsages.SelectMany(mpu => mpu.Package.MaintenancePackageDetails)
-            .Select(mpd => new MaintenanceLineItemDto
-            {
-                SourceType = "Tu goi he thong",
-                ItemCode = mpd.Product.Code,
-                ItemName = mpd.Product.Name,
-                Quantity = mpd.Quantity,
-                UnitPrice = mpd.Product.Price,
-                Notes = mpd.Notes,
-            });
         var serviceItems = maintenance.ServiceDetails
-        .Where(sd => !sd.FromPackage)
+        .OrderByDescending(sd => sd.FromPackage)
+        .ThenBy(sd => sd.ServiceDetailID)
         .Select(sd => new MaintenanceLineItemDto
         {
-            SourceType = "Dich vu le",
+            SourceType = sd.FromPackage ? "Dich vu tu goi" : "Dich vu le",
             ItemCode = sd.Product.Code,
             ItemName = sd.Product.Name,
             Quantity = sd.Quantity,
-            UnitPrice = sd.Product.Price,
+            UnitPrice = sd.UnitPrice,
             Notes = sd.Notes,
+            ItemStatus = sd.ItemStatus
         });
         var partItems = maintenance.ServicePartDetails
-            .Where(spd => !spd.FromPackage)
+            .OrderBy(spd => spd.ServicePartDetailID)
             .Select(spd => new MaintenanceLineItemDto
             {
-                SourceType = "Phu tung le",
+                SourceType = spd.FromPackage ? "Phu tung tu goi" : "Phu tung le",
                 ItemCode = spd.Product.Code,
                 ItemName = spd.Product.Name,
                 Quantity = spd.Quantity,
-                UnitPrice = spd.Product.Price,
+                UnitPrice = spd.UnitPrice,
                 Notes = spd.Notes,
+                ItemStatus = spd.ItemStatus
             });
         return new MaintenancePrintDto
         {
@@ -97,7 +88,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             Status = maintenance.Status,
             CreatedDate = maintenance.CreatedDate,
             MaintenanceDate = maintenance.MaintenanceDate,
-            LineItems = packageItems.Concat(serviceItems).Concat(partItems).ToList()
+            LineItems = serviceItems.Concat(partItems).ToList()
         };
     }
 

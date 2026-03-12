@@ -160,8 +160,6 @@ namespace AGMS.Infrastructure.Repositories
 
                 foreach (var s in serviceDetails)
                 {
-                    var fromPackage = selectedPackageId.HasValue && packageProductIds.Contains(s.ProductId);
-
                     _db.ServiceDetails.Add(new ServiceDetail
                     {
                         Maintenance = maintenance,
@@ -169,17 +167,15 @@ namespace AGMS.Infrastructure.Repositories
                         Quantity = s.Quantity,
                         UnitPrice = productMap[s.ProductId].Price,
                         ItemStatus = "APPROVED",
-                        IsAdditional = !fromPackage,
-                        FromPackage = fromPackage,
-                        PackageID = fromPackage ? selectedPackageId : null,
+                        IsAdditional = false,
+                        FromPackage = false,
+                        PackageID = null,
                         Notes = s.Notes
                     });
                 }
 
                 foreach (var p in partDetails)
                 {
-                    var fromPackage = selectedPackageId.HasValue && packageProductIds.Contains(p.ProductId);
-
                     _db.ServicePartDetails.Add(new ServicePartDetail
                     {
                         Maintenance = maintenance,
@@ -187,11 +183,11 @@ namespace AGMS.Infrastructure.Repositories
                         Quantity = p.Quantity,
                         UnitPrice = productMap[p.ProductId].Price,
                         ItemStatus = "APPROVED",
-                        IsAdditional = !fromPackage,
+                        IsAdditional = false,
                         InventoryStatus = "PENDING",
                         IssuedQuantity = 0,
-                        FromPackage = fromPackage,
-                        PackageID = fromPackage ? selectedPackageId : null,
+                        FromPackage = false,
+                        PackageID = null,
                         Notes = p.Notes
                     });
                 }
@@ -570,7 +566,6 @@ namespace AGMS.Infrastructure.Repositories
                 }
                 foreach (var s in serviceDetails)
                 {
-                    var fromPackage = selectedPackageId.HasValue && packageProductIds.Contains(s.ProductId);
                     _db.ServiceDetails.Add(new ServiceDetail
                     {
                         Maintenance = maintenance,
@@ -578,15 +573,14 @@ namespace AGMS.Infrastructure.Repositories
                         Quantity = s.Quantity,
                         UnitPrice = productMap[s.ProductId].Price,
                         ItemStatus = "APPROVED",
-                        IsAdditional = !fromPackage,
-                        FromPackage = fromPackage,
-                        PackageID = fromPackage ? selectedPackageId : null,
+                        IsAdditional = false,
+                        FromPackage = false,
+                        PackageID = null,
                         Notes = s.Notes
                     });
                 }
                 foreach (var p in partDetails)
                 {
-                    var fromPackage = selectedPackageId.HasValue && packageProductIds.Contains(p.ProductId);
                     _db.ServicePartDetails.Add(new ServicePartDetail
                     {
                         Maintenance = maintenance,
@@ -594,11 +588,11 @@ namespace AGMS.Infrastructure.Repositories
                         Quantity = p.Quantity,
                         UnitPrice = productMap[p.ProductId].Price,
                         ItemStatus = "APPROVED",
-                        IsAdditional = !fromPackage,
+                        IsAdditional = false,
                         InventoryStatus = "PENDING",
                         IssuedQuantity = 0,
-                        FromPackage = fromPackage,
-                        PackageID = fromPackage ? selectedPackageId : null,
+                        FromPackage = false,
+                        PackageID = null,
                         Notes = p.Notes
                     });
                 }
@@ -715,11 +709,104 @@ namespace AGMS.Infrastructure.Repositories
         public async Task<bool> StartDiagnosisAsync(int maintenanceId, IntakeStartDiagnosisRequest request, int updatedByUserId, CancellationToken ct = default)
         {
             await ResolveCreatedByUserIdAsync(updatedByUserId, ct);
-            var maintenance = await _db.CarMaintenances.FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+            var maintenance = await _db.CarMaintenances
+                .Include(m => m.MaintenancePackageUsages)
+                .Include(m => m.ServiceDetails)
+                .Include(m => m.ServicePartDetails)
+                .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
             if (maintenance == null)
                 return false;
             if (!string.Equals(maintenance.Status, "WAITING", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Only intake records with status WAITING can be moved to IN_DIAGNOSIS.");
+
+            if (request.PackageId.HasValue)
+            {
+                var package = await _db.MaintenancePackages
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.PackageID == request.PackageId.Value && p.IsActive, ct);
+
+                if (package == null)
+                    throw new KeyNotFoundException("Selected maintenance package not found or inactive.");
+
+                var packageDetails = await _db.MaintenancePackageDetails
+                    .AsNoTracking()
+                    .Where(d => d.PackageID == request.PackageId.Value)
+                    .Select(d => new
+                    {
+                        d.ProductID,
+                        d.Quantity,
+                        d.Notes,
+                        Product = d.Product
+                    })
+                    .ToListAsync(ct);
+
+                if (packageDetails.Count == 0)
+                    throw new InvalidOperationException("Selected maintenance package has no items.");
+
+                if (!maintenance.MaintenancePackageUsages.Any(x => x.PackageID == request.PackageId.Value))
+                {
+                    var packageAmount = package.FinalPrice ?? package.BasePrice;
+                    _db.MaintenancePackageUsages.Add(new MaintenancePackageUsage
+                    {
+                        MaintenanceID = maintenanceId,
+                        PackageID = package.PackageID,
+                        AppliedPrice = packageAmount,
+                        DiscountAmount = Math.Max(0m, package.BasePrice - packageAmount),
+                        AppliedDate = DateTime.UtcNow
+                    });
+                }
+
+                foreach (var item in packageDetails)
+                {
+                    if (item.Product == null || !item.Product.IsActive)
+                        continue;
+
+                    if (string.Equals(item.Product.Type?.Trim(), "SERVICE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var exists = maintenance.ServiceDetails.Any(sd =>
+                            sd.FromPackage &&
+                            sd.PackageID == request.PackageId.Value &&
+                            sd.ProductID == item.ProductID);
+                        if (exists) continue;
+
+                        _db.ServiceDetails.Add(new ServiceDetail
+                        {
+                            MaintenanceID = maintenanceId,
+                            ProductID = item.ProductID,
+                            Quantity = item.Quantity,
+                            UnitPrice = item.Product.Price,
+                            ItemStatus = "APPROVED",
+                            IsAdditional = false,
+                            FromPackage = true,
+                            PackageID = request.PackageId.Value,
+                            Notes = item.Notes
+                        });
+                    }
+                    else if (string.Equals(item.Product.Type?.Trim(), "PART", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var exists = maintenance.ServicePartDetails.Any(spd =>
+                            spd.FromPackage &&
+                            spd.PackageID == request.PackageId.Value &&
+                            spd.ProductID == item.ProductID);
+                        if (exists) continue;
+
+                        _db.ServicePartDetails.Add(new ServicePartDetail
+                        {
+                            MaintenanceID = maintenanceId,
+                            ProductID = item.ProductID,
+                            Quantity = (int)Math.Ceiling(item.Quantity),
+                            UnitPrice = item.Product.Price,
+                            ItemStatus = "APPROVED",
+                            IsAdditional = false,
+                            InventoryStatus = "PENDING",
+                            IssuedQuantity = 0,
+                            FromPackage = true,
+                            PackageID = request.PackageId.Value,
+                            Notes = item.Notes
+                        });
+                    }
+                }
+            }
 
             var changedAt = DateTime.UtcNow;
             var oldStatus = maintenance.Status;
