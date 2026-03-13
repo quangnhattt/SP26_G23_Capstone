@@ -55,8 +55,6 @@ public static class DependencyInjection
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<ISupplierProductRepository, SupplierProductRepository>();
         services.AddScoped<ISupplierProductService, SupplierProductService>();
-        services.AddScoped<ITransferOrderRepository, TransferOrderRepository>();
-        services.AddScoped<ITransferOrderService, TransferOrderService>();
         // Module cứu hộ (UC-RES-01 đến UC-RES-06)
         services.AddScoped<IRescueRequestRepository, RescueRequestRepository>();
         services.AddScoped<IRescueRequestService, RescueRequestService>();
