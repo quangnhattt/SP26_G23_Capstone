@@ -35,4 +35,10 @@ public class RepairRequestCreateRequest
 
     [Required]
     public string PreferredTime { get; set; } = null!;
+
+    /// <summary>
+    /// Danh sách SymptomID mà khách chọn khi đặt lịch.
+    /// Lấy từ API /api/symptoms.
+    /// </summary>
+    public List<int>? SymptomIds { get; set; }
 }

@@ -32,4 +32,7 @@ public interface IRepairRequestRepository
 
     // Thêm CarMaintenance mới
     Task AddCarMaintenanceAsync(CarMaintenance maintenance, CancellationToken ct);
+
+    // Lưu triệu chứng gắn với Appointment
+    Task AddAppointmentSymptomsAsync(int appointmentId, IEnumerable<int> symptomIds, CancellationToken ct);
 }
