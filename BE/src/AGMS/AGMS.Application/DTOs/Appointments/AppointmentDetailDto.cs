@@ -1,3 +1,5 @@
+using AGMS.Application.DTOs.Symptoms;
+
 namespace AGMS.Application.DTOs.Appointments;
 
 // DTO chi tiết appointment (detail screen)
@@ -19,6 +21,12 @@ public class AppointmentDetailDto
     public CustomerInfoDto Customer { get; set; } = null!;
     public PackageInfoDto? Package { get; set; }
     public CarMaintenanceInfoDto? Maintenance { get; set; }
+
+    // Các triệu chứng khách đã chọn khi đặt lịch
+    public List<SymptomDto> Symptoms { get; set; } = new();
+
+    // Danh sách linh kiện gợi ý cho SA dựa trên triệu chứng
+    public List<SymptomSuggestionPartDto> SuggestedParts { get; set; } = new();
 }
 
 public class CarInfoDto

@@ -27,4 +27,6 @@ public class Product
     public virtual ICollection<SupplierProduct> SupplierProducts { get; set; } = new List<SupplierProduct>();
     public virtual ICollection<TransferOrderDetail> TransferOrderDetails { get; set; } = new List<TransferOrderDetail>();
     public virtual Unit? Unit { get; set; }
+
+    public virtual ICollection<SymptomProduct> SymptomProducts { get; set; } = new List<SymptomProduct>();
 }

@@ -57,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<IRolePermissionService, RolePermissionService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IPermissionGroupService, PermissionGroupService>();
+        services.AddScoped<ISymptomService, SymptomService>();
         return services;
     }
 }

@@ -80,6 +80,10 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<VehicleIntakeCondition> VehicleIntakeConditions { get; set; }
 
+    public virtual DbSet<Symptom> Symptoms { get; set; }
+    public virtual DbSet<SymptomProduct> SymptomProducts { get; set; }
+    public virtual DbSet<AppointmentSymptom> AppointmentSymptoms { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Appointment>(entity =>
@@ -431,6 +435,49 @@ public partial class CarServiceDbContext : DbContext
             entity.HasOne(d => d.Unit).WithMany(p => p.Products)
                 .HasForeignKey(d => d.UnitID)
                 .HasConstraintName("FK_Product_Unit");
+        });
+
+        modelBuilder.Entity<Symptom>(entity =>
+        {
+            entity.HasKey(e => e.SymptomID);
+
+            entity.ToTable("Symptoms");
+
+            entity.Property(e => e.Code).HasMaxLength(50);
+            entity.Property(e => e.Name).HasMaxLength(255);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<SymptomProduct>(entity =>
+        {
+            entity.HasKey(e => new { e.SymptomID, e.ProductID });
+
+            entity.ToTable("SymptomProducts");
+
+            entity.Property(e => e.Weight)
+                .HasColumnType("decimal(5, 2)")
+                .HasDefaultValue(1.0m);
+
+            entity.Property(e => e.Note).HasMaxLength(500);
+
+            entity.HasOne(d => d.Symptom).WithMany(p => p.SymptomProducts)
+                .HasForeignKey(d => d.SymptomID);
+
+            entity.HasOne(d => d.Product).WithMany(p => p.SymptomProducts)
+                .HasForeignKey(d => d.ProductID);
+        });
+
+        modelBuilder.Entity<AppointmentSymptom>(entity =>
+        {
+            entity.HasKey(e => new { e.AppointmentID, e.SymptomID });
+
+            entity.ToTable("AppointmentSymptoms");
+
+            entity.HasOne(d => d.Appointment).WithMany(p => p.AppointmentSymptoms)
+                .HasForeignKey(d => d.AppointmentID);
+
+            entity.HasOne(d => d.Symptom).WithMany(p => p.AppointmentSymptoms)
+                .HasForeignKey(d => d.SymptomID);
         });
 
         modelBuilder.Entity<ProductInventory>(entity =>

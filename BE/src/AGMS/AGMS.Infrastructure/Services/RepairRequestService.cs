@@ -131,6 +131,12 @@ public class RepairRequestService : IRepairRequestService
 
         await _repo.AddCarMaintenanceAsync(maintenance, ct);
 
+        // Lưu triệu chứng gắn với appointment (nếu có)
+        if (request.SymptomIds != null && request.SymptomIds.Count > 0)
+        {
+            await _repo.AddAppointmentSymptomsAsync(appointment.AppointmentID, request.SymptomIds, ct);
+        }
+
         return new RepairRequestDetailDto
         {
             AppointmentId = appointment.AppointmentID,

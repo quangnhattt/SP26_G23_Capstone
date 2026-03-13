@@ -105,6 +105,24 @@ public class RepairRequestRepository : IRepairRequestRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task AddAppointmentSymptomsAsync(int appointmentId, IEnumerable<int> symptomIds, CancellationToken ct)
+    {
+        var distinctIds = symptomIds.Distinct().ToList();
+        if (distinctIds.Count == 0)
+        {
+            return;
+        }
+
+        var rows = distinctIds.Select(id => new AppointmentSymptom
+        {
+            AppointmentID = appointmentId,
+            SymptomID = id
+        });
+
+        _db.AppointmentSymptoms.AddRange(rows);
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task AddCarMaintenanceAsync(CarMaintenance maintenance, CancellationToken ct)
     {
         _db.CarMaintenances.Add(maintenance);
