@@ -32,32 +32,37 @@ export const login = async (payload: ILoginPayload) => {
   );
   const result = data?.result ?? (data as unknown as Record<string, unknown>);
   const r = result as {
+    token?: string;
     accessToken?: string;
     refreshToken?: string;
     access_token?: string;
     refresh_token?: string;
   };
+  
+  const token = r?.token ?? r?.accessToken ?? r?.access_token ?? "";
+  
   return {
-    accessToken: r?.accessToken ?? r?.access_token ?? "",
-    refreshToken: r?.refreshToken ?? r?.refresh_token ?? "",
+    accessToken: token,
+    refreshToken: token,
   };
 };
 
+interface ILoginWithEmailResponse {
+  token: string;
+  expiresAtUtc: string;
+  userId: number;
+  email: string;
+  fullName: string;
+}
+
 export const loginWithEmail = async (payload: ILoginWithEmailPayload) => {
-  const { data } = await AxiosClient.post<ILoginResponse>(
+  const { data } = await AxiosClient.post<ILoginWithEmailResponse>(
     "/api/auth/login",
     payload
   );
-  const result = data?.result ?? (data as unknown as Record<string, unknown>);
-  const r = result as {
-    accessToken?: string;
-    refreshToken?: string;
-    access_token?: string;
-    refresh_token?: string;
-  };
   return {
-    accessToken: r?.accessToken ?? r?.access_token ?? "",
-    refreshToken: r?.refreshToken ?? r?.refresh_token ?? "",
+    accessToken: data.token,
+    refreshToken: data.token,
   };
 };
 
@@ -80,7 +85,6 @@ export const refreshToken = async (payload: IRefreshTokenPayload) => {
     "identity-service/v1/auth/refreshToken",
     payload
   );
-  console.log("response", response);
   return response.data.result;
 };
 

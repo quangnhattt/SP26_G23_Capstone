@@ -1,4 +1,6 @@
 export default {
+  profile: "Profile",
+  logout: "Logout",
   nameProject: "AutoCare Pro",
   home: "Home",
   services: "Services",
@@ -161,4 +163,12 @@ export default {
   aboutHotline: "0901 234 567",
   since2009: "Since 2009",
   hotline: "Hotline",
+  heroSubtitle: "Smart garage management system",
+  heroTitle1: "Taking care of your car",
+  heroTitleHighlight1: "professionally",
+  heroTitleHighlight2: "transparently",
+  heroDescription: "Schedule repairs, track progress, pay online - all in one platform. Experience modern garage service with smart management technology.",
+  bookAppointmentNow: "Book now",
+  viewCustomerPortal: "View Customer Portal",
+  accessAdminDashboard: "Access Admin Dashboard",
 };

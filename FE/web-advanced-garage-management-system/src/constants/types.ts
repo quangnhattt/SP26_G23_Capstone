@@ -63,6 +63,7 @@ export interface IUser {
   userReferralCode: string;
   profileProgress: number;
   avatar: string;
+  roleID: number;
 }
 
 export interface DeviceProps {

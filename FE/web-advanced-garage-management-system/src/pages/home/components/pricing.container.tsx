@@ -1,6 +1,22 @@
 import styled from "styled-components";
+import { useContext } from "react";
+import { AuthContext } from "@/context/AuthContext";
+import { useAppDispatch } from "@/store/store";
+import { setVisibleLogin } from "@/store/slices/appSlice";
 
 const PricingContainer = () => {
+  const { user } = useContext(AuthContext);
+  const dispatch = useAppDispatch();
+
+  const handleBooking = () => {
+    if (!user) {
+      dispatch(setVisibleLogin(true));
+      return;
+    }
+    // TODO: Navigate to booking page
+    console.log("Navigate to booking page");
+  };
+
   return (
     <Container>
       <SectionHeader>
@@ -21,7 +37,7 @@ const PricingContainer = () => {
               <li>• Kiểm tra hệ thống</li>
               <li>• Vệ sinh xe</li>
             </PricingFeatures>
-            <PricingButton $primary>Chọn gói</PricingButton>
+            <PricingButton $primary onClick={handleBooking}>Chọn gói</PricingButton>
           </PricingCardContent>
         </PricingCard>
 
@@ -35,7 +51,7 @@ const PricingContainer = () => {
               <li>• Thay thế phụ tụng</li>
               <li>• Bảo hành 6 tháng</li>
             </PricingFeatures>
-            <PricingButton>Tư vấn</PricingButton>
+            <PricingButton onClick={handleBooking}>Tư vấn</PricingButton>
           </PricingCardContent>
         </PricingCard>
 
@@ -49,7 +65,7 @@ const PricingContainer = () => {
               <li>• Thay má phanh</li>
               <li>• Bảo hành 1 năm</li>
             </PricingFeatures>
-            <PricingButton>Đặt lịch</PricingButton>
+            <PricingButton onClick={handleBooking}>Đặt lịch</PricingButton>
           </PricingCardContent>
         </PricingCard>
 
@@ -63,7 +79,7 @@ const PricingContainer = () => {
               <li>• Hỗ trợ khẩn cấp</li>
               <li>• Ưu đãi đặc biệt</li>
             </PricingFeatures>
-            <PricingButton>Tìm hiểu</PricingButton>
+            <PricingButton onClick={handleBooking}>Tìm hiểu</PricingButton>
           </PricingCardContent>
         </PricingCard>
       </PricingGrid>

@@ -1,4 +1,6 @@
 export default {
+  profile: "Hồ sơ cá nhân",
+  logout: "Đăng xuất",
   nameProject: "AutoCare Pro",
   home: "Trang chủ",
   services: "Dịch vụ",
@@ -161,4 +163,12 @@ export default {
   aboutHotline: "0901 234 567",
   since2009: "Since 2009",
   hotline: "Hotline",
+  heroSubtitle: "Hệ thống quản lý garage thông minh",
+  heroTitle1: "Chăm sóc xe của bạn",
+  heroTitleHighlight1: "chuyên nghiệp",
+  heroTitleHighlight2: "minh bạch",
+  heroDescription: "Đặt lịch sửa chữa, theo dõi tiến độ, thanh toán trực tuyến - tất cả trong một nền tảng. Trải nghiệm dịch vụ garage hiện đại với công nghệ quản lý thông minh.",
+  bookAppointmentNow: "Đặt lịch ngay",
+  viewCustomerPortal: "Xem Portal Khách hàng",
+  accessAdminDashboard: "Truy cập Admin Dashboard",
 };

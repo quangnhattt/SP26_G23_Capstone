@@ -1,24 +1,42 @@
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
+import { AuthContext } from "@/context/AuthContext";
+import React from "react";
+import { useAppDispatch } from "@/store/store";
+import { setVisibleLogin } from "@/store/slices/appSlice";
 
 const HeroSection = () => {
+  const {t} = useTranslation();
+  const { user } = React.useContext(AuthContext);
+  const dispatch = useAppDispatch();
+
+
   return (
     <HeroSectionContainer>
       <HeroContainer>
-        <HeroSubtitle>Hệ thống quản lý garage thông minh</HeroSubtitle>
+        <HeroSubtitle>{t("heroSubtitle")}</HeroSubtitle>
         <HeroTitle>
-          Chăm sóc xe của bạn
+          {t("heroTitle1")}
           <br />
-          <HeroHighlight>chuyên nghiệp</HeroHighlight> và{" "}
-          <HeroHighlight>minh bạch</HeroHighlight>
+          <HeroHighlight>{t("heroTitleHighlight1")}</HeroHighlight> {t("and")}{" "}
+          <HeroHighlight>{t("heroTitleHighlight2")}</HeroHighlight>
         </HeroTitle>
         <HeroDescription>
-          Đặt lịch sửa chữa, theo dõi tiến độ, thanh toán trực tuyến - tất cả
-          trong một nền tảng. Trải nghiệm dịch vụ garage hiện đại với công nghệ
-          quản lý thông minh.
+          {t("heroDescription")}
         </HeroDescription>
         <ButtonGroup>
           <ButtonRow>
-            <PrimaryButton>
+            <PrimaryButton 
+              onClick={() => {
+                if (!user) {
+                  dispatch(setVisibleLogin(true));
+                  return;
+                }
+                // TODO: Navigate to booking page
+                console.log("Navigate to booking page");
+              }}
+              type="button"
+            >
               <svg
                 width="16"
                 height="16"
@@ -27,32 +45,36 @@ const HeroSection = () => {
               >
                 <path d="M8 0a.5.5 0 0 1 .5.5v7h7a.5.5 0 0 1 0 1h-7v7a.5.5 0 0 1-1 0v-7h-7a.5.5 0 0 1 0-1h7v-7A.5.5 0 0 1 8 0z" />
               </svg>
-              Đặt lịch ngay
+              {t("bookAppointmentNow")}
             </PrimaryButton>
-            <SecondaryButton>
-              Xem Portal Khách hàng
-              <svg
-                width="16"
-                height="16"
-                fill="currentColor"
-                viewBox="0 0 16 16"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
-                />
-              </svg>
-            </SecondaryButton>
+            {user?.roleID === 4 && (
+              <SecondaryButton>
+                {t("viewCustomerPortal")}
+                <svg
+                  width="16"
+                  height="16"
+                  fill="currentColor"
+                  viewBox="0 0 16 16"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"
+                  />
+                </svg>
+              </SecondaryButton>
+            )}
+            {user && [1, 2, 3].includes(user.roleID) && (
+              <SecondaryButton>
+                {t("accessAdminDashboard")}
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                  <path
+                    fillRule="evenodd"
+                    d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"
+                  />
+                </svg>
+              </SecondaryButton>
+            )}
           </ButtonRow>
-          <AdminLink href="#">
-            Truy cập Admin Dashboard
-            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-              <path
-                fillRule="evenodd"
-                d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"
-              />
-            </svg>
-          </AdminLink>
         </ButtonGroup>
       </HeroContainer>
     </HeroSectionContainer>
@@ -159,6 +181,9 @@ const PrimaryButton = styled.button`
   justify-content: center;
   gap: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
 
   &:hover {
     background-color: #1e40af;
@@ -168,6 +193,7 @@ const PrimaryButton = styled.button`
   svg {
     width: 18px;
     height: 18px;
+    pointer-events: none;
   }
 `;
 
@@ -195,28 +221,5 @@ const SecondaryButton = styled.button`
   svg {
     width: 16px;
     height: 16px;
-  }
-`;
-
-const AdminLink = styled.a`
-  color: #6b7280;
-  font-size: 0.9375rem;
-  text-decoration: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  margin-top: 0.75rem;
-  font-weight: 500;
-  transition: color 0.2s;
-
-  &:hover {
-    color: #1d4ed8;
-  }
-
-  svg {
-    width: 14px;
-    height: 14px;
   }
 `;

@@ -246,12 +246,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       queryClient.removeQueries({ queryKey: ["get-balance"], exact: true });
 
       loginWithEmailMutate(payload, {
-        onSuccess: (tokens) => {
+        onSuccess: (response) => {
           setCustomToken({
-            token_access: tokens.accessToken,
-            token_refresh: tokens.refreshToken,
+            token_access: response.accessToken,
+            token_refresh: response.refreshToken,
           });
 
+          // Fetch user info from API
           // @ts-expect-error - mutate expects variables but we pass null for initial fetch
           userMutate(null, {
             onSuccess: (data) => {
@@ -263,6 +264,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               navigate(ROUTER_PAGE.home, { replace: true });
             },
             onError: (error) => {
+              console.error("User info fetch failed:", error);
               hideLoading();
               const err = error as AxiosError<{ message?: string }>;
               toast.error(err?.response?.data?.message ?? "Login failed");
@@ -270,6 +272,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           });
         },
         onError: (e) => {
+          console.error("Login failed:", e);
           hideLoading();
           const err = e as AxiosError<{ message?: string }>;
           toast.error(err?.response?.data?.message ?? "Đăng nhập thất bại");

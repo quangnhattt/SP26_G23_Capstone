@@ -2,7 +2,7 @@ import LocalStorage from "@/apis/LocalStorage";
 import { images } from "@/assets/imagesAsset";
 import { ListLanguage } from "@/constants/data";
 import { ROUTER_PAGE } from "@/routes/contants";
-import { IconCar } from "@tabler/icons-react";
+import { IconCar, IconUser, IconLogout } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -11,15 +11,20 @@ import { FaBars, FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import LoginModal from "@/pages/auth/login.modal";
 import RegisterModal from "@/pages/auth/register.modal";
+import useAuth from "@/hooks/useAuth";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { appSelector, setVisibleLogin, setVisibleRegister } from "@/store/slices/appSlice";
 
 const Header = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { visibleLogin, visibleRegister } = useAppSelector(appSelector);
+  const { user, isAuthenticated, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
   const [lang, setLang] = useState(i18n.language || "en");
-  const [showLogin, setShowLogin] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
     if (location.pathname !== "/") return;
@@ -49,12 +54,35 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [location.pathname]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-user-menu]')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu]);
+
   const handleLanguageChange = (code: string) => {
     const normalizedCode = code.toLowerCase();
     setLang(normalizedCode);
     i18n.changeLanguage(normalizedCode);
     LocalStorage.saveLanguage(normalizedCode);
   };
+
+  const handleLogout = async () => {
+    await logout();
+    setShowUserMenu(false);
+  };
+  
   return (
     <>
       <MainHeader>
@@ -120,11 +148,41 @@ const Header = () => {
                 </FlagButton>
               ))}
             </LanguageFlags>
-            <LoginLink onClick={() => setShowLogin(true)}>
-              {t("login")}
-            </LoginLink>
+            
+            {isAuthenticated && user ? (
+              <UserMenuWrapper data-user-menu>
+                <UserButton onClick={() => setShowUserMenu(!showUserMenu)}>
+                  <IconUser size={20} stroke={2} />
+                  <span>{user.fullName}</span>
+                </UserButton>
+                {showUserMenu && (
+                  <UserDropdown>
+                    <DropdownItem onClick={() => {
+                      navigate(ROUTER_PAGE.home);
+                      setShowUserMenu(false);
+                    }}>
+                      <IconUser size={18} />
+                      {t("profile")}
+                    </DropdownItem>
+                    <DropdownItem onClick={handleLogout}>
+                      <IconLogout size={18} />
+                      {t("logout")}
+                    </DropdownItem>
+                  </UserDropdown>
+                )}
+              </UserMenuWrapper>
+            ) : (
+              <LoginLink onClick={() => dispatch(setVisibleLogin(true))}>
+                {t("login")}
+              </LoginLink>
+            )}
+            
             <BookNowButton
               onClick={() => {
+                if (!isAuthenticated || !user) {
+                  dispatch(setVisibleLogin(true));
+                  return;
+                }
                 navigate(ROUTER_PAGE.home);
                 setTimeout(() => {
                   document
@@ -209,34 +267,51 @@ const Header = () => {
                   </FlagButton>
                 ))}
               </MobileLanguageSection>
-              <MobileLoginButton
-                onClick={() => {
-                  setShowLogin(true);
-                  setIsMobileMenuOpen(false);
-                }}
-              >
-                {t("login")}
-              </MobileLoginButton>
+              
+              {isAuthenticated && user ? (
+                <>
+                  <MobileUserInfo>
+                    <IconUser size={20} />
+                    <span>{user.fullName}</span>
+                  </MobileUserInfo>
+                  <MobileLoginButton onClick={() => {
+                    handleLogout();
+                    setIsMobileMenuOpen(false);
+                  }}>
+                    <IconLogout size={20} />
+                    {t("logout")}
+                  </MobileLoginButton>
+                </>
+              ) : (
+                <MobileLoginButton
+                  onClick={() => {
+                    dispatch(setVisibleLogin(true));
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  {t("login")}
+                </MobileLoginButton>
+              )}
             </MobileMenu>
           )}
         </AnimatePresence>
       </MainHeader>
 
-      {showLogin && (
+      {visibleLogin && (
         <LoginModal
-          onClose={() => setShowLogin(false)}
+          onClose={() => dispatch(setVisibleLogin(false))}
           onSwitchToRegister={() => {
-            setShowLogin(false);
-            setShowRegister(true);
+            dispatch(setVisibleLogin(false));
+            dispatch(setVisibleRegister(true));
           }}
         />
       )}
-      {showRegister && (
+      {visibleRegister && (
         <RegisterModal
-          onClose={() => setShowRegister(false)}
+          onClose={() => dispatch(setVisibleRegister(false))}
           onSwitchToLogin={() => {
-            setShowRegister(false);
-            setShowLogin(true);
+            dispatch(setVisibleRegister(false));
+            dispatch(setVisibleLogin(true));
           }}
         />
       )}
@@ -474,10 +549,93 @@ const MobileLoginButton = styled.button`
   transition: all 0.3s;
   margin: 1rem;
   font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 
   &:hover {
-    background: #007bff;
+    background: #0069d9;
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const MobileUserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  color: #333;
+  font-weight: 500;
+`;
+
+const UserMenuWrapper = styled.div`
+  position: relative;
+`;
+
+const UserButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+
+  &:hover {
+    background: #e9ecef;
+    border-color: #dee2e6;
+  }
+
+  span {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
+
+const UserDropdown = styled.div`
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 180px;
+  z-index: 1000;
+  overflow: hidden;
+`;
+
+const DropdownItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: none;
+  color: #333;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-align: left;
+
+  &:hover {
+    background: #f8f9fa;
+  }
+
+  &:not(:last-child) {
+    border-bottom: 1px solid #f0f0f0;
   }
 `;

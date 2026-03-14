@@ -5,18 +5,59 @@ import AxiosClient from "../AxiosClient";
  * User Info
  */
 
-interface IUserInfoResponse {
-  requestId: string;
-  errorCode: string;
-  message: ResponseStatusEnum;
-  result: IUser;
+interface IUserInfoApiResponse {
+  userID: number;
+  userCode: string;
+  fullName: string;
+  username: string;
+  email: string;
+  phone: string;
+  gender: string;
+  dateOfBirth: string;
+  image: string;
+  roleID: number;
+  roleName: string;
+  isActive: boolean;
+  createdDate: string;
+  lastLoginDate: string | null;
+  totalSpending: number;
+  currentRankID: number | null;
+  isOnRescueMission: boolean;
+  skills: string | null;
 }
 
-export const userInfo = async () => {
-  const response = await AxiosClient.get<IUserInfoResponse>(
-    "identity-service/v1/account/info"
+export const userInfo = async (): Promise<IUser> => {
+  const response = await AxiosClient.get<IUserInfoApiResponse>(
+    "api/user/info"
   );
-  return response.data.result;
+  const data = response.data;
+  
+  // Map API response to IUser interface
+  return {
+    id: data.userID.toString(),
+    fullName: data.fullName,
+    email: data.email,
+    msisdn: data.phone,
+    username: data.username,
+    dob: data.dateOfBirth,
+    gender: data.gender === "Male" ? "MALE" : "FEMALE",
+    paperType: "",
+    paperNumber: "",
+    paperIssueDate: "",
+    address: "",
+    country: "",
+    countryId: "",
+    currency: "",
+    language: "vi",
+    lastLoginAt: data.lastLoginDate || "",
+    accountLevel: 0,
+    accountType: data.roleName,
+    balance: data.totalSpending,
+    userReferralCode: data.userCode,
+    profileProgress: 0,
+    avatar: data.image,
+    roleID: data.roleID,
+  };
 };
 
 /**
@@ -45,7 +86,7 @@ interface IUpdateInfoResponse {
 
 export const updateInfo = async (payload: IUpdateInfoPayload) => {
   const response = await AxiosClient.put<IUpdateInfoResponse>(
-    "identity-service/v1/account/info",
+    "api/user/info",
     payload
   );
   return response.data.result;
