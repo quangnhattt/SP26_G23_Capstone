@@ -14,11 +14,9 @@ import { Provider } from "react-redux";
 import store from "./store/store";
 import { LoadingProvider } from "./context/LoadingContent";
 import QueryProvider from "./context/QueryProvider";
+import { ToastContainer } from "react-toastify";
 
-// Lazy load components
-const ToastContainer = lazy(() => 
-  import("react-toastify").then(module => ({ default: module.ToastContainer }))
-);
+// Lazy load routes
 const AppRoutes = lazy(() => import("./routes/AppRoutes"));
 
 function App() {
@@ -34,9 +32,7 @@ function App() {
 
   return (
     <DeviceProvider initialDeviceType={initialDeviceType}>
-      <Suspense fallback={null}>
-        <ToastContainer position="top-right" autoClose={3000} />
-      </Suspense>
+      <ToastContainer position="top-right" autoClose={3000} />
       <GlobalStyle theme={theme} />
       <ThemeProvider theme={theme}>
         <I18nextProvider i18n={i18next}>

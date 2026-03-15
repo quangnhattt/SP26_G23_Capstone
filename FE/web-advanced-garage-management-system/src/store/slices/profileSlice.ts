@@ -120,6 +120,7 @@ export const {
   setInviteDate,
 } = profileSlice.actions;
 
-export const profileSelector = (state: RootState) => state.profile;
+// Disabled: profile slice removed from rootReducer
+// export const profileSelector = (state: RootState) => state.profile;
 
 export default profileSlice.reducer;
