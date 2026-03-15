@@ -110,9 +110,4 @@ export default defineConfig({
     // Force pre-bundle these
     force: true,
   },
-  // Esbuild options for faster builds
-  esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' },
-    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
-  },
 });
