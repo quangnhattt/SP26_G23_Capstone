@@ -33,7 +33,7 @@ namespace AGMS.WebApi.Controllers
         }
 
         [Authorize(Roles = Roles.Admin)] // Bọc riêng quyền Admin cho API này
-        [HttpPut("{roleId}")]
+        [HttpPut("editUserPermission")]
         public async Task<IActionResult> UpdatePermissions(int roleId, [FromBody] UpdateRolePermissionsDto request)
         {
             try
