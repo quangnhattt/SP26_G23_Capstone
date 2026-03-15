@@ -1,5 +1,5 @@
 import dayjs from "@/utils/dayjs";
-import type { RootState } from "../rootReducer";
+// import type { RootState } from "../rootReducer"; // Removed: not used after disabling selector
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export interface IProfileState {
