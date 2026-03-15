@@ -25,7 +25,7 @@ namespace AGMS.WebApi.Controllers
         // =========================================================
 
         [Authorize(Roles = Roles.Admin)] // Bọc riệng quyền Admin cho API này
-        [HttpGet("matrix/{roleId}")]
+        [HttpGet("matrix")]
         public async Task<IActionResult> GetMatrix(int roleId)
         {
             var matrix = await _service.GetPermissionMatrixByRoleIdAsync(roleId);
