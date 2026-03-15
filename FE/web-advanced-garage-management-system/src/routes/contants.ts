@@ -4,6 +4,7 @@ export const ROUTER_PAGE = {
   pricing: "/pricing",
   about: "/about",
   contact: "/contact",
+  admin: "/admin",
   auth: {
     login: "/auth/login",
     register: "/auth/register",

@@ -9,6 +9,7 @@ import { ROUTER_PAGE } from "./contants";
 import PricingPage from "@/pages/pricing/pricing.page";
 import AboutPage from "@/pages/about/about.page";
 import ContactPage from "@/pages/contact/contact.page";
+import AdminDashboard from "@/pages/admin/admin.page";
 
 const AppRoutesContent = () => {
   const { isInitializing } = useAuth();
@@ -25,6 +26,7 @@ const AppRoutesContent = () => {
         <Route path={ROUTER_PAGE.pricing} element={<PricingPage />} />
         <Route path={ROUTER_PAGE.about} element={<AboutPage />} />
         <Route path={ROUTER_PAGE.contact} element={<ContactPage />} />
+        <Route path={ROUTER_PAGE.admin} element={<AdminDashboard />} />
       </Route>
     </Routes>
   );

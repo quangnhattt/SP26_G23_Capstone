@@ -4,11 +4,14 @@ import { AuthContext } from "@/context/AuthContext";
 import React from "react";
 import { useAppDispatch } from "@/store/store";
 import { setVisibleLogin } from "@/store/slices/appSlice";
+import { useNavigate } from "react-router-dom";
+import { ROUTER_PAGE } from "@/routes/contants";
 
 const HeroSection = () => {
   const {t} = useTranslation();
   const { user } = React.useContext(AuthContext);
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
 
   return (
@@ -64,7 +67,10 @@ const HeroSection = () => {
               </SecondaryButton>
             )}
             {user && [1, 2, 3].includes(user.roleID) && (
-              <SecondaryButton>
+              <SecondaryButton
+                onClick={() => navigate(ROUTER_PAGE.admin)}
+                type="button"
+              >
                 {t("accessAdminDashboard")}
                 <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                   <path
