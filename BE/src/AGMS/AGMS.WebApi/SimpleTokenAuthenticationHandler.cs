@@ -42,8 +42,8 @@ public class SimpleTokenAuthenticationHandler : AuthenticationHandler<Authentica
         {
             var payloadBytes = Convert.FromBase64String(token);
             var payload = Encoding.UTF8.GetString(payloadBytes);
-            var parts = payload.Split(':', 4, StringSplitOptions.None);
-            if (parts.Length != 4)
+            var parts = payload.Split(':', 5, StringSplitOptions.None);
+            if (parts.Length != 5)
             {
                 return Task.FromResult(AuthenticateResult.Fail("Invalid token payload format."));
             }
@@ -55,7 +55,11 @@ public class SimpleTokenAuthenticationHandler : AuthenticationHandler<Authentica
 
             var email = parts[1];
             var fullName = parts[2];
-            if (!DateTime.TryParse(parts[3], null, System.Globalization.DateTimeStyles.RoundtripKind, out var expiresAtUtc))
+            if (!int.TryParse(parts[3], out var roleId))
+            {
+                return Task.FromResult(AuthenticateResult.Fail("Invalid role id in token."));
+            }
+            if (!DateTime.TryParse(parts[4], null, System.Globalization.DateTimeStyles.RoundtripKind, out var expiresAtUtc))
             {
                 return Task.FromResult(AuthenticateResult.Fail("Invalid expiry in token."));
             }
@@ -69,7 +73,8 @@ public class SimpleTokenAuthenticationHandler : AuthenticationHandler<Authentica
             {
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Name, fullName)
+                new Claim(ClaimTypes.Name, fullName),
+                new Claim(ClaimTypes.Role, roleId.ToString())
             };
 
             var identity = new ClaimsIdentity(claims, SchemeName);

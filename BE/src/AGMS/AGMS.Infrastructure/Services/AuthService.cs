@@ -129,7 +129,7 @@ public class AuthService : IAuthService
             throw new EmailNotVerifiedException("Email is not verified.", isExpired: false);
         }
 
-        var (token, expiresAtUtc) = _tokenService.GenerateToken(user.UserID, user.Email, user.FullName);
+        var (token, expiresAtUtc) = _tokenService.GenerateToken(user.UserID, user.Email, user.FullName, user.RoleID);
 
         return new LoginResponse
         {
