@@ -53,7 +53,7 @@ export default {
   passwordMinLength: "Password must be at least 6 characters",
   passwordMismatch: "Passwords do not match",
   agreeTermsRequired: "You must agree to the Terms of Service and Privacy Policy",
-  registerSuccess: "Registration successful! Please log in.",
+  registerSuccess: "Registration successful! Please verify OTP code.",
   contactHeroTitle: "We are always ready to",
   contactHeroTitleHighlight: "support you",
   contactHeroSubtitle: "Have questions? Need advice? AutoCare Pro's team is always happy to answer all your questions 24/7.",
@@ -227,4 +227,19 @@ export default {
   adminCustomersToday: "Customers today",
   adminAvgServiceTime: "Avg service time",
   adminUpcomingAppointments: "Upcoming appointments",
+  
+  // OTP Verification
+  verifyOTP: "Verify OTP",
+  otpTitle: "Enter verification code",
+  otpSubtitle: "We have sent a 6-digit code to",
+  otpLabel: "OTP Code",
+  didntReceiveCode: "Didn't receive the code?",
+  resendCode: "Resend",
+  verifyButton: "Verify",
+  backButton: "Back",
+  otpRequired: "Please enter all 6 digits",
+  otpVerifySuccess: "OTP verification successful!",
+  otpVerifyFailed: "OTP verification failed",
+  otpResendSuccess: "OTP code has been resent",
+  otpResendFailed: "Failed to resend OTP",
 };

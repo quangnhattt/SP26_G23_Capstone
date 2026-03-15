@@ -4,11 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "clean": "rm -rf node_modules/.cache && rm -rf dist && rm -rf build",
-    "dev": "vite",
+    "clean": "rm -rf node_modules/.cache && rm -rf node_modules/.vite && rm -rf dist && rm -rf build",
+    "dev": "vite --clearScreen false",
+    "dev:clean": "yarn clean && vite",
     "build": "tsc -b && vite build",
+    "build:analyze": "tsc -b && vite build --mode analyze",
+    "build:size": "yarn build && du -sh dist && find dist -name '*.js' -exec du -h {} \\; | sort -rh | head -20",
     "lint": "eslint .",
     "preview": "vite preview",
+    "preview:build": "yarn build && yarn preview",
     "generate-assets": "node scripts/generateAssets.js",
     "translate": "node scripts/replace-translations.js",
     "findStrings": "node scripts/findStingNotDefineKey.js"

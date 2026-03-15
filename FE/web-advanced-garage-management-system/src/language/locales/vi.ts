@@ -53,7 +53,7 @@ export default {
   passwordMinLength: "Mật khẩu tối thiểu 6 ký tự",
   passwordMismatch: "Mật khẩu xác nhận không khớp",
   agreeTermsRequired: "Bạn cần đồng ý với Điều khoản dịch vụ và Chính sách bảo mật",
-  registerSuccess: "Đăng ký thành công! Vui lòng đăng nhập.",
+  registerSuccess: "Đăng ký tài khoản thành công, vui lòng xác thực mã OTP",
   contactHeroTitle: "Chúng tôi luôn sẵn sàng",
   contactHeroTitleHighlight: "hỗ trợ bạn",
   contactHeroSubtitle: "Có câu hỏi? Cần tư vấn? Đội ngũ AutoCare Pro luôn sẵn lòng giải đáp mọi thắc mắc của bạn 24/7.",
@@ -227,4 +227,19 @@ export default {
   adminCustomersToday: "Khách hàng hôm nay",
   adminAvgServiceTime: "Thời gian sửa TB",
   adminUpcomingAppointments: "Lịch hẹn ngày mai",
+  
+  // OTP Verification
+  verifyOTP: "Xác thực OTP",
+  otpTitle: "Nhập mã xác thực",
+  otpSubtitle: "Chúng tôi đã gửi mã 6 số đến",
+  otpLabel: "Mã OTP",
+  didntReceiveCode: "Không nhận được mã?",
+  resendCode: "Gửi lại",
+  verifyButton: "Xác nhận",
+  backButton: "Quay lại",
+  otpRequired: "Vui lòng nhập đầy đủ 6 số OTP",
+  otpVerifySuccess: "Xác thực OTP thành công!",
+  otpVerifyFailed: "Xác thực OTP thất bại",
+  otpResendSuccess: "Đã gửi lại mã OTP",
+  otpResendFailed: "Gửi lại OTP thất bại",
 };
