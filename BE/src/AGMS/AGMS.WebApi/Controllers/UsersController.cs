@@ -1,12 +1,15 @@
+using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Users;
 using AGMS.Application.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AGMS.WebApi.Controllers;
 
 [ApiController]
 [Route("api/users")]
+[Authorize(Roles = Roles.Admin)]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
