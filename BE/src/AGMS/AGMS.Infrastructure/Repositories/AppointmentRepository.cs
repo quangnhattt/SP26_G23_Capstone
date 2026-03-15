@@ -60,6 +60,7 @@ public class AppointmentRepository : IAppointmentRepository
                 CurrentOdometer = a.Car.CurrentOdometer,
                 CustomerFullName = a.CreatedByNavigation.FullName,
                 CustomerPhone = a.CreatedByNavigation.Phone,
+                Phone = a.CreatedByNavigation.Phone,
                 CustomerEmail = a.CreatedByNavigation.Email,
                 PackageName = a.RequestedPackage != null ? a.RequestedPackage.Name : null,
                 PackageCode = a.RequestedPackage != null ? a.RequestedPackage.PackageCode : null,

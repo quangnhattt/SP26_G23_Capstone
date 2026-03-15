@@ -24,6 +24,7 @@ public class AppointmentListItemDto
     // Customer (CreatedBy user)
     public string CustomerFullName { get; set; } = null!;
     public string? CustomerPhone { get; set; }
+    public string? Phone { get; set; }
     public string CustomerEmail { get; set; } = null!;
 
     // Package (nếu có)
