@@ -5,6 +5,7 @@ public class RepairRequestDetailDto
     public int AppointmentId { get; set; }
     public int CarId { get; set; }
     public int CreatedByUserId { get; set; }
+    public string? Phone { get; set; }
     public string Description { get; set; } = null!;
     public string ServiceType { get; set; } = null!;
     public int? RequestedPackageId { get; set; }

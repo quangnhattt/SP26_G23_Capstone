@@ -30,6 +30,10 @@ public class RepairRequestCreateRequest
 
     public int? TechnicianId { get; set; }
 
+    [Phone]
+    [MaxLength(20)]
+    public string? Phone { get; set; }
+
     [Required]
     public string PreferredDate { get; set; } = null!;
 

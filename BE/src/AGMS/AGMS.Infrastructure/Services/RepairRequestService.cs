@@ -71,6 +71,7 @@ public class RepairRequestService : IRepairRequestService
     public async Task<RepairRequestPreviewResponse> PreviewAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
         var (car, technician, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
+        var customerPhone = await _repo.GetUserPhoneByIdAsync(userId, ct);
 
         var (totalCost, totalMinutes) = GetEstimatedCostAndMinutes(appointmentServiceType);
 
@@ -78,6 +79,7 @@ public class RepairRequestService : IRepairRequestService
         {
             EstimatedTotalCost = totalCost,
             EstimatedTotalMinutes = totalMinutes,
+            Phone = customerPhone,
             Echo = request
         };
     }
@@ -85,6 +87,7 @@ public class RepairRequestService : IRepairRequestService
     public async Task<RepairRequestDetailDto> CreateAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
         var (car, technician, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
+        var customerPhone = await _repo.GetUserPhoneByIdAsync(userId, ct);
 
         var (totalCost, _) = GetEstimatedCostAndMinutes(appointmentServiceType);
         var maintenanceType = MapMaintenanceTypeForCarMaintenance(request.ServiceType);
@@ -142,6 +145,7 @@ public class RepairRequestService : IRepairRequestService
             AppointmentId = appointment.AppointmentID,
             CarId = car.CarID,
             CreatedByUserId = userId,
+            Phone = customerPhone,
             Description = request.Description,
             ServiceType = appointmentServiceType,
             TechnicianId = technician?.UserID,
