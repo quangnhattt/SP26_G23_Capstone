@@ -441,37 +441,6 @@ const Sidebar = styled.aside`
   }
 `;
 
-const Logo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-`;
-
-const LogoIcon = styled.div`
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-`;
-
-const LogoText = styled.span`
-  font-size: 1.125rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-`;
-
 const MainContent = styled.main`
   flex: 1;
   margin-left: 260px;
