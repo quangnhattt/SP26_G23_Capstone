@@ -81,24 +81,22 @@ namespace AGMS.Infrastructure.Services
             var role = await _roleRepo.GetByIdWithPermissionsAsync(roleId);
             if (role == null) return new List<MenuGroupDto>();
 
+            // 1. Lấy danh sách ID các quyền của Role
             var allowedPermissionIds = role.Permissions.Select(p => p.PermissionID).ToList();
+
+            // 2. Lấy tất cả các nhóm quyền từ DB
             var groups = await _groupRepo.GetAllWithPermissionsAsync();
 
+            // 3. Lọc và trả về kết quả
             return groups
+                // Điều kiện: Nhóm này phải chứa ít nhất 1 quyền nằm trong danh sách allowedPermissionIds
                 .Where(g => g.Permissions.Any(p => allowedPermissionIds.Contains(p.PermissionID)))
                 .Select(g => new MenuGroupDto
                 {
                     GroupID = g.GroupID,
-                    GroupName = g.GroupName,
-                    Items = g.Permissions
-                        .Where(p => allowedPermissionIds.Contains(p.PermissionID))
-                        .Select(p => new MenuItemDto
-                        {
-                            PermissionID = p.PermissionID,
-                            Name = p.Name,
-                            URL = p.URL
-                        }).ToList()
-                }).ToList();
+                    GroupName = g.GroupName
+                })
+                .ToList();
         }
     }
 }
