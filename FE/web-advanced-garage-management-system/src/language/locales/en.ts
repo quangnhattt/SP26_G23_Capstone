@@ -238,6 +238,7 @@ export default {
   verifyButton: "Verify",
   backButton: "Back",
   otpRequired: "Please enter all 6 digits",
+  otpSentSuccess: "OTP code has been sent to your email",
   otpVerifySuccess: "OTP verification successful!",
   otpVerifyFailed: "OTP verification failed",
   otpResendSuccess: "OTP code has been resent",

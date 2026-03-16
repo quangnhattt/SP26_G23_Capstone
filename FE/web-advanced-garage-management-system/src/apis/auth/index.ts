@@ -203,6 +203,26 @@ export const resetPassword = async (payload: IResetPasswordPayload) => {
   return data;
 };
 
+/**
+ * Send OTP for Email Verification
+ */
+export interface ISendOTPPayload {
+  email: string;
+}
+
+interface ISendOTPResponse {
+  success: boolean;
+  message: string;
+}
+
+export const sendOTP = async (payload: ISendOTPPayload) => {
+  const { data } = await AxiosClient.post<ISendOTPResponse>(
+    "/api/email-verification/send-otp",
+    payload
+  );
+  return data;
+};
+
 export const authService = {
   login,
   loginWithEmail,
@@ -212,4 +232,5 @@ export const authService = {
   logout,
   forgotPassword,
   resetPassword,
+  sendOTP,
 };

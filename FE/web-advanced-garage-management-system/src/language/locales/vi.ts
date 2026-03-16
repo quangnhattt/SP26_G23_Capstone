@@ -238,6 +238,7 @@ export default {
   verifyButton: "Xác nhận",
   backButton: "Quay lại",
   otpRequired: "Vui lòng nhập đầy đủ 6 số OTP",
+  otpSentSuccess: "Đã gửi mã OTP đến email của bạn",
   otpVerifySuccess: "Xác thực OTP thành công!",
   otpVerifyFailed: "Xác thực OTP thất bại",
   otpResendSuccess: "Đã gửi lại mã OTP",
