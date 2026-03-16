@@ -31,6 +31,8 @@ public static class DependencyInjection
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<IRepairRequestRepository, RepairRequestRepository>();
         services.AddScoped<IRepairRequestService, RepairRequestService>();
+        services.AddScoped<ICarRepository, CarRepository>();
+        services.AddScoped<ICarService, CarService>();
         services.AddScoped<IAppointmentRepository, AppointmentRepository>();
         services.AddScoped<IAppointmentService, AppointmentService>();
         services.AddScoped<IAuthService, AuthService>();
@@ -49,12 +51,17 @@ public static class DependencyInjection
         services.AddScoped<IPermissionRepository, PermissionRepository>();
         services.AddScoped<ICarMaintenanceIntakeRepository, CarMaintenanceIntakeRepository>();
         services.AddScoped<ICarMaintenanceIntakeService, CarMaintenanceIntakeService>();
+        services.AddScoped<IInventoryRepository, InventoryRepository>();
+        services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<ISupplierProductRepository, SupplierProductRepository>();
+        services.AddScoped<ISupplierProductService, SupplierProductService>();
         // Module cứu hộ (UC-RES-01 đến UC-RES-06)
         services.AddScoped<IRescueRequestRepository, RescueRequestRepository>();
         services.AddScoped<IRescueRequestService, RescueRequestService>();
         services.AddScoped<IRolePermissionService, RolePermissionService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IPermissionGroupService, PermissionGroupService>();
+        services.AddScoped<ISymptomService, SymptomService>();
         return services;
     }
 }

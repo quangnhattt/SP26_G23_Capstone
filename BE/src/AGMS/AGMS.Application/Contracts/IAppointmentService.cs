@@ -11,4 +11,5 @@ public interface IAppointmentService
     Task<AppointmentDetailDto?> GetDetailAsync(int appointmentId, int currentUserId, bool isServiceAdvisor, CancellationToken ct);
     Task ApproveAsync(int appointmentId, int currentUserId, CancellationToken ct);
     Task RejectAsync(int appointmentId, int rejectBuildUserId, CancellationToken ct);
+    Task CheckInAsync(int appointmentId, int currentUserId, CancellationToken ct);
 }

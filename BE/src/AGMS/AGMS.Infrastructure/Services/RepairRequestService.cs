@@ -71,6 +71,7 @@ public class RepairRequestService : IRepairRequestService
     public async Task<RepairRequestPreviewResponse> PreviewAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
         var (car, technician, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
+        var customerPhone = await _repo.GetUserPhoneByIdAsync(userId, ct);
 
         var (totalCost, totalMinutes) = GetEstimatedCostAndMinutes(appointmentServiceType);
 
@@ -78,6 +79,7 @@ public class RepairRequestService : IRepairRequestService
         {
             EstimatedTotalCost = totalCost,
             EstimatedTotalMinutes = totalMinutes,
+            Phone = customerPhone,
             Echo = request
         };
     }
@@ -85,6 +87,7 @@ public class RepairRequestService : IRepairRequestService
     public async Task<RepairRequestDetailDto> CreateAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
         var (car, technician, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
+        var customerPhone = await _repo.GetUserPhoneByIdAsync(userId, ct);
 
         var (totalCost, _) = GetEstimatedCostAndMinutes(appointmentServiceType);
         var maintenanceType = MapMaintenanceTypeForCarMaintenance(request.ServiceType);
@@ -131,11 +134,18 @@ public class RepairRequestService : IRepairRequestService
 
         await _repo.AddCarMaintenanceAsync(maintenance, ct);
 
+        // Lưu triệu chứng gắn với appointment (nếu có)
+        if (request.SymptomIds != null && request.SymptomIds.Count > 0)
+        {
+            await _repo.AddAppointmentSymptomsAsync(appointment.AppointmentID, request.SymptomIds, ct);
+        }
+
         return new RepairRequestDetailDto
         {
             AppointmentId = appointment.AppointmentID,
             CarId = car.CarID,
             CreatedByUserId = userId,
+            Phone = customerPhone,
             Description = request.Description,
             ServiceType = appointmentServiceType,
             TechnicianId = technician?.UserID,
@@ -182,14 +192,15 @@ public class RepairRequestService : IRepairRequestService
     private static string MapMaintenanceTypeForCarMaintenance(string? serviceType)
     {
         if (string.IsNullOrWhiteSpace(serviceType))
-            return "REGULAR";
+            return "MAINTENANCE";
 
         var normalized = serviceType.Trim().ToLowerInvariant();
         return normalized switch
         {
-            "maintenance" => "REGULAR",
+            "maintenance" => "MAINTENANCE",
             "repair" => "REPAIR",
-            _ => "REGULAR"
+            "rescue" => "RESCUE",
+            _ => "MAINTENANCE"
         };
     }
 

@@ -129,7 +129,7 @@ public class AuthService : IAuthService
             throw new EmailNotVerifiedException("Email is not verified.", isExpired: false);
         }
 
-        var (token, expiresAtUtc) = _tokenService.GenerateToken(user.UserID, user.Email, user.FullName);
+        var (token, expiresAtUtc) = _tokenService.GenerateToken(user.UserID, user.Email, user.FullName, user.RoleID);
 
         return new LoginResponse
         {
@@ -218,6 +218,8 @@ public class AuthService : IAuthService
             await _userRepo.SetEmailVerifiedAsync(user.UserID, true, ct);
         }
     }
+
+    public Task LogoutAsync(int userId, CancellationToken ct) => Task.CompletedTask;
 
     private async Task SendEmailVerificationOtpInternal(string email, CancellationToken ct)
     {

@@ -1,69 +1,95 @@
 import styled from "styled-components";
+import { useContext } from "react";
+import { AuthContext } from "@/context/AuthContext";
+import { useAppDispatch } from "@/store/store";
+import { setVisibleLogin } from "@/store/slices/appSlice";
+import { useTranslation } from "react-i18next";
 
 const PricingContainer = () => {
+  const { t } = useTranslation();
+  const { user } = useContext(AuthContext);
+  const dispatch = useAppDispatch();
+
+  const handleBooking = () => {
+    if (!user) {
+      dispatch(setVisibleLogin(true));
+      return;
+    }
+    // TODO: Navigate to booking page
+    console.log("Navigate to booking page");
+  };
+
   return (
     <Container>
       <SectionHeader>
-        <SectionTitle>Dịch vụ sửa chữa & bảo dưỡng</SectionTitle>
+        <SectionTitle>{t("pricingTitle")}</SectionTitle>
         <SectionDescription>
-          Lựa chọn gói dịch vụ phù hợp với nhu cầu của bạn
+          {t("pricingDescription")}
         </SectionDescription>
       </SectionHeader>
 
       <PricingGrid>
         <PricingCard $featured>
           <PricingCardContent>
-            <PricingTitle>Bảo dưỡng định kỳ</PricingTitle>
-            <PricingPrice $color="#2563eb">Từ 500,000đ</PricingPrice>
-            <PricingSubtitle>Gói cơ bản</PricingSubtitle>
+            <PricingTitle>{t("periodicMaintenanceTitle")}</PricingTitle>
+            <PricingPrice $color="#2563eb">{t("periodicMaintenancePrice")}</PricingPrice>
+            <PricingSubtitle>{t("periodicMaintenanceSubtitle")}</PricingSubtitle>
             <PricingFeatures>
-              <li>• Thay dầu máy</li>
-              <li>• Kiểm tra hệ thống</li>
-              <li>• Vệ sinh xe</li>
+              <li>{t("periodicMaintenanceFeature1")}</li>
+              <li>{t("periodicMaintenanceFeature2")}</li>
+              <li>{t("periodicMaintenanceFeature3")}</li>
             </PricingFeatures>
-            <PricingButton $primary>Chọn gói</PricingButton>
+            <PricingButton $primary onClick={handleBooking}>
+              {t("periodicMaintenanceButton")}
+            </PricingButton>
           </PricingCardContent>
         </PricingCard>
 
         <PricingCard>
           <PricingCardContent>
-            <PricingTitle>Sửa chữa chung</PricingTitle>
-            <PricingPrice>Liên hệ</PricingPrice>
-            <PricingSubtitle>Theo yêu cầu</PricingSubtitle>
+            <PricingTitle>{t("generalRepairTitle")}</PricingTitle>
+            <PricingPrice>{t("generalRepairPrice")}</PricingPrice>
+            <PricingSubtitle>{t("generalRepairSubtitle")}</PricingSubtitle>
             <PricingFeatures>
-              <li>• Sửa chữa động cơ</li>
-              <li>• Thay thế phụ tụng</li>
-              <li>• Bảo hành 6 tháng</li>
+              <li>{t("generalRepairFeature1")}</li>
+              <li>{t("generalRepairFeature2")}</li>
+              <li>{t("generalRepairFeature3")}</li>
             </PricingFeatures>
-            <PricingButton>Tư vấn</PricingButton>
+            <PricingButton onClick={handleBooking}>
+              {t("generalRepairButton")}
+            </PricingButton>
           </PricingCardContent>
         </PricingCard>
 
         <PricingCard>
           <PricingCardContent>
-            <PricingTitle>Hệ thống phanh</PricingTitle>
-            <PricingPrice>Từ 800,000đ</PricingPrice>
-            <PricingSubtitle>Chuyên sâu</PricingSubtitle>
+            <PricingTitle>{t("brakeSystemTitle")}</PricingTitle>
+            <PricingPrice>{t("brakeSystemPrice")}</PricingPrice>
+            <PricingSubtitle>{t("brakeSystemSubtitle")}</PricingSubtitle>
             <PricingFeatures>
-              <li>• Kiểm tra phanh</li>
-              <li>• Thay má phanh</li>
-              <li>• Bảo hành 1 năm</li>
+              <li>{t("brakeSystemFeature1")}</li>
+              <li>{t("brakeSystemFeature2")}</li>
+              <li>{t("brakeSystemFeature3")}</li>
             </PricingFeatures>
-            <PricingButton>Đặt lịch</PricingButton>
+            <PricingButton onClick={handleBooking}>
+              {t("brakeSystemButton")}
+            </PricingButton>
           </PricingCardContent>
         </PricingCard>
 
         <PricingCard>
           <PricingCardContent>
-            <PricingTitle>Bảo hiểm - Bảo hành</PricingTitle>
-            <PricingPrice>Từ 300,000đ</PricingPrice>
-            <PricingSubtitle>Dài hạn</PricingSubtitle>
+            <PricingTitle>{t("insuranceWarrantyTitle")}</PricingTitle>
+            <PricingPrice>{t("insuranceWarrantyPrice")}</PricingPrice>
+            <PricingSubtitle>{t("insuranceWarrantySubtitle")}</PricingSubtitle>
             <PricingFeatures>
-              <li>• Bảo hiểm toàn diện</li>
-              <li>• Hỗ trợ khẩn cấp</li>
-              <li>• Ưu đãi đặc biệt</li>
+              <li>{t("insuranceWarrantyFeature1")}</li>
+              <li>{t("insuranceWarrantyFeature2")}</li>
+              <li>{t("insuranceWarrantyFeature3")}</li>
             </PricingFeatures>
-            <PricingButton>Tìm hiểu</PricingButton>
+            <PricingButton onClick={handleBooking}>
+              {t("insuranceWarrantyButton")}
+            </PricingButton>
           </PricingCardContent>
         </PricingCard>
       </PricingGrid>

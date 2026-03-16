@@ -60,6 +60,7 @@ public class AppointmentRepository : IAppointmentRepository
                 CurrentOdometer = a.Car.CurrentOdometer,
                 CustomerFullName = a.CreatedByNavigation.FullName,
                 CustomerPhone = a.CreatedByNavigation.Phone,
+                Phone = a.CreatedByNavigation.Phone,
                 CustomerEmail = a.CreatedByNavigation.Email,
                 PackageName = a.RequestedPackage != null ? a.RequestedPackage.Name : null,
                 PackageCode = a.RequestedPackage != null ? a.RequestedPackage.PackageCode : null,
@@ -128,4 +129,77 @@ public class AppointmentRepository : IAppointmentRepository
             await _db.SaveChangesAsync(ct);
 
         } }
+
+    public async Task CheckInAsync(int appointmentId, int checkedInByUserId, CancellationToken ct)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.Car)
+                .Include(a => a.RequestedPackage)
+                .FirstOrDefaultAsync(a => a.AppointmentID == appointmentId, ct)
+                ?? throw new KeyNotFoundException("Appointment not found.");
+
+            if (appointment.Status != "CONFIRMED")
+                throw new InvalidOperationException("Only CONFIRMED appointments can be checked in.");
+
+            // 1. Đổi trạng thái Appointment → CHECKED_IN
+            appointment.Status = "CHECKED_IN";
+
+            // 2. Map ServiceType → MaintenanceType
+            var maintenanceType = appointment.ServiceType == "MAINTENANCE" ? "MAINTENANCE" : "REPAIR";
+
+            // 3. Tạo bản ghi CarMaintenance mới với status WAITING
+            var maintenance = new CarMaintenance
+            {
+                CarID = appointment.CarID,
+                AppointmentID = appointment.AppointmentID,
+                MaintenanceDate = new DateTime(1900, 1, 1),
+                Odometer = appointment.Car.CurrentOdometer,
+                Status = "WAITING",
+                TotalAmount = 0m,
+                DiscountAmount = 0m,
+                MaintenanceType = maintenanceType,
+                MemberDiscountAmount = 0m,
+                MemberDiscountPercent = 0m,
+                RankAtTimeOfService = null,
+                Notes = appointment.Notes,
+                BayID = null,
+                CreatedBy = checkedInByUserId,
+                AssignedTechnicianID = null,
+                TechnicianHistory = null,
+                CreatedDate = DateTime.UtcNow,
+                CompletedDate = null
+            };
+
+            _db.CarMaintenances.Add(maintenance);
+
+            // 4. Nếu Appointment có RequestedPackageID → tạo MaintenancePackageUsage
+            if (appointment.RequestedPackageID.HasValue && appointment.RequestedPackage != null)
+            {
+                var pkg = appointment.RequestedPackage;
+                var appliedPrice = pkg.FinalPrice ?? pkg.BasePrice;
+
+                _db.MaintenancePackageUsages.Add(new MaintenancePackageUsage
+                {
+                    Maintenance = maintenance,
+                    PackageID = pkg.PackageID,
+                    AppliedPrice = appliedPrice,
+                    DiscountAmount = Math.Max(0m, pkg.BasePrice - appliedPrice),
+                    AppliedDate = DateTime.UtcNow
+                });
+
+                maintenance.TotalAmount = appliedPrice;
+            }
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
+    }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -22,7 +22,7 @@ namespace AGMS.Application.DTOs.Intake
     {
         [Required]
         [MaxLength(20)]
-        public string MaintenanceType { get; set; } = "REGULAR"!;
+        public string MaintenanceType { get; set; } = "MAINTENANCE"!;
         [MaxLength(500)]
         public string? Notes { get; set; }
         public int? AssignedTechnicianId { get; set; }

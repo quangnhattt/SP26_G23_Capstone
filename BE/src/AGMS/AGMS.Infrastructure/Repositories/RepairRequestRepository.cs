@@ -99,9 +99,36 @@ public class RepairRequestRepository : IRepairRequestRepository
         return await _db.Users.FirstOrDefaultAsync(u => u.UserID == technicianId && u.RoleID == 3 && u.IsActive, ct);
     }
 
+    public async Task<string?> GetUserPhoneByIdAsync(int userId, CancellationToken ct)
+    {
+        return await _db.Users
+            .AsNoTracking()
+            .Where(u => u.UserID == userId)
+            .Select(u => u.Phone)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task AddAppointmentAsync(Appointment appointment, CancellationToken ct)
     {
         _db.Appointments.Add(appointment);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task AddAppointmentSymptomsAsync(int appointmentId, IEnumerable<int> symptomIds, CancellationToken ct)
+    {
+        var distinctIds = symptomIds.Distinct().ToList();
+        if (distinctIds.Count == 0)
+        {
+            return;
+        }
+
+        var rows = distinctIds.Select(id => new AppointmentSymptom
+        {
+            AppointmentID = appointmentId,
+            SymptomID = id
+        });
+
+        _db.AppointmentSymptoms.AddRange(rows);
         await _db.SaveChangesAsync(ct);
     }
 

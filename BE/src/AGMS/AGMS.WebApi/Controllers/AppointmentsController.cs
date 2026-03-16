@@ -134,4 +134,39 @@ public class AppointmentsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     } 
+
+    // POST /api/appointments/{id}/check-in — SA bấm nút Check-in: đổi status → CHECKED_IN và tạo CarMaintenance WAITING
+    [HttpPost("{id:int}/check-in")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CheckIn(int id, CancellationToken ct)
+    {
+        var (userId, error) = ExtractUserId();
+        if (error != null) return error;
+
+        var isSA = await IsServiceAdvisorAsync(userId, ct);
+        if (!isSA)
+            return Forbid();
+
+        try
+        {
+            await _appointmentService.CheckInAsync(id, userId, ct);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

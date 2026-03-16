@@ -30,9 +30,19 @@ public class RepairRequestCreateRequest
 
     public int? TechnicianId { get; set; }
 
+    [Phone]
+    [MaxLength(20)]
+    public string? Phone { get; set; }
+
     [Required]
     public string PreferredDate { get; set; } = null!;
 
     [Required]
     public string PreferredTime { get; set; } = null!;
+
+    /// <summary>
+    /// Danh sách SymptomID mà khách chọn khi đặt lịch.
+    /// Lấy từ API /api/symptoms.
+    /// </summary>
+    public List<int>? SymptomIds { get; set; }
 }

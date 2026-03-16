@@ -4,9 +4,17 @@ export const ROUTER_PAGE = {
   pricing: "/pricing",
   about: "/about",
   contact: "/contact",
+  admin: "/admin",
+  profile: "/profile",
   auth: {
     login: "/auth/login",
     register: "/auth/register",
     forgotPassword: "/auth/forgot-password",
+  },
+  adminModules: {
+    product: "/admin/product",
+    unit: "/admin/unit-managerment",
+    user: "/admin/user-managerment",
+    appointment: "/admin/appoinment-managerment",
   },
 };

@@ -30,7 +30,10 @@ interface AuthContextType {
     isUpdatePhone?: boolean,
     returnUrl?: string
   ) => Promise<void>;
-  loginWithEmail: (payload: ILoginWithEmailPayload) => Promise<void>;
+  loginWithEmail: (
+    payload: ILoginWithEmailPayload,
+    onEmailNotVerified?: (email: string) => void
+  ) => Promise<void>;
   logout: () => Promise<void>;
   setIsInitializing: (isInitializing: boolean) => void;
 }
@@ -241,17 +244,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    * ===== LOGIN WITH EMAIL =====
    */
   const loginWithEmail = React.useCallback(
-    async (payload: ILoginWithEmailPayload) => {
+    async (
+      payload: ILoginWithEmailPayload,
+      onEmailNotVerified?: (email: string) => void
+    ) => {
       showLoading();
       queryClient.removeQueries({ queryKey: ["get-balance"], exact: true });
 
       loginWithEmailMutate(payload, {
-        onSuccess: (tokens) => {
+        onSuccess: (response) => {
           setCustomToken({
-            token_access: tokens.accessToken,
-            token_refresh: tokens.refreshToken,
+            token_access: response.accessToken,
+            token_refresh: response.refreshToken,
           });
 
+          // Fetch user info from API
           // @ts-expect-error - mutate expects variables but we pass null for initial fetch
           userMutate(null, {
             onSuccess: (data) => {
@@ -263,6 +270,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               navigate(ROUTER_PAGE.home, { replace: true });
             },
             onError: (error) => {
+              console.error("User info fetch failed:", error);
               hideLoading();
               const err = error as AxiosError<{ message?: string }>;
               toast.error(err?.response?.data?.message ?? "Login failed");
@@ -270,9 +278,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           });
         },
         onError: (e) => {
+          console.error("Login failed:", e);
           hideLoading();
-          const err = e as AxiosError<{ message?: string }>;
-          toast.error(err?.response?.data?.message ?? "Đăng nhập thất bại");
+          const err = e as AxiosError<{
+            message?: string;
+            requiresEmailVerification?: boolean;
+          }>;
+          const data = err?.response?.data;
+
+          const isEmailNotVerified =
+            data?.requiresEmailVerification === true ||
+            data?.message === "Email is not verified.";
+
+          if (isEmailNotVerified && onEmailNotVerified) {
+            onEmailNotVerified(payload.email);
+          } else {
+            toast.error(data?.message ?? "Đăng nhập thất bại");
+          }
         },
       });
     },

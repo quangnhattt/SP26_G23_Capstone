@@ -70,7 +70,7 @@ namespace AGMS.Application.DTOs.ServiceOrder
     {
         [Required]
         [MaxLength(20)]
-        public string MaintenanceType { get; set; } = "REGULAR";
+        public string MaintenanceType { get; set; } = "MAINTENANCE";
         [MaxLength(500)]
         public string? Notes { get; set; }
         public int? AssignedTechnicianId { get; set; }

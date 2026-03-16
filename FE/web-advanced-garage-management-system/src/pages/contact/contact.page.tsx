@@ -9,7 +9,7 @@ import {
   IconSend,
   IconTool,
 } from "@tabler/icons-react";
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -20,10 +20,15 @@ import {
   FaTwitter,
   FaYoutube,
 } from "react-icons/fa";
+import { AuthContext } from "@/context/AuthContext";
+import { useAppDispatch } from "@/store/store";
+import { setVisibleLogin } from "@/store/slices/appSlice";
 
 const ContactPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+  const dispatch = useAppDispatch();
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
@@ -45,10 +50,13 @@ const ContactPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Integrate with API
-    console.log("Contact form submitted:", formData);
   };
 
   const handleBookOnline = () => {
+    if (!user) {
+      dispatch(setVisibleLogin(true));
+      return;
+    }
     navigate(ROUTER_PAGE.home);
     setTimeout(() => {
       document

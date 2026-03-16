@@ -23,4 +23,6 @@ public class Appointment
     public virtual User? ConfirmedByNavigation { get; set; }
     public virtual User CreatedByNavigation { get; set; } = null!;
     public virtual MaintenancePackage? RequestedPackage { get; set; }
+
+    public virtual ICollection<AppointmentSymptom> AppointmentSymptoms { get; set; } = new List<AppointmentSymptom>();
 }

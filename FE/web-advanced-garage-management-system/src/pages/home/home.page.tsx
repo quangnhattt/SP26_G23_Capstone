@@ -4,8 +4,24 @@ import StatsSection from "./components/stats.section";
 import FeaturesContainer from "./components/features.container";
 import PricingContainer from "./components/pricing.container";
 import TestimonialsContainer from "./components/testimonials.container";
+import React from "react";
+import { AuthContext } from "@/context/AuthContext";
+import { useAppDispatch } from "@/store/store";
+import { setVisibleLogin } from "@/store/slices/appSlice";
 
 const HomePage = () => {
+  const { user } = React.useContext(AuthContext);
+  const dispatch = useAppDispatch();
+
+  const handleBookAppointment = () => {
+    if (!user) {
+      dispatch(setVisibleLogin(true));
+      return;
+    }
+    // TODO: Navigate to booking page
+    console.log("Navigate to booking page");
+  };
+
   return (
     <PageContainer>
       {/* Hero Section */}
@@ -102,7 +118,7 @@ const HomePage = () => {
             Tham gia cộng đồng hơn 10,000 khách hàng tin tưởng.
           </CTADescription>
           <CTAButtonGroup>
-            <CTAPrimaryButton>
+            <CTAPrimaryButton onClick={handleBookAppointment}>
               <svg fill="currentColor" viewBox="0 0 16 16">
                 <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z" />
                 <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z" />

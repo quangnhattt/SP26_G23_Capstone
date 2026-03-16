@@ -1,15 +1,18 @@
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Appointments;
+using AGMS.Application.DTOs.Symptoms;
 
 namespace AGMS.Infrastructure.Services;
 
 public class AppointmentService : IAppointmentService
 {
     private readonly IAppointmentRepository _repo;
+    private readonly ISymptomService _symptomService;
 
-    public AppointmentService(IAppointmentRepository repo)
+    public AppointmentService(IAppointmentRepository repo, ISymptomService symptomService)
     {
         _repo = repo;
+        _symptomService = symptomService;
     }
 
     public async Task<IEnumerable<AppointmentListItemDto>> GetListAsync(int currentUserId, bool isServiceAdvisor, AppointmentFilterDto filter, CancellationToken ct)
@@ -89,6 +92,26 @@ public class AppointmentService : IAppointmentService
             };
         }
 
+        // Chỉ SA mới cần gợi ý triệu chứng + linh kiện, nhưng để đơn giản có thể trả cho cả hai
+        // Load triệu chứng gắn với appointment
+        if (appointment.AppointmentSymptoms != null && appointment.AppointmentSymptoms.Count > 0)
+        {
+            detail.Symptoms = appointment.AppointmentSymptoms
+                .Select(x => new SymptomDto
+                {
+                    Id = x.Symptom.SymptomID,
+                    Code = x.Symptom.Code,
+                    Name = x.Symptom.Name,
+                    Description = x.Symptom.Description
+                })
+                .OrderBy(s => s.Id)
+                .ToList();
+        }
+
+        // Gợi ý linh kiện dựa trên triệu chứng của appointment
+        var suggestedParts = await _symptomService.GetSuggestedPartsForAppointmentAsync(appointment.AppointmentID, ct);
+        detail.SuggestedParts = suggestedParts.ToList();
+
         return detail;
     }
 
@@ -110,5 +133,14 @@ public class AppointmentService : IAppointmentService
         if(roleID!=2)
             throw new UnauthorizedAccessException("Only Service Advisor (RoleID = 2) can reject appointments.");
         await _repo.RejectAsync(appointmentId, currentUserId, ct);
+    }
+
+    public async Task CheckInAsync(int appointmentId, int currentUserId, CancellationToken ct)
+    {
+        var roleId = await _repo.GetUserRoleIdAsync(currentUserId, ct);
+        if (roleId != 2)
+            throw new UnauthorizedAccessException("Only Service Advisor (RoleID = 2) can check in appointments.");
+
+        await _repo.CheckInAsync(appointmentId, currentUserId, ct);
     }
 }
