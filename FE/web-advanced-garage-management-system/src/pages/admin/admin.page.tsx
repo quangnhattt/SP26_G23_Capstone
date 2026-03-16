@@ -206,6 +206,7 @@ const MainContent = styled.main`
   margin-left: 260px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 
   @media (max-width: 1024px) {
     margin-left: 0;

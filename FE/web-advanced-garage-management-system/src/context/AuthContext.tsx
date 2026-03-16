@@ -284,14 +284,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             message?: string;
             requiresEmailVerification?: boolean;
           }>;
+          const data = err?.response?.data;
 
-          if (
-            err?.response?.data?.requiresEmailVerification &&
-            onEmailNotVerified
-          ) {
+          const isEmailNotVerified =
+            data?.requiresEmailVerification === true ||
+            data?.message === "Email is not verified.";
+
+          if (isEmailNotVerified && onEmailNotVerified) {
             onEmailNotVerified(payload.email);
           } else {
-            toast.error(err?.response?.data?.message ?? "Đăng nhập thất bại");
+            toast.error(data?.message ?? "Đăng nhập thất bại");
           }
         },
       });

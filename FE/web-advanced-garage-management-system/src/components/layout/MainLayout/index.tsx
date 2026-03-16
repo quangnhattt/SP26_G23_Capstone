@@ -71,5 +71,5 @@ const OutletContent = styled.div`
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  overflow-x: hidden;
+  overflow-x: auto;
 `;

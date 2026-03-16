@@ -1,4 +1,5 @@
 export default {
+  customer: 'Khách hàng',
   profile: "Hồ sơ cá nhân",
   logout: "Đăng xuất",
   nameProject: "AutoCare Pro",
@@ -239,6 +240,7 @@ export default {
   backButton: "Quay lại",
   otpRequired: "Vui lòng nhập đầy đủ 6 số OTP",
   otpSentSuccess: "Đã gửi mã OTP đến email của bạn",
+  sendingOTP: "Đang gửi mã xác thực...",
   otpVerifySuccess: "Xác thực OTP thành công!",
   otpVerifyFailed: "Xác thực OTP thất bại",
   otpResendSuccess: "Đã gửi lại mã OTP",

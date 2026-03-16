@@ -1,4 +1,5 @@
 export default {
+  customer: "Customer",
   profile: "Profile",
   logout: "Logout",
   nameProject: "AutoCare Pro",
@@ -239,6 +240,7 @@ export default {
   backButton: "Back",
   otpRequired: "Please enter all 6 digits",
   otpSentSuccess: "OTP code has been sent to your email",
+  sendingOTP: "Sending verification code...",
   otpVerifySuccess: "OTP verification successful!",
   otpVerifyFailed: "OTP verification failed",
   otpResendSuccess: "OTP code has been resent",

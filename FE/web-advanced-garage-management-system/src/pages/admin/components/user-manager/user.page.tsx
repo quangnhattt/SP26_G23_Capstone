@@ -151,7 +151,7 @@ const UserPage = () => {
         return "#3b82f6";
       case "technician":
         return "#10b981";
-      case "manager":
+      case "customer":
         return "#f59e0b";
       default:
         return "#6b7280";
@@ -241,6 +241,7 @@ const UserPage = () => {
           <TableTitle>{t("userList")}</TableTitle>
           <TableSubtitle>{t("showingUsers", { count: users.length })}</TableSubtitle>
 
+          <TableWrapper>
           <Table>
             <thead>
               <tr>
@@ -305,6 +306,7 @@ const UserPage = () => {
               ))}
             </tbody>
           </Table>
+          </TableWrapper>
         </TableSection>
       </TableCard>
 
@@ -427,7 +429,7 @@ const UserPage = () => {
                       <option value={1}>{t("admin")}</option>
                       <option value={2}>{t("serviceAdvisor")}</option>
                       <option value={3}>{t("technician")}</option>
-                      <option value={4}>{t("manager")}</option>
+                      <option value={4}>{t("customer")}</option>
                     </Select>
                   </FormGroup>
 
@@ -522,6 +524,15 @@ const Container = styled.div`
   padding: 2rem;
   background: #f8f9fa;
   min-height: 100vh;
+  min-width: 0;
+
+  @media (max-width: 1280px) {
+    padding: 1.5rem;
+  }
+
+  @media (max-width: 1024px) {
+    padding: 1rem;
+  }
 `;
 
 const Header = styled.div`
@@ -529,6 +540,17 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  @media (max-width: 1024px) {
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 const TitleSection = styled.div`
@@ -542,12 +564,20 @@ const Title = styled.h1`
   font-weight: 700;
   color: #1a1d2e;
   margin: 0;
+
+  @media (max-width: 1024px) {
+    font-size: 1.25rem;
+  }
 `;
 
 const Subtitle = styled.p`
   font-size: 0.875rem;
   color: #6b7590;
   margin: 0.25rem 0 0 0;
+
+  @media (max-width: 1024px) {
+    font-size: 0.8125rem;
+  }
 `;
 
 const AddButton = styled.button`
@@ -563,6 +593,11 @@ const AddButton = styled.button`
   cursor: pointer;
   transition: background 0.2s;
 
+  @media (max-width: 1024px) {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
   &:hover {
     background: #2563eb;
   }
@@ -574,8 +609,16 @@ const StatsGrid = styled.div`
   gap: 1rem;
   margin-bottom: 2rem;
 
-  @media (max-width: 1200px) {
+  @media (max-width: 1280px) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.875rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 1024px) {
     grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
   }
 
   @media (max-width: 768px) {
@@ -593,6 +636,11 @@ const StatCard = styled.div`
   align-items: center;
   justify-content: center;
   text-align: center;
+
+  @media (max-width: 1024px) {
+    padding: 1rem;
+    border-radius: 10px;
+  }
 `;
 
 const StatNumber = styled.div`
@@ -600,6 +648,10 @@ const StatNumber = styled.div`
   font-weight: 700;
   color: #1a1d2e;
   margin-bottom: 0.5rem;
+
+  @media (max-width: 1024px) {
+    font-size: 1.5rem;
+  }
 `;
 
 const StatLabel = styled.div`
@@ -617,6 +669,11 @@ const RankBadge = styled.span<{ color: string }>`
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
+
+  @media (max-width: 1024px) {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.6875rem;
+  }
 `;
 
 const TableCard = styled.div`
@@ -632,6 +689,10 @@ const TableHeader = styled.div`
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid #e5e7eb;
+
+  @media (max-width: 1024px) {
+    padding: 1rem;
+  }
 `;
 
 const SearchBox = styled.div`
@@ -643,7 +704,13 @@ const SearchBox = styled.div`
   border-radius: 8px;
   flex: 1;
   max-width: 400px;
+  min-width: 0;
   color: #6b7590;
+
+  @media (max-width: 1024px) {
+    max-width: 280px;
+    padding: 0.625rem 0.875rem;
+  }
 
   input {
     border: none;
@@ -661,6 +728,35 @@ const SearchBox = styled.div`
 
 const TableSection = styled.div`
   padding: 1.5rem;
+
+  @media (max-width: 1024px) {
+    padding: 1rem;
+  }
+`;
+
+const TableWrapper = styled.div`
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  min-width: 0;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
 `;
 
 const TableTitle = styled.h2`
@@ -678,6 +774,7 @@ const TableSubtitle = styled.p`
 
 const Table = styled.table`
   width: 100%;
+  min-width: 900px;
   border-collapse: collapse;
 `;
 
@@ -690,6 +787,12 @@ const Th = styled.th`
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+
+  @media (max-width: 1024px) {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.6875rem;
+  }
 `;
 
 const ThLeft = styled.th`
@@ -701,6 +804,12 @@ const ThLeft = styled.th`
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+
+  @media (max-width: 1024px) {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.6875rem;
+  }
 `;
 
 const Td = styled.td`
@@ -710,6 +819,11 @@ const Td = styled.td`
   color: #1a1d2e;
   text-align: center;
   vertical-align: middle;
+
+  @media (max-width: 1024px) {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+  }
 `;
 
 const TdLeft = styled.td`
@@ -719,6 +833,11 @@ const TdLeft = styled.td`
   color: #1a1d2e;
   text-align: left;
   vertical-align: middle;
+
+  @media (max-width: 1024px) {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+  }
 `;
 
 const CustomerInfo = styled.div`
@@ -767,6 +886,11 @@ const RankBadgeTable = styled.span<{ color: string }>`
   font-size: 0.75rem;
   font-weight: 600;
   display: inline-block;
+
+  @media (max-width: 1024px) {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.6875rem;
+  }
 `;
 
 const StatusBadge = styled.span<{ $isActive: boolean }>`
@@ -777,6 +901,11 @@ const StatusBadge = styled.span<{ $isActive: boolean }>`
   font-size: 0.75rem;
   font-weight: 600;
   display: inline-block;
+
+  @media (max-width: 1024px) {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.6875rem;
+  }
 `;
 
 const LoadingMessage = styled.div`
@@ -827,6 +956,12 @@ const Modal = styled.div`
   align-items: center;
   justify-content: center;
   padding: 1rem;
+
+  @media (max-width: 1024px) {
+    padding: 0.75rem;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
 `;
 
 const ModalOverlay = styled.div`
@@ -850,6 +985,11 @@ const ModalContent = styled.div`
   overflow: hidden;
   display: flex;
   flex-direction: column;
+
+  @media (max-width: 1024px) {
+    max-height: calc(100vh - 1.5rem);
+    margin: auto 0;
+  }
 `;
 
 const ModalHeader = styled.div`
@@ -858,6 +998,11 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   padding: 1.5rem;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+
+  @media (max-width: 1024px) {
+    padding: 1rem;
+  }
 `;
 
 const ModalTitle = styled.h2`
@@ -865,6 +1010,10 @@ const ModalTitle = styled.h2`
   font-weight: 700;
   color: #1a1d2e;
   margin: 0;
+
+  @media (max-width: 1024px) {
+    font-size: 1.125rem;
+  }
 `;
 
 const CloseButton = styled.button`
@@ -889,6 +1038,10 @@ const ModalBody = styled.div`
   padding: 1.5rem;
   overflow-y: auto;
   flex: 1;
+
+  @media (max-width: 1024px) {
+    padding: 1rem;
+  }
 `;
 
 const Form = styled.form`
@@ -901,6 +1054,10 @@ const FormRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+
+  @media (max-width: 1024px) {
+    gap: 0.875rem;
+  }
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;

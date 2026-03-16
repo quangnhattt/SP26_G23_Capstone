@@ -38,6 +38,7 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  const [isSendingOTP, setIsSendingOTP] = useState(false);
 
   const handleClose = () => {
     if (onClose) {
@@ -58,10 +59,12 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
       return;
     }
     loginWithEmail({ email: email.trim(), password }, async (verifyEmail) => {
+      setIsSendingOTP(true);
       try {
         await authService.sendOTP({ email: verifyEmail });
         toast.success(t("otpSentSuccess"));
         setCurrentStep("otp");
+        setOtp(["", "", "", "", "", ""]);
       } catch (error: unknown) {
         const err = error as {
           response?: { data?: { message?: string } };
@@ -69,6 +72,8 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
         toast.error(
           err?.response?.data?.message ?? "Không thể gửi mã OTP"
         );
+      } finally {
+        setIsSendingOTP(false);
       }
     });
   };
@@ -298,7 +303,9 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
                     </CheckboxLabel>
                   </CheckboxRow>
 
-                  <SubmitButton type="submit">{t("login")}</SubmitButton>
+                  <SubmitButton type="submit" disabled={isSendingOTP}>
+                    {isSendingOTP ? t("sendingOTP") : t("login")}
+                  </SubmitButton>
                 </Form>
               </>
             ) : (
