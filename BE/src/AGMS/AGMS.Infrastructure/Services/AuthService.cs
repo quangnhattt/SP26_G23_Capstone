@@ -219,6 +219,8 @@ public class AuthService : IAuthService
         }
     }
 
+    public Task LogoutAsync(int userId, CancellationToken ct) => Task.CompletedTask;
+
     private async Task SendEmailVerificationOtpInternal(string email, CancellationToken ct)
     {
         var otp = Random.Shared.Next(100_000, 1_000_000).ToString();
