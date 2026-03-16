@@ -249,7 +249,6 @@ export default {
   changePassword: "Change password",
   updateYourPassword: "Update your password",
   contactInfo: "Contact information",
-  phoneNumber: "Phone number",
   joinDate: "Join date",
   yourVehicles: "Your vehicles",
   addYourVehicle: "Add your vehicle",

@@ -249,7 +249,6 @@ export default {
   changePassword: "Đổi mật khẩu",
   updateYourPassword: "Cập nhật mật khẩu của bạn",
   contactInfo: "Thông tin liên hệ",
-  phoneNumber: "Số điện thoại",
   joinDate: "Ngày tham gia",
   yourVehicles: "Xe của bạn",
   addYourVehicle: "Thêm xe của bạn",
