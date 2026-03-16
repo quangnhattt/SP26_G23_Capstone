@@ -61,9 +61,10 @@ const ResetPasswordModal = ({ email, onClose, onSuccess }: ResetPasswordModalPro
         onSuccess();
       }
       onClose();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Reset password error:", error);
-      toast.error(error?.response?.data?.message || t("resetPasswordFailed"));
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err?.response?.data?.message || t("resetPasswordFailed"));
     } finally {
       setIsLoading(false);
     }

@@ -47,7 +47,6 @@ const EditProfileModal = ({ onClose, onSuccess }: EditProfileModalProps) => {
       dateOfBirth: formData.dateOfBirth || undefined,
     };
 
-    console.log("Updating profile with payload:", payload);
     setLoading(true);
     try {
       const result = await userService.updateInfo(payload);

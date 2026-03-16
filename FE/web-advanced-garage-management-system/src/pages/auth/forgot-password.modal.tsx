@@ -30,9 +30,10 @@ const ForgotPasswordModal = ({ onClose, onSuccess }: ForgotPasswordModalProps) =
       if (onSuccess) {
         onSuccess(email.trim());
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Forgot password error:", error);
-      toast.error(error?.response?.data?.message || t("forgotPasswordFailed"));
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err?.response?.data?.message || t("forgotPasswordFailed"));
     } finally {
       setIsLoading(false);
     }

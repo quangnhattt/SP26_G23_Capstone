@@ -64,7 +64,6 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
   };
 
   const handleForgotPassword = () => {
-    console.log("handleForgotPassword clicked");
     setShowForgotPassword(true);
   };
 

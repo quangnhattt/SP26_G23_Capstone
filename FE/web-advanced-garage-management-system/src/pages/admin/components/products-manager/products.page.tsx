@@ -1,436 +1,445 @@
 import styled from "styled-components";
 import { HiSearch, HiPlus, HiPencil, HiTrash, HiX } from "react-icons/hi";
 import { useEffect, useState } from "react";
-import { getProducts, createProduct, updateProduct, getProductById } from "@/services/admin/productService";
+import {
+  getProducts,
+  createProduct,
+  updateProduct,
+  getProductById,
+} from "@/services/admin/productService";
 import type { IProduct } from "@/services/admin/productService";
 import { useTranslation } from "react-i18next";
 
 interface ProductFormData {
-    code: string;
-    name: string;
-    price: number;
-    unitId: number;
-    categoryId: number;
-    warranty: number;
-    minStockLevel: number;
-    description: string;
-    image: string;
-    isActive: boolean;
+  code: string;
+  name: string;
+  price: number;
+  unitId: number;
+  categoryId: number;
+  warranty: number;
+  minStockLevel: number;
+  description: string;
+  image: string;
+  isActive: boolean;
 }
 
 const ProductsPage = () => {
-    const { t } = useTranslation();
-    const [products, setProducts] = useState<IProduct[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingProduct, setEditingProduct] = useState<IProduct | null>(null);
-    const [loadingModal, setLoadingModal] = useState(false);
-    const [formData, setFormData] = useState<ProductFormData>({
-        code: "",
-        name: "",
-        price: 0,
-        unitId: 1,
-        categoryId: 1,
-        warranty: 0,
-        minStockLevel: 0,
-        description: "",
-        image: "",
-        isActive: true,
+  const { t } = useTranslation();
+  const [products, setProducts] = useState<IProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<IProduct | null>(null);
+  const [loadingModal, setLoadingModal] = useState(false);
+  const [formData, setFormData] = useState<ProductFormData>({
+    code: "",
+    name: "",
+    price: 0,
+    unitId: 1,
+    categoryId: 1,
+    warranty: 0,
+    minStockLevel: 0,
+    description: "",
+    image: "",
+    isActive: true,
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await getProducts();
+      setProducts(data);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+      setError(t("cannotLoadProducts"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenCreateModal = () => {
+    setEditingProduct(null);
+    setFormData({
+      code: "",
+      name: "",
+      price: 0,
+      unitId: 1,
+      categoryId: 1,
+      warranty: 0,
+      minStockLevel: 0,
+      description: "",
+      image: "",
+      isActive: true,
     });
-    const [submitting, setSubmitting] = useState(false);
+    setIsModalOpen(true);
+  };
 
-    useEffect(() => {
-        fetchProducts();
-    }, []);
+  const handleOpenEditModal = async (product: IProduct) => {
+    setEditingProduct(product);
+    setIsModalOpen(true);
+    setLoadingModal(true);
 
-    const fetchProducts = async () => {
-        try {
-            setLoading(true);
-            const data = await getProducts();
-            setProducts(data);
-        } catch (err) {
-            console.error("Failed to fetch products:", err);
-            setError(t("cannotLoadProducts"));
-        } finally {
-            setLoading(false);
-        }
-    };
+    try {
+      const productDetail = await getProductById(product.id);
 
-    const handleOpenCreateModal = () => {
-        setEditingProduct(null);
-        setFormData({
-            code: "",
-            name: "",
-            price: 0,
-            unitId: 1,
-            categoryId: 1,
-            warranty: 0,
-            minStockLevel: 0,
-            description: "",
-            image: "",
-            isActive: true,
-        });
-        setIsModalOpen(true);
-    };
+      setFormData({
+        code: productDetail.code,
+        name: productDetail.name,
+        price: productDetail.price,
+        unitId: 2,
+        categoryId: 21,
+        warranty: productDetail.warranty,
+        minStockLevel: productDetail.minStockLevel,
+        description: productDetail.description,
+        image: productDetail.image || "",
+        isActive: productDetail.isActive,
+      });
+    } catch (error) {
+      console.error("Failed to fetch product detail:", error);
+      setFormData({
+        code: product.code,
+        name: product.name,
+        price: product.price,
+        unitId: 2,
+        categoryId: 21,
+        warranty: product.warranty,
+        minStockLevel: product.minStockLevel,
+        description: product.description,
+        image: product.image || "",
+        isActive: product.isActive,
+      });
+    } finally {
+      setLoadingModal(false);
+    }
+  };
 
-    const handleOpenEditModal = async (product: IProduct) => {
-        setEditingProduct(product);
-        setIsModalOpen(true);
-        setLoadingModal(true);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingProduct(null);
+  };
 
-        try {
-            const productDetail = await getProductById(product.id);
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        type === "number"
+          ? Number(value)
+          : type === "checkbox"
+          ? (e.target as HTMLInputElement).checked
+          : value,
+    }));
+  };
 
-            console.log("Product detail fetched:", productDetail);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
 
-            setFormData({
-                code: productDetail.code,
-                name: productDetail.name,
-                price: productDetail.price,
-                unitId: 2,
-                categoryId: 21,
-                warranty: productDetail.warranty,
-                minStockLevel: productDetail.minStockLevel,
-                description: productDetail.description,
-                image: productDetail.image || "",
-                isActive: productDetail.isActive,
-            });
-        } catch (error) {
-            console.error("Failed to fetch product detail:", error);
-            setFormData({
-                code: product.code,
-                name: product.name,
-                price: product.price,
-                unitId: 2,
-                categoryId: 21,
-                warranty: product.warranty,
-                minStockLevel: product.minStockLevel,
-                description: product.description,
-                image: product.image || "",
-                isActive: product.isActive,
-            });
-        } finally {
-            setLoadingModal(false);
-        }
-    };
+    try {
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, formData);
+      } else {
+        await createProduct(formData);
+      }
+      await fetchProducts();
+      handleCloseModal();
+    } catch (err) {
+      console.error("Failed to save product:", err);
+      alert(t("errorSavingProduct"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setEditingProduct(null);
-    };
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
+  };
 
-    const handleInputChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) => {
-        const { name, value, type } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]:
-                type === "number"
-                    ? Number(value)
-                    : type === "checkbox"
-                        ? (e.target as HTMLInputElement).checked
-                        : value,
-        }));
-    };
+  return (
+    <Container>
+      <Header>
+        <TitleSection>
+          <Title>{t("productsManagement")}</Title>
+          <Subtitle>{t("productsManagementSubtitle")}</Subtitle>
+        </TitleSection>
+        <AddButton onClick={handleOpenCreateModal}>
+          <HiPlus size={18} />
+          {t("createNewProduct")}
+        </AddButton>
+      </Header>
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
+      <TableCard>
+        <TableHeader>
+          <SearchBox>
+            <HiSearch size={18} />
+            <input type="text" placeholder={t("searchByNameCode")} />
+          </SearchBox>
+        </TableHeader>
 
-        try {
-            if (editingProduct) {
-                await updateProduct(editingProduct.id, formData);
-            } else {
-                await createProduct(formData);
-            }
-            await fetchProducts();
-            handleCloseModal();
-        } catch (err) {
-            console.error("Failed to save product:", err);
-            alert(t("errorSavingProduct"));
-        } finally {
-            setSubmitting(false);
-        }
-    };
+        <TableSection>
+          <TableTitle>{t("productList")}</TableTitle>
+          <TableSubtitle>
+            {loading
+              ? t("loadingProducts")
+              : t("showingProducts", { count: products.length })}
+          </TableSubtitle>
 
-    const formatPrice = (price: number) => {
-        return new Intl.NumberFormat("vi-VN", {
-            style: "currency",
-            currency: "VND",
-        }).format(price);
-    };
+          {error && <ErrorMessage>{error}</ErrorMessage>}
 
-    return (
-        <Container>
-            <Header>
-                <TitleSection>
-                    <Title>{t("productsManagement")}</Title>
-                    <Subtitle>{t("productsManagementSubtitle")}</Subtitle>
-                </TitleSection>
-                <AddButton onClick={handleOpenCreateModal}>
-                    <HiPlus size={18} />
-                    {t("createNewProduct")}
-                </AddButton>
-            </Header>
+          {loading ? (
+            <LoadingMessage>{t("loadingData")}</LoadingMessage>
+          ) : (
+            <Table>
+              <thead>
+                <tr>
+                  <Th>{t("name")}</Th>
+                  <Th>{t("price")}</Th>
+                  <Th>{t("unit")}</Th>
+                  <Th>{t("category")}</Th>
+                  <Th>{t("warranty")}</Th>
+                  <Th>{t("minStock")}</Th>
+                  <Th>{t("stockQty")}</Th>
+                  <Th>{t("status")}</Th>
+                  <Th>{t("action")}</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((product) => (
+                  <tr key={product.id}>
+                    <Td>
+                      <ProductInfo>
+                        <div>
+                          <ProductName>{product.name}</ProductName>
+                          <ProductCode>{product.code}</ProductCode>
+                        </div>
+                      </ProductInfo>
+                    </Td>
+                    <Td>
+                      <PriceText>{formatPrice(product.price)}</PriceText>
+                    </Td>
+                    <Td>
+                      <UnitBadge>{product.unit || "N/A"}</UnitBadge>
+                    </Td>
+                    <Td>
+                      <CategoryBadge $hasData={!!product.category}>
+                        {product.category || "N/A"}
+                      </CategoryBadge>
+                    </Td>
+                    <Td>
+                      {product.warranty} {t("months")}
+                    </Td>
+                    <Td>{product.minStockLevel}</Td>
+                    <Td>
+                      <StockBadge
+                        $isLow={product.stockQty < product.minStockLevel}
+                      >
+                        {product.stockQty}
+                      </StockBadge>
+                    </Td>
+                    <Td>
+                      <StatusBadge $isActive={product.isActive}>
+                        {product.isActive ? t("active") : t("inactive")}
+                      </StatusBadge>
+                    </Td>
+                    <Td>
+                      <ActionButtons>
+                        <EditButton
+                          onClick={() => handleOpenEditModal(product)}
+                          title="Edit"
+                        >
+                          <HiPencil size={18} />
+                        </EditButton>
+                        <DeleteButton
+                          onClick={() =>
+                            console.log("Delete product:", product.id)
+                          }
+                          title="Delete"
+                        >
+                          <HiTrash size={18} />
+                        </DeleteButton>
+                      </ActionButtons>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </TableSection>
+      </TableCard>
 
-            <TableCard>
-                <TableHeader>
-                    <SearchBox>
-                        <HiSearch size={18} />
-                        <input type="text" placeholder={t("searchByNameCode")} />
-                    </SearchBox>
-                </TableHeader>
+      {isModalOpen && (
+        <Modal>
+          <ModalOverlay onClick={handleCloseModal} />
+          <ModalContent>
+            <ModalHeader>
+              <ModalTitle>
+                {editingProduct ? t("updateProduct") : t("createNewProduct")}
+              </ModalTitle>
+              <CloseButton onClick={handleCloseModal}>
+                <HiX size={24} />
+              </CloseButton>
+            </ModalHeader>
 
-                <TableSection>
-                    <TableTitle>{t("productList")}</TableTitle>
-                    <TableSubtitle>
-                        {loading
-                            ? t("loadingProducts")
-                            : t("showingProducts", { count: products.length })}
-                    </TableSubtitle>
+            <ModalBody>
+              {loadingModal ? (
+                <LoadingModalContent>{t("loadingData")}</LoadingModalContent>
+              ) : (
+                <Form onSubmit={handleSubmit}>
+                  <FormRow>
+                    <FormGroup>
+                      <Label>{t("code")} *</Label>
+                      <Input
+                        type="text"
+                        name="code"
+                        value={formData.code}
+                        onChange={handleInputChange}
+                        placeholder="P1161200016"
+                        required
+                      />
+                    </FormGroup>
 
-                    {error && <ErrorMessage>{error}</ErrorMessage>}
+                    <FormGroup>
+                      <Label>{t("name")} *</Label>
+                      <Input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        placeholder="Test tiền postman"
+                        required
+                      />
+                    </FormGroup>
+                  </FormRow>
 
-                    {loading ? (
-                        <LoadingMessage>{t("loadingData")}</LoadingMessage>
-                    ) : (
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <Th>{t("name")}</Th>
-                                    <Th>{t("price")}</Th>
-                                    <Th>{t("unit")}</Th>
-                                    <Th>{t("category")}</Th>
-                                    <Th>{t("warranty")}</Th>
-                                    <Th>{t("minStock")}</Th>
-                                    <Th>{t("stockQty")}</Th>
-                                    <Th>{t("status")}</Th>
-                                    <Th>{t("action")}</Th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {products.map((product) => (
-                                    <tr key={product.id}>
-                                        <Td>
-                                            <ProductInfo>
-                                                <div>
-                                                    <ProductName>{product.name}</ProductName>
-                                                    <ProductCode>{product.code}</ProductCode>
-                                                </div>
-                                            </ProductInfo>
-                                        </Td>
-                                        <Td>
-                                            <PriceText>{formatPrice(product.price)}</PriceText>
-                                        </Td>
-                                        <Td>
-                                            <UnitBadge>{product.unit || "N/A"}</UnitBadge>
-                                        </Td>
-                                        <Td>
-                                            <CategoryBadge $hasData={!!product.category}>
-                                                {product.category || "N/A"}
-                                            </CategoryBadge>
-                                        </Td>
-                                        <Td>{product.warranty} {t("months")}</Td>
-                                        <Td>{product.minStockLevel}</Td>
-                                        <Td>
-                                            <StockBadge $isLow={product.stockQty < product.minStockLevel}>
-                                                {product.stockQty}
-                                            </StockBadge>
-                                        </Td>
-                                        <Td>
-                                            <StatusBadge $isActive={product.isActive}>
-                                                {product.isActive ? t("active") : t("inactive")}
-                                            </StatusBadge>
-                                        </Td>
-                                        <Td>
-                                            <ActionButtons>
-                                                <EditButton
-                                                    onClick={() => handleOpenEditModal(product)}
-                                                    title="Edit"
-                                                >
-                                                    <HiPencil size={18} />
-                                                </EditButton>
-                                                <DeleteButton
-                                                    onClick={() => console.log("Delete product:", product.id)}
-                                                    title="Delete"
-                                                >
-                                                    <HiTrash size={18} />
-                                                </DeleteButton>
-                                            </ActionButtons>
-                                        </Td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    )}
-                </TableSection>
-            </TableCard>
+                  <FormRow>
+                    <FormGroup>
+                      <Label>{t("price")} *</Label>
+                      <Input
+                        type="number"
+                        name="price"
+                        value={formData.price}
+                        onChange={handleInputChange}
+                        placeholder="9999999"
+                        required
+                      />
+                    </FormGroup>
 
-            {isModalOpen && (
-                <Modal>
-                    <ModalOverlay onClick={handleCloseModal} />
-                    <ModalContent>
-                        <ModalHeader>
-                            <ModalTitle>
-                                {editingProduct ? t("updateProduct") : t("createNewProduct")}
-                            </ModalTitle>
-                            <CloseButton onClick={handleCloseModal}>
-                                <HiX size={24} />
-                            </CloseButton>
-                        </ModalHeader>
+                    <FormGroup>
+                      <Label>{t("unitID")} *</Label>
+                      <Input
+                        type="number"
+                        name="unitId"
+                        value={formData.unitId}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </FormGroup>
+                  </FormRow>
 
-                        <ModalBody>
-                            {loadingModal ? (
-                                <LoadingModalContent>{t("loadingData")}</LoadingModalContent>
-                            ) : (
-                                <Form onSubmit={handleSubmit}>
-                                    <FormRow>
-                                        <FormGroup>
-                                            <Label>{t("code")} *</Label>
-                                            <Input
-                                                type="text"
-                                                name="code"
-                                                value={formData.code}
-                                                onChange={handleInputChange}
-                                                placeholder="P1161200016"
-                                                required
-                                            />
-                                        </FormGroup>
+                  <FormRow>
+                    <FormGroup>
+                      <Label>{t("categoryID")} *</Label>
+                      <Input
+                        type="number"
+                        name="categoryId"
+                        value={formData.categoryId}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </FormGroup>
 
-                                        <FormGroup>
-                                            <Label>{t("name")} *</Label>
-                                            <Input
-                                                type="text"
-                                                name="name"
-                                                value={formData.name}
-                                                onChange={handleInputChange}
-                                                placeholder="Test tiền postman"
-                                                required
-                                            />
-                                        </FormGroup>
-                                    </FormRow>
+                    <FormGroup>
+                      <Label>{t("warrantyMonths")} *</Label>
+                      <Input
+                        type="number"
+                        name="warranty"
+                        value={formData.warranty}
+                        onChange={handleInputChange}
+                        placeholder="9"
+                        required
+                      />
+                    </FormGroup>
+                  </FormRow>
 
-                                    <FormRow>
-                                        <FormGroup>
-                                            <Label>{t("price")} *</Label>
-                                            <Input
-                                                type="number"
-                                                name="price"
-                                                value={formData.price}
-                                                onChange={handleInputChange}
-                                                placeholder="9999999"
-                                                required
-                                            />
-                                        </FormGroup>
+                  <FormRow>
+                    <FormGroup>
+                      <Label>{t("minStockLevel")} *</Label>
+                      <Input
+                        type="number"
+                        name="minStockLevel"
+                        value={formData.minStockLevel}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                        required
+                      />
+                    </FormGroup>
 
-                                        <FormGroup>
-                                            <Label>{t("unitID")} *</Label>
-                                            <Input
-                                                type="number"
-                                                name="unitId"
-                                                value={formData.unitId}
-                                                onChange={handleInputChange}
-                                                required
-                                            />
-                                        </FormGroup>
-                                    </FormRow>
+                    <FormGroup>
+                      <Label>{t("imageURL")}</Label>
+                      <Input
+                        type="text"
+                        name="image"
+                        value={formData.image}
+                        onChange={handleInputChange}
+                        placeholder="string"
+                      />
+                    </FormGroup>
+                  </FormRow>
 
-                                    <FormRow>
-                                        <FormGroup>
-                                            <Label>{t("categoryID")} *</Label>
-                                            <Input
-                                                type="number"
-                                                name="categoryId"
-                                                value={formData.categoryId}
-                                                onChange={handleInputChange}
-                                                required
-                                            />
-                                        </FormGroup>
+                  <FormGroup>
+                    <Label>{t("description")} *</Label>
+                    <TextArea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      placeholder="Test tiền post man cho anh nhất"
+                      rows={3}
+                      required
+                    />
+                  </FormGroup>
 
-                                        <FormGroup>
-                                            <Label>{t("warrantyMonths")} *</Label>
-                                            <Input
-                                                type="number"
-                                                name="warranty"
-                                                value={formData.warranty}
-                                                onChange={handleInputChange}
-                                                placeholder="9"
-                                                required
-                                            />
-                                        </FormGroup>
-                                    </FormRow>
+                  <FormGroup>
+                    <CheckboxLabel>
+                      <input
+                        type="checkbox"
+                        name="isActive"
+                        checked={formData.isActive}
+                        onChange={handleInputChange}
+                      />
+                      <span>{t("active")}</span>
+                    </CheckboxLabel>
+                  </FormGroup>
 
-                                    <FormRow>
-                                        <FormGroup>
-                                            <Label>{t("minStockLevel")} *</Label>
-                                            <Input
-                                                type="number"
-                                                name="minStockLevel"
-                                                value={formData.minStockLevel}
-                                                onChange={handleInputChange}
-                                                placeholder="0"
-                                                required
-                                            />
-                                        </FormGroup>
-
-                                        <FormGroup>
-                                            <Label>{t("imageURL")}</Label>
-                                            <Input
-                                                type="text"
-                                                name="image"
-                                                value={formData.image}
-                                                onChange={handleInputChange}
-                                                placeholder="string"
-                                            />
-                                        </FormGroup>
-                                    </FormRow>
-
-                                    <FormGroup>
-                                        <Label>{t("description")} *</Label>
-                                        <TextArea
-                                            name="description"
-                                            value={formData.description}
-                                            onChange={handleInputChange}
-                                            placeholder="Test tiền post man cho anh nhất"
-                                            rows={3}
-                                            required
-                                        />
-                                    </FormGroup>
-
-                                    <FormGroup>
-                                        <CheckboxLabel>
-                                            <input
-                                                type="checkbox"
-                                                name="isActive"
-                                                checked={formData.isActive}
-                                                onChange={handleInputChange}
-                                            />
-                                            <span>{t("active")}</span>
-                                        </CheckboxLabel>
-                                    </FormGroup>
-
-                                    <ModalFooter>
-                                        <CancelButton type="button" onClick={handleCloseModal}>
-                                            {t("cancel")}
-                                        </CancelButton>
-                                        <SubmitButton type="submit" disabled={submitting}>
-                                            {submitting
-                                                ? t("saving")
-                                                : editingProduct
-                                                    ? t("updateProduct")
-                                                    : t("createProduct")}
-                                        </SubmitButton>
-                                    </ModalFooter>
-                                </Form>
-                            )}
-                        </ModalBody>
-                    </ModalContent>
-                </Modal>
-            )}
-        </Container>
-    );
+                  <ModalFooter>
+                    <CancelButton type="button" onClick={handleCloseModal}>
+                      {t("cancel")}
+                    </CancelButton>
+                    <SubmitButton type="submit" disabled={submitting}>
+                      {submitting
+                        ? t("saving")
+                        : editingProduct
+                        ? t("updateProduct")
+                        : t("createProduct")}
+                    </SubmitButton>
+                  </ModalFooter>
+                </Form>
+              )}
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+    </Container>
+  );
 };
 
 export default ProductsPage;
