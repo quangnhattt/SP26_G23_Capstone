@@ -26,12 +26,14 @@ export const hasPermission = (
   permissionName: string
 ): boolean => {
   return menuGroups.some((group) =>
-    group.items.some((item) => item.name === permissionName)
+    group.items?.some((item) => item.name === permissionName)
   );
 };
 
 export const getAllPermissions = (menuGroups: IMenuGroup[]): string[] => {
-  return menuGroups.flatMap((group) => group.items.map((item) => item.name));
+  return menuGroups.flatMap((group) => 
+    group.items?.map((item) => item.name) || []
+  );
 };
 
 export const getPermissionsByGroup = (
