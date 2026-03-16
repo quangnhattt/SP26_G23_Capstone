@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import { ROUTER_PAGE } from "./contants";
 import { lazy, Suspense } from "react";
+import UserPage from "@/pages/admin/components/user-manager/user.page";
 
 const HomePage = lazy(() => import("@/pages/home/home.page"));
 const ServicesPage = lazy(() => import("@/pages/services/services.page"));
@@ -35,7 +36,7 @@ const AppRoutesContent = () => {
           <Route path={ROUTER_PAGE.admin} element={<AdminDashboard />}>
             <Route path="product" element={<ProductsPage />} />
             <Route path="unit-managerment" element={<CustomersPage />} />
-            <Route path="user-managerment" element={<CustomersPage />} />
+            <Route path="user-managerment" element={<UserPage />} />
             <Route path="appoinment-managerment" element={<CustomersPage />} />
           </Route>
           <Route path={ROUTER_PAGE.profile} element={<ProfilePage />} />

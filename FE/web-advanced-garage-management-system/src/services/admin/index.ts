@@ -3,3 +3,4 @@
  */
 
 export * from './menuService';
+export * from './userService';
