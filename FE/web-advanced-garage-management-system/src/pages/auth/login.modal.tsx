@@ -12,6 +12,8 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import styled from "styled-components";
+import ForgotPasswordModal from "./forgot-password.modal";
+import ResetPasswordModal from "./reset-password.modal";
 
 interface LoginModalProps {
   onClose?: () => void;
@@ -27,6 +29,9 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
 
   const handleClose = () => {
     if (onClose) {
@@ -59,15 +64,44 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
   };
 
   const handleForgotPassword = () => {
-    navigate(ROUTER_PAGE.auth.forgotPassword);
+    console.log("handleForgotPassword clicked");
+    setShowForgotPassword(true);
+  };
+
+  const handleForgotPasswordSuccess = (email: string) => {
+    setForgotPasswordEmail(email);
+    setShowForgotPassword(false);
+    setShowResetPassword(true);
+  };
+
+  const handleResetPasswordSuccess = () => {
+    setShowResetPassword(false);
+    toast.success(t("resetPasswordSuccess"));
   };
 
   return (
-    <Overlay onClick={handleClose}>
-      <ModalCard onClick={(e) => e.stopPropagation()}>
-        <CloseButton onClick={handleClose} aria-label="Close">
-          ×
-        </CloseButton>
+    <>
+      {showForgotPassword && (
+        <ForgotPasswordModal
+          onClose={() => setShowForgotPassword(false)}
+          onSuccess={handleForgotPasswordSuccess}
+        />
+      )}
+
+      {showResetPassword && (
+        <ResetPasswordModal
+          email={forgotPasswordEmail}
+          onClose={() => setShowResetPassword(false)}
+          onSuccess={handleResetPasswordSuccess}
+        />
+      )}
+
+      {!showForgotPassword && !showResetPassword && (
+        <Overlay onClick={handleClose}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <CloseButton onClick={handleClose} aria-label="Close">
+              ×
+            </CloseButton>
 
         <IconWrapper>
           <img
@@ -155,6 +189,8 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
 
       </ModalCard>
     </Overlay>
+      )}
+    </>
   );
 };
 
