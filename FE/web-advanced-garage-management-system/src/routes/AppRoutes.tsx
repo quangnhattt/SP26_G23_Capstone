@@ -13,6 +13,7 @@ const PricingPage = lazy(() => import("@/pages/pricing/pricing.page"));
 const AboutPage = lazy(() => import("@/pages/about/about.page"));
 const ContactPage = lazy(() => import("@/pages/contact/contact.page"));
 const AdminDashboard = lazy(() => import("@/pages/admin/admin.page"));
+const ProfilePage = lazy(() => import("@/pages/profile/profile.page"));
 
 const AppRoutesContent = () => {
   const { isInitializing } = useAuth();
@@ -31,6 +32,7 @@ const AppRoutesContent = () => {
           <Route path={ROUTER_PAGE.about} element={<AboutPage />} />
           <Route path={ROUTER_PAGE.contact} element={<ContactPage />} />
           <Route path={ROUTER_PAGE.admin} element={<AdminDashboard />} />
+          <Route path={ROUTER_PAGE.profile} element={<ProfilePage />} />
         </Route>
       </Routes>
     </Suspense>
