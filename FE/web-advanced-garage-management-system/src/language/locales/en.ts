@@ -298,8 +298,6 @@ export default {
   loading: "Loading...",
   
   // Edit Profile Modal
-  username: "Username",
-  usernamePlaceholder: "Enter username",
   addressPlaceholder: "Enter address",
   language: "Language",
   vietnamese: "Vietnamese",

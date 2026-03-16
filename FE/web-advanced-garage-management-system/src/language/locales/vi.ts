@@ -298,8 +298,6 @@ export default {
   loading: "Đang tải...",
   
   // Edit Profile Modal
-  username: "Tên đăng nhập",
-  usernamePlaceholder: "Nhập tên đăng nhập",
   addressPlaceholder: "Nhập địa chỉ",
   language: "Ngôn ngữ",
   vietnamese: "Tiếng Việt",
