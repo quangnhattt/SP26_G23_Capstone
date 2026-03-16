@@ -1,5 +1,6 @@
 import { images } from "@/assets/imagesAsset";
 import useAuth from "@/hooks/useAuth";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { ROUTER_PAGE } from "@/routes/contants";
 import { authService } from "@/apis/auth";
 import {
@@ -66,12 +67,7 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
         setCurrentStep("otp");
         setOtp(["", "", "", "", "", ""]);
       } catch (error: unknown) {
-        const err = error as {
-          response?: { data?: { message?: string } };
-        };
-        toast.error(
-          err?.response?.data?.message ?? "Không thể gửi mã OTP"
-        );
+        toast.error(getApiErrorMessage(error, t("sendOtpFailed")));
       } finally {
         setIsSendingOTP(false);
       }
@@ -158,14 +154,7 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
       setCurrentStep("login");
       setOtp(["", "", "", "", "", ""]);
     } catch (error: unknown) {
-      const err = error as {
-        response?: { data?: { message?: string; Message?: string } };
-      };
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data?.Message ??
-        t("otpVerifyFailed");
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, t("otpVerifyFailed")));
     } finally {
       setIsVerifyingOTP(false);
     }
@@ -177,14 +166,7 @@ const LoginModal = ({ onClose, onSwitchToRegister }: LoginModalProps) => {
       toast.success(t("otpResendSuccess"));
       setOtp(["", "", "", "", "", ""]);
     } catch (error: unknown) {
-      const err = error as {
-        response?: { data?: { message?: string; Message?: string } };
-      };
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data?.Message ??
-        t("otpResendFailed");
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, t("otpResendFailed")));
     }
   };
 

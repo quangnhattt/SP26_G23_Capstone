@@ -1,7 +1,8 @@
 import styled from "styled-components";
-import { HiSearch, HiPlus, HiX, HiPencil, HiTrash } from "react-icons/hi";
+import { HiSearch, HiPlus, HiX, HiPencil, HiTrash, HiEye, HiEyeOff } from "react-icons/hi";
 import { useEffect, useState } from "react";
 import { userService, type IUser, type IUserRequest } from "@/services/admin/userService";
+import { validateStrongPassword } from "@/utils/validation";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 
@@ -12,7 +13,7 @@ const UserPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<IUser | null>(null);
-  const [formData, setFormData] = useState<IUserRequest>({
+  const [formData, setFormData] = useState<IUserRequest & { password?: string; confirmPassword?: string }>({
     userCode: "",
     fullName: "",
     username: "",
@@ -24,6 +25,10 @@ const UserPage = () => {
     roleID: 2,
     isActive: true,
   });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -56,7 +61,13 @@ const UserPage = () => {
       image: "",
       roleID: 2,
       isActive: true,
+      password: "",
+      confirmPassword: "",
     });
+    setPasswordError(null);
+    setConfirmPasswordError(null);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
     setIsModalOpen(true);
   };
 
@@ -95,11 +106,68 @@ const UserPage = () => {
           ? Number(value)
           : value,
     }));
+    if (name === "password") {
+      if (value) {
+        setPasswordError(validateStrongPassword(value));
+      } else {
+        setPasswordError(null);
+      }
+      if (formData.confirmPassword && value !== formData.confirmPassword) {
+        setConfirmPasswordError("passwordMismatch");
+      } else {
+        setConfirmPasswordError(null);
+      }
+    }
+    if (name === "confirmPassword") {
+      if (value && formData.password !== value) {
+        setConfirmPasswordError("passwordMismatch");
+      } else {
+        setConfirmPasswordError(null);
+      }
+    }
+  };
+
+  const handlePasswordBlur = () => {
+    if (formData.password) {
+      setPasswordError(validateStrongPassword(formData.password));
+    }
+  };
+
+  const handleConfirmPasswordBlur = () => {
+    if (formData.confirmPassword && formData.password !== formData.confirmPassword) {
+      setConfirmPasswordError("passwordMismatch");
+    } else {
+      setConfirmPasswordError(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!editingUser) {
+        const password = formData.password ?? "";
+        const confirmPassword = formData.confirmPassword ?? "";
+        if (!password.trim()) {
+          toast.error(t("passwordRequired"));
+          return;
+        }
+        const passwordValidationError = validateStrongPassword(password);
+        if (passwordValidationError) {
+          toast.error(t(passwordValidationError));
+          setPasswordError(passwordValidationError);
+          return;
+        }
+        if (!confirmPassword.trim()) {
+          toast.error(t("confirmPasswordRequired"));
+          return;
+        }
+        if (password !== confirmPassword) {
+          toast.error(t("passwordMismatch"));
+          setConfirmPasswordError("passwordMismatch");
+          return;
+        }
+      }
+
       const submitData: Partial<IUserRequest> & Record<string, unknown> = {
         fullName: formData.fullName,
         username: formData.username,
@@ -117,8 +185,8 @@ const UserPage = () => {
         await userService.updateUser(editingUser.userID, submitData as IUserRequest);
         toast.success(t("updateUserSuccess"));
       } else {
-        submitData.password = (formData as IUserRequest & { password?: string }).password;
-        submitData.confirmPassword = (formData as IUserRequest & { confirmPassword?: string }).confirmPassword;
+        submitData.password = formData.password;
+        submitData.confirmPassword = formData.confirmPassword;
         await userService.createUser(submitData as IUserRequest);
         toast.success(t("createUserSuccess"));
       }
@@ -391,26 +459,65 @@ const UserPage = () => {
                       <Label>
                         {t("password")} <Required>*</Required>
                       </Label>
-                      <Input
-                        type="password"
-                        name="password"
-                        onChange={handleInputChange}
-                        placeholder={t("passwordPlaceholder")}
-                        required
-                      />
+                      <PasswordInputWrapper $hasError={!!passwordError}>
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          value={formData.password ?? ""}
+                          onChange={handleInputChange}
+                          onBlur={handlePasswordBlur}
+                          placeholder={t("passwordPlaceholderRegister")}
+                          $hasError={!!passwordError}
+                          required
+                        />
+                        <EyeButton
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? (
+                            <HiEyeOff size={20} />
+                          ) : (
+                            <HiEye size={20} />
+                          )}
+                        </EyeButton>
+                      </PasswordInputWrapper>
+                      {passwordError && (
+                        <FieldError>{t(passwordError)}</FieldError>
+                      )}
+                      <FieldHint>{t("passwordStrongHint")}</FieldHint>
                     </FormGroup>
 
                     <FormGroup>
                       <Label>
                         {t("confirmPassword")} <Required>*</Required>
                       </Label>
-                      <Input
-                        type="password"
-                        name="confirmPassword"
-                        onChange={handleInputChange}
-                        placeholder={t("confirmPasswordPlaceholder")}
-                        required
-                      />
+                      <PasswordInputWrapper $hasError={!!confirmPasswordError}>
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          name="confirmPassword"
+                          value={formData.confirmPassword ?? ""}
+                          onChange={handleInputChange}
+                          onBlur={handleConfirmPasswordBlur}
+                          placeholder={t("confirmPasswordPlaceholder")}
+                          $hasError={!!confirmPasswordError}
+                          required
+                        />
+                        <EyeButton
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                        >
+                          {showConfirmPassword ? (
+                            <HiEyeOff size={20} />
+                          ) : (
+                            <HiEye size={20} />
+                          )}
+                        </EyeButton>
+                      </PasswordInputWrapper>
+                      {confirmPasswordError && (
+                        <FieldError>{t(confirmPasswordError)}</FieldError>
+                      )}
                     </FormGroup>
                   </FormRow>
                 )}
@@ -1081,9 +1188,9 @@ const Required = styled.span`
   color: #ef4444;
 `;
 
-const Input = styled.input`
+const Input = styled.input<{ $hasError?: boolean }>`
   padding: 0.75rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid ${(p) => (p.$hasError ? "#ef4444" : "#e5e7eb")};
   border-radius: 8px;
   font-size: 0.875rem;
   color: #000000 !important;
@@ -1097,8 +1204,8 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: ${(p) => (p.$hasError ? "#ef4444" : "#3b82f6")};
+    box-shadow: 0 0 0 3px ${(p) => (p.$hasError ? "rgba(239, 68, 68, 0.1)" : "rgba(59, 130, 246, 0.1)")};
   }
 
   &[type="date"]::-webkit-calendar-picker-indicator {
@@ -1109,6 +1216,49 @@ const Input = styled.input`
     color: #000000 !important;
     -webkit-text-fill-color: #000000;
   }
+`;
+
+const PasswordInputWrapper = styled.div<{ $hasError?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border: 1px solid ${(p) => (p.$hasError ? "#ef4444" : "#e5e7eb")};
+  border-radius: 8px;
+  background: white;
+  overflow: hidden;
+
+  input {
+    border: none !important;
+    flex: 1;
+    min-width: 0;
+  }
+`;
+
+const EyeButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  color: #6b7590;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: #1a1d2e;
+  }
+`;
+
+const FieldError = styled.span`
+  font-size: 0.8rem;
+  color: #ef4444;
+  margin-top: 0.25rem;
+`;
+
+const FieldHint = styled.span`
+  font-size: 0.75rem;
+  color: #6b7590;
+  margin-top: 0.25rem;
 `;
 
 const Select = styled.select`

@@ -39,6 +39,9 @@ export default {
   registerSubtitle: "Đăng ký để trải nghiệm dịch vụ chăm sóc xe tốt nhất",
   fullName: "Họ và tên",
   fullNamePlaceholder: "Nguyễn Văn A",
+  username: "Tên đăng nhập",
+  usernamePlaceholder: "nguyenvana",
+  usernameRequired: "Tên đăng nhập không được để trống",
   phoneNumber: "Số điện thoại",
   phoneNumberPlaceholder: "0901234567",
   confirmPassword: "Xác nhận mật khẩu",
@@ -240,6 +243,7 @@ export default {
   backButton: "Quay lại",
   otpRequired: "Vui lòng nhập đầy đủ 6 số OTP",
   otpSentSuccess: "Đã gửi mã OTP đến email của bạn",
+  sendOtpFailed: "Không thể gửi mã OTP",
   sendingOTP: "Đang gửi mã xác thực...",
   otpVerifySuccess: "Xác thực OTP thành công!",
   otpVerifyFailed: "Xác thực OTP thất bại",
@@ -403,6 +407,10 @@ export default {
   newPasswordRequired: "Mật khẩu mới không được để trống",
   confirmNewPasswordRequired: "Xác nhận mật khẩu không được để trống",
   newPasswordMismatch: "Mật khẩu xác nhận không khớp",
+  passwordMinLengthStrong: "Mật khẩu phải hơn 6 ký tự",
+  passwordRequireUppercase: "Mật khẩu phải có ít nhất một chữ viết hoa",
+  passwordRequireSpecialChar: "Mật khẩu phải có ít nhất một ký tự đặc biệt",
+  passwordStrongHint: "Phải hơn 6 ký tự, có chữ viết hoa và ký tự đặc biệt",
   
   // Pricing Section
   pricingTitle: "Dịch vụ sửa chữa & bảo dưỡng",

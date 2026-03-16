@@ -39,6 +39,9 @@ export default {
   registerSubtitle: "Register to experience the best car care service",
   fullName: "Full name",
   fullNamePlaceholder: "John Doe",
+  username: "Username",
+  usernamePlaceholder: "johndoe",
+  usernameRequired: "Username is required",
   phoneNumber: "Phone number",
   phoneNumberPlaceholder: "0901234567",
   confirmPassword: "Confirm password",
@@ -240,6 +243,7 @@ export default {
   backButton: "Back",
   otpRequired: "Please enter all 6 digits",
   otpSentSuccess: "OTP code has been sent to your email",
+  sendOtpFailed: "Failed to send OTP code",
   sendingOTP: "Sending verification code...",
   otpVerifySuccess: "OTP verification successful!",
   otpVerifyFailed: "OTP verification failed",
@@ -403,6 +407,10 @@ export default {
   newPasswordRequired: "New password is required",
   confirmNewPasswordRequired: "Confirm password is required",
   newPasswordMismatch: "Passwords do not match",
+  passwordMinLengthStrong: "Password must be more than 6 characters",
+  passwordRequireUppercase: "Password must contain at least one uppercase letter",
+  passwordRequireSpecialChar: "Password must contain at least one special character",
+  passwordStrongHint: "Must be more than 6 characters, include uppercase and special character",
   
   // Pricing Section
   pricingTitle: "Repair & Maintenance Services",
