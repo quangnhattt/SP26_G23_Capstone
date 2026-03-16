@@ -160,6 +160,69 @@ export const verifyOTP = async (payload: IVerifyOTPPayload) => {
   return data;
 };
 
+/**
+ * Forgot Password - Send OTP
+ */
+export interface IForgotPasswordPayload {
+  email: string;
+}
+
+interface IForgotPasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+export const forgotPassword = async (payload: IForgotPasswordPayload) => {
+  const { data } = await AxiosClient.post<IForgotPasswordResponse>(
+    "/api/auth/forgot-password",
+    payload
+  );
+  return data;
+};
+
+/**
+ * Reset Password
+ */
+export interface IResetPasswordPayload {
+  email: string;
+  otp: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+interface IResetPasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+export const resetPassword = async (payload: IResetPasswordPayload) => {
+  const { data } = await AxiosClient.post<IResetPasswordResponse>(
+    "/api/auth/reset-password",
+    payload
+  );
+  return data;
+};
+
+/**
+ * Send OTP for Email Verification
+ */
+export interface ISendOTPPayload {
+  email: string;
+}
+
+interface ISendOTPResponse {
+  success: boolean;
+  message: string;
+}
+
+export const sendOTP = async (payload: ISendOTPPayload) => {
+  const { data } = await AxiosClient.post<ISendOTPResponse>(
+    "/api/email-verification/send-otp",
+    payload
+  );
+  return data;
+};
+
 export const authService = {
   login,
   loginWithEmail,
@@ -167,15 +230,7 @@ export const authService = {
   verifyOTP,
   refreshToken,
   logout,
-  // registerRequest,
-  // registerVerify,
-  // registerConfirm,
-  // quickRegister,
-  // forgotPasswordRequest,
-  // forgotPasswordVerifyOTP,
-  // forgotPasswordConfirm,
-  // checkMsisdn,
-  // verifykMsisdn,
-  // setPassword,
-  // reSendOPT,
+  forgotPassword,
+  resetPassword,
+  sendOTP,
 };
