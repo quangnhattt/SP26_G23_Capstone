@@ -1,126 +1,90 @@
-import styled from "styled-components";
-import { HiSearch, HiPlus, HiPencil, HiTrash, HiX } from "react-icons/hi";
-import { useEffect, useState } from "react";
-import {
-  getProducts,
-  createProduct,
-  updateProduct,
-  getProductById,
-} from "@/services/admin/productService";
-import type { IProduct } from "@/services/admin/productService";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import styled from "styled-components";
+import { HiPlus, HiPencil, HiSearch, HiTrash, HiX } from "react-icons/hi";
+import {
+  getSuppliers,
+  createSupplier,
+  updateSupplier,
+  type ISupplier,
+  type ISupplierCreateRequest,
+  type ISupplierUpdateRequest,
+} from "@/services/admin/supplierService";
 
-interface ProductFormData {
-  code: string;
+interface SupplierFormData {
   name: string;
-  price: number;
-  unitId: number;
-  categoryId: number;
-  warranty: number;
-  minStockLevel: number;
+  address: string;
+  phone: string;
+  email: string;
   description: string;
-  image: string;
   isActive: boolean;
 }
 
-const ProductsPage = () => {
+const SupplierPage = () => {
   const { t } = useTranslation();
-  const [products, setProducts] = useState<IProduct[]>([]);
+  const [suppliers, setSuppliers] = useState<ISupplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<IProduct | null>(null);
-  const [loadingModal, setLoadingModal] = useState(false);
-  const [formData, setFormData] = useState<ProductFormData>({
-    code: "",
+  const [editingSupplier, setEditingSupplier] = useState<ISupplier | null>(null);
+  const [formData, setFormData] = useState<SupplierFormData>({
     name: "",
-    price: 0,
-    unitId: 1,
-    categoryId: 1,
-    warranty: 0,
-    minStockLevel: 0,
+    address: "",
+    phone: "",
+    email: "",
     description: "",
-    image: "",
     isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
+  const fetchSuppliers = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getProducts();
-      setProducts(data);
+      setError(null);
+      const response = await getSuppliers();
+      setSuppliers(response.items || []);
     } catch (err) {
-      console.error("Failed to fetch products:", err);
-      setError(t("cannotLoadProducts"));
+      console.error("Failed to fetch suppliers:", err);
+      setError(t("cannotLoadSuppliers"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, [fetchSuppliers]);
 
   const handleOpenCreateModal = () => {
-    setEditingProduct(null);
+    setEditingSupplier(null);
     setFormData({
-      code: "",
       name: "",
-      price: 0,
-      unitId: 1,
-      categoryId: 1,
-      warranty: 0,
-      minStockLevel: 0,
+      address: "",
+      phone: "",
+      email: "",
       description: "",
-      image: "",
       isActive: true,
     });
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = async (product: IProduct) => {
-    setEditingProduct(product);
+  const handleOpenEditModal = (supplier: ISupplier) => {
+    setEditingSupplier(supplier);
+    setFormData({
+      name: supplier.name,
+      address: supplier.address || "",
+      phone: supplier.phone || "",
+      email: supplier.email || "",
+      description: supplier.description || "",
+      isActive: supplier.isActive,
+    });
     setIsModalOpen(true);
-    setLoadingModal(true);
-
-    try {
-      const productDetail = await getProductById(product.id);
-
-      setFormData({
-        code: productDetail.code,
-        name: productDetail.name,
-        price: productDetail.price,
-        unitId: 2,
-        categoryId: 21,
-        warranty: productDetail.warranty,
-        minStockLevel: productDetail.minStockLevel,
-        description: productDetail.description,
-        image: productDetail.image || "",
-        isActive: productDetail.isActive,
-      });
-    } catch (error) {
-      console.error("Failed to fetch product detail:", error);
-      setFormData({
-        code: product.code,
-        name: product.name,
-        price: product.price,
-        unitId: 2,
-        categoryId: 21,
-        warranty: product.warranty,
-        minStockLevel: product.minStockLevel,
-        description: product.description,
-        image: product.image || "",
-        isActive: product.isActive,
-      });
-    } finally {
-      setLoadingModal(false);
-    }
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setEditingProduct(null);
+    setEditingSupplier(null);
   };
 
   const handleInputChange = (
@@ -130,9 +94,7 @@ const ProductsPage = () => {
     setFormData((prev) => ({
       ...prev,
       [name]:
-        type === "number"
-          ? Number(value)
-          : type === "checkbox"
+        type === "checkbox"
           ? (e.target as HTMLInputElement).checked
           : value,
     }));
@@ -141,40 +103,68 @@ const ProductsPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-
     try {
-      if (editingProduct) {
-        await updateProduct(editingProduct.id, formData);
+      if (editingSupplier) {
+        const updatePayload: ISupplierUpdateRequest = {
+          name: formData.name,
+          address: formData.address,
+          phone: formData.phone,
+          email: formData.email,
+          description: formData.description,
+          isActive: formData.isActive,
+        };
+        await updateSupplier(editingSupplier.supplierID, updatePayload);
       } else {
-        await createProduct(formData);
+        const createPayload: ISupplierCreateRequest = {
+          name: formData.name,
+          address: formData.address,
+          phone: formData.phone,
+          email: formData.email,
+          description: formData.description || undefined,
+        };
+        await createSupplier(createPayload);
       }
-      await fetchProducts();
       handleCloseModal();
+      await fetchSuppliers();
     } catch (err) {
-      console.error("Failed to save product:", err);
-      alert(t("errorSavingProduct"));
+      console.error("Error saving supplier:", err);
+      setError(t("errorSavingSupplier"));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "N/A";
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("vi-VN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+    } catch {
+      return dateStr;
+    }
   };
+
+  const filteredSuppliers = suppliers.filter(
+    (s) =>
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (s.phone && s.phone.includes(searchTerm))
+  );
 
   return (
     <Container>
       <Header>
         <TitleSection>
-          <Title>{t("productsManagement")}</Title>
-          <Subtitle>{t("productsManagementSubtitle")}</Subtitle>
+          <Title>{t("suppliersManagement")}</Title>
+          <Subtitle>{t("suppliersManagementSubtitle")}</Subtitle>
         </TitleSection>
         <AddButton onClick={handleOpenCreateModal}>
           <HiPlus size={18} />
-          {t("createNewProduct")}
+          {t("createNewSupplier")}
         </AddButton>
       </Header>
 
@@ -182,16 +172,21 @@ const ProductsPage = () => {
         <TableHeader>
           <SearchBox>
             <HiSearch size={18} />
-            <input type="text" placeholder={t("searchByNameCode")} />
+            <input
+              type="text"
+              placeholder={t("searchByNameEmailSupplier")}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </SearchBox>
         </TableHeader>
 
         <TableSection>
-          <TableTitle>{t("productList")}</TableTitle>
+          <TableTitle>{t("supplierList")}</TableTitle>
           <TableSubtitle>
             {loading
-              ? t("loadingProducts")
-              : t("showingProducts", { count: products.length })}
+              ? t("loadingSuppliers")
+              : t("showingSuppliers", { count: filteredSuppliers.length })}
           </TableSubtitle>
 
           {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -204,65 +199,50 @@ const ProductsPage = () => {
               <thead>
                 <tr>
                   <Th>{t("name")}</Th>
-                  <Th>{t("price")}</Th>
-                  <Th>{t("unit")}</Th>
-                  <Th>{t("category")}</Th>
-                  <Th>{t("warranty")}</Th>
-                  <Th>{t("minStock")}</Th>
-                  <Th>{t("stockQty")}</Th>
+                  <Th>{t("address")}</Th>
+                  <Th>{t("phone")}</Th>
+                  <Th>{t("email")}</Th>
+                  <Th>{t("description")}</Th>
                   <Th>{t("status")}</Th>
+                  <Th>{t("createDate")}</Th>
                   <Th>{t("action")}</Th>
                 </tr>
               </thead>
               <tbody>
-                {products.map((product) => (
-                  <tr key={product.id}>
+                {filteredSuppliers.map((supplier) => (
+                  <tr key={supplier.supplierID}>
                     <Td>
-                      <ProductInfo>
-                        <div>
-                          <ProductName>{product.name}</ProductName>
-                          <ProductCode>{product.code}</ProductCode>
-                        </div>
-                      </ProductInfo>
+                      <SupplierName>{supplier.name}</SupplierName>
                     </Td>
                     <Td>
-                      <PriceText>{formatPrice(product.price)}</PriceText>
+                      <TextEllipsis title={supplier.address}>
+                        {supplier.address || "N/A"}
+                      </TextEllipsis>
+                    </Td>
+                    <Td>{supplier.phone || "N/A"}</Td>
+                    <Td>{supplier.email || "N/A"}</Td>
+                    <Td>
+                      <TextEllipsis title={supplier.description}>
+                        {supplier.description || "N/A"}
+                      </TextEllipsis>
                     </Td>
                     <Td>
-                      <UnitBadge>{product.unit || "N/A"}</UnitBadge>
-                    </Td>
-                    <Td>
-                      <CategoryBadge $hasData={!!product.category}>
-                        {product.category || "N/A"}
-                      </CategoryBadge>
-                    </Td>
-                    <Td>
-                      {product.warranty} {t("months")}
-                    </Td>
-                    <Td>{product.minStockLevel}</Td>
-                    <Td>
-                      <StockBadge
-                        $isLow={product.stockQty < product.minStockLevel}
-                      >
-                        {product.stockQty}
-                      </StockBadge>
-                    </Td>
-                    <Td>
-                      <StatusBadge $isActive={product.isActive}>
-                        {product.isActive ? t("active") : t("inactive")}
+                      <StatusBadge $isActive={supplier.isActive}>
+                        {supplier.isActive ? t("active") : t("inactive")}
                       </StatusBadge>
                     </Td>
+                    <Td>{formatDate(supplier.createdDate)}</Td>
                     <Td>
                       <ActionButtons>
                         <EditButton
-                          onClick={() => handleOpenEditModal(product)}
+                          onClick={() => handleOpenEditModal(supplier)}
                           title="Edit"
                         >
                           <HiPencil size={18} />
                         </EditButton>
                         <DeleteButton
                           onClick={() =>
-                            console.log("Delete product:", product.id)
+                            console.log("Delete supplier:", supplier.supplierID)
                           }
                           title="Delete"
                         >
@@ -285,7 +265,9 @@ const ProductsPage = () => {
           <ModalContent>
             <ModalHeader>
               <ModalTitle>
-                {editingProduct ? t("updateProduct") : t("createNewProduct")}
+                {editingSupplier
+                  ? t("updateSupplier")
+                  : t("createNewSupplier")}
               </ModalTitle>
               <CloseButton onClick={handleCloseModal}>
                 <HiX size={24} />
@@ -293,123 +275,69 @@ const ProductsPage = () => {
             </ModalHeader>
 
             <ModalBody>
-              {loadingModal ? (
-                <LoadingModalContent>{t("loadingData")}</LoadingModalContent>
-              ) : (
-                <Form onSubmit={handleSubmit}>
-                  <FormRow>
-                    <FormGroup>
-                      <Label>{t("code")} *</Label>
-                      <Input
-                        type="text"
-                        name="code"
-                        value={formData.code}
-                        onChange={handleInputChange}
-                        placeholder="P1161200016"
-                        required
-                      />
-                    </FormGroup>
+              <Form onSubmit={handleSubmit}>
+                <FormGroup>
+                  <Label>{t("name")} *</Label>
+                  <Input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder={t("supplierNamePlaceholder")}
+                    required
+                  />
+                </FormGroup>
 
-                    <FormGroup>
-                      <Label>{t("name")} *</Label>
-                      <Input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        placeholder="Test tiền postman"
-                        required
-                      />
-                    </FormGroup>
-                  </FormRow>
+                <FormGroup>
+                  <Label>{t("address")} *</Label>
+                  <Input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    placeholder={t("addressPlaceholder")}
+                    required
+                  />
+                </FormGroup>
 
-                  <FormRow>
-                    <FormGroup>
-                      <Label>{t("price")} *</Label>
-                      <Input
-                        type="number"
-                        name="price"
-                        value={formData.price}
-                        onChange={handleInputChange}
-                        placeholder="9999999"
-                        required
-                      />
-                    </FormGroup>
-
-                    <FormGroup>
-                      <Label>{t("unitID")} *</Label>
-                      <Input
-                        type="number"
-                        name="unitId"
-                        value={formData.unitId}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </FormGroup>
-                  </FormRow>
-
-                  <FormRow>
-                    <FormGroup>
-                      <Label>{t("categoryID")} *</Label>
-                      <Input
-                        type="number"
-                        name="categoryId"
-                        value={formData.categoryId}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </FormGroup>
-
-                    <FormGroup>
-                      <Label>{t("warrantyMonths")} *</Label>
-                      <Input
-                        type="number"
-                        name="warranty"
-                        value={formData.warranty}
-                        onChange={handleInputChange}
-                        placeholder="9"
-                        required
-                      />
-                    </FormGroup>
-                  </FormRow>
-
-                  <FormRow>
-                    <FormGroup>
-                      <Label>{t("minStockLevel")} *</Label>
-                      <Input
-                        type="number"
-                        name="minStockLevel"
-                        value={formData.minStockLevel}
-                        onChange={handleInputChange}
-                        placeholder="0"
-                        required
-                      />
-                    </FormGroup>
-
-                    <FormGroup>
-                      <Label>{t("imageURL")}</Label>
-                      <Input
-                        type="text"
-                        name="image"
-                        value={formData.image}
-                        onChange={handleInputChange}
-                        placeholder="string"
-                      />
-                    </FormGroup>
-                  </FormRow>
-
+                <FormRow>
                   <FormGroup>
-                    <Label>{t("description")} *</Label>
-                    <TextArea
-                      name="description"
-                      value={formData.description}
+                    <Label>{t("phone")} *</Label>
+                    <Input
+                      type="text"
+                      name="phone"
+                      value={formData.phone}
                       onChange={handleInputChange}
-                      placeholder="Test tiền post man cho anh nhất"
-                      rows={3}
+                      placeholder={t("phonePlaceholder")}
                       required
                     />
                   </FormGroup>
 
+                  <FormGroup>
+                    <Label>{t("email")} *</Label>
+                    <Input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="contact@example.com"
+                      required
+                    />
+                  </FormGroup>
+                </FormRow>
+
+                <FormGroup>
+                  <Label>{t("description")}</Label>
+                  <TextArea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder={t("supplierDescriptionPlaceholder")}
+                    rows={3}
+                  />
+                </FormGroup>
+
+                {editingSupplier && (
                   <FormGroup>
                     <CheckboxLabel>
                       <input
@@ -421,21 +349,21 @@ const ProductsPage = () => {
                       <span>{t("active")}</span>
                     </CheckboxLabel>
                   </FormGroup>
+                )}
 
-                  <ModalFooter>
-                    <CancelButton type="button" onClick={handleCloseModal}>
-                      {t("cancel")}
-                    </CancelButton>
-                    <SubmitButton type="submit" disabled={submitting}>
-                      {submitting
-                        ? t("saving")
-                        : editingProduct
-                        ? t("updateProduct")
-                        : t("createProduct")}
-                    </SubmitButton>
-                  </ModalFooter>
-                </Form>
-              )}
+                <ModalFooter>
+                  <CancelButton type="button" onClick={handleCloseModal}>
+                    {t("cancel")}
+                  </CancelButton>
+                  <SubmitButton type="submit" disabled={submitting}>
+                    {submitting
+                      ? t("saving")
+                      : editingSupplier
+                        ? t("updateSupplier")
+                        : t("createSupplier")}
+                  </SubmitButton>
+                </ModalFooter>
+              </Form>
             </ModalBody>
           </ModalContent>
         </Modal>
@@ -444,7 +372,7 @@ const ProductsPage = () => {
   );
 };
 
-export default ProductsPage;
+export default SupplierPage;
 
 const Container = styled.div`
   padding: 2rem;
@@ -607,60 +535,21 @@ const Td = styled.td`
   }
 `;
 
-const ProductInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-`;
-
-const ProductName = styled.div`
+const SupplierName = styled.div`
   font-weight: 600;
   color: #1a1d2e;
-  max-width: 300px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
-const ProductCode = styled.div`
-  font-size: 0.75rem;
-  color: #9ca3bf;
-  margin-top: 0.125rem;
-`;
-
-const PriceText = styled.div`
-  font-weight: 600;
-  color: #059669;
-`;
-
-const UnitBadge = styled.span`
-  background: #e0e7ff;
-  color: #4338ca;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
+const TextEllipsis = styled.span`
+  max-width: 150px;
   display: inline-block;
-`;
-
-const CategoryBadge = styled.span<{ $hasData: boolean }>`
-  background: #fef3c7;
-  color: #b45309;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-`;
-
-const StockBadge = styled.span<{ $isLow: boolean }>`
-  background: ${(props) => (props.$isLow ? "#fee2e2" : "#dcfce7")};
-  color: ${(props) => (props.$isLow ? "#dc2626" : "#16a34a")};
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const StatusBadge = styled.span<{ $isActive: boolean }>`
@@ -741,7 +630,7 @@ const ModalContent = styled.div`
   background: white;
   border-radius: 12px;
   width: 90%;
-  max-width: 800px;
+  max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
@@ -911,11 +800,4 @@ const SubmitButton = styled.button`
     background: #9ca3bf;
     cursor: not-allowed;
   }
-`;
-
-const LoadingModalContent = styled.div`
-  padding: 3rem;
-  text-align: center;
-  color: #6b7590;
-  font-size: 1rem;
 `;

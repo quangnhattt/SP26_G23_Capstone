@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { HiChartBar, HiClipboardList, HiUsers, HiCog } from "react-icons/hi";
+import { HiChartBar, HiClipboardList, HiUsers, HiCog, HiViewGrid, HiSupport, HiTruck } from "react-icons/hi";
 import { useEffect, useState } from "react";
 import { getMenuAccess } from "@/services/admin/menuService";
 import type { IMenuGroup } from "@/services/admin/menuService";
@@ -34,6 +34,10 @@ const AdminDashboard = () => {
     if (lowerName.includes("unit")) return <HiCog size={18} />;
     if (lowerName.includes("user")) return <HiUsers size={18} />;
     if (lowerName.includes("appointment")) return <HiChartBar size={18} />;
+    if (lowerName.includes("category")) return <HiViewGrid size={18} />;
+    if (lowerName.includes("service")) return <HiSupport size={18} />;
+    if (lowerName.includes("supplier")) return <HiTruck size={18} />;
+
     return <HiCog size={18} />;
   };
 
@@ -43,6 +47,9 @@ const AdminDashboard = () => {
     if (lowerName.includes("unit")) return "/admin/unit-managerment";
     if (lowerName.includes("user")) return "/admin/user-managerment";
     if (lowerName.includes("appointment")) return "/admin/appoinment-managerment";
+    if (lowerName.includes("category")) return "/admin/category";
+    if (lowerName.includes("service")) return "/admin/service";
+    if (lowerName.includes("supplier")) return "/admin/supplier";
     return "/admin";
   };
 
