@@ -7,10 +7,6 @@ namespace AGMS.Application.DTOs.Rescue;
 /// </summary>
 public class AssignTechnicianDto
 {
-    /// <summary>ID của Service Advisor thực hiện điều phối — dùng để validate BR-17</summary>
-    [Required(ErrorMessage = "ID Service Advisor là bắt buộc.")]
-    public int ServiceAdvisorId { get; set; }
-
     /// <summary>ID kỹ thuật viên được chọn — phải IsActive và chưa đang thực hiện nhiệm vụ cứu hộ</summary>
     [Required(ErrorMessage = "ID kỹ thuật viên là bắt buộc.")]
     public int TechnicianId { get; set; }
