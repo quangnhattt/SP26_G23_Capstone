@@ -1,12 +1,15 @@
-import MobileDrawer from "@/components/common/modal/MobileDrawerModal";
 import { ROUTER_PAGE } from "@/routes/contants";
 import useDevice from "@/hooks/useDevice";
 import useWindowDimensions from "@/hooks/useWindowDimension";
 import type React from "react";
+import { lazy, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../Header";
 import Footer from "../Footer";
+
+// Lazy load MobileDrawer as it's not always needed
+const MobileDrawer = lazy(() => import("@/components/common/modal/MobileDrawerModal"));
 
 const MainLayout: React.FC = () => {
   const { isMobile } = useDevice();
@@ -34,7 +37,9 @@ const MainLayout: React.FC = () => {
         </Content>
         <Footer/>
       </Container>
-      <MobileDrawer />
+      <Suspense fallback={null}>
+        <MobileDrawer />
+      </Suspense>
     </>
   );
 };

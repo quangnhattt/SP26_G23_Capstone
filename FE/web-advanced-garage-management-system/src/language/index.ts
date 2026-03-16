@@ -10,7 +10,7 @@ i18next.use(initReactI18next).init({
   compatibilityJSON: "v4",
   lng: savedLanguage,
   fallbackLng: "en",
-  debug: true,
+  debug: false, // Disable debug in production
   resources: {
     en: {
       translation: en,

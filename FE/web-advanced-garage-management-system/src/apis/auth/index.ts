@@ -139,10 +139,32 @@ export const register = async (payload: IRegisterPayload) => {
   return data;
 };
 
+/**
+ * Verify OTP
+ */
+export interface IVerifyOTPPayload {
+  email: string;
+  otp: string;
+}
+
+interface IVerifyOTPResponse {
+  success: boolean;
+  message: string;
+}
+
+export const verifyOTP = async (payload: IVerifyOTPPayload) => {
+  const { data } = await AxiosClient.post<IVerifyOTPResponse>(
+    "/api/email-verification/verify-otp",
+    payload
+  );
+  return data;
+};
+
 export const authService = {
   login,
   loginWithEmail,
   register,
+  verifyOTP,
   refreshToken,
   logout,
   // registerRequest,
