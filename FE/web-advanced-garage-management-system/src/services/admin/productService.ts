@@ -1,0 +1,81 @@
+import AxiosClient from "@/apis/AxiosClient";
+
+export interface IProduct {
+  id: number;
+  code: string;
+  name: string;
+  price: number;
+  unit: string | null;
+  category: string;
+  warranty: number;
+  minStockLevel: number;
+  stockQty: number;
+  description: string;
+  image: string | null;
+  isActive: boolean;
+}
+
+export interface IProductDetail extends IProduct {
+  unitId?: number;
+  categoryId?: number;
+}
+
+export interface IProductRequest {
+  code: string;
+  name: string;
+  price: number;
+  unitId: number;
+  categoryId: number;
+  warranty: number;
+  minStockLevel: number;
+  description: string;
+  image: string;
+  isActive: boolean;
+}
+
+export type IProductsResponse = IProduct[];
+
+export const getProducts = async (): Promise<IProductsResponse> => {
+  const { data } = await AxiosClient.get<IProductsResponse>(
+    "/api/products/parts"
+  );
+  return data;
+};
+
+export const getProductById = async (id: number): Promise<IProduct> => {
+  const { data } = await AxiosClient.get<IProduct>(`/api/products/parts/${id}`);
+  return data;
+};
+
+export const createProduct = async (
+  product: IProductRequest
+): Promise<IProduct> => {
+  const { data } = await AxiosClient.post<IProduct>(
+    "/api/products/parts",
+    product
+  );
+  return data;
+};
+
+export const updateProduct = async (
+  id: number,
+  product: IProductRequest
+): Promise<IProduct> => {
+  const { data } = await AxiosClient.put<IProduct>(
+    `/api/products/parts/${id}`,
+    product
+  );
+  return data;
+};
+
+export const deleteProduct = async (id: number): Promise<void> => {
+  await AxiosClient.delete(`/api/products/parts/${id}`);
+};
+
+export const productService = {
+  getProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+};

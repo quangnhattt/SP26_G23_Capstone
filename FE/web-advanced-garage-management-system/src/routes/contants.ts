@@ -11,4 +11,10 @@ export const ROUTER_PAGE = {
     register: "/auth/register",
     forgotPassword: "/auth/forgot-password",
   },
+  adminModules: {
+    product: "/admin/product",
+    unit: "/admin/unit-managerment",
+    user: "/admin/user-managerment",
+    appointment: "/admin/appoinment-managerment",
+  },
 };

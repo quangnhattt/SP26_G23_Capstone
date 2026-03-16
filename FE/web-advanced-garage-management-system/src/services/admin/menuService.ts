@@ -9,7 +9,7 @@ export interface IMenuPermission {
 export interface IMenuGroup {
   groupID: number;
   groupName: string;
-  items: IMenuPermission[];
+  items?: IMenuPermission[];
 }
 
 export type IMenuAccessResponse = IMenuGroup[];
