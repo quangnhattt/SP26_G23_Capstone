@@ -65,3 +65,20 @@ export const checkStringEmpty = (str?: string) => {
   if (str == undefined || str == null) return false;
   return true;
 };
+
+const PASSWORD_MIN_LENGTH = 7;
+const SPECIAL_CHAR_REGEX = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
+
+/** Returns i18n key for error, or null if valid */
+export const validateStrongPassword = (password: string): string | null => {
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    return "passwordMinLengthStrong";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "passwordRequireUppercase";
+  }
+  if (!SPECIAL_CHAR_REGEX.test(password)) {
+    return "passwordRequireSpecialChar";
+  }
+  return null;
+};

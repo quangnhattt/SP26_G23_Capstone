@@ -16,5 +16,8 @@ export const ROUTER_PAGE = {
     unit: "/admin/unit-managerment",
     user: "/admin/user-managerment",
     appointment: "/admin/appoinment-managerment",
+    category: "/admin/category",
+    service: "/admin/service",
+    supplier: "/admin/supplier",
   },
 };

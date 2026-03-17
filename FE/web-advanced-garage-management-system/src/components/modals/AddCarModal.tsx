@@ -1,4 +1,5 @@
 import { carService } from "@/apis/cars";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import type { ICreateCarPayload } from "@/apis/cars/types";
 import { IconX, IconCar } from "@tabler/icons-react";
 import { useState } from "react";
@@ -64,8 +65,7 @@ const AddCarModal = ({ onClose, onSuccess }: AddCarModalProps) => {
       }
       onClose();
     } catch (error) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err?.response?.data?.message || t("addCarFailed"));
+      toast.error(getApiErrorMessage(error, t("addCarFailed")));
     } finally {
       setLoading(false);
     }

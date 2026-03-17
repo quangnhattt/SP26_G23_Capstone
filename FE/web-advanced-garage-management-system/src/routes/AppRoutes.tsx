@@ -6,6 +6,9 @@ import MainLayout from "@/components/layout/MainLayout";
 import { ROUTER_PAGE } from "./contants";
 import { lazy, Suspense } from "react";
 import UserPage from "@/pages/admin/components/user-manager/user.page";
+import ServicePage from "@/pages/admin/components/service-manager/service.page";
+import CategoryPage from "@/pages/admin/components/category-manager/category.page";
+import SupplierPage from "@/pages/admin/components/supplier-manager/supplier.page";
 
 const HomePage = lazy(() => import("@/pages/home/home.page"));
 const ServicesPage = lazy(() => import("@/pages/services/services.page"));
@@ -38,6 +41,10 @@ const AppRoutesContent = () => {
             <Route path="unit-managerment" element={<CustomersPage />} />
             <Route path="user-managerment" element={<UserPage />} />
             <Route path="appoinment-managerment" element={<CustomersPage />} />
+            <Route path="category" element={<CategoryPage />} />
+            <Route path="service" element={<ServicePage />} />
+            <Route path="supplier" element={<SupplierPage />} />
+
           </Route>
           <Route path={ROUTER_PAGE.profile} element={<ProfilePage />} />
         </Route>

@@ -39,6 +39,9 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(req.Password) || req.Password != req.ConfirmPassword)
             throw new InvalidOperationException("Password and confirmation do not match.");
 
+        if (!IsPasswordStrong(req.Password))
+            throw new InvalidOperationException("Password does not meet security requirements.");
+
         var fullName = req.FullName.Trim();
         var username = req.Username?.Trim() ?? string.Empty;
         var email = req.Email.Trim();
@@ -172,6 +175,9 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword != req.ConfirmNewPassword)
             throw new InvalidOperationException("New password and confirmation do not match.");
 
+        if (!IsPasswordStrong(req.NewPassword))
+            throw new InvalidOperationException("Password does not meet security requirements.");
+
         var email = req.Email.Trim();
         var nowUtc = DateTime.UtcNow;
 
@@ -220,6 +226,28 @@ public class AuthService : IAuthService
     }
 
     public Task LogoutAsync(int userId, CancellationToken ct) => Task.CompletedTask;
+
+    private static bool IsPasswordStrong(string password)
+    {
+        if (password.Length < 6)
+            return false;
+
+        var hasUpper = false;
+        var hasLower = false;
+        var hasDigit = false;
+
+        foreach (var ch in password)
+        {
+            if (char.IsUpper(ch)) hasUpper = true;
+            else if (char.IsLower(ch)) hasLower = true;
+            else if (char.IsDigit(ch)) hasDigit = true;
+
+            if (hasUpper && hasLower && hasDigit)
+                return true;
+        }
+
+        return false;
+    }
 
     private async Task SendEmailVerificationOtpInternal(string email, CancellationToken ct)
     {

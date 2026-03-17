@@ -41,6 +41,9 @@ public class UserService : IUserService
         if (request.Password != request.ConfirmPassword)
             throw new ArgumentException("Password and confirmation do not match.");
 
+        if (!IsPasswordStrong(request.Password))
+            throw new ArgumentException("Password does not meet security requirements.");
+
         if (request.RoleID is < 2 or > 4)
             throw new ArgumentException("RoleID must be 2 (ServiceAdvisor), 3 (Technician), or 4 (Customer).");
 
@@ -328,4 +331,26 @@ public class UserService : IUserService
         IsOnRescueMission = u.IsOnRescueMission,
         Skills = u.Skills
     };
+
+    private static bool IsPasswordStrong(string password)
+    {
+        if (password.Length < 6)
+            return false;
+
+        var hasUpper = false;
+        var hasLower = false;
+        var hasDigit = false;
+
+        foreach (var ch in password)
+        {
+            if (char.IsUpper(ch)) hasUpper = true;
+            else if (char.IsLower(ch)) hasLower = true;
+            else if (char.IsDigit(ch)) hasDigit = true;
+
+            if (hasUpper && hasLower && hasDigit)
+                return true;
+        }
+
+        return false;
+    }
 }
