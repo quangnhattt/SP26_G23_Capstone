@@ -7,10 +7,6 @@ namespace AGMS.Application.DTOs.Rescue;
 /// </summary>
 public class StartDiagnosisDto
 {
-    /// <summary>ID kỹ thuật viên — phải là AssignedTechnicianID của rescue</summary>
-    [Required(ErrorMessage = "ID kỹ thuật viên là bắt buộc.")]
-    public int TechnicianId { get; set; }
-
     /// <summary>Kết quả chẩn đoán sơ bộ — lưu vào CarMaintenance.Notes</summary>
     [Required(ErrorMessage = "Ghi chú chẩn đoán là bắt buộc.")]
     [MaxLength(1000)]

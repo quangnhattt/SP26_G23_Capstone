@@ -8,10 +8,6 @@ namespace AGMS.Application.DTOs.Rescue;
 /// </summary>
 public class DispatchTowingDto
 {
-    /// <summary>ID của SA thực hiện thao tác — dùng để validate BR-17</summary>
-    [Required(ErrorMessage = "ServiceAdvisorId là bắt buộc.")]
-    public int ServiceAdvisorId { get; set; }
-
     /// <summary>Ghi chú dịch vụ kéo xe (địa điểm, lưu ý). Max 500 ký tự.</summary>
     [MaxLength(500, ErrorMessage = "TowingNotes không được vượt quá 500 ký tự.")]
     public string? TowingNotes { get; set; }

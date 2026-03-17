@@ -8,10 +8,6 @@ namespace AGMS.Application.DTOs.Rescue;
 /// </summary>
 public class CustomerConsentDto
 {
-    /// <summary>ID người thực hiện (Customer hoặc SA ghi nhận thay mặt)</summary>
-    [Required(ErrorMessage = "ID người thực hiện là bắt buộc.")]
-    public int ActorId { get; set; }
-
     /// <summary>
     /// true = Chấp thuận sửa tại chỗ → tiếp tục UC-RES-02.
     /// false = Từ chối → chuyển sang nhánh kéo xe PROPOSED_TOWING (AF-02)

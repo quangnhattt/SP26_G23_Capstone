@@ -11,10 +11,6 @@ public class CreateRescueRequestDto
     [Required(ErrorMessage = "ID xe là bắt buộc.")]
     public int CarId { get; set; }
 
-    /// <summary>ID khách hàng gửi yêu cầu</summary>
-    [Required(ErrorMessage = "ID khách hàng là bắt buộc.")]
-    public int CustomerId { get; set; }
-
     /// <summary>Địa chỉ hiện tại của xe — bắt buộc theo BR-16</summary>
     [Required(ErrorMessage = "Địa chỉ xe là bắt buộc.")]
     [MaxLength(500)]

@@ -9,10 +9,6 @@ namespace AGMS.Application.DTOs.Rescue;
 /// </summary>
 public class CreateInvoiceDto
 {
-    /// <summary>ID của SA thực hiện — dùng để validate BR-17</summary>
-    [Required(ErrorMessage = "ServiceAdvisorId là bắt buộc.")]
-    public int ServiceAdvisorId { get; set; }
-
     /// <summary>Tổng phí dịch vụ cứu hộ cơ bản (>= 0). Là baseAmount của hóa đơn.</summary>
     [Required(ErrorMessage = "RescueServiceFee là bắt buộc.")]
     [Range(0, double.MaxValue, ErrorMessage = "Phí dịch vụ không được âm.")]

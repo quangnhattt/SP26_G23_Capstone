@@ -25,8 +25,7 @@ public class RescueRequestController : ControllerBase
 
     // POST /api/rescue-requests
     /// <summary>
-    /// Khách hàng tạo yêu cầu cứu hộ (UC-RES-01 Step 1-2).
-    /// CustomerId được tự động lấy từ JWT token — client không cần gửi.
+    /// Khách hàng tạo yêu cầu cứu hộ (UC-RES-01 Step 1-2). BR-16.
     /// </summary>
     [HttpPost]
     [Authorize(Roles = Roles.Customer)]
@@ -41,12 +40,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        // CustomerId tự động từ token — client không cần gửi (BR-01)
-        request.CustomerId = userId;
-
         try
         {
-            var result = await _rescueService.CreateAsync(request, ct);
+            var result = await _rescueService.CreateAsync(userId, request, ct);
             return StatusCode(StatusCodes.Status201Created, result);
         }
         catch (KeyNotFoundException ex)
@@ -62,7 +58,7 @@ public class RescueRequestController : ControllerBase
     // GET /api/rescue-requests
     /// <summary>
     /// Lấy danh sách yêu cầu cứu hộ (UC-RES-01 Step 3).
-    /// SA/Admin/Technician thấy tất cả; Customer chỉ thấy yêu cầu của mình (auto-filter từ token).
+    /// Customer chỉ thấy yêu cầu của mình (auto-filter theo token).
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<RescueRequestListItemDto>), StatusCodes.Status200OK)]
@@ -80,13 +76,12 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        // Customer chỉ được xem rescue của chính mình — override customerId filter
+        // Customer chỉ được xem rescue của chính mình
         if (IsRole(Roles.Customer))
             customerId = userId;
 
         var result = await _rescueService.GetListAsync(status, rescueType, customerId, fromDate, toDate, ct);
 
-        // Phân trang phía controller — nhất quán với pattern UsersController
         if (page.HasValue && pageSize.HasValue && page > 0 && pageSize > 0)
         {
             var skip = (page.Value - 1) * pageSize.Value;
@@ -119,7 +114,7 @@ public class RescueRequestController : ControllerBase
 
     // GET /api/rescue-requests/{id}/available-technicians
     /// <summary>
-    /// SA xem danh sách kỹ thuật viên khả dụng để tham chiếu khi đánh giá (UC-RES-01 Step 4, BR-28).
+    /// SA xem danh sách kỹ thuật viên khả dụng (UC-RES-01 Step 4, BR-28).
     /// </summary>
     [HttpGet("{id:int}/available-technicians")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -142,8 +137,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/propose
     /// <summary>
-    /// SA gửi đề xuất sửa tại chỗ hoặc kéo xe (UC-RES-01 Step 5-6).
-    /// ServiceAdvisorId tự động từ token.
+    /// SA gửi đề xuất sửa tại chỗ hoặc kéo xe (UC-RES-01 Step 5-6). BR-17, BR-18.
     /// </summary>
     [HttpPatch("{id:int}/propose")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -160,11 +154,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.ServiceAdvisorId = userId;
-
         try
         {
-            var result = await _rescueService.ProposeAsync(id, request, ct);
+            var result = await _rescueService.ProposeAsync(id, userId, request, ct);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -187,8 +179,8 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/assign-technician
     /// <summary>
-    /// SA điều phối kỹ thuật viên (UC-RES-02 Step 1-2).
-    /// ServiceAdvisorId tự động từ token. BR-17, BR-18, BR-28. SMC03, SMC10.
+    /// SA điều phối kỹ thuật viên (UC-RES-02 Step 1-2). BR-17, BR-18, BR-28. SMC03, SMC10.
+    /// Body: chỉ cần technicianId và estimatedArrivalDateTime.
     /// </summary>
     [HttpPatch("{id:int}/assign-technician")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -206,11 +198,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.ServiceAdvisorId = userId;
-
         try
         {
-            var result = await _rescueService.AssignTechnicianAsync(id, request, ct);
+            var result = await _rescueService.AssignTechnicianAsync(id, userId, request, ct);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -219,7 +209,6 @@ public class RescueRequestController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            // BR-28: Technician đang trong nhiệm vụ khác
             return ex.Message.Contains("nhiệm vụ cứu hộ")
                 ? Conflict(new { message = ex.Message })
                 : BadRequest(new { message = ex.Message });
@@ -232,8 +221,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/accept-job
     /// <summary>
-    /// Technician nhận job — xác nhận đang trên đường (UC-RES-02 Step 3).
-    /// TechnicianId tự động từ token. BR-18: DISPATCHED → EN_ROUTE. SMC05.
+    /// Technician nhận job (UC-RES-02 Step 3). Không cần body. BR-18: DISPATCHED → EN_ROUTE.
     /// </summary>
     [HttpPatch("{id:int}/accept-job")]
     [Authorize(Roles = Roles.Technician)]
@@ -249,7 +237,7 @@ public class RescueRequestController : ControllerBase
 
         try
         {
-            var result = await _rescueService.AcceptJobAsync(id, new TechnicianActionDto { TechnicianId = userId }, ct);
+            var result = await _rescueService.AcceptJobAsync(id, userId, ct);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -268,8 +256,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/arrive
     /// <summary>
-    /// Technician báo đã đến hiện trường (UC-RES-02 Step 4).
-    /// TechnicianId tự động từ token. BR-18: EN_ROUTE → ON_SITE. SMC05.
+    /// Technician báo đến hiện trường (UC-RES-02 Step 4). Không cần body. BR-18: EN_ROUTE → ON_SITE.
     /// </summary>
     [HttpPatch("{id:int}/arrive")]
     [Authorize(Roles = Roles.Technician)]
@@ -285,7 +272,7 @@ public class RescueRequestController : ControllerBase
 
         try
         {
-            var result = await _rescueService.ArriveAsync(id, new TechnicianActionDto { TechnicianId = userId }, ct);
+            var result = await _rescueService.ArriveAsync(id, userId, ct);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -305,7 +292,7 @@ public class RescueRequestController : ControllerBase
     // PATCH /api/rescue-requests/{id}/customer-consent
     /// <summary>
     /// Ghi nhận chấp thuận/từ chối sửa tại chỗ (UC-RES-02 Step 5, BR-RES-01).
-    /// ActorId tự động từ token. consentGiven=false → PROPOSED_TOWING (AF-02).
+    /// consentGiven=false → PROPOSED_TOWING (AF-02).
     /// </summary>
     [HttpPatch("{id:int}/customer-consent")]
     [Authorize(Roles = Roles.Customer + "," + Roles.ServiceAdvisor)]
@@ -322,11 +309,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.ActorId = userId;
-
         try
         {
-            var result = await _rescueService.RecordConsentAsync(id, request, ct);
+            var result = await _rescueService.RecordConsentAsync(id, userId, request, ct);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -341,8 +326,8 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/start-diagnosis
     /// <summary>
-    /// Technician bắt đầu chẩn đoán tại hiện trường (UC-RES-02 Step 6).
-    /// TechnicianId tự động từ token. canRepairOnSite=false → AF-01, release technician.
+    /// Technician bắt đầu chẩn đoán (UC-RES-02 Step 6).
+    /// canRepairOnSite=false → AF-01, release technician.
     /// </summary>
     [HttpPatch("{id:int}/start-diagnosis")]
     [Authorize(Roles = Roles.Technician)]
@@ -359,11 +344,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.TechnicianId = userId;
-
         try
         {
-            var result = await _rescueService.StartDiagnosisAsync(id, request, ct);
+            var result = await _rescueService.StartDiagnosisAsync(id, userId, request, ct);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -376,7 +359,6 @@ public class RescueRequestController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // BR-11: Xe đã có active Repair Order
             return UnprocessableEntity(new { message = ex.Message });
         }
     }
@@ -384,7 +366,7 @@ public class RescueRequestController : ControllerBase
     // POST /api/rescue-requests/{id}/repair-items
     /// <summary>
     /// Ghi nhận vật tư/dịch vụ sử dụng (UC-RES-02 Step 7, BR-20, SMC08).
-    /// Mỗi lần gọi thêm mới items. Lần đầu: DIAGNOSING → REPAIRING.
+    /// Mỗi lần gọi thêm items. Lần đầu: DIAGNOSING → REPAIRING.
     /// </summary>
     [HttpPost("{id:int}/repair-items")]
     [Authorize(Roles = Roles.Technician + "," + Roles.ServiceAdvisor)]
@@ -405,7 +387,6 @@ public class RescueRequestController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            // BR-20: Sản phẩm không tồn tại
             return NotFound(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
@@ -416,8 +397,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/complete-repair
     /// <summary>
-    /// Technician hoàn thành sửa chữa (UC-RES-02 Step 8).
-    /// TechnicianId tự động từ token. REPAIRING → REPAIR_COMPLETE. Release technician. SMC05.
+    /// Technician hoàn thành sửa chữa (UC-RES-02 Step 8). REPAIRING → REPAIR_COMPLETE. Release technician.
     /// </summary>
     [HttpPatch("{id:int}/complete-repair")]
     [Authorize(Roles = Roles.Technician)]
@@ -434,11 +414,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.TechnicianId = userId;
-
         try
         {
-            var result = await _rescueService.CompleteRepairAsync(id, request, ct);
+            var result = await _rescueService.CompleteRepairAsync(id, userId, request, ct);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -461,8 +439,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/dispatch-towing
     /// <summary>
-    /// SA điều phối dịch vụ kéo xe (UC-RES-03 C1).
-    /// ServiceAdvisorId tự động từ token. PROPOSED_TOWING → TOWING_DISPATCHED. SMC05, SMC11.
+    /// SA điều phối kéo xe (UC-RES-03 C1). PROPOSED_TOWING → TOWING_DISPATCHED. SMC05, SMC11.
     /// </summary>
     [HttpPatch("{id:int}/dispatch-towing")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -479,11 +456,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.ServiceAdvisorId = userId;
-
         try
         {
-            var result = await _rescueService.DispatchTowingAsync(id, request, ct);
+            var result = await _rescueService.DispatchTowingAsync(id, userId, request, ct);
             return Ok(new { data = result, message = "Dịch vụ kéo xe đã được điều phối. Đề xuất đã gửi đến khách hàng." });
         }
         catch (KeyNotFoundException ex)
@@ -498,9 +473,8 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/accept-towing
     /// <summary>
-    /// Customer chấp nhận dịch vụ kéo xe (UC-RES-03 C2).
-    /// CustomerId tự động từ token. TOWING_DISPATCHED → TOWING_ACCEPTED.
-    /// Từ chối → gọi /cancel (UC-RES-06).
+    /// Customer chấp nhận kéo xe (UC-RES-03 C2). Không cần body.
+    /// TOWING_DISPATCHED → TOWING_ACCEPTED. Từ chối → gọi /cancel.
     /// </summary>
     [HttpPatch("{id:int}/accept-towing")]
     [Authorize(Roles = Roles.Customer)]
@@ -516,7 +490,7 @@ public class RescueRequestController : ControllerBase
 
         try
         {
-            var result = await _rescueService.AcceptTowingAsync(id, new AcceptTowingDto { CustomerId = userId }, ct);
+            var result = await _rescueService.AcceptTowingAsync(id, userId, ct);
             return Ok(new { data = result, message = "Khách hàng đã chấp nhận dịch vụ kéo xe." });
         }
         catch (KeyNotFoundException ex)
@@ -535,8 +509,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/complete-towing
     /// <summary>
-    /// SA hoàn tất kéo xe — tạo Repair Order tự động (UC-RES-03 C3).
-    /// ServiceAdvisorId tự động từ token. TOWING_ACCEPTED → TOWED. BR-19. SMC07.
+    /// SA hoàn tất kéo xe — tạo Repair Order tự động (UC-RES-03 C3). BR-19. SMC07.
     /// </summary>
     [HttpPatch("{id:int}/complete-towing")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -553,11 +526,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.ServiceAdvisorId = userId;
-
         try
         {
-            var result = await _rescueService.CompleteTowingAsync(id, request, ct);
+            var result = await _rescueService.CompleteTowingAsync(id, userId, request, ct);
             return Ok(new
             {
                 data    = result,
@@ -570,7 +541,6 @@ public class RescueRequestController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // BR-11: Xe đã có active RO | BR-18: Trạng thái không hợp lệ
             return UnprocessableEntity(new { message = ex.Message });
         }
     }
@@ -581,8 +551,7 @@ public class RescueRequestController : ControllerBase
 
     // POST /api/rescue-requests/{id}/invoice
     /// <summary>
-    /// SA tạo hóa đơn cứu hộ (UC-RES-04 D1).
-    /// ServiceAdvisorId tự động từ token. BR-24: tự động tính member discount. SMP02, SMP06.
+    /// SA tạo hóa đơn (UC-RES-04 D1). BR-24: tính member discount. SMP02, SMP06.
     /// </summary>
     [HttpPost("{id:int}/invoice")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -599,11 +568,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.ServiceAdvisorId = userId;
-
         try
         {
-            var result = await _rescueService.CreateInvoiceAsync(id, request, ct);
+            var result = await _rescueService.CreateInvoiceAsync(id, userId, request, ct);
             return StatusCode(StatusCodes.Status201Created,
                 new { data = result, message = "Hóa đơn đã được tạo thành công." });
         }
@@ -622,9 +589,7 @@ public class RescueRequestController : ControllerBase
     }
 
     // GET /api/rescue-requests/{id}/invoice
-    /// <summary>
-    /// Lấy thông tin hóa đơn và danh sách vật tư/dịch vụ (UC-RES-04 D2).
-    /// </summary>
+    /// <summary>Lấy thông tin hóa đơn và danh sách vật tư/dịch vụ (UC-RES-04 D2).</summary>
     [HttpGet("{id:int}/invoice")]
     [Authorize(Roles = Roles.ServiceAdvisor + "," + Roles.Customer)]
     [ProducesResponseType(typeof(InvoiceWithItemsResponseDto), StatusCodes.Status200OK)]
@@ -651,8 +616,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/invoice/send
     /// <summary>
-    /// SA gửi hóa đơn cho Customer (UC-RES-04 D3).
-    /// ServiceAdvisorId tự động từ token. INVOICED → INVOICE_SENT. BR-25. SMC05.
+    /// SA gửi hóa đơn cho Customer (UC-RES-04 D3). Không cần body. INVOICED → INVOICE_SENT.
     /// </summary>
     [HttpPatch("{id:int}/invoice/send")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -668,7 +632,7 @@ public class RescueRequestController : ControllerBase
 
         try
         {
-            var result = await _rescueService.SendInvoiceAsync(id, new SendInvoiceDto { ServiceAdvisorId = userId }, ct);
+            var result = await _rescueService.SendInvoiceAsync(id, userId, ct);
             return Ok(new { data = result, message = "Hóa đơn đã được gửi đến khách hàng." });
         }
         catch (KeyNotFoundException ex)
@@ -683,9 +647,8 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/invoice/accept
     /// <summary>
-    /// Customer chấp nhận hóa đơn (UC-RES-04 D4).
-    /// CustomerId tự động từ token. INVOICE_SENT → PAYMENT_PENDING.
-    /// Khiếu nại → gọi /invoice/dispute (UC-RES-05).
+    /// Customer chấp nhận hóa đơn (UC-RES-04 D4). Không cần body. INVOICE_SENT → PAYMENT_PENDING.
+    /// Khiếu nại → gọi /invoice/dispute.
     /// </summary>
     [HttpPatch("{id:int}/invoice/accept")]
     [Authorize(Roles = Roles.Customer)]
@@ -701,7 +664,7 @@ public class RescueRequestController : ControllerBase
 
         try
         {
-            var result = await _rescueService.AcceptInvoiceAsync(id, new AcceptInvoiceDto { CustomerId = userId }, ct);
+            var result = await _rescueService.AcceptInvoiceAsync(id, userId, ct);
             return Ok(new { data = result, message = "Hóa đơn đã được chấp nhận. Vui lòng tiến hành thanh toán." });
         }
         catch (KeyNotFoundException ex)
@@ -720,8 +683,7 @@ public class RescueRequestController : ControllerBase
 
     // POST /api/rescue-requests/{id}/invoice/payment
     /// <summary>
-    /// Customer thanh toán (UC-RES-04 D5).
-    /// CustomerId tự động từ token. PAYMENT_PENDING → COMPLETED.
+    /// Customer thanh toán (UC-RES-04 D5). PAYMENT_PENDING → COMPLETED.
     /// BR-23: amount phải khớp finalAmount. SMP03, SMP05.
     /// </summary>
     [HttpPost("{id:int}/invoice/payment")]
@@ -739,11 +701,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.CustomerId = userId;
-
         try
         {
-            var result = await _rescueService.ProcessPaymentAsync(id, request, ct);
+            var result = await _rescueService.ProcessPaymentAsync(id, userId, request, ct);
             return Ok(new { data = result, message = "Thanh toán thành công. Cảm ơn bạn đã sử dụng dịch vụ." });
         }
         catch (KeyNotFoundException ex)
@@ -752,12 +712,13 @@ public class RescueRequestController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            // Số tiền không khớp finalAmount (BR-23)
-            return BadRequest(new { message = ex.Message });
+            // Số tiền không khớp hoặc sai ownership
+            return ex.Message.Contains("không phải khách hàng")
+                ? StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message })
+                : BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            // SMP07: Phương thức không hợp lệ | BR-18: Trạng thái không hợp lệ
             return ex.Message.Contains("không được hỗ trợ")
                 ? UnprocessableEntity(new { message = ex.Message })
                 : BadRequest(new { message = ex.Message });
@@ -770,8 +731,7 @@ public class RescueRequestController : ControllerBase
 
     // POST /api/rescue-requests/{id}/invoice/dispute
     /// <summary>
-    /// Customer tạo khiếu nại hóa đơn (UC-RES-05 E1).
-    /// CustomerId tự động từ token. INVOICE_SENT → INVOICE_DISPUTED. BR-26. SMC12.
+    /// Customer tạo khiếu nại hóa đơn (UC-RES-05 E1). INVOICE_SENT → INVOICE_DISPUTED. BR-26. SMC12.
     /// </summary>
     [HttpPost("{id:int}/invoice/dispute")]
     [Authorize(Roles = Roles.Customer)]
@@ -788,11 +748,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.CustomerId = userId;
-
         try
         {
-            var result = await _rescueService.CreateDisputeAsync(id, request, ct);
+            var result = await _rescueService.CreateDisputeAsync(id, userId, request, ct);
             return StatusCode(StatusCodes.Status201Created,
                 new { data = result, message = "Khiếu nại đã được ghi nhận. SA sẽ xem xét và phản hồi." });
         }
@@ -812,8 +770,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/invoice/resolve-dispute
     /// <summary>
-    /// SA xử lý tranh chấp và gửi lại hóa đơn (UC-RES-05 E2).
-    /// ServiceAdvisorId tự động từ token. INVOICE_DISPUTED → INVOICE_SENT. BR-26.
+    /// SA xử lý tranh chấp và gửi lại hóa đơn (UC-RES-05 E2). INVOICE_DISPUTED → INVOICE_SENT. BR-26.
     /// </summary>
     [HttpPatch("{id:int}/invoice/resolve-dispute")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -830,11 +787,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.ServiceAdvisorId = userId;
-
         try
         {
-            var result = await _rescueService.ResolveDisputeAsync(id, request, ct);
+            var result = await _rescueService.ResolveDisputeAsync(id, userId, request, ct);
             var message = result.Invoice.IsReissued
                 ? "Tranh chấp đã được xử lý. Hóa đơn điều chỉnh đã được gửi lại cho khách hàng."
                 : "Tranh chấp đã được xem xét. Hóa đơn gốc đã được gửi lại.";
@@ -860,8 +815,8 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/cancel
     /// <summary>
-    /// SA hủy yêu cầu cứu hộ (UC-RES-06 F1).
-    /// ServiceAdvisorId tự động từ token. Bất kỳ trạng thái (trừ COMPLETED) → CANCELLED. BR-26. SMC06.
+    /// SA hủy yêu cầu cứu hộ (UC-RES-06 F1). Bất kỳ trạng thái (trừ COMPLETED) → CANCELLED.
+    /// Side effects: release technician, cancel CarMaintenance nếu có. BR-26. SMC06.
     /// </summary>
     [HttpPatch("{id:int}/cancel")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -878,11 +833,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.ServiceAdvisorId = userId;
-
         try
         {
-            var result = await _rescueService.CancelAsync(id, request, ct);
+            var result = await _rescueService.CancelAsync(id, userId, request, ct);
             return Ok(new { data = result, message = "Yêu cầu cứu hộ đã bị hủy." });
         }
         catch (KeyNotFoundException ex)
@@ -897,8 +850,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/mark-spam
     /// <summary>
-    /// SA đánh dấu Spam yêu cầu cứu hộ (UC-RES-06 F2).
-    /// ServiceAdvisorId tự động từ token. PENDING/REVIEWING → CANCELLED. BR-26. SMC14, SMC06.
+    /// SA đánh dấu Spam (UC-RES-06 F2). PENDING/REVIEWING → CANCELLED. BR-26. SMC14, SMC06.
     /// </summary>
     [HttpPatch("{id:int}/mark-spam")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -915,11 +867,9 @@ public class RescueRequestController : ControllerBase
         var (userId, err) = ExtractUserId();
         if (err != null) return err;
 
-        request.ServiceAdvisorId = userId;
-
         try
         {
-            var result = await _rescueService.MarkSpamAsync(id, request, ct);
+            var result = await _rescueService.MarkSpamAsync(id, userId, request, ct);
             return Ok(new { data = result, message = "Yêu cầu đã bị đánh dấu Spam và hủy." });
         }
         catch (KeyNotFoundException ex)
@@ -948,9 +898,7 @@ public class RescueRequestController : ControllerBase
         return (uid, null);
     }
 
-    /// <summary>
-    /// Kiểm tra role của user hiện tại dựa trên claim Role trong JWT.
-    /// </summary>
+    /// <summary>Kiểm tra role của user hiện tại từ JWT claim Role.</summary>
     private bool IsRole(string role) =>
         User.FindFirstValue(ClaimTypes.Role) == role;
 }

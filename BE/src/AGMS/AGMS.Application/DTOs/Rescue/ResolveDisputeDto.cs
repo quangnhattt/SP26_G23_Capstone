@@ -9,10 +9,6 @@ namespace AGMS.Application.DTOs.Rescue;
 /// </summary>
 public class ResolveDisputeDto
 {
-    /// <summary>ID SA xử lý — validate BR-17</summary>
-    [Required(ErrorMessage = "ServiceAdvisorId là bắt buộc.")]
-    public int ServiceAdvisorId { get; set; }
-
     /// <summary>Ghi chú kết quả xử lý tranh chấp (bắt buộc). Max 500 ký tự.</summary>
     [Required(ErrorMessage = "ResolutionNotes là bắt buộc.")]
     [MaxLength(500, ErrorMessage = "ResolutionNotes không được vượt quá 500 ký tự.")]

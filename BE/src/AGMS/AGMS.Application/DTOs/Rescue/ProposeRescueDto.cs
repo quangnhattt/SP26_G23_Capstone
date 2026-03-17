@@ -7,10 +7,6 @@ namespace AGMS.Application.DTOs.Rescue;
 /// </summary>
 public class ProposeRescueDto
 {
-    /// <summary>ID của Service Advisor thực hiện đề xuất (BR-17)</summary>
-    [Required(ErrorMessage = "ID Service Advisor là bắt buộc.")]
-    public int ServiceAdvisorId { get; set; }
-
     /// <summary>
     /// Loại đề xuất: ROADSIDE (sửa tại chỗ) hoặc TOWING (kéo xe về xưởng)
     /// </summary>

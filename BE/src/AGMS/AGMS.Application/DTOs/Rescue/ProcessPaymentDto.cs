@@ -9,10 +9,6 @@ namespace AGMS.Application.DTOs.Rescue;
 /// </summary>
 public class ProcessPaymentDto
 {
-    /// <summary>ID khách hàng thanh toán — validate ownership (BR-03)</summary>
-    [Required(ErrorMessage = "CustomerId là bắt buộc.")]
-    public int CustomerId { get; set; }
-
     /// <summary>Phương thức thanh toán: CASH, CARD, TRANSFER, EWALLET (SMP07 nếu không hợp lệ)</summary>
     [Required(ErrorMessage = "PaymentMethod là bắt buộc.")]
     public string PaymentMethod { get; set; } = null!;
