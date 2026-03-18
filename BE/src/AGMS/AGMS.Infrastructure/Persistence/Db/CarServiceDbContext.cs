@@ -94,6 +94,7 @@ public partial class CarServiceDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.RejectionReason).HasMaxLength(500);
             entity.Property(e => e.ServiceType)
                 .HasMaxLength(20)
                 .HasDefaultValue("REPAIR");
