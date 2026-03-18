@@ -50,6 +50,7 @@ public class AppointmentRepository : IAppointmentRepository
                 RequestedPackageId = a.RequestedPackageID,
                 Status = a.Status,
                 Notes = a.Notes,
+                RejectionReason = a.RejectionReason,
                 CreatedBy = a.CreatedBy,
                 CreatedDate = a.CreatedDate,
                 LicensePlate = a.Car.LicensePlate,
@@ -113,22 +114,22 @@ public class AppointmentRepository : IAppointmentRepository
 
         await _db.SaveChangesAsync(ct);
     }
-    public async Task RejectAsync(int appointmentId, int rejectedByUserId,CancellationToken ct) {
-        {
-            var appointment =await _db.Appointments
-                .FirstOrDefaultAsync(a=>a.AppointmentID == appointmentId,ct)
-                ?? throw new KeyNotFoundException("Appointment not found.");
-            if(appointment.Status != "PENDING")
-            {
-                throw new InvalidOperationException("Only PENDING appointments can be rejected");
+    public async Task RejectAsync(int appointmentId, int rejectedByUserId, string rejectionReason, CancellationToken ct)
+    {
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.AppointmentID == appointmentId, ct)
+            ?? throw new KeyNotFoundException("Appointment not found.");
 
-            }
-            appointment.Status = "CANCELLED";
-            appointment.ConfirmedBy = rejectedByUserId;
-            appointment.ConfirmedDate = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
+        if (appointment.Status != "PENDING")
+            throw new InvalidOperationException("Only PENDING appointments can be rejected");
 
-        } }
+        appointment.Status = "CANCELLED";
+        appointment.RejectionReason = rejectionReason;
+        appointment.ConfirmedBy = rejectedByUserId;
+        appointment.ConfirmedDate = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+    }
 
     public async Task CheckInAsync(int appointmentId, int checkedInByUserId, CancellationToken ct)
     {
