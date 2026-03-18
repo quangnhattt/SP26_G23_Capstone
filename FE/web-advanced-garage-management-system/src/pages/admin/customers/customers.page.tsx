@@ -134,6 +134,7 @@ const CustomersPage = () => {
           <TableTitle>Danh sách khách hàng</TableTitle>
           <TableSubtitle>Hiện thi 5 khách hàng</TableSubtitle>
 
+          <TableWrapper>
           <Table>
             <thead>
               <tr>
@@ -190,6 +191,7 @@ const CustomersPage = () => {
               ))}
             </tbody>
           </Table>
+          </TableWrapper>
         </TableSection>
       </TableCard>
     </Container>
@@ -370,8 +372,14 @@ const TableSubtitle = styled.p`
   margin: 0 0 1.5rem 0;
 `;
 
+const TableWrapper = styled.div`
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+`;
+
 const Table = styled.table`
   width: 100%;
+  min-width: max-content;
   border-collapse: collapse;
 `;
 

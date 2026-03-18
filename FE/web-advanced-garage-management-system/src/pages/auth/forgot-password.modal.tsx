@@ -1,4 +1,5 @@
 import { authService } from "@/apis/auth";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { IconMail, IconKey } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,8 +33,7 @@ const ForgotPasswordModal = ({ onClose, onSuccess }: ForgotPasswordModalProps) =
       }
     } catch (error) {
       console.error("Forgot password error:", error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err?.response?.data?.message || t("forgotPasswordFailed"));
+      toast.error(getApiErrorMessage(error, t("forgotPasswordFailed")));
     } finally {
       setIsLoading(false);
     }

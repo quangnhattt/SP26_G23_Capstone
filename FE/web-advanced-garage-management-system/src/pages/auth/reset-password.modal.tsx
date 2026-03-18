@@ -1,4 +1,6 @@
 import { authService } from "@/apis/auth";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { validateStrongPassword } from "@/utils/validation";
 import { IconLock, IconKey, IconEye, IconEyeOff } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,6 +21,32 @@ const ResetPasswordModal = ({ email, onClose, onSuccess }: ResetPasswordModalPro
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [newPasswordError, setNewPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
+
+  const handleNewPasswordChange = (value: string) => {
+    setNewPassword(value);
+    if (value) {
+      const err = validateStrongPassword(value);
+      setNewPasswordError(err);
+    } else {
+      setNewPasswordError(null);
+    }
+    if (confirmNewPassword && value !== confirmNewPassword) {
+      setConfirmPasswordError("newPasswordMismatch");
+    } else {
+      setConfirmPasswordError(null);
+    }
+  };
+
+  const handleConfirmPasswordChange = (value: string) => {
+    setConfirmNewPassword(value);
+    if (value && newPassword !== value) {
+      setConfirmPasswordError("newPasswordMismatch");
+    } else {
+      setConfirmPasswordError(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +61,10 @@ const ResetPasswordModal = ({ email, onClose, onSuccess }: ResetPasswordModalPro
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error(t("passwordMinLength"));
+    const passwordValidationError = validateStrongPassword(newPassword);
+    if (passwordValidationError) {
+      toast.error(t(passwordValidationError));
+      setNewPasswordError(passwordValidationError);
       return;
     }
 
@@ -45,6 +75,7 @@ const ResetPasswordModal = ({ email, onClose, onSuccess }: ResetPasswordModalPro
 
     if (newPassword !== confirmNewPassword) {
       toast.error(t("newPasswordMismatch"));
+      setConfirmPasswordError("newPasswordMismatch");
       return;
     }
 
@@ -63,8 +94,7 @@ const ResetPasswordModal = ({ email, onClose, onSuccess }: ResetPasswordModalPro
       onClose();
     } catch (error) {
       console.error("Reset password error:", error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err?.response?.data?.message || t("resetPasswordFailed"));
+      toast.error(getApiErrorMessage(error, t("resetPasswordFailed")));
     } finally {
       setIsLoading(false);
     }
@@ -108,14 +138,20 @@ const ResetPasswordModal = ({ email, onClose, onSuccess }: ResetPasswordModalPro
 
           <FieldGroup>
             <Label>{t("newPassword")}</Label>
-            <InputWrapper>
+            <InputWrapper $hasError={!!newPasswordError}>
               <IconLock size={20} stroke={1.5} />
               <Input
                 type={showPassword ? "text" : "password"}
                 placeholder={t("newPasswordPlaceholder")}
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) => handleNewPasswordChange(e.target.value)}
                 disabled={isLoading}
+                onBlur={() => {
+                  if (newPassword) {
+                    const err = validateStrongPassword(newPassword);
+                    setNewPasswordError(err);
+                  }
+                }}
               />
               <EyeButton
                 type="button"
@@ -129,18 +165,29 @@ const ResetPasswordModal = ({ email, onClose, onSuccess }: ResetPasswordModalPro
                 )}
               </EyeButton>
             </InputWrapper>
+            {newPasswordError && (
+              <ErrorText>{t(newPasswordError)}</ErrorText>
+            )}
+            <HintText>{t("passwordStrongHint")}</HintText>
           </FieldGroup>
 
           <FieldGroup>
             <Label>{t("confirmNewPassword")}</Label>
-            <InputWrapper>
+            <InputWrapper $hasError={!!confirmPasswordError}>
               <IconLock size={20} stroke={1.5} />
               <Input
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder={t("confirmNewPasswordPlaceholder")}
                 value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                onChange={(e) => handleConfirmPasswordChange(e.target.value)}
                 disabled={isLoading}
+                onBlur={() => {
+                  if (confirmNewPassword && newPassword !== confirmNewPassword) {
+                    setConfirmPasswordError("newPasswordMismatch");
+                  } else {
+                    setConfirmPasswordError(null);
+                  }
+                }}
               />
               <EyeButton
                 type="button"
@@ -154,6 +201,9 @@ const ResetPasswordModal = ({ email, onClose, onSuccess }: ResetPasswordModalPro
                 )}
               </EyeButton>
             </InputWrapper>
+            {confirmPasswordError && (
+              <ErrorText>{t(confirmPasswordError)}</ErrorText>
+            )}
           </FieldGroup>
 
           <SubmitButton type="submit" disabled={isLoading}>
@@ -261,19 +311,31 @@ const Label = styled.label`
   color: #374151;
 `;
 
-const InputWrapper = styled.div`
+const InputWrapper = styled.div<{ $hasError?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid ${(p) => (p.$hasError ? "#ef4444" : "#e5e7eb")};
   border-radius: 10px;
 
   svg {
-    color: #9ca3af;
+    color: ${(p) => (p.$hasError ? "#ef4444" : "#9ca3af")};
     flex-shrink: 0;
   }
+`;
+
+const ErrorText = styled.span`
+  font-size: 0.8rem;
+  color: #ef4444;
+  margin-top: 0.25rem;
+`;
+
+const HintText = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
 `;
 
 const Input = styled.input`

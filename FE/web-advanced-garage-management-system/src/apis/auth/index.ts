@@ -116,6 +116,7 @@ export const logout = async (payload: ILogoutPayload) => {
  */
 export interface IRegisterPayload {
   fullName: string;
+  username?: string;
   email: string;
   phoneNumber: string;
   password: string;
@@ -124,10 +125,11 @@ export interface IRegisterPayload {
 
 export const register = async (payload: IRegisterPayload) => {
   const username =
+    payload.username?.trim() ||
     "user_" +
-    payload.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") +
-    "_" +
-    Date.now().toString(36);
+      payload.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") +
+      "_" +
+      Date.now().toString(36);
   const { data } = await AxiosClient.post("/api/auth/register", {
     fullName: payload.fullName,
     username,

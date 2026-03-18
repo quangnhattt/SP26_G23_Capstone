@@ -1,4 +1,5 @@
 import { userService } from "@/apis/user";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import useAuth from "@/hooks/useAuth";
 import { IconX, IconUser } from "@tabler/icons-react";
 import { useState } from "react";
@@ -58,8 +59,7 @@ const EditProfileModal = ({ onClose, onSuccess }: EditProfileModalProps) => {
       onClose();
     } catch (error) {
       console.error("Update profile error:", error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err?.response?.data?.message || t("updateProfileFailed"));
+      toast.error(getApiErrorMessage(error, t("updateProfileFailed")));
     } finally {
       setLoading(false);
     }

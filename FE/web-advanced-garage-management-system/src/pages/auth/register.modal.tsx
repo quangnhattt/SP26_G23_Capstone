@@ -1,6 +1,8 @@
 import { images } from "@/assets/imagesAsset";
 import { authService } from "@/apis/auth";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { ROUTER_PAGE } from "@/routes/contants";
+import { validateStrongPassword } from "@/utils/validation";
 import {
   IconMail,
   IconLock,
@@ -28,6 +30,7 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
   const [activeTab, setActiveTab] = useState<"login" | "register">("register");
   const [currentStep, setCurrentStep] = useState<"register" | "otp">("register");
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +41,32 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
 
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    if (value) {
+      const err = validateStrongPassword(value);
+      setPasswordError(err);
+    } else {
+      setPasswordError(null);
+    }
+    if (confirmPassword && value !== confirmPassword) {
+      setConfirmPasswordError("passwordMismatch");
+    } else {
+      setConfirmPasswordError(null);
+    }
+  };
+
+  const handleConfirmPasswordChange = (value: string) => {
+    setConfirmPassword(value);
+    if (value && password !== value) {
+      setConfirmPasswordError("passwordMismatch");
+    } else {
+      setConfirmPasswordError(null);
+    }
+  };
 
   const handleClose = () => {
     if (onClose) {
@@ -64,6 +92,10 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
       toast.error(t("fullNameRequired"));
       return;
     }
+    if (!username.trim()) {
+      toast.error(t("usernameRequired"));
+      return;
+    }
     if (!email.trim()) {
       toast.error(t("emailRequired"));
       return;
@@ -76,8 +108,10 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
       toast.error(t("passwordRequired"));
       return;
     }
-    if (password.length < 6) {
-      toast.error(t("passwordMinLength"));
+    const passwordValidationError = validateStrongPassword(password);
+    if (passwordValidationError) {
+      toast.error(t(passwordValidationError));
+      setPasswordError(passwordValidationError);
       return;
     }
     if (!confirmPassword.trim()) {
@@ -86,6 +120,7 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
     }
     if (password !== confirmPassword) {
       toast.error(t("passwordMismatch"));
+      setConfirmPasswordError("passwordMismatch");
       return;
     }
     if (!agreeTerms) {
@@ -97,6 +132,7 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
     try {
       await authService.register({
         fullName: fullName.trim(),
+        username: username.trim(),
         email: email.trim(),
         phoneNumber: phoneNumber.trim(),
         password,
@@ -105,14 +141,7 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
       toast.success(t("registerSuccess"));
       setCurrentStep("otp");
     } catch (error: unknown) {
-      const err = error as {
-        response?: { data?: { message?: string; Message?: string } };
-      };
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data?.Message ??
-        "Đăng ký thất bại";
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, "Đăng ký thất bại"));
     } finally {
       setIsSubmitting(false);
     }
@@ -178,14 +207,7 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
         navigate(ROUTER_PAGE.auth.login, { replace: true });
       }
     } catch (error: unknown) {
-      const err = error as {
-        response?: { data?: { message?: string; Message?: string } };
-      };
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data?.Message ??
-        t("otpVerifyFailed");
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, t("otpVerifyFailed")));
     } finally {
       setIsVerifyingOTP(false);
     }
@@ -195,6 +217,7 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
     try {
       await authService.register({
         fullName: fullName.trim(),
+        username: username.trim(),
         email: email.trim(),
         phoneNumber: phoneNumber.trim(),
         password,
@@ -203,14 +226,7 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
       toast.success(t("otpResendSuccess"));
       setOtp(["", "", "", "", "", ""]);
     } catch (error: unknown) {
-      const err = error as {
-        response?: { data?: { message?: string; Message?: string } };
-      };
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data?.Message ??
-        t("otpResendFailed");
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, t("otpResendFailed")));
     }
   };
 
@@ -264,6 +280,20 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
                 </InputWrapper>
               </FieldGroup>
 
+              <FieldGroup>
+                <Label>{t("username")}</Label>
+                <InputWrapper>
+                  <IconUser size={20} stroke={1.5} />
+                  <Input
+                    type="text"
+                    placeholder={t("usernamePlaceholder")}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                  />
+                </InputWrapper>
+              </FieldGroup>
+
               <Row2>
                 <FieldGroup>
                   <Label>{t("email")}</Label>
@@ -296,13 +326,19 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
 
               <FieldGroup>
                 <Label>{t("password")}</Label>
-                <InputWrapper>
+                <InputWrapper $hasError={!!passwordError}>
                   <IconLock size={20} stroke={1.5} />
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder={t("passwordPlaceholderRegister")}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => handlePasswordChange(e.target.value)}
+                    onBlur={() => {
+                      if (password) {
+                        const err = validateStrongPassword(password);
+                        setPasswordError(err);
+                      }
+                    }}
                     autoComplete="new-password"
                   />
                   <EyeButton
@@ -317,17 +353,26 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
                     )}
                   </EyeButton>
                 </InputWrapper>
+                {passwordError && <ErrorText>{t(passwordError)}</ErrorText>}
+                <HintText>{t("passwordStrongHint")}</HintText>
               </FieldGroup>
 
               <FieldGroup>
                 <Label>{t("confirmPassword")}</Label>
-                <InputWrapper>
+                <InputWrapper $hasError={!!confirmPasswordError}>
                   <IconLock size={20} stroke={1.5} />
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder={t("confirmPasswordPlaceholder")}
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                    onBlur={() => {
+                      if (confirmPassword && password !== confirmPassword) {
+                        setConfirmPasswordError("passwordMismatch");
+                      } else {
+                        setConfirmPasswordError(null);
+                      }
+                    }}
                     autoComplete="new-password"
                   />
                   <EyeButton
@@ -344,6 +389,9 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
                     )}
                   </EyeButton>
                 </InputWrapper>
+                {confirmPasswordError && (
+                  <ErrorText>{t(confirmPasswordError)}</ErrorText>
+                )}
               </FieldGroup>
 
               <CheckboxRow>
@@ -562,19 +610,31 @@ const Label = styled.label`
   color: #374151;
 `;
 
-const InputWrapper = styled.div`
+const InputWrapper = styled.div<{ $hasError?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  border: 1px solid ${(p) => (p.$hasError ? "#ef4444" : "#e5e7eb")};
   border-radius: 10px;
 
   svg {
-    color: #9ca3af;
+    color: ${(p) => (p.$hasError ? "#ef4444" : "#9ca3af")};
     flex-shrink: 0;
   }
+`;
+
+const ErrorText = styled.span`
+  font-size: 0.8rem;
+  color: #ef4444;
+  margin-top: 0.25rem;
+`;
+
+const HintText = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
 `;
 
 const Input = styled.input`
