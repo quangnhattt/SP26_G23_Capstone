@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Auth;
 using AGMS.Application.Exceptions;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AGMS.WebApi.Controllers;
@@ -89,21 +87,5 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
-    }
-
-    [HttpPost("logout")]
-    [Authorize]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Logout(CancellationToken ct)
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
-        {
-            return Unauthorized(new { message = "Invalid or missing user id claim." });
-        }
-
-        await _authService.LogoutAsync(userId, ct);
-        return NoContent();
     }
 }

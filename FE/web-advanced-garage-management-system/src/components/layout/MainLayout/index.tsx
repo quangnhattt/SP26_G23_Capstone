@@ -1,14 +1,12 @@
+import MobileDrawer from "@/components/common/modal/MobileDrawerModal";
 import { ROUTER_PAGE } from "@/routes/contants";
 import useDevice from "@/hooks/useDevice";
 import useWindowDimensions from "@/hooks/useWindowDimension";
 import type React from "react";
-import { lazy, Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../Header";
 import Footer from "../Footer";
-
-const MobileDrawer = lazy(() => import("@/components/common/modal/MobileDrawerModal"));
 
 const MainLayout: React.FC = () => {
   const { isMobile } = useDevice();
@@ -16,7 +14,6 @@ const MainLayout: React.FC = () => {
   const { pathname } = useLocation();
   const isLightPage =
     pathname === ROUTER_PAGE.contact || pathname === ROUTER_PAGE.about;
-  const isAdminPage = pathname.startsWith(ROUTER_PAGE.admin);
 
   return (
     <>
@@ -24,7 +21,7 @@ const MainLayout: React.FC = () => {
         $isContactPage={isLightPage}
         style={{ minHeight: height }}
       >
-        <Header />
+        <Header/>
         <Content
           $isContactPage={isLightPage}
           style={{
@@ -35,11 +32,9 @@ const MainLayout: React.FC = () => {
             <Outlet />
           </OutletContent>
         </Content>
-        {!isAdminPage && <Footer />}
+        <Footer/>
       </Container>
-      <Suspense fallback={null}>
-        <MobileDrawer />
-      </Suspense>
+      <MobileDrawer />
     </>
   );
 };
@@ -71,5 +66,5 @@ const OutletContent = styled.div`
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  overflow-x: auto;
+  overflow-x: hidden;
 `;

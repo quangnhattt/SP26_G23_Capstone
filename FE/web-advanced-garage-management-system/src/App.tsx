@@ -1,23 +1,20 @@
 import "./App.css";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { lazy, Suspense } from "react";
 import { useTheme } from "./context/ThemeContext";
 import { DeviceProvider } from "./context/DeviceContext";
 import { UAParser } from "ua-parser-js";
 import GlobalStyle from "./constants/globalStyle";
 import { ThemeProvider } from "styled-components";
 import { I18nextProvider } from "react-i18next";
-import i18next from "./language";
+import i18next from "i18next";
 import { ConfigProvider } from "antd";
 import en_US from "antd/lib/locale/en_US";
 import { Provider } from "react-redux";
 import store from "./store/store";
 import { LoadingProvider } from "./context/LoadingContent";
 import QueryProvider from "./context/QueryProvider";
-import { ToastContainer } from "react-toastify";
-
-// Lazy load routes
-const AppRoutes = lazy(() => import("./routes/AppRoutes"));
+import AppRoutes from "./routes/AppRoutes";
 
 function App() {
   const { theme } = useTheme();
@@ -40,9 +37,7 @@ function App() {
             <Provider store={store}>
               <LoadingProvider>
                 <QueryProvider>
-                  <Suspense fallback={<div>Loading...</div>}>
-                    <AppRoutes />
-                  </Suspense>
+                  <AppRoutes />
                 </QueryProvider>
               </LoadingProvider>
             </Provider>

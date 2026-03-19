@@ -50,6 +50,7 @@ const ContactPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Integrate with API
+    console.log("Contact form submitted:", formData);
   };
 
   const handleBookOnline = () => {

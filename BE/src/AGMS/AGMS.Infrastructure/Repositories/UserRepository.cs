@@ -131,23 +131,11 @@ public class UserRepository : IUserRepository
     }
 
     public async Task DeleteAsync(int userId, CancellationToken ct)
-	{
-		var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
-        if (entity == null) return;
-		_db.Users.Remove(entity);
-        await _db.SaveChangesAsync(ct);
-    }
-
-		
-    /// <summary>
-    /// Bật/tắt cờ nhiệm vụ cứu hộ của kỹ thuật viên (BR-28).
-    /// Dùng khi assign (true) hoặc hoàn thành/hủy nhiệm vụ (false).
-    /// </summary>
-    public async Task SetOnRescueMissionAsync(int userId, bool isOnMission, CancellationToken ct)
     {
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
         if (entity == null) return;
-        entity.IsOnRescueMission = isOnMission;
+
+        _db.Users.Remove(entity);
         await _db.SaveChangesAsync(ct);
     }
 
@@ -155,7 +143,8 @@ public class UserRepository : IUserRepository
     {
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
         if (entity == null) return;
-		entity.IsEmailVerified = isVerified;
+
+        entity.IsEmailVerified = isVerified;
         await _db.SaveChangesAsync(ct);
     }
 }

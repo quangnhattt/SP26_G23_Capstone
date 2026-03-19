@@ -1,5 +1,5 @@
 import dayjs from "@/utils/dayjs";
-// import type { RootState } from "../rootReducer"; // Removed: not used after disabling selector
+import type { RootState } from "../rootReducer";
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export interface IProfileState {
@@ -120,7 +120,6 @@ export const {
   setInviteDate,
 } = profileSlice.actions;
 
-// Disabled: profile slice removed from rootReducer
-// export const profileSelector = (state: RootState) => state.profile;
+export const profileSelector = (state: RootState) => state.profile;
 
 export default profileSlice.reducer;

@@ -64,7 +64,6 @@ export interface IUser {
   profileProgress: number;
   avatar: string;
   roleID: number;
-  createdDate?: string;
 }
 
 export interface DeviceProps {

@@ -11,5 +11,4 @@ public interface IAuthService
 
     Task SendEmailVerificationOtpAsync(EmailVerificationSendOtpRequest req, CancellationToken ct);
     Task VerifyEmailOtpAsync(EmailVerificationVerifyOtpRequest req, CancellationToken ct);
-    Task LogoutAsync(int userId, CancellationToken ct);
 }
