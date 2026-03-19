@@ -8,6 +8,7 @@ public class Appointment
     public int? RequestedPackageID { get; set; }
     public string Status { get; set; } = null!;
     public string? Notes { get; set; }
+    public string? RejectionReason { get; set; }
     public int CreatedBy { get; set; }
     public DateTime CreatedDate { get; set; }
     public int? ConfirmedBy { get; set; }
