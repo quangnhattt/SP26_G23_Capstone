@@ -158,7 +158,7 @@ const Header = () => {
                 {showUserMenu && (
                   <UserDropdown>
                     <DropdownItem onClick={() => {
-                      navigate(ROUTER_PAGE.home);
+                      navigate(ROUTER_PAGE.profile);
                       setShowUserMenu(false);
                     }}>
                       <IconUser size={18} />

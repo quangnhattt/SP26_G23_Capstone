@@ -1,4 +1,4 @@
-import type { GenderEnum, IUser, ResponseStatusEnum } from "@/constants/types";
+import type { IUser, ResponseStatusEnum } from "@/constants/types";
 import AxiosClient from "../AxiosClient";
 
 /**
@@ -57,6 +57,7 @@ export const userInfo = async (): Promise<IUser> => {
     profileProgress: 0,
     avatar: data.image,
     roleID: data.roleID,
+    createdDate: data.createdDate,
   };
 };
 
@@ -64,17 +65,12 @@ export const userInfo = async (): Promise<IUser> => {
  * Update Info
  */
 
-interface IUpdateInfoPayload {
-  fullName?: string;
-  username?: string;
-  dob?: number;
-  gender?: GenderEnum;
-  paperType?: string;
-  paperNumber?: string;
-  address?: string;
-  currency?: string;
-  countryId?: string;
-  language?: string;
+export interface IUpdateInfoPayload {
+  fullName: string;
+  phoneNumber?: string;
+  gender?: string;
+  image?: string;
+  dateOfBirth?: string;
 }
 
 interface IUpdateInfoResponse {

@@ -4,6 +4,7 @@ import {
   type ILoginWithEmailPayload,
 } from "@/apis/auth";
 import type { AxiosError } from "axios";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import LocalStorage from "@/apis/LocalStorage";
 import { userService } from "@/apis/user";
 import { AppStorageEnum, type IUser } from "@/constants/types";
@@ -30,7 +31,10 @@ interface AuthContextType {
     isUpdatePhone?: boolean,
     returnUrl?: string
   ) => Promise<void>;
-  loginWithEmail: (payload: ILoginWithEmailPayload) => Promise<void>;
+  loginWithEmail: (
+    payload: ILoginWithEmailPayload,
+    onEmailNotVerified?: (email: string) => void
+  ) => Promise<void>;
   logout: () => Promise<void>;
   setIsInitializing: (isInitializing: boolean) => void;
 }
@@ -221,15 +225,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               },
               onError: (error) => {
                 hideLoading();
-                const err = error as AxiosError<{ message?: string }>;
-                toast.error(err?.response?.data?.message ?? "Login failed");
+                toast.error(getApiErrorMessage(error, "Login failed"));
               },
             });
           },
           onError: (e) => {
             hideLoading();
-            const err = e as AxiosError<{ message?: string }>;
-            toast.error(err?.response?.data?.message ?? "Login failed");
+            toast.error(getApiErrorMessage(e, "Login failed"));
           },
         }
       );
@@ -241,7 +243,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
    * ===== LOGIN WITH EMAIL =====
    */
   const loginWithEmail = React.useCallback(
-    async (payload: ILoginWithEmailPayload) => {
+    async (
+      payload: ILoginWithEmailPayload,
+      onEmailNotVerified?: (email: string) => void
+    ) => {
       showLoading();
       queryClient.removeQueries({ queryKey: ["get-balance"], exact: true });
 
@@ -266,16 +271,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             onError: (error) => {
               console.error("User info fetch failed:", error);
               hideLoading();
-              const err = error as AxiosError<{ message?: string }>;
-              toast.error(err?.response?.data?.message ?? "Login failed");
+              toast.error(getApiErrorMessage(error, "Login failed"));
             },
           });
         },
         onError: (e) => {
           console.error("Login failed:", e);
           hideLoading();
-          const err = e as AxiosError<{ message?: string }>;
-          toast.error(err?.response?.data?.message ?? "Đăng nhập thất bại");
+          const err = e as AxiosError<{
+            message?: string;
+            requiresEmailVerification?: boolean;
+          }>;
+          const data = err?.response?.data;
+
+          const isEmailNotVerified =
+            data?.requiresEmailVerification === true ||
+            data?.message === "Email is not verified.";
+
+          if (isEmailNotVerified && onEmailNotVerified) {
+            onEmailNotVerified(payload.email);
+          } else {
+            toast.error(getApiErrorMessage(e, "Đăng nhập thất bại"));
+          }
         },
       });
     },

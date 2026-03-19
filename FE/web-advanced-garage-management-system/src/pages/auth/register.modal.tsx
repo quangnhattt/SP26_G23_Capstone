@@ -1,6 +1,8 @@
 import { images } from "@/assets/imagesAsset";
 import { authService } from "@/apis/auth";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { ROUTER_PAGE } from "@/routes/contants";
+import { validateStrongPassword } from "@/utils/validation";
 import {
   IconMail,
   IconLock,
@@ -8,6 +10,8 @@ import {
   IconPhone,
   IconEye,
   IconEyeOff,
+  IconShieldCheck,
+  IconArrowRight,
 } from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -24,7 +28,9 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"login" | "register">("register");
+  const [currentStep, setCurrentStep] = useState<"register" | "otp">("register");
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
@@ -33,6 +39,34 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    if (value) {
+      const err = validateStrongPassword(value);
+      setPasswordError(err);
+    } else {
+      setPasswordError(null);
+    }
+    if (confirmPassword && value !== confirmPassword) {
+      setConfirmPasswordError("passwordMismatch");
+    } else {
+      setConfirmPasswordError(null);
+    }
+  };
+
+  const handleConfirmPasswordChange = (value: string) => {
+    setConfirmPassword(value);
+    if (value && password !== value) {
+      setConfirmPasswordError("passwordMismatch");
+    } else {
+      setConfirmPasswordError(null);
+    }
+  };
 
   const handleClose = () => {
     if (onClose) {
@@ -58,6 +92,10 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
       toast.error(t("fullNameRequired"));
       return;
     }
+    if (!username.trim()) {
+      toast.error(t("usernameRequired"));
+      return;
+    }
     if (!email.trim()) {
       toast.error(t("emailRequired"));
       return;
@@ -70,8 +108,10 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
       toast.error(t("passwordRequired"));
       return;
     }
-    if (password.length < 6) {
-      toast.error(t("passwordMinLength"));
+    const passwordValidationError = validateStrongPassword(password);
+    if (passwordValidationError) {
+      toast.error(t(passwordValidationError));
+      setPasswordError(passwordValidationError);
       return;
     }
     if (!confirmPassword.trim()) {
@@ -80,6 +120,7 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
     }
     if (password !== confirmPassword) {
       toast.error(t("passwordMismatch"));
+      setConfirmPasswordError("passwordMismatch");
       return;
     }
     if (!agreeTerms) {
@@ -91,176 +132,340 @@ const RegisterModal = ({ onClose, onSwitchToLogin }: RegisterModalProps) => {
     try {
       await authService.register({
         fullName: fullName.trim(),
+        username: username.trim(),
         email: email.trim(),
         phoneNumber: phoneNumber.trim(),
         password,
         confirmPassword,
       });
       toast.success(t("registerSuccess"));
+      setCurrentStep("otp");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Đăng ký thất bại"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOTPChange = (index: number, value: string) => {
+    
+    if (value.length > 1) {
+      if (value.length === 6 && /^\d{6}$/.test(value)) {
+        const newOtp = value.split("");
+        setOtp(newOtp);
+        const lastInput = document.getElementById(`otp-5`);
+        lastInput?.focus();
+        return;
+      }
+      value = value.slice(-1);
+    }
+    
+    if (value !== "" && !/^\d$/.test(value)) {
+      return;
+    }
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    if (value !== "" && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      nextInput?.focus();
+    }
+  };
+
+  const handleOTPKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Backspace") {
+      if (!otp[index] && index > 0) {
+        const prevInput = document.getElementById(`otp-${index - 1}`);
+        prevInput?.focus();
+      }
+    }
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const otpValue = otp.join("");
+    if (otpValue.length !== 6) {
+      toast.error(t("otpRequired"));
+      return;
+    }
+
+    setIsVerifyingOTP(true);
+    try {
+      await authService.verifyOTP({
+        email: email.trim(),
+        otp: otpValue,
+      });
+      toast.success(t("otpVerifySuccess"));
       if (onSwitchToLogin) {
         onSwitchToLogin();
       } else {
         navigate(ROUTER_PAGE.auth.login, { replace: true });
       }
     } catch (error: unknown) {
-      const err = error as {
-        response?: { data?: { message?: string; Message?: string } };
-      };
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data?.Message ??
-        "Đăng ký thất bại";
-      toast.error(message);
+      toast.error(getApiErrorMessage(error, t("otpVerifyFailed")));
     } finally {
-      setIsSubmitting(false);
+      setIsVerifyingOTP(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    try {
+      await authService.register({
+        fullName: fullName.trim(),
+        username: username.trim(),
+        email: email.trim(),
+        phoneNumber: phoneNumber.trim(),
+        password,
+        confirmPassword,
+      });
+      toast.success(t("otpResendSuccess"));
+      setOtp(["", "", "", "", "", ""]);
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, t("otpResendFailed")));
     }
   };
 
   return (
     <Overlay onClick={handleClose}>
       <ModalCard onClick={(e) => e.stopPropagation()}>
+        {currentStep === "otp" && (
+          <BackHeaderButton
+            onClick={() => setCurrentStep("register")}
+            aria-label="Back"
+          >
+            ← {t("backButton")}
+          </BackHeaderButton>
+        )}
+        
         <CloseButton onClick={handleClose} aria-label="Close">
           ×
         </CloseButton>
 
-        <IconWrapper>
-          <img
-            style={{ height: 75, width: 75 }}
-            src={images.logo_app}
-            alt="Logo"
-          />
-        </IconWrapper>
-
-        <Title>{t("createAccount")}</Title>
-        <Subtitle>{t("registerSubtitle")}</Subtitle>
-
-        <TabGroup>
-          <Tab $active={activeTab === "login"} onClick={handleSwitchToLogin}>
-            {t("login")}
-          </Tab>
-          <Tab $active={activeTab === "register"}>{t("register")}</Tab>
-        </TabGroup>
-
-        <Form onSubmit={handleSubmit}>
-          <FieldGroup>
-            <Label>{t("fullName")}</Label>
-            <InputWrapper>
-              <IconUser size={20} stroke={1.5} />
-              <Input
-                type="text"
-                placeholder={t("fullNamePlaceholder")}
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                autoComplete="name"
+        {currentStep === "register" ? (
+          <>
+            <IconWrapper>
+              <img
+                style={{ height: 75, width: 75 }}
+                src={images.logo_app}
+                alt="Logo"
               />
-            </InputWrapper>
-          </FieldGroup>
+            </IconWrapper>
+            <Title>{t("createAccount")}</Title>
+            <Subtitle>{t("registerSubtitle")}</Subtitle>
 
-          <Row2>
-            <FieldGroup>
-              <Label>{t("email")}</Label>
-              <InputWrapper>
-                <IconMail size={20} stroke={1.5} />
-                <Input
-                  type="email"
-                  placeholder={t("emailPlaceholder")}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                />
-              </InputWrapper>
-            </FieldGroup>
+            <TabGroup>
+              <Tab $active={activeTab === "login"} onClick={handleSwitchToLogin}>
+                {t("login")}
+              </Tab>
+              <Tab $active={activeTab === "register"}>{t("register")}</Tab>
+            </TabGroup>
 
-            <FieldGroup>
-              <Label>{t("phoneNumber")}</Label>
-              <InputWrapper>
-                <IconPhone size={20} stroke={1.5} />
-                <Input
-                  type="tel"
-                  placeholder={t("phoneNumberPlaceholder")}
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  autoComplete="tel"
-                />
-              </InputWrapper>
-            </FieldGroup>
-          </Row2>
+            <Form onSubmit={handleSubmit}>
+              <FieldGroup>
+                <Label>{t("fullName")}</Label>
+                <InputWrapper>
+                  <IconUser size={20} stroke={1.5} />
+                  <Input
+                    type="text"
+                    placeholder={t("fullNamePlaceholder")}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    autoComplete="name"
+                  />
+                </InputWrapper>
+              </FieldGroup>
 
-          <FieldGroup>
-            <Label>{t("password")}</Label>
-            <InputWrapper>
-              <IconLock size={20} stroke={1.5} />
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder={t("passwordPlaceholderRegister")}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-              />
-              <EyeButton
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? (
-                  <IconEyeOff size={20} stroke={1.5} />
-                ) : (
-                  <IconEye size={20} stroke={1.5} />
+              <FieldGroup>
+                <Label>{t("username")}</Label>
+                <InputWrapper>
+                  <IconUser size={20} stroke={1.5} />
+                  <Input
+                    type="text"
+                    placeholder={t("usernamePlaceholder")}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                  />
+                </InputWrapper>
+              </FieldGroup>
+
+              <Row2>
+                <FieldGroup>
+                  <Label>{t("email")}</Label>
+                  <InputWrapper>
+                    <IconMail size={20} stroke={1.5} />
+                    <Input
+                      type="email"
+                      placeholder={t("emailPlaceholder")}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
+                    />
+                  </InputWrapper>
+                </FieldGroup>
+
+                <FieldGroup>
+                  <Label>{t("phoneNumber")}</Label>
+                  <InputWrapper>
+                    <IconPhone size={20} stroke={1.5} />
+                    <Input
+                      type="tel"
+                      placeholder={t("phoneNumberPlaceholder")}
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      autoComplete="tel"
+                    />
+                  </InputWrapper>
+                </FieldGroup>
+              </Row2>
+
+              <FieldGroup>
+                <Label>{t("password")}</Label>
+                <InputWrapper $hasError={!!passwordError}>
+                  <IconLock size={20} stroke={1.5} />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder={t("passwordPlaceholderRegister")}
+                    value={password}
+                    onChange={(e) => handlePasswordChange(e.target.value)}
+                    onBlur={() => {
+                      if (password) {
+                        const err = validateStrongPassword(password);
+                        setPasswordError(err);
+                      }
+                    }}
+                    autoComplete="new-password"
+                  />
+                  <EyeButton
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <IconEyeOff size={20} stroke={1.5} />
+                    ) : (
+                      <IconEye size={20} stroke={1.5} />
+                    )}
+                  </EyeButton>
+                </InputWrapper>
+                {passwordError && <ErrorText>{t(passwordError)}</ErrorText>}
+                <HintText>{t("passwordStrongHint")}</HintText>
+              </FieldGroup>
+
+              <FieldGroup>
+                <Label>{t("confirmPassword")}</Label>
+                <InputWrapper $hasError={!!confirmPasswordError}>
+                  <IconLock size={20} stroke={1.5} />
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder={t("confirmPasswordPlaceholder")}
+                    value={confirmPassword}
+                    onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                    onBlur={() => {
+                      if (confirmPassword && password !== confirmPassword) {
+                        setConfirmPasswordError("passwordMismatch");
+                      } else {
+                        setConfirmPasswordError(null);
+                      }
+                    }}
+                    autoComplete="new-password"
+                  />
+                  <EyeButton
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={
+                      showConfirmPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showConfirmPassword ? (
+                      <IconEyeOff size={20} stroke={1.5} />
+                    ) : (
+                      <IconEye size={20} stroke={1.5} />
+                    )}
+                  </EyeButton>
+                </InputWrapper>
+                {confirmPasswordError && (
+                  <ErrorText>{t(confirmPasswordError)}</ErrorText>
                 )}
-              </EyeButton>
-            </InputWrapper>
-          </FieldGroup>
+              </FieldGroup>
 
-          <FieldGroup>
-            <Label>{t("confirmPassword")}</Label>
-            <InputWrapper>
-              <IconLock size={20} stroke={1.5} />
-              <Input
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder={t("confirmPasswordPlaceholder")}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-              />
-              <EyeButton
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                aria-label={
-                  showConfirmPassword ? "Hide password" : "Show password"
-                }
-              >
-                {showConfirmPassword ? (
-                  <IconEyeOff size={20} stroke={1.5} />
-                ) : (
-                  <IconEye size={20} stroke={1.5} />
-                )}
-              </EyeButton>
-            </InputWrapper>
-          </FieldGroup>
+              <CheckboxRow>
+                <Checkbox
+                  type="checkbox"
+                  id="agreeTerms"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                />
+                <CheckboxLabel htmlFor="agreeTerms">
+                  {t("agreeTerms")}{" "}
+                  <TermsLink href="#" onClick={(e) => e.preventDefault()}>
+                    {t("termsOfService")}
+                  </TermsLink>{" "}
+                  {t("and")}{" "}
+                  <TermsLink href="#" onClick={(e) => e.preventDefault()}>
+                    {t("privacyPolicy")}
+                  </TermsLink>
+                </CheckboxLabel>
+              </CheckboxRow>
 
-          <CheckboxRow>
-            <Checkbox
-              type="checkbox"
-              id="agreeTerms"
-              checked={agreeTerms}
-              onChange={(e) => setAgreeTerms(e.target.checked)}
-            />
-            <CheckboxLabel htmlFor="agreeTerms">
-              {t("agreeTerms")}{" "}
-              <TermsLink href="#" onClick={(e) => e.preventDefault()}>
-                {t("termsOfService")}
-              </TermsLink>{" "}
-              {t("and")}{" "}
-              <TermsLink href="#" onClick={(e) => e.preventDefault()}>
-                {t("privacyPolicy")}
-              </TermsLink>
-            </CheckboxLabel>
-          </CheckboxRow>
+              <SubmitButton type="submit" disabled={isSubmitting}>
+                {t("createAccountButton")}
+              </SubmitButton>
+            </Form>
+          </>
+        ) : (
+          <>
+            <OTPIconWrapper>
+              <IconShieldCheck size={48} stroke={1.5} />
+            </OTPIconWrapper>
 
-          <SubmitButton type="submit" disabled={isSubmitting}>
-            {t("createAccountButton")}
-          </SubmitButton>
-        </Form>
+            <Title>{t("otpTitle")}</Title>
+            <OTPSubtitle>
+              {t("otpSubtitle")} <EmailHighlight>{email}</EmailHighlight>
+            </OTPSubtitle>
+
+            <Form onSubmit={handleVerifyOTP}>
+              <OTPLabel>{t("otpLabel")}</OTPLabel>
+              <OTPContainer>
+                {otp.map((digit, index) => (
+                  <OTPInput
+                    key={index}
+                    id={`otp-${index}`}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => {
+                      handleOTPChange(index, e.target.value);
+                    }}
+                    onInput={() => {
+                    }}
+                    onKeyDown={(e) => handleOTPKeyDown(index, e)}
+                    autoFocus={index === 0}
+                    autoComplete="off"
+                  />
+                ))}
+              </OTPContainer>
+
+              <ResendWrapper>
+                {t("didntReceiveCode")}{" "}
+                <ResendLink onClick={handleResendOTP}>
+                  {t("resendCode")}
+                </ResendLink>
+              </ResendWrapper>
+
+              <SubmitButton type="submit" disabled={isVerifyingOTP}>
+                {t("verifyButton")}
+                <IconArrowRight size={20} stroke={2} />
+              </SubmitButton>
+            </Form>
+          </>
+        )}
       </ModalCard>
     </Overlay>
   );
@@ -302,6 +507,26 @@ const CloseButton = styled.button`
   cursor: pointer;
   padding: 0.25rem;
   line-height: 1;
+
+  &:hover {
+    color: #333;
+  }
+`;
+
+const BackHeaderButton = styled.button`
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 500;
 
   &:hover {
     color: #333;
@@ -385,19 +610,31 @@ const Label = styled.label`
   color: #374151;
 `;
 
-const InputWrapper = styled.div`
+const InputWrapper = styled.div<{ $hasError?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  border: 1px solid ${(p) => (p.$hasError ? "#ef4444" : "#e5e7eb")};
   border-radius: 10px;
 
   svg {
-    color: #9ca3af;
+    color: ${(p) => (p.$hasError ? "#ef4444" : "#9ca3af")};
     flex-shrink: 0;
   }
+`;
+
+const ErrorText = styled.span`
+  font-size: 0.8rem;
+  color: #ef4444;
+  margin-top: 0.25rem;
+`;
+
+const HintText = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
 `;
 
 const Input = styled.input`
@@ -481,5 +718,99 @@ const SubmitButton = styled.button`
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+  }
+`;
+
+const OTPIconWrapper = styled.div`
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #e3f2fd;
+  color: #007bff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+`;
+
+const OTPSubtitle = styled.p`
+  font-size: 0.9rem;
+  color: #6b7280;
+  text-align: center;
+  margin: 0 0 2rem;
+  line-height: 1.5;
+`;
+
+const EmailHighlight = styled.span`
+  color: #007bff;
+  font-weight: 500;
+`;
+
+const OTPLabel = styled.label`
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+  text-align: center;
+  display: block;
+  margin-bottom: 1rem;
+`;
+
+const OTPContainer = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+`;
+
+const OTPInput = styled.input`
+  width: 48px;
+  height: 48px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #000000 !important;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s;
+  background: #ffffff;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+
+  &:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+const ResendWrapper = styled.div`
+  text-align: center;
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+`;
+
+const ResendLink = styled.button`
+  background: none;
+  border: none;
+  color: #007bff;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.9rem;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
   }
 `;

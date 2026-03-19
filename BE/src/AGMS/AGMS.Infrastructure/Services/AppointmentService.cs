@@ -44,6 +44,7 @@ public class AppointmentService : IAppointmentService
             RequestedPackageId = appointment.RequestedPackageID,
             Status = appointment.Status,
             Notes = appointment.Notes,
+            RejectionReason = appointment.RejectionReason,
             CreatedBy = appointment.CreatedBy,
             CreatedDate = appointment.CreatedDate,
             ConfirmedBy = appointment.ConfirmedBy,
@@ -127,12 +128,17 @@ public class AppointmentService : IAppointmentService
         await _repo.ApproveAsync(appointmentId, currentUserId, ct);
     }
 
-    public async Task RejectAsync(int appointmentId, int currentUserId, CancellationToken ct)
+    public async Task RejectAsync(int appointmentId, int currentUserId, string rejectionReason, CancellationToken ct)
     {
         var roleID= await _repo.GetUserRoleIdAsync(currentUserId, ct);
         if(roleID!=2)
             throw new UnauthorizedAccessException("Only Service Advisor (RoleID = 2) can reject appointments.");
-        await _repo.RejectAsync(appointmentId, currentUserId, ct);
+
+        var reason = rejectionReason?.Trim();
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Rejection reason is required.");
+
+        await _repo.RejectAsync(appointmentId, currentUserId, reason, ct);
     }
 
     public async Task CheckInAsync(int appointmentId, int currentUserId, CancellationToken ct)

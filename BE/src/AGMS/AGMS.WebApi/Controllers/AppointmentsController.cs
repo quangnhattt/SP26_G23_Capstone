@@ -108,8 +108,11 @@ public class AppointmentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Reject(int id, CancellationToken ct)
+    public async Task<IActionResult> Reject(int id, [FromBody] RejectAppointmentRequest request, CancellationToken ct)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var (userId, error) = ExtractUserId();
         if (error != null) return error;
         var isSA = await IsServiceAdvisorAsync(userId, ct);
@@ -117,7 +120,7 @@ public class AppointmentsController : ControllerBase
             return Forbid();
         try
         {
-            await _appointmentService.RejectAsync(id, userId, ct);
+            await _appointmentService.RejectAsync(id, userId, request.Reason, ct);
             return NoContent();
         }
         catch (UnauthorizedAccessException)
