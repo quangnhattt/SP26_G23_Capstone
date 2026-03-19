@@ -489,7 +489,6 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.ProductID).ValueGeneratedNever();
             entity.Property(e => e.LastUpdated).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Quantity).HasColumnType("decimal(10, 2)");
-            entity.Property(e => e.ReservedQuantity).HasColumnType("decimal(10, 2)");
 
             entity.HasOne(d => d.Product).WithOne(p => p.ProductInventory)
                 .HasForeignKey<ProductInventory>(d => d.ProductID)

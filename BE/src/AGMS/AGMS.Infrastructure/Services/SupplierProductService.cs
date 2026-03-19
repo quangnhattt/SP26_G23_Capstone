@@ -132,7 +132,6 @@ namespace AGMS.Infrastructure.Services
                 {
                     ProductID = newProduct.ProductID,
                     Quantity = 0,
-                    ReservedQuantity = 0,
                     LastUpdated = DateTime.Now
                 };
                 _context.ProductInventories.Add(newInventory);

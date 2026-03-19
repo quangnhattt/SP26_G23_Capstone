@@ -10,7 +10,7 @@ public class InventoryTransaction
     public decimal Balance { get; set; }
     public DateTime TransactionDate { get; set; }
     public string? Note { get; set; }
-
+    public decimal UnitCost { get; set; }
     public virtual Product Product { get; set; } = null!;
     public virtual TransferOrder Reference { get; set; } = null!;
 }
