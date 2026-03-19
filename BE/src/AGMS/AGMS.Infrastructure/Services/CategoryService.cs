@@ -32,7 +32,8 @@ public class CategoryService : ICategoryService
         {
             Name = request.Name.Trim(),
             Type = request.Type,
-            Description = request.Description?.Trim()
+            Description = request.Description?.Trim(),
+            MarkupPercent = request.MarkupPercent
         };
 
         await _categoryRepository.AddAsync(category, ct);
@@ -42,7 +43,8 @@ public class CategoryService : ICategoryService
             CategoryID = category.CategoryID,
             Name = category.Name,
             Type = category.Type,
-            Description = category.Description
+            Description = category.Description,
+            MarkupPercent = category.MarkupPercent
         };
     }
 
@@ -57,7 +59,8 @@ public class CategoryService : ICategoryService
             CategoryID = category.CategoryID,
             Name = category.Name,
             Type = category.Type,
-            Description = category.Description
+            Description = category.Description,
+            MarkupPercent = category.MarkupPercent
         };
     }
 
@@ -69,7 +72,8 @@ public class CategoryService : ICategoryService
             CategoryID = c.CategoryID,
             Name = c.Name,
             Type = c.Type,
-            Description = c.Description
+            Description = c.Description,
+            MarkupPercent = c.MarkupPercent
         });
     }
 
@@ -87,7 +91,8 @@ public class CategoryService : ICategoryService
             CategoryID = c.CategoryID,
             Name = c.Name,
             Type = c.Type,
-            Description = c.Description
+            Description = c.Description,
+            MarkupPercent = c.MarkupPercent
         });
     }
 
@@ -116,6 +121,7 @@ public class CategoryService : ICategoryService
         category.Name = request.Name.Trim();
         category.Type = request.Type;
         category.Description = request.Description?.Trim();
+        category.MarkupPercent = request.MarkupPercent;
 
         await _categoryRepository.UpdateAsync(category, ct);
 
@@ -124,7 +130,8 @@ public class CategoryService : ICategoryService
             CategoryID = category.CategoryID,
             Name = category.Name,
             Type = category.Type,
-            Description = category.Description
+            Description = category.Description,
+            MarkupPercent = category.MarkupPercent
         };
     }
 

@@ -197,6 +197,9 @@ public partial class CarServiceDbContext : DbContext
             entity.ToTable("Category");
 
             entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.MarkupPercent)
+                .HasColumnType("decimal(5, 2)")
+                .HasDefaultValue(0m);
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Type).HasMaxLength(20);
         });
