@@ -28,7 +28,7 @@ const MainLayout: React.FC = () => {
         <Content
           $isContactPage={isLightPage}
           style={{
-            marginTop: isMobile ? "60px" : "70px",
+            marginTop: isMobile ? "0px" : "70px",
           }}
         >
           <OutletContent>

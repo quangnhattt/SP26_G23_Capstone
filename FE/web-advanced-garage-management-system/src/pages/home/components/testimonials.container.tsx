@@ -1,11 +1,12 @@
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 
 interface TestimonialItem {
   id: number;
   rating: number;
-  text: string;
-  authorName: string;
-  authorRole: string;
+  textKey: string;
+  nameKey: string;
+  roleKey: string;
   authorAvatar: string;
   avatarBgColor: string;
 }
@@ -14,37 +15,39 @@ const testimonialItems: TestimonialItem[] = [
   {
     id: 1,
     rating: 5,
-    text: "Dịch vụ tuyệt vời! Nhân viên chuyên nghiệp, tư vấn tận tình. Xe được chăm sóc rất kỹ lưỡng và giá cả hợp lý.",
-    authorName: "Anh Minh",
-    authorRole: "Khách hàng thân thiết",
+    textKey: "homeTestimonial1Text",
+    nameKey: "homeTestimonial1Name",
+    roleKey: "homeTestimonial1Role",
     authorAvatar: "A",
     avatarBgColor: "#3b82f6",
   },
   {
     id: 2,
     rating: 5,
-    text: "Hệ thống đặt lịch online rất tiện lợi. Có thể theo dõi tiến độ sửa chữa qua app, rất hiện đại và tiện ích.",
-    authorName: "Chị Linh",
-    authorRole: "Khách hàng mới",
+    textKey: "homeTestimonial2Text",
+    nameKey: "homeTestimonial2Name",
+    roleKey: "homeTestimonial2Role",
     authorAvatar: "L",
     avatarBgColor: "#10b981",
   },
   {
     id: 3,
     rating: 5,
-    text: "Đội ngũ kỹ thuật viên rất giỏi, tư vấn chi tiết về tình trạng xe. Giá cả minh bạch, không phát sinh thêm chi phí.",
-    authorName: "Anh Tuấn",
-    authorRole: "Khách hàng VIP",
+    textKey: "homeTestimonial3Text",
+    nameKey: "homeTestimonial3Name",
+    roleKey: "homeTestimonial3Role",
     authorAvatar: "T",
     avatarBgColor: "#8b5cf6",
   },
 ];
 
 const TestimonialsContainer = () => {
+  const { t } = useTranslation();
+
   return (
     <Container>
       <SectionHeader>
-        <SectionTitle>Khách hàng nói gì về chúng tôi</SectionTitle>
+        <SectionTitle>{t("homeTestimonialsTitle")}</SectionTitle>
       </SectionHeader>
 
       <TestimonialsGrid>
@@ -57,14 +60,14 @@ const TestimonialsContainer = () => {
                 </svg>
               ))}
             </StarRating>
-            <TestimonialText>{item.text}</TestimonialText>
+            <TestimonialText>{t(item.textKey)}</TestimonialText>
             <TestimonialAuthor>
               <AuthorAvatar $bgColor={item.avatarBgColor}>
                 {item.authorAvatar}
               </AuthorAvatar>
               <AuthorInfo>
-                <AuthorName>{item.authorName}</AuthorName>
-                <AuthorRole>{item.authorRole}</AuthorRole>
+                <AuthorName>{t(item.nameKey)}</AuthorName>
+                <AuthorRole>{t(item.roleKey)}</AuthorRole>
               </AuthorInfo>
             </TestimonialAuthor>
           </TestimonialCard>
