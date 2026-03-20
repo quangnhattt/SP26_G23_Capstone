@@ -1,4 +1,4 @@
-﻿using AGMS.Application.Constants;
+using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Inventory;
 using Microsoft.AspNetCore.Authorization;
@@ -37,7 +37,11 @@ namespace AGMS.WebApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new
+                {
+                    message = ex.Message,
+                    detail = ex.InnerException?.Message
+                });
             }
         }
 
@@ -59,6 +63,34 @@ namespace AGMS.WebApi.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // API 2.1: TẠO PHIẾU XUẤT TỪ SERVICE ORDER
+        [HttpPost("service-orders/{maintenanceId:int}/transfer-order")]
+        public async Task<IActionResult> CreateIssueTransferOrderFromServiceOrder(int maintenanceId, CancellationToken ct)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int loggedInUserId))
+                    return Unauthorized(new { message = "Token không hợp lệ." });
+
+                var result = await _inventoryService.CreateIssueTransferOrderFromServiceOrderAsync(
+                    maintenanceId,
+                    loggedInUserId,
+                    ct);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message,
+                    detail = ex.InnerException?.Message,
+                    inner = ex.InnerException?.InnerException?.Message
+                });
             }
         }
 

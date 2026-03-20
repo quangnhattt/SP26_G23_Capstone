@@ -90,6 +90,8 @@ namespace AGMS.Infrastructure.Repositories
                 .ToList();
 
             var productMap = await _db.Products
+                .Include(p => p.ProductInventory)
+                .Include(p => p.Category)
                 .Where(p => allProductIds.Contains(p.ProductID) && p.IsActive)
                 .ToDictionaryAsync(p => p.ProductID, ct);
 
@@ -110,7 +112,7 @@ namespace AGMS.Infrastructure.Repositories
 
             var packageAmount = selectedPackage?.FinalPrice ?? selectedPackage?.BasePrice ?? 0m;
             var serviceAmount = serviceDetails.Sum(x => x.Quantity * productMap[x.ProductId].Price);
-            var partAmount = partDetails.Sum(x => x.Quantity * productMap[x.ProductId].Price);
+            var partAmount = partDetails.Sum(x => x.Quantity * GetPartUnitPrice(productMap[x.ProductId]));
             var totalAmount = packageAmount + serviceAmount + partAmount;
 
             await using var tx = await _db.Database.BeginTransactionAsync(ct);
@@ -176,12 +178,13 @@ namespace AGMS.Infrastructure.Repositories
 
                 foreach (var p in partDetails)
                 {
+                    var unitPrice = GetPartUnitPrice(productMap[p.ProductId]);
                     _db.ServicePartDetails.Add(new ServicePartDetail
                     {
                         Maintenance = maintenance,
                         ProductID = p.ProductId,
                         Quantity = p.Quantity,
-                        UnitPrice = productMap[p.ProductId].Price,
+                        UnitPrice = unitPrice,
                         ItemStatus = "APPROVED",
                         IsAdditional = false,
                         InventoryStatus = "PENDING",
@@ -372,6 +375,19 @@ namespace AGMS.Infrastructure.Repositories
             if (m != "new" && m != "existing")
                 throw new ArgumentException($"{fieldName} must be 'new' or 'existing'.");
             return m;
+        }
+
+        private static decimal GetPartUnitPrice(Product product)
+        {
+            var averageCost = product.ProductInventory?.AverageCost;
+            if (!averageCost.HasValue)
+            {
+                throw new InvalidOperationException(
+                    $"ProductID {product.ProductID} has no ProductInventory.AverageCost. Cannot create walk-in with Product.Price fallback.");
+            }
+
+            var markupPercent = product.Category?.MarkupPercent ?? 0m;
+            return averageCost.Value * (1 + (markupPercent / 100m));
         }
 
         private async Task<string> GenerateUniqueUserCodeAsync(CancellationToken ct)

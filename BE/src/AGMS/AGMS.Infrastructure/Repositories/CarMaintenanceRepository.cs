@@ -101,7 +101,10 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             throw new InvalidOperationException("Chi duoc de xuat bo sung khi phieu dang IN_DIAGNOSIS");
         foreach (var item in request.Services)
         {
-            var product = await _db.Products.FirstOrDefaultAsync(p => p.ProductID == item.ProductId && p.IsActive, ct)
+            var product = await _db.Products
+                .Include(p => p.ProductInventory)
+                .Include(p => p.Category)
+                .FirstOrDefaultAsync(p => p.ProductID == item.ProductId && p.IsActive, ct)
                 ?? throw new KeyNotFoundException($"Khoong timf thaasy sanr phaarm Id ={item.ProductId}");
 
             if (!product.Type.Equals("SERVICE", StringComparison.OrdinalIgnoreCase))
@@ -121,7 +124,10 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
 
         foreach (var item in request.Parts)
         {
-            var product = await _db.Products.FirstOrDefaultAsync(p => p.ProductID == item.ProductId && p.IsActive, ct)
+            var product = await _db.Products
+                .Include(p => p.ProductInventory)
+                .Include(p => p.Category)
+                .FirstOrDefaultAsync(p => p.ProductID == item.ProductId && p.IsActive, ct)
                 ?? throw new KeyNotFoundException($"Khong tim thay san pham ID ={item.ProductId}");
             if (!product.Type.Equals("PART", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException($"San pham'{product.Name}' khong pahi la kieu PART");
@@ -130,7 +136,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
                 MaintenanceID = maintenanceId,
                 ProductID = product.ProductID,
                 Quantity = item.Quantity,
-                UnitPrice = product.Price,
+                UnitPrice = CalculateAdditionalItemUnitPrice(product),
                 ItemStatus = "PENDING",
                 InventoryStatus = "PENDING",
                 IsAdditional = true,
@@ -251,6 +257,19 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             maintenance.Status = "IN_DIAGNOSIS";
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    private static decimal CalculateAdditionalItemUnitPrice(Product product)
+    {
+        var averageCost = product.ProductInventory?.AverageCost;
+        if (!averageCost.HasValue)
+        {
+            throw new InvalidOperationException(
+                $"ProductID {product.ProductID} has no ProductInventory.AverageCost.");
+        }
+
+        var markupPercent = product.Category?.MarkupPercent ?? 0m;
+        return averageCost.Value * (1 + (markupPercent / 100m));
     }
 
 }

@@ -1,4 +1,4 @@
-﻿using AGMS.Application.DTOs.Inventory;
+using AGMS.Application.DTOs.Inventory;
 
 namespace AGMS.Application.Contracts
 {
@@ -11,6 +11,12 @@ namespace AGMS.Application.Contracts
 
         // Hàm Xuất kho
         Task ProcessStockIssueAsync(int productId, int transferOrderId, decimal quantity, string note, CancellationToken ct);
+
+        // Tạo phiếu xuất từ service order
+        Task<CreateIssueTransferOrderResultDto> CreateIssueTransferOrderFromServiceOrderAsync(
+            int maintenanceId,
+            int createdByUserId,
+            CancellationToken ct);
 
         // Hàm Đối soát
         Task<List<InventoryDiscrepancyDto>> AuditInventoryAsync(CancellationToken ct);

@@ -1,4 +1,4 @@
-﻿using AGMS.Application.Contracts;
+using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Inventory;
 using System;
 using System.Collections.Generic;
@@ -33,6 +33,17 @@ namespace AGMS.Infrastructure.Services
         {
             await _inventoryRepo.ExecuteInventoryMovementAsync(
                 productId, transferOrderId, "ISSUE", quantity, 0, note, ct);
+        }
+
+        public async Task<CreateIssueTransferOrderResultDto> CreateIssueTransferOrderFromServiceOrderAsync(
+            int maintenanceId,
+            int createdByUserId,
+            CancellationToken ct)
+        {
+            return await _inventoryRepo.CreateIssueTransferOrderFromServiceOrderAsync(
+                maintenanceId,
+                createdByUserId,
+                ct);
         }
 
         // Hàm Đối soát
