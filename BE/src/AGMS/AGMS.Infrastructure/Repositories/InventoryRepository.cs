@@ -316,6 +316,13 @@ public class InventoryRepository : IInventoryRepository
                 part.InventoryStatus = "RESERVED";
             }
 
+            var maintenance = await _db.CarMaintenances
+                .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+            if (maintenance != null && !string.Equals(maintenance.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
+            {
+                maintenance.Status = "IN_PROGRESS";
+            }
+
             await _db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
 
