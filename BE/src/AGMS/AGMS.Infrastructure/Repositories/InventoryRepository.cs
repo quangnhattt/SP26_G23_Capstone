@@ -1,4 +1,4 @@
-﻿using AGMS.Application.Contracts;
+using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Inventory;
 using AGMS.Domain.Entities;
 using AGMS.Infrastructure.Persistence.Db;
@@ -250,5 +250,80 @@ public class InventoryRepository : IInventoryRepository
             .ToListAsync(ct);
 
         return discrepancies;
+    }
+
+    public async Task<CreateIssueTransferOrderResultDto> CreateIssueTransferOrderFromServiceOrderAsync(
+        int maintenanceId,
+        int createdByUserId,
+        CancellationToken ct)
+    {
+        var maintenanceExists = await _db.CarMaintenances
+            .AsNoTracking()
+            .AnyAsync(m => m.MaintenanceID == maintenanceId, ct);
+
+        if (!maintenanceExists)
+            throw new KeyNotFoundException($"Không tìm thấy service order với ID = {maintenanceId}.");
+
+        var candidateParts = await _db.ServicePartDetails
+            .Where(spd => spd.MaintenanceID == maintenanceId
+                          && spd.ItemStatus == "APPROVED"
+                          && (spd.InventoryStatus == "PENDING" || spd.InventoryStatus == "RESERVED")
+                          && spd.ReservedTransferOrderID == null
+                          && spd.Quantity > spd.IssuedQuantity)
+            .ToListAsync(ct);
+
+        if (!candidateParts.Any())
+            throw new InvalidOperationException("Không có phụ tùng hợp lệ để tạo phiếu xuất.");
+
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            var transferOrder = new TransferOrder
+            {
+                Type = "ISSUE",
+                Status = "DRAFT",
+                Note = $"Auto-created from service order #{maintenanceId}",
+                DocumentDate = DateTime.UtcNow,
+                CreatedDate = DateTime.UtcNow,
+                CreateBy = createdByUserId,
+                RelatedMaintenanceID = maintenanceId
+            };
+            _db.TransferOrders.Add(transferOrder);
+            await _db.SaveChangesAsync(ct);
+
+            foreach (var part in candidateParts)
+            {
+                var remainingQty = part.Quantity - part.IssuedQuantity;
+                if (remainingQty <= 0)
+                    continue;
+
+                _db.TransferOrderDetails.Add(new TransferOrderDetail
+                {
+                    TransferOrderID = transferOrder.TransferOrderID,
+                    ProductID = part.ProductID,
+                    Quantity = remainingQty,
+                    UnitPrice = part.UnitPrice,
+                    Notes = part.Notes
+                });
+
+                part.ReservedTransferOrderID = transferOrder.TransferOrderID;
+                part.InventoryStatus = "RESERVED";
+            }
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+
+            return new CreateIssueTransferOrderResultDto
+            {
+                TransferOrderId = transferOrder.TransferOrderID,
+                MaintenanceId = maintenanceId,
+                ItemCount = candidateParts.Count
+            };
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
     }
 }
