@@ -263,7 +263,13 @@ public class InventoryRepository : IInventoryRepository
 
         if (!maintenanceExists)
             throw new KeyNotFoundException($"Không tìm thấy service order với ID = {maintenanceId}.");
-
+        var hasPendingServiceItems = await _db.ServiceDetails.AnyAsync(sd => sd.MaintenanceID == maintenanceId && sd.ItemStatus == "PENDING", ct);
+        var hasPendingPartItems = await _db.ServicePartDetails.AnyAsync(spd => spd.MaintenanceID == maintenanceId && spd.ItemStatus == "PENDING", ct);
+        if (hasPendingServiceItems || hasPendingPartItems)
+        {
+            throw new InvalidOperationException(
+                "Không thể tạo phiếu xuất khi còn hạng mục PENDING. Tất cả item phải ở trạng thái APPROVED hoặc REJECTED.");
+        }
         var candidateParts = await _db.ServicePartDetails
             .Where(spd => spd.MaintenanceID == maintenanceId
                           && spd.ItemStatus == "APPROVED"
