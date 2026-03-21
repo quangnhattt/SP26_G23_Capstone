@@ -154,6 +154,107 @@ public class InventoryRepository : IInventoryRepository
             throw;
         }
     }
+
+    public async Task ProcessStockIssueAsync(int transferOrderId, int approvedByUserId, CancellationToken ct)
+    {
+        // 1. BẬT LÁ CHẮN TRANSACTION
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            // 2. Lôi Phiếu xuất kho (DRAFT) và Chi tiết ra
+            var transferOrder = await _db.TransferOrders
+                .Include(t => t.TransferOrderDetails)
+                .FirstOrDefaultAsync(t => t.TransferOrderID == transferOrderId, ct);
+
+            if (transferOrder == null || transferOrder.Type != "ISSUE")
+                throw new Exception("Lỗi: Không tìm thấy Lệnh xuất kho hợp lệ.");
+
+            if (transferOrder.Status == "APPROVED")
+                throw new Exception("Lỗi: Phiếu này đã được xuất kho rồi, không thể xuất lại!");
+
+            if (transferOrder.Status != "DRAFT")
+                throw new Exception($"Lỗi: Trạng thái phiếu không hợp lệ ({transferOrder.Status}). Chỉ được xuất phiếu DRAFT.");
+
+            // 3. VÒNG LẶP XỬ LÝ TỪNG MÓN HÀNG
+            foreach (var detail in transferOrder.TransferOrderDetails)
+            {
+                // 3.1. Trừ Tồn Kho (ProductInventory)
+                var inventory = await _db.ProductInventories
+                    .FirstOrDefaultAsync(i => i.ProductID == detail.ProductID, ct);
+
+                if (inventory == null || inventory.Quantity < detail.Quantity)
+                    throw new Exception($"LỖI TỒN KHO: Sản phẩm ID {detail.ProductID} không đủ số lượng để xuất. (Cần xuất {detail.Quantity}, Tồn thực tế {inventory?.Quantity ?? 0})");
+
+                inventory.Quantity -= detail.Quantity;
+                inventory.LastUpdated = DateTime.UtcNow;
+                _db.ProductInventories.Update(inventory);
+
+                // 3.2. Ghi Sổ cái Lịch sử (InventoryTransaction)
+                var transaction = new InventoryTransaction
+                {
+                    ProductID = detail.ProductID,
+                    ReferenceID = transferOrder.TransferOrderID,
+                    TransactionType = "ISSUE",
+                    Quantity = detail.Quantity, // Lưu ý: Xuất kho không ghi số âm, chỉ ghi Type = ISSUE
+                    Balance = inventory.Quantity,
+                    UnitCost = inventory.AverageCost, // CỰC KỲ QUAN TRỌNG: Lấy Giá Bình Quân hiện hành làm Giá Vốn Xuất
+                    TransactionDate = DateTime.UtcNow,
+                    Note = "Thực xuất kho từ lệnh sửa chữa"
+                };
+                _db.InventoryTransactions.Add(transaction);
+
+                // 3.3. BÁO CÁO NGƯỢC LẠI CHO PHÂN HỆ DỊCH VỤ (Cập nhật bảng ServicePartDetails)
+                if (transferOrder.RelatedMaintenanceID.HasValue)
+                {
+                    // Tìm dòng phụ tùng tương ứng trong Hóa đơn
+                    var serviceParts = await _db.ServicePartDetails
+                        .Where(sp => sp.MaintenanceID == transferOrder.RelatedMaintenanceID.Value
+                                  && sp.ProductID == detail.ProductID)
+                        .ToListAsync(ct);
+
+                    // Dùng vòng lặp nhồi số lượng đã xuất vào Hóa đơn (Phòng trường hợp cùng 1 phụ tùng nhưng có 2 dòng trong hóa đơn)
+                    decimal remainingToIssue = detail.Quantity;
+                    foreach (var sp in serviceParts)
+                    {
+                        if (remainingToIssue <= 0) break;
+
+                        // Tính số lượng còn thiếu chưa xuất của dòng này
+                        int needed = sp.Quantity - sp.IssuedQuantity;
+                        int issueAmount = (int)Math.Min((decimal)needed, remainingToIssue);
+
+                        if (issueAmount > 0)
+                        {
+                            sp.IssuedQuantity += issueAmount;
+                            remainingToIssue -= issueAmount;
+
+                            // Nếu đã xuất đủ số lượng của dòng này -> Đổi status thành ISSUED
+                            if (sp.IssuedQuantity >= sp.Quantity)
+                            {
+                                sp.InventoryStatus = "ISSUED";
+                            }
+
+                            _db.ServicePartDetails.Update(sp);
+                        }
+                    }
+                }
+            }
+
+            // 4. CHỐT PHIẾU XUẤT KHO
+            transferOrder.Status = "APPROVED";
+            transferOrder.ApprovedBy = approvedByUserId; // Ghi nhận thợ nào đã tự bấm duyệt
+            _db.TransferOrders.Update(transferOrder);
+
+            // 5. LƯU VÀ ĐÓNG GÓI TRANSACTION
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
+    }
+
     public async Task ExecuteInventoryMovementAsync(
         int productId, int referenceId, string transactionType,
         decimal quantityChange, decimal inputPrice, string note, CancellationToken ct)

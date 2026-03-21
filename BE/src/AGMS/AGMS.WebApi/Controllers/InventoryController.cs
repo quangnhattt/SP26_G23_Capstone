@@ -9,10 +9,9 @@ namespace AGMS.WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Bắt buộc đăng nhập
+    [Authorize] // Bắt buộc đăng nhập cho toàn bộ Controller
     public class InventoryController : ControllerBase
     {
-        // INJECT SERVICE
         private readonly IInventoryService _inventoryService;
 
         public InventoryController(IInventoryService inventoryService)
@@ -20,16 +19,16 @@ namespace AGMS.WebApi.Controllers
             _inventoryService = inventoryService;
         }
 
-        // API 1: LẬP PHIẾU NHẬP KHO
+        // API 1: LẬP PHIẾU NHẬP KHO (Dành cho Admin)
         [HttpPost("import")]
-        [Authorize(Roles = Roles.Admin)]// Khóa cứng chỉ Admin
+        [Authorize(Roles = Roles.Admin)]
         public async Task<IActionResult> CreateGoodsReceipt([FromBody] CreateGoodsReceiptDto request, CancellationToken ct)
         {
             try
             {
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (!int.TryParse(userIdClaim, out int loggedInUserId))
-                    return Unauthorized(new { message = "Token không hợp lệ." });
+                    return Unauthorized(new { message = "Token không hợp lệ hoặc đã hết hạn." });
 
                 await _inventoryService.ProcessGoodsReceiptAsync(loggedInUserId, request, ct);
 
@@ -45,28 +44,7 @@ namespace AGMS.WebApi.Controllers
             }
         }
 
-        // API 2: XUẤT KHO SỬA CHỮA
-        [HttpPost("issue")]
-        public async Task<IActionResult> IssueStock([FromBody] IssueStockDto request, CancellationToken ct)
-        {
-            try
-            {
-                await _inventoryService.ProcessStockIssueAsync(
-                    request.ProductId,
-                    request.TransferOrderId,
-                    request.Quantity,
-                    request.Note,
-                    ct);
-
-                return Ok(new { message = "Xuất kho thành công!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
-        // API 2.1: TẠO PHIẾU XUẤT TỪ SERVICE ORDER
+        // API 2: TẠO PHIẾU XUẤT TỪ HÓA ĐƠN DỊCH VỤ (Service Advisor tạo)
         [HttpPost("service-orders/{maintenanceId:int}/transfer-order")]
         public async Task<IActionResult> CreateIssueTransferOrderFromServiceOrder(int maintenanceId, CancellationToken ct)
         {
@@ -88,29 +66,57 @@ namespace AGMS.WebApi.Controllers
                 return BadRequest(new
                 {
                     message = ex.Message,
-                    detail = ex.InnerException?.Message,
-                    inner = ex.InnerException?.InnerException?.Message
+                    detail = ex.InnerException?.Message
                 });
             }
         }
 
-        // API 3: KIỂM TOÁN KHO
+        // API 3: THỰC XUẤT KHO TOÀN BỘ THEO PHIẾU (Thủ kho / Kỹ thuật viên thao tác)
+        [HttpPost("issue/{transferOrderId:int}")]
+        // Không cần [Authorize] nữa vì đã có ở mức Class
+        public async Task<IActionResult> ApproveIssueOrder(int transferOrderId, CancellationToken ct)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int userId))
+                    return Unauthorized(new { message = "Token không hợp lệ." });
+
+                // Đã sửa thành _inventoryService theo đúng tên Inject
+                await _inventoryService.ProcessStockIssueAsync(transferOrderId, userId, ct);
+
+                return Ok(new { message = "Xuất kho thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // API 4: KIỂM TOÁN KHO
         [HttpGet("audit-discrepancies")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)] // Sửa lại dùng hằng số cho chuẩn
         public async Task<IActionResult> AuditInventory(CancellationToken ct)
         {
-            var discrepancies = await _inventoryService.AuditInventoryAsync(ct);
-
-            if (!discrepancies.Any())
+            try
             {
-                return Ok(new { message = "Tuyệt vời! Dữ liệu Sổ cái và Tồn kho khớp nhau 100%.", data = discrepancies });
+                var discrepancies = await _inventoryService.AuditInventoryAsync(ct);
+
+                if (!discrepancies.Any())
+                {
+                    return Ok(new { message = "Tuyệt vời! Dữ liệu Sổ cái và Tồn kho khớp nhau 100%.", data = discrepancies });
+                }
+
+                return Ok(new
+                {
+                    message = "CẢNH BÁO: Phát hiện sai lệch dữ liệu!",
+                    data = discrepancies
+                });
             }
-
-            return Ok(new
+            catch (Exception ex)
             {
-                message = "CẢNH BÁO: Phát hiện sai lệch dữ liệu!",
-                data = discrepancies
-            });
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

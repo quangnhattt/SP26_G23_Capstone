@@ -21,5 +21,6 @@ namespace AGMS.Application.Contracts
             int maintenanceId,
             int createdByUserId,
             CancellationToken ct);
+        Task ProcessStockIssueAsync(int transferOrderId, int approvedByUserId, CancellationToken ct);
     }
 }

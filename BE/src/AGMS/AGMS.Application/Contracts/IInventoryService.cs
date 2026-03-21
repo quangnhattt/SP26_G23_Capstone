@@ -10,8 +10,7 @@ namespace AGMS.Application.Contracts
         Task ProcessGoodsReceiptAsync(int createdByUserId, CreateGoodsReceiptDto request, CancellationToken ct);
 
         // Hàm Xuất kho
-        Task ProcessStockIssueAsync(int productId, int transferOrderId, decimal quantity, string note, CancellationToken ct);
-
+        Task ProcessStockIssueAsync(int transferOrderId, int approvedByUserId, CancellationToken ct);
         // Tạo phiếu xuất từ service order
         Task<CreateIssueTransferOrderResultDto> CreateIssueTransferOrderFromServiceOrderAsync(
             int maintenanceId,
