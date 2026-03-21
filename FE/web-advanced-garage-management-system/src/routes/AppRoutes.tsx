@@ -11,7 +11,7 @@ import CategoryPage from "@/pages/admin/components/category-manager/category.pag
 import SupplierPage from "@/pages/admin/components/supplier-manager/supplier.page";
 
 const HomePage = lazy(() => import("@/pages/home/home.page"));
-const ServicesPage = lazy(() => import("@/pages/services/services.page"));
+const ServicesPageHome = lazy(() => import("@/pages/services/services.page.home"));
 const PricingPage = lazy(() => import("@/pages/pricing/pricing.page"));
 const AboutPage = lazy(() => import("@/pages/about/about.page"));
 const ContactPage = lazy(() => import("@/pages/contact/contact.page"));
@@ -32,7 +32,7 @@ const AppRoutesContent = () => {
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<HomePage />} />
-          <Route path={ROUTER_PAGE.services} element={<ServicesPage />} />
+          <Route path={ROUTER_PAGE.services} element={<ServicesPageHome />} />
           <Route path={ROUTER_PAGE.pricing} element={<PricingPage />} />
           <Route path={ROUTER_PAGE.about} element={<AboutPage />} />
           <Route path={ROUTER_PAGE.contact} element={<ContactPage />} />

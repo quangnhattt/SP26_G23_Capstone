@@ -13,4 +13,7 @@ public class UpdateCategoryRequest
 
     [MaxLength(255)]
     public string? Description { get; set; }
+
+    [Range(0, 100, ErrorMessage = "MarkupPercent must be between 0 and 1000.")]
+    public decimal MarkupPercent { get; set; } = 0;
 }
