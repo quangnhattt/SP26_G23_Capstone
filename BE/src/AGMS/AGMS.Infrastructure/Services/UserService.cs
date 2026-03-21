@@ -204,9 +204,9 @@ public class UserService : IUserService
         return MapToDetail(updated);
     }
 
-    public async Task<IEnumerable<UserListItemDto>> SearchUsersAsync(string? q, int? roleId, bool? isActive, CancellationToken ct)
+    public async Task<IEnumerable<UserListItemDto>> SearchUsersAsync(string? q, string? phone, int? roleId, bool? isActive, CancellationToken ct)
     {
-        var users = await _userRepository.SearchUsersExceptAdminAsync(q, roleId, isActive, ct);
+        var users = await _userRepository.SearchUsersExceptAdminAsync(q, phone, roleId, isActive, ct);
         return users.Select(MapToListItem);
     }
 
