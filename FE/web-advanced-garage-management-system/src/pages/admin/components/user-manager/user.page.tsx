@@ -5,6 +5,7 @@ import { userService, type IUser, type IUserRequest } from "@/services/admin/use
 import { validateStrongPassword } from "@/utils/validation";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 const UserPage = () => {
   const { t } = useTranslation();
@@ -193,7 +194,7 @@ const UserPage = () => {
       handleCloseModal();
       fetchUsers();
     } catch (err) {
-      toast.error(t("errorOccurred"));
+      toast.error(getApiErrorMessage(err, t("errorOccurred")));
       console.error("Error saving user:", err);
     }
   };
@@ -205,7 +206,7 @@ const UserPage = () => {
         toast.success(t("deleteUserSuccess"));
         fetchUsers();
       } catch (err) {
-        toast.error(t("errorDeletingUser"));
+        toast.error(getApiErrorMessage(err, t("errorDeletingUser")));
         console.error("Error deleting user:", err);
       }
     }

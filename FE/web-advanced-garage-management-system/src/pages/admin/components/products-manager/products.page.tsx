@@ -9,6 +9,8 @@ import {
 } from "@/services/admin/productService";
 import type { IProduct } from "@/services/admin/productService";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 interface ProductFormData {
   code: string;
@@ -152,7 +154,7 @@ const ProductsPage = () => {
       handleCloseModal();
     } catch (err) {
       console.error("Failed to save product:", err);
-      alert(t("errorSavingProduct"));
+      toast.error(getApiErrorMessage(err, t("errorSavingProduct")));
     } finally {
       setSubmitting(false);
     }
