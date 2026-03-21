@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Car;
 using AGMS.Application.DTOs.RepairRequests;
@@ -23,12 +24,15 @@ public class CustomerCarsController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<CustomerCarListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetCustomerCars(CancellationToken ct)
+    public async Task<IActionResult> GetCustomerCars([FromQuery] string? phone, CancellationToken ct)
     {
         var (userId, error) = ExtractUserId();
         if (error != null) return error;
 
-        var cars = await _carService.GetCustomerCarsAsync(userId, ct);
+        var isAdminOrSa = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.ServiceAdvisor);
+        var effectiveUserId = (!string.IsNullOrWhiteSpace(phone) && isAdminOrSa) ? 0 : userId;
+
+        var cars = await _carService.GetCustomerCarsAsync(effectiveUserId, phone, ct);
         return Ok(cars);
     }
 

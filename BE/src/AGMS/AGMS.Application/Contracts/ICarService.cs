@@ -7,5 +7,5 @@ public interface ICarService
 {
     Task<CarDetailDto> AddCarAsync(int userId, CreateCarDto dto, CancellationToken ct);
     Task<CarDetailDto> UpdateCarAsync(int userId, int carId, UpdateCarDto dto, CancellationToken ct);
-    Task<IEnumerable<CustomerCarListItemDto>> GetCustomerCarsAsync(int userId, CancellationToken ct);
+    Task<IEnumerable<CustomerCarListItemDto>> GetCustomerCarsAsync(int userId, string? phone, CancellationToken ct);
 }

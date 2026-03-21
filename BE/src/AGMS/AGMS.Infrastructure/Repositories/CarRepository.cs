@@ -36,11 +36,25 @@ public class CarRepository : ICarRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<IEnumerable<CustomerCarListItemDto>> GetCustomerCarsAsync(int userId, CancellationToken ct)
+    public async Task<IEnumerable<CustomerCarListItemDto>> GetCustomerCarsAsync(int userId, string? phone, CancellationToken ct)
     {
-        return await _db.Cars
+        var query = _db.Cars
             .AsNoTracking()
-            .Where(c => c.OwnerID == userId)
+            .Include(c => c.Owner)
+            .AsQueryable();
+
+        if (userId > 0)
+        {
+            query = query.Where(c => c.OwnerID == userId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(phone))
+        {
+            var normalizedPhone = phone.Trim();
+            query = query.Where(c => c.Owner.Phone != null && c.Owner.Phone.Contains(normalizedPhone));
+        }
+
+        return await query
             .OrderByDescending(c => c.CreatedDate)
             .Select(c => new CustomerCarListItemDto
             {
