@@ -18,6 +18,8 @@ import {
 } from "react-icons/fa";
 import type { ICar } from "@/apis/cars/types";
 import { getCars } from "@/apis/cars";
+import { getUsers, type IUser } from "@/services/admin/userService";
+import { getSymptoms, type ISymptom } from "@/apis/symptoms";
 
 type RescueStep = 1 | 2 | 3;
 
@@ -27,7 +29,7 @@ interface RescueData {
   address: string;
   issueTitle: string;
   issueDescription: string;
-  symptoms: string[];
+  symptoms: number[];
 }
 
 const RescuePage = () => {
@@ -37,6 +39,11 @@ const RescuePage = () => {
   const [currentStep, setCurrentStep] = useState<RescueStep>(1);
   const [userVehicles, setUserVehicles] = useState<ICar[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
+  const [allUsers, setAllUsers] = useState<IUser[]>([]);
+  const [phoneSearch, setPhoneSearch] = useState("");
+  const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
+  const isCustomer = user?.roleID === 4;
+  const [symptomList, setSymptomList] = useState<ISymptom[]>([]);
 
   const [rescueData, setRescueData] = useState<RescueData>({
     selectedVehicle: null,
@@ -65,8 +72,30 @@ const RescuePage = () => {
       }
     };
 
+    const fetchUsers = async () => {
+      try {
+        const users = await getUsers();
+        setAllUsers(users);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+
+    const fetchSymptoms = async () => {
+      try {
+        const data = await getSymptoms();
+        setSymptomList(data);
+      } catch (error) {
+        console.error("Error fetching symptoms:", error);
+      }
+    };
+
     fetchVehicles();
-  }, [user, navigate]);
+    fetchSymptoms();
+    if (!isCustomer) {
+      fetchUsers();
+    }
+  }, [user, navigate, isCustomer]);
 
   const handleNext = () => {
     if (currentStep === 1) {
@@ -106,27 +135,25 @@ const RescuePage = () => {
     navigate(ROUTER_PAGE.home);
   };
 
-  const toggleSymptom = (symptom: string) => {
+  const filteredUsers = phoneSearch.trim().length >= 2
+    ? allUsers.filter((u) => u.phone.includes(phoneSearch.trim()))
+    : [];
+
+  const handleSelectUser = (selectedUser: IUser) => {
+    setRescueData((prev) => ({ ...prev, phoneNumber: selectedUser.phone }));
+    setPhoneSearch(selectedUser.phone);
+    setShowPhoneDropdown(false);
+  };
+
+  const toggleSymptom = (symptomId: number) => {
     setRescueData((prev) => ({
       ...prev,
-      symptoms: prev.symptoms.includes(symptom)
-        ? prev.symptoms.filter((s) => s !== symptom)
-        : [...prev.symptoms, symptom],
+      symptoms: prev.symptoms.includes(symptomId)
+        ? prev.symptoms.filter((id) => id !== symptomId)
+        : [...prev.symptoms, symptomId],
     }));
   };
 
-  const symptoms = [
-    { key: "rescueSymptomEngineDead", label: t("rescueSymptomEngineDead") },
-    { key: "rescueSymptomOutOfFuel", label: t("rescueSymptomOutOfFuel") },
-    { key: "rescueSymptomFlatTire", label: t("rescueSymptomFlatTire") },
-    { key: "rescueSymptomOverheat", label: t("rescueSymptomOverheat") },
-    { key: "rescueSymptomElectrical", label: t("rescueSymptomElectrical") },
-    { key: "rescueSymptomBrakeFail", label: t("rescueSymptomBrakeFail") },
-    { key: "rescueSymptomAccident", label: t("rescueSymptomAccident") },
-    { key: "rescueSymptomStuck", label: t("rescueSymptomStuck") },
-    { key: "rescueSymptomLostKey", label: t("rescueSymptomLostKey") },
-    { key: "rescueSymptomLockJam", label: t("rescueSymptomLockJam") },
-  ];
 
   return (
     <PageWrapper>
@@ -190,14 +217,46 @@ const RescuePage = () => {
                 <Label>
                   {t("rescueContactPhone")} <Required>*</Required>
                 </Label>
-                <Input
-                  type="tel"
-                  placeholder={t("bookingPhonePlaceholder")}
-                  value={rescueData.phoneNumber}
-                  onChange={(e) =>
-                    setRescueData((prev) => ({ ...prev, phoneNumber: e.target.value }))
-                  }
-                />
+                {isCustomer ? (
+                  <Input
+                    type="tel"
+                    value={rescueData.phoneNumber}
+                    disabled
+                  />
+                ) : (
+                  <PhoneSearchWrapper>
+                    <Input
+                      type="tel"
+                      placeholder={t("bookingPhonePlaceholder")}
+                      value={phoneSearch}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPhoneSearch(val);
+                        setRescueData((prev) => ({ ...prev, phoneNumber: val }));
+                        setShowPhoneDropdown(val.trim().length >= 2);
+                      }}
+                      onFocus={() => {
+                        if (phoneSearch.trim().length >= 2) setShowPhoneDropdown(true);
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => setShowPhoneDropdown(false), 200);
+                      }}
+                    />
+                    {showPhoneDropdown && filteredUsers.length > 0 && (
+                      <PhoneDropdown>
+                        {filteredUsers.slice(0, 5).map((u) => (
+                          <PhoneDropdownItem
+                            key={u.userID}
+                            onMouseDown={() => handleSelectUser(u)}
+                          >
+                            <span>{u.phone}</span>
+                            <PhoneDropdownName>{u.fullName}</PhoneDropdownName>
+                          </PhoneDropdownItem>
+                        ))}
+                      </PhoneDropdown>
+                    )}
+                  </PhoneSearchWrapper>
+                )}
               </FormGroup>
 
               <FormGroup>
@@ -303,13 +362,13 @@ const RescuePage = () => {
               <FormGroup>
                 <Label>{t("rescueSymptomLabel")}</Label>
                 <SymptomGrid>
-                  {symptoms.map((symptom) => (
+                  {symptomList.map((symptom) => (
                     <SymptomChip
-                      key={symptom.key}
-                      $selected={rescueData.symptoms.includes(symptom.key)}
-                      onClick={() => toggleSymptom(symptom.key)}
+                      key={symptom.id}
+                      $selected={rescueData.symptoms.includes(symptom.id)}
+                      onClick={() => toggleSymptom(symptom.id)}
                     >
-                      {symptom.label}
+                      {symptom.name}
                     </SymptomChip>
                   ))}
                 </SymptomGrid>
@@ -378,9 +437,10 @@ const RescuePage = () => {
                   </InfoItem>
                   {rescueData.symptoms.length > 0 && (
                     <SymptomList>
-                      {rescueData.symptoms.map((symptomKey) => (
-                        <SymptomBadge key={symptomKey}>{t(symptomKey)}</SymptomBadge>
-                      ))}
+                      {rescueData.symptoms.map((symptomId) => {
+                        const s = symptomList.find((item) => item.id === symptomId);
+                        return s ? <SymptomBadge key={s.id}>{s.name}</SymptomBadge> : null;
+                      })}
                     </SymptomList>
                   )}
                 </CardSection>
@@ -734,6 +794,58 @@ const Input = styled.input`
     color: #9ca3af;
     -webkit-text-fill-color: #9ca3af;
   }
+
+  &:disabled {
+    background: #f3f4f6;
+    color: #9ca3af !important;
+    -webkit-text-fill-color: #9ca3af !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+`;
+
+const PhoneSearchWrapper = styled.div`
+  position: relative;
+`;
+
+const PhoneDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+`;
+
+const PhoneDropdownItem = styled.div`
+  padding: 0.625rem 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #fef2f2;
+  }
+
+  span {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #111827;
+  }
+`;
+
+const PhoneDropdownName = styled.span`
+  font-size: 0.8125rem !important;
+  font-weight: 400 !important;
+  color: #6b7280 !important;
 `;
 
 const Textarea = styled.textarea`

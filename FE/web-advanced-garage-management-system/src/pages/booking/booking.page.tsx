@@ -17,9 +17,12 @@ import {
   FaExclamationCircle,
 } from "react-icons/fa";
 import type { ICar } from "@/apis/cars/types";
-import type { IService } from "@/services/admin/serviceService";
-import type { IUser } from "@/services/admin/userService";
+import { getServices, type IService } from "@/services/admin/serviceService";
+import { getUsers, type IUser } from "@/services/admin/userService";
 import { getCars } from "@/apis/cars";
+import { getSymptoms, type ISymptom } from "@/apis/symptoms";
+import { createRepairRequest } from "@/apis/repairRequests";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 type BookingStep = 1 | 2 | 3 | 4;
 
@@ -28,7 +31,7 @@ interface BookingData {
   phoneNumber: string;
   issueTitle: string;
   issueDescription: string;
-  symptoms: string[];
+  symptoms: number[];
   urgencyLevel: string;
   serviceType: string;
   selectedServices: number[];
@@ -44,127 +47,13 @@ const BookingPage = () => {
   const [currentStep, setCurrentStep] = useState<BookingStep>(1);
   const [userVehicles, setUserVehicles] = useState<ICar[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
-  const [availableServices] = useState<IService[]>([
-    {
-      id: 1,
-      code: "maintenance",
-      name: "Thay dầu máy",
-      price: 500000,
-      unit: "phút",
-      category: "Bảo dưỡng",
-      estimatedDurationHours: 0.5,
-      description: "Thay dầu máy và lọc dầu định kỳ",
-      image: null,
-      isActive: true,
-    },
-    {
-      id: 2,
-      code: "inspection",
-      name: "Kiểm tra tổng quát",
-      price: 300000,
-      unit: "phút",
-      category: "Bảo dưỡng",
-      estimatedDurationHours: 0.75,
-      description: "Kiểm tra 20 điểm an toàn xe",
-      image: null,
-      isActive: true,
-    },
-    {
-      id: 3,
-      code: "repair",
-      name: "Thay má phanh",
-      price: 1200000,
-      unit: "phút",
-      category: "Sửa chữa",
-      estimatedDurationHours: 1.5,
-      description: "Thay má phanh trước-hoặc-sau",
-      image: null,
-      isActive: true,
-    },
-    {
-      id: 4,
-      code: "electrical",
-      name: "Sửa điều hòa",
-      price: 800000,
-      unit: "phút",
-      category: "Điện",
-      estimatedDurationHours: 2,
-      description: "Kiểm tra và sửa chữa hệ thống điều hòa",
-      image: null,
-      isActive: true,
-    },
-    {
-      id: 5,
-      code: "tires",
-      name: "Cân chỉnh lốp",
-      price: 400000,
-      unit: "phút",
-      category: "Lốp",
-      estimatedDurationHours: 0.75,
-      description: "Cân bằng và chỉnh góc lái",
-      image: null,
-      isActive: true,
-    },
-    {
-      id: 6,
-      code: "bodywork",
-      name: "Sơn xe",
-      price: 5000000,
-      unit: "phút",
-      category: "Sơn",
-      estimatedDurationHours: 7.67,
-      description: "Sơn phục hồi hoặc thay đổi màu xe",
-      image: null,
-      isActive: true,
-    },
-  ]);
-  const [technicians] = useState<IUser[]>([
-    {
-      userID: 10,
-      userCode: "TECH001",
-      fullName: "Phạm Đức Dũng",
-      username: "ducdung",
-      email: "ducdung@garage.vn",
-      phone: "0912345678",
-      gender: "Nam",
-      dateOfBirth: "1990-05-15",
-      image: "",
-      roleID: 3,
-      roleName: "Kỹ thuật viên",
-      isActive: true,
-      createdDate: "2024-01-01",
-    },
-    {
-      userID: 11,
-      userCode: "TECH002",
-      fullName: "Nguyễn Hoàng Long",
-      username: "hoanglong",
-      email: "hoanglong@garage.vn",
-      phone: "0923456789",
-      gender: "Nam",
-      dateOfBirth: "1988-08-20",
-      image: "",
-      roleID: 3,
-      roleName: "Kỹ thuật viên",
-      isActive: true,
-      createdDate: "2024-01-01",
-    },
-    {
-      userID: 12,
-      userCode: "TECH003",
-      fullName: "Lê Văn Minh",
-      username: "vanminh",
-      email: "vanminh@garage.vn",
-      phone: "0934567890",
-      gender: "Nam",
-      dateOfBirth: "1992-03-10",
-      image: "",
-      roleID: 3,
-      roleName: "Kỹ thuật viên",
-      isActive: true,
-      createdDate: "2024-01-01",
-    },
-  ]);
+  const [availableServices, setAvailableServices] = useState<IService[]>([]);
+  const [allUsers, setAllUsers] = useState<IUser[]>([]);
+  const [phoneSearch, setPhoneSearch] = useState("");
+  const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
+  const isCustomer = user?.roleID === 4;
+  const [technicians, setTechnicians] = useState<IUser[]>([]);
+  const [symptomList, setSymptomList] = useState<ISymptom[]>([]);
 
   const [bookingData, setBookingData] = useState<BookingData>({
     selectedVehicle: null,
@@ -190,6 +79,7 @@ const BookingPage = () => {
       try {
         setIsLoadingVehicles(true);
         const cars = await getCars();
+        console.log("Fetched cars:", cars);
         setUserVehicles(cars);
       } catch (error) {
         console.error("Error fetching vehicles:", error);
@@ -198,8 +88,42 @@ const BookingPage = () => {
       }
     };
 
+    const fetchServices = async () => {
+      try {
+        const services = await getServices();
+        setAvailableServices(services.filter((s) => s.isActive));
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    };
+
+    const fetchUsers = async () => {
+      if (isCustomer) {
+        return;
+      }
+      try {
+        const users = await getUsers();
+        setAllUsers(users);
+        setTechnicians(users.filter((u) => u.roleID === 3 && u.isActive));
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+
+    const fetchSymptoms = async () => {
+      try {
+        const data = await getSymptoms();
+        setSymptomList(data);
+      } catch (error) {
+        console.error("Error fetching symptoms:", error);
+      }
+    };
+
     fetchVehicles();
-  }, [user, navigate]);
+    fetchServices();
+    fetchUsers();
+    fetchSymptoms();
+  }, [user, navigate, isCustomer]);
 
   const handleNext = () => {
     if (currentStep === 1) {
@@ -233,18 +157,54 @@ const BookingPage = () => {
     }
   };
 
-  const handleSubmit = () => {
-    console.log("Booking data:", bookingData);
-    toast.success(t("bookingAlertSuccess"));
-    navigate(ROUTER_PAGE.home);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!bookingData.selectedVehicle || !bookingData.selectedVehicle.carId) {
+      toast.error(t("bookingAlertSelectVehicle"));
+      setCurrentStep(1);
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      console.log("=== SUBMITTING BOOKING ===");
+      console.log("Selected vehicle:", bookingData.selectedVehicle);
+      console.log("Car ID:", bookingData.selectedVehicle.carId);
+      console.log("Selected technician ID:", bookingData.selectedTechnician);
+      console.log("Full booking data:", bookingData);
+      
+      const payload = {
+        carId: bookingData.selectedVehicle.carId,
+        description: `${bookingData.issueTitle}\n${bookingData.issueDescription}`,
+        serviceType: bookingData.serviceType,
+        requestedPackageId: bookingData.selectedServices[0] ?? 0,
+        technicianId: bookingData.selectedTechnician,
+        phone: bookingData.phoneNumber,
+        preferredDate: bookingData.preferredDate,
+        preferredTime: bookingData.preferredTime,
+        symptomIds: bookingData.symptoms,
+      };
+      
+      console.log("Payload to send:", payload);
+      
+      await createRepairRequest(payload);
+      toast.success(t("bookingAlertSuccess"));
+      navigate(ROUTER_PAGE.home);
+    } catch (error) {
+      console.error("Error submitting booking:", error);
+      toast.error(getApiErrorMessage(error, t("errorOccurred")));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const toggleSymptom = (symptom: string) => {
+  const toggleSymptom = (symptomId: number) => {
     setBookingData((prev) => ({
       ...prev,
-      symptoms: prev.symptoms.includes(symptom)
-        ? prev.symptoms.filter((s) => s !== symptom)
-        : [...prev.symptoms, symptom],
+      symptoms: prev.symptoms.includes(symptomId)
+        ? prev.symptoms.filter((id) => id !== symptomId)
+        : [...prev.symptoms, symptomId],
     }));
   };
 
@@ -264,18 +224,16 @@ const BookingPage = () => {
     }, 0);
   };
 
-  const symptoms = [
-    { key: "bookingSymptomStrangeNoise", label: t("bookingSymptomStrangeNoise") },
-    { key: "bookingSymptomVibration", label: t("bookingSymptomVibration") },
-    { key: "bookingSymptomWarningLight", label: t("bookingSymptomWarningLight") },
-    { key: "bookingSymptomHardStart", label: t("bookingSymptomHardStart") },
-    { key: "bookingSymptomHighFuel", label: t("bookingSymptomHighFuel") },
-    { key: "bookingSymptomACNotCool", label: t("bookingSymptomACNotCool") },
-    { key: "bookingSymptomBrakeFail", label: t("bookingSymptomBrakeFail") },
-    { key: "bookingSymptomGearJerk", label: t("bookingSymptomGearJerk") },
-    { key: "bookingSymptomOilLeak", label: t("bookingSymptomOilLeak") },
-    { key: "bookingSymptomSmoke", label: t("bookingSymptomSmoke") },
-  ];
+  const filteredUsers = phoneSearch.trim().length >= 2
+    ? allUsers.filter((u) => u.phone.includes(phoneSearch.trim()))
+    : [];
+
+  const handleSelectUser = (selectedUser: IUser) => {
+    setBookingData((prev) => ({ ...prev, phoneNumber: selectedUser.phone }));
+    setPhoneSearch(selectedUser.phone);
+    setShowPhoneDropdown(false);
+  };
+
 
   return (
     <PageWrapper>
@@ -347,14 +305,46 @@ const BookingPage = () => {
                 <Label>
                   {t("bookingPhoneLabel")} <Required>*</Required>
                 </Label>
-                <Input
-                  type="tel"
-                  placeholder={t("bookingPhonePlaceholder")}
-                  value={bookingData.phoneNumber}
-                  onChange={(e) =>
-                    setBookingData((prev) => ({ ...prev, phoneNumber: e.target.value }))
-                  }
-                />
+                {isCustomer ? (
+                  <Input
+                    type="tel"
+                    value={bookingData.phoneNumber}
+                    disabled
+                  />
+                ) : (
+                  <PhoneSearchWrapper>
+                    <Input
+                      type="tel"
+                      placeholder={t("bookingPhonePlaceholder")}
+                      value={phoneSearch}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPhoneSearch(val);
+                        setBookingData((prev) => ({ ...prev, phoneNumber: val }));
+                        setShowPhoneDropdown(val.trim().length >= 2);
+                      }}
+                      onFocus={() => {
+                        if (phoneSearch.trim().length >= 2) setShowPhoneDropdown(true);
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => setShowPhoneDropdown(false), 200);
+                      }}
+                    />
+                    {showPhoneDropdown && filteredUsers.length > 0 && (
+                      <PhoneDropdown>
+                        {filteredUsers.slice(0, 5).map((u) => (
+                          <PhoneDropdownItem
+                            key={u.userID}
+                            onMouseDown={() => handleSelectUser(u)}
+                          >
+                            <span>{u.phone}</span>
+                            <PhoneDropdownName>{u.fullName}</PhoneDropdownName>
+                          </PhoneDropdownItem>
+                        ))}
+                      </PhoneDropdown>
+                    )}
+                  </PhoneSearchWrapper>
+                )}
               </FormGroup>
               <SectionTitle>{t("bookingSelectVehicle")}</SectionTitle>
               {isLoadingVehicles ? (
@@ -368,9 +358,11 @@ const BookingPage = () => {
                     
                     return (
                       <VehicleCard
-                        key={vehicle.carID}
+                        key={vehicle.carId}
                         $selected={isSelected}
                         onClick={() => {
+                          console.log("Clicked vehicle:", vehicle);
+                          console.log("Current selected:", bookingData.selectedVehicle);
                           setBookingData((prev) => ({
                             ...prev,
                             selectedVehicle: isSelected ? null : vehicle,
@@ -440,13 +432,13 @@ const BookingPage = () => {
               <FormGroup>
                 <Label>{t("bookingSymptomLabel")}</Label>
                 <SymptomGrid>
-                  {symptoms.map((symptom) => (
+                  {symptomList.map((symptom) => (
                     <SymptomChip
-                      key={symptom.key}
-                      $selected={bookingData.symptoms.includes(symptom.key)}
-                      onClick={() => toggleSymptom(symptom.key)}
+                      key={symptom.id}
+                      $selected={bookingData.symptoms.includes(symptom.id)}
+                      onClick={() => toggleSymptom(symptom.id)}
                     >
-                      {symptom.label}
+                      {symptom.name}
                     </SymptomChip>
                   ))}
                 </SymptomGrid>
@@ -674,9 +666,10 @@ const BookingPage = () => {
                   </InfoItem>
                   {bookingData.symptoms.length > 0 && (
                     <SymptomList>
-                      {bookingData.symptoms.map((symptomKey) => (
-                        <SymptomBadge key={symptomKey}>{t(symptomKey)}</SymptomBadge>
-                      ))}
+                      {bookingData.symptoms.map((symptomId) => {
+                        const s = symptomList.find((item) => item.id === symptomId);
+                        return s ? <SymptomBadge key={s.id}>{s.name}</SymptomBadge> : null;
+                      })}
                     </SymptomList>
                   )}
                 </CardSection>
@@ -772,9 +765,9 @@ const BookingPage = () => {
               <FaChevronRight size={18} />
             </NextButton>
           ) : (
-            <SubmitButton onClick={handleSubmit}>
+            <SubmitButton onClick={handleSubmit} disabled={submitting}>
               <FaCheck size={18} />
-              {t("bookingSubmit")}
+              {submitting ? t("saving") : t("bookingSubmit")}
             </SubmitButton>
           )}
         </Footer>
@@ -1061,6 +1054,50 @@ const FormGroup = styled.div`
   gap: 0.5rem;
 `;
 
+const PhoneSearchWrapper = styled.div`
+  position: relative;
+`;
+
+const PhoneDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+`;
+
+const PhoneDropdownItem = styled.div`
+  padding: 0.625rem 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #eff6ff;
+  }
+
+  span {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #111827;
+  }
+`;
+
+const PhoneDropdownName = styled.span`
+  font-size: 0.8125rem !important;
+  font-weight: 400 !important;
+  color: #6b7280 !important;
+`;
+
 const Label = styled.label`
   font-size: 0.9375rem;
   font-weight: 600;
@@ -1097,6 +1134,14 @@ const Input = styled.input`
     -webkit-text-fill-color: #111827 !important;
     -webkit-box-shadow: 0 0 0 1000px white inset !important;
     transition: background-color 5000s ease-in-out 0s;
+  }
+
+  &:disabled {
+    background: #f3f4f6;
+    color: #9ca3af !important;
+    -webkit-text-fill-color: #9ca3af !important;
+    cursor: not-allowed;
+    opacity: 0.7;
   }
 `;
 

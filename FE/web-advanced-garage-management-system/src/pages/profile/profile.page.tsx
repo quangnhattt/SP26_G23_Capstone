@@ -197,7 +197,7 @@ const ProfilePage = () => {
             ) : (
               <VehicleGrid>
                 {cars.map((car) => (
-                  <VehicleCard key={car.carID}>
+                  <VehicleCard key={car.carId}>
                     <VehicleCardHeader>
                       <VehicleLicensePlate>{car.licensePlate}</VehicleLicensePlate>
                       <VehicleBrand>

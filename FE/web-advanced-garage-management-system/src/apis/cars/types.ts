@@ -11,7 +11,7 @@ export interface ICreateCarPayload {
 }
 
 export interface ICreateCarResponse {
-  carID: number;
+  carId: number;
   licensePlate: string;
   brand: string;
   model: string;
@@ -24,7 +24,7 @@ export interface ICreateCarResponse {
 }
 
 export interface ICar {
-  carID: number;
+  carId: number;
   licensePlate: string;
   brand: string;
   model: string;
@@ -34,6 +34,6 @@ export interface ICar {
   chassisNumber: string;
   purchaseDate: string;
   currentOdometer: number;
-  customerID: number;
+  customerId: number;
   createdDate?: string;
 }

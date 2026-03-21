@@ -8,6 +8,7 @@ export const ROUTER_PAGE = {
   profile: "/profile",
   booking: "/booking",
   rescue: "/rescue",
+  appointments: "/appointments",
   auth: {
     login: "/auth/login",
     register: "/auth/register",
