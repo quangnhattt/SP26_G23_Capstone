@@ -118,5 +118,25 @@ namespace AGMS.WebApi.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        // API 5: XEM LỊCH SỬ GIAO DỊCH KHO (SỔ CÁI)
+        [HttpGet("transactions")]
+        [Authorize(Roles = Roles.Admin)] // Chỉ Admin mới được xem
+        public async Task<IActionResult> GetTransactionHistory([FromQuery] InventoryTransactionFilterDto filter, CancellationToken ct)
+        {
+            try
+            {
+                var result = await _inventoryService.GetTransactionHistoryAsync(filter, ct);
+                return Ok(new
+                {
+                    message = "Lấy lịch sử giao dịch thành công",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

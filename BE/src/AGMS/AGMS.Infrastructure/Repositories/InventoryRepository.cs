@@ -440,4 +440,57 @@ public class InventoryRepository : IInventoryRepository
             throw;
         }
     }
+
+    public async Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(InventoryTransactionFilterDto filter, CancellationToken ct)
+    {
+        // 1. Khởi tạo Query (Nối bảng InventoryTransaction với bảng Product để lấy Tên & Mã)
+        var query = _db.InventoryTransactions
+            .Include(t => t.Product)
+            .AsQueryable();
+
+        // 2. Lọc động (Dynamic Filtering)
+        if (filter.ProductId.HasValue)
+            query = query.Where(t => t.ProductID == filter.ProductId.Value);
+
+        if (!string.IsNullOrEmpty(filter.TransactionType))
+            query = query.Where(t => t.TransactionType == filter.TransactionType);
+
+        if (filter.FromDate.HasValue)
+            query = query.Where(t => t.TransactionDate >= filter.FromDate.Value);
+
+        if (filter.ToDate.HasValue)
+            query = query.Where(t => t.TransactionDate <= filter.ToDate.Value);
+
+        // 3. Đếm tổng số dòng (phục vụ phân trang)
+        int totalCount = await query.CountAsync(ct);
+
+        // 4. Phân trang & Map sang DTO
+        var items = await query
+            .OrderByDescending(t => t.TransactionDate) // Luôn ưu tiên xếp giao dịch mới nhất lên đầu
+            .Skip((filter.PageIndex - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .Select(t => new InventoryTransactionHistoryDto
+            {
+                TransactionID = t.TransactionID,
+                ProductID = t.ProductID,
+                ProductCode = t.Product != null ? t.Product.Code : "N/A",
+                ProductName = t.Product != null ? t.Product.Name : "N/A",
+                ReferenceID = t.ReferenceID,
+                TransactionType = t.TransactionType,
+                Quantity = t.Quantity,
+                Balance = t.Balance,
+                UnitCost = t.UnitCost,
+                TransactionDate = t.TransactionDate,
+                Note = t.Note
+            })
+            .ToListAsync(ct);
+
+        return new PaginatedResult<InventoryTransactionHistoryDto>
+        {
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)filter.PageSize),
+            CurrentPage = filter.PageIndex,
+            Items = items
+        };
+    }
 }

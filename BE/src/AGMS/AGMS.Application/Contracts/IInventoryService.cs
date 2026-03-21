@@ -19,5 +19,6 @@ namespace AGMS.Application.Contracts
 
         // Hàm Đối soát
         Task<List<InventoryDiscrepancyDto>> AuditInventoryAsync(CancellationToken ct);
+        Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(InventoryTransactionFilterDto filter, CancellationToken ct);
     }
 }

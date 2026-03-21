@@ -52,5 +52,15 @@ namespace AGMS.Infrastructure.Services
         {
             return await _inventoryRepo.GetInventoryDiscrepanciesAsync(ct);
         }
+
+        // API 5: Lấy lịch sử giao dịch (Sổ cái)
+        // =================================================================
+        public async Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(
+            InventoryTransactionFilterDto filter,
+            CancellationToken ct)
+        {
+            // Ủy quyền gọi thẳng xuống Repository để lấy data
+            return await _inventoryRepo.GetTransactionHistoryAsync(filter, ct);
+        }
     }
 }
