@@ -9,7 +9,6 @@ namespace AGMS.Infrastructure.Services
 {
     public class InventoryService : IInventoryService
     {
-        
         private readonly IInventoryRepository _inventoryRepo;
 
         public InventoryService(IInventoryRepository inventoryRepo)
@@ -28,11 +27,13 @@ namespace AGMS.Infrastructure.Services
             await _inventoryRepo.ProcessGoodsReceiptAsync(createdByUserId, request, ct);
         }
 
-        // Hàm Xuất kho - Dùng các tham số rời
-        public async Task ProcessStockIssueAsync(int productId, int transferOrderId, decimal quantity, string note, CancellationToken ct)
+        // =================================================================
+        // ĐÃ SỬA: Hàm Thực Xuất Kho (Truyền đúng 3 tham số như Interface)
+        // =================================================================
+        public async Task ProcessStockIssueAsync(int transferOrderId, int approvedByUserId, CancellationToken ct)
         {
-            await _inventoryRepo.ExecuteInventoryMovementAsync(
-                productId, transferOrderId, "ISSUE", quantity, 0, note, ct);
+            // Gọi thẳng xuống Repository hàm "Trùm cuối" mà chúng ta vừa viết
+            await _inventoryRepo.ProcessStockIssueAsync(transferOrderId, approvedByUserId, ct);
         }
 
         public async Task<CreateIssueTransferOrderResultDto> CreateIssueTransferOrderFromServiceOrderAsync(
@@ -50,6 +51,16 @@ namespace AGMS.Infrastructure.Services
         public async Task<List<InventoryDiscrepancyDto>> AuditInventoryAsync(CancellationToken ct)
         {
             return await _inventoryRepo.GetInventoryDiscrepanciesAsync(ct);
+        }
+
+        // API 5: Lấy lịch sử giao dịch (Sổ cái)
+        // =================================================================
+        public async Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(
+            InventoryTransactionFilterDto filter,
+            CancellationToken ct)
+        {
+            // Ủy quyền gọi thẳng xuống Repository để lấy data
+            return await _inventoryRepo.GetTransactionHistoryAsync(filter, ct);
         }
     }
 }

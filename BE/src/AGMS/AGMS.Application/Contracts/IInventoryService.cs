@@ -10,8 +10,7 @@ namespace AGMS.Application.Contracts
         Task ProcessGoodsReceiptAsync(int createdByUserId, CreateGoodsReceiptDto request, CancellationToken ct);
 
         // Hàm Xuất kho
-        Task ProcessStockIssueAsync(int productId, int transferOrderId, decimal quantity, string note, CancellationToken ct);
-
+        Task ProcessStockIssueAsync(int transferOrderId, int approvedByUserId, CancellationToken ct);
         // Tạo phiếu xuất từ service order
         Task<CreateIssueTransferOrderResultDto> CreateIssueTransferOrderFromServiceOrderAsync(
             int maintenanceId,
@@ -20,5 +19,6 @@ namespace AGMS.Application.Contracts
 
         // Hàm Đối soát
         Task<List<InventoryDiscrepancyDto>> AuditInventoryAsync(CancellationToken ct);
+        Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(InventoryTransactionFilterDto filter, CancellationToken ct);
     }
 }
