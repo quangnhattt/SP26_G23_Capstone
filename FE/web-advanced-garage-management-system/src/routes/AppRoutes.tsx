@@ -15,6 +15,8 @@ const ServicesPageHome = lazy(() => import("@/pages/services/services.page.home"
 const PricingPage = lazy(() => import("@/pages/pricing/pricing.page"));
 const AboutPage = lazy(() => import("@/pages/about/about.page"));
 const ContactPage = lazy(() => import("@/pages/contact/contact.page"));
+const BookingPage = lazy(() => import("@/pages/booking/booking.page"));
+const RescuePage = lazy(() => import("@/pages/booking/rescue.page"));
 const AdminDashboard = lazy(() => import("@/pages/admin/admin.page"));
 const ProfilePage = lazy(() => import("@/pages/profile/profile.page"));
 const CustomersPage = lazy(() => import("@/pages/admin/customers/customers.page"));
@@ -36,6 +38,8 @@ const AppRoutesContent = () => {
           <Route path={ROUTER_PAGE.pricing} element={<PricingPage />} />
           <Route path={ROUTER_PAGE.about} element={<AboutPage />} />
           <Route path={ROUTER_PAGE.contact} element={<ContactPage />} />
+          <Route path={ROUTER_PAGE.booking} element={<BookingPage />} />
+          <Route path={ROUTER_PAGE.rescue} element={<RescuePage />} />
           <Route path={ROUTER_PAGE.admin} element={<AdminDashboard />}>
             <Route path="product" element={<ProductsPage />} />
             <Route path="unit-managerment" element={<CustomersPage />} />

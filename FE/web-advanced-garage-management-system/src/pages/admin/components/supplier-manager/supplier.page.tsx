@@ -10,6 +10,8 @@ import {
   type ISupplierCreateRequest,
   type ISupplierUpdateRequest,
 } from "@/services/admin/supplierService";
+import { toast } from "react-toastify";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 interface SupplierFormData {
   name: string;
@@ -128,7 +130,7 @@ const SupplierPage = () => {
       await fetchSuppliers();
     } catch (err) {
       console.error("Error saving supplier:", err);
-      setError(t("errorSavingSupplier"));
+      toast.error(getApiErrorMessage(err, t("errorSavingSupplier")));
     } finally {
       setSubmitting(false);
     }

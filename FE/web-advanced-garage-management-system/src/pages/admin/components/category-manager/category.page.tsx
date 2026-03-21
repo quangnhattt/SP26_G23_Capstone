@@ -8,6 +8,8 @@ import {
   updateCategory,
 } from "@/services/admin/categoryService";
 import type { ICategory } from "@/services/admin/categoryService";
+import { toast } from "react-toastify";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 interface CategoryFormData {
   name: string;
@@ -96,7 +98,7 @@ const CategoryPage = () => {
       await fetchCategories();
     } catch (err) {
       console.error("Error saving category:", err);
-      setError(t("errorSavingCategory"));
+      toast.error(getApiErrorMessage(err, t("errorSavingCategory")));
     } finally {
       setSubmitting(false);
     }

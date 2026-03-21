@@ -35,8 +35,7 @@ const HeroSection = () => {
                   dispatch(setVisibleLogin(true));
                   return;
                 }
-                // TODO: Navigate to booking page
-                console.log("Navigate to booking page");
+                navigate(ROUTER_PAGE.booking);
               }}
               type="button"
             >

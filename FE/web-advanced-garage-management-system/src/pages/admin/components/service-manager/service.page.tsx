@@ -10,6 +10,8 @@ import {
 import type { IService } from "@/services/admin/serviceService";
 import { getCategories } from "@/services/admin/categoryService";
 import type { ICategory } from "@/services/admin/categoryService";
+import { toast } from "react-toastify";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 interface ServiceFormData {
   code: string;
@@ -149,7 +151,7 @@ const ServicePage = () => {
       await fetchServices();
     } catch (err) {
       console.error("Error saving service:", err);
-      setError(t("errorSavingService"));
+      toast.error(getApiErrorMessage(err, t("errorSavingService")));
     } finally {
       setSubmitting(false);
     }

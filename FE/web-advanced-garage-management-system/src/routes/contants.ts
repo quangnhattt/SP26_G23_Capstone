@@ -6,6 +6,8 @@ export const ROUTER_PAGE = {
   contact: "/contact",
   admin: "/admin",
   profile: "/profile",
+  booking: "/booking",
+  rescue: "/rescue",
   auth: {
     login: "/auth/login",
     register: "/auth/register",
