@@ -5,6 +5,7 @@ import { userService, type IUser, type IUserRequest } from "@/services/admin/use
 import { validateStrongPassword } from "@/utils/validation";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
+import { AxiosError } from "axios";
 
 const UserPage = () => {
   const { t } = useTranslation();
@@ -51,7 +52,7 @@ const UserPage = () => {
       ? Object.values(data.errors).flat().find(Boolean)
       : undefined;
 
-    if (firstValidationError) return firstValidationError;
+    if (firstValidationError && typeof firstValidationError === 'string') return firstValidationError;
     if (data?.title) return data.title;
 
     return t("errorOccurred");
@@ -228,7 +229,7 @@ const UserPage = () => {
         toast.success(t("deleteUserSuccess"));
         fetchUsers();
       } catch (err) {
-        toast.error(getApiErrorMessage(err, t("errorDeletingUser")));
+        toast.error(getApiErrorMessage(err));
         console.error("Error deleting user:", err);
       }
     }

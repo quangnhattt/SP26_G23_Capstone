@@ -112,7 +112,10 @@ const RescuePage = () => {
         return;
       }
     }
-    if (currentStep === 2 && (!rescueData.issueTitle || !rescueData.issueDescription)) {
+    if (
+      currentStep === 2 &&
+      (!rescueData.issueTitle || !rescueData.issueDescription)
+    ) {
       toast.warn(t("rescueAlertFillIssue"));
       return;
     }
@@ -130,14 +133,14 @@ const RescuePage = () => {
   };
 
   const handleSubmit = () => {
-    console.log("Rescue data:", rescueData);
     toast.success(t("rescueAlertSuccess"));
     navigate(ROUTER_PAGE.home);
   };
 
-  const filteredUsers = phoneSearch.trim().length >= 2
-    ? allUsers.filter((u) => u.phone.includes(phoneSearch.trim()))
-    : [];
+  const filteredUsers =
+    phoneSearch.trim().length >= 2
+      ? allUsers.filter((u) => u.phone.includes(phoneSearch.trim()))
+      : [];
 
   const handleSelectUser = (selectedUser: IUser) => {
     setRescueData((prev) => ({ ...prev, phoneNumber: selectedUser.phone }));
@@ -154,7 +157,6 @@ const RescuePage = () => {
     }));
   };
 
-
   return (
     <PageWrapper>
       <Container>
@@ -164,9 +166,7 @@ const RescuePage = () => {
           </BackButton>
           <HeaderContent>
             <HeaderTitle>{t("rescueHeaderTitle")}</HeaderTitle>
-            <HeaderSubtitle>
-              {t("rescueHeaderSubtitle")}
-            </HeaderSubtitle>
+            <HeaderSubtitle>{t("rescueHeaderSubtitle")}</HeaderSubtitle>
           </HeaderContent>
           <EmergencyBadge>
             <FaPhoneAlt size={14} />
@@ -218,11 +218,7 @@ const RescuePage = () => {
                   {t("rescueContactPhone")} <Required>*</Required>
                 </Label>
                 {isCustomer ? (
-                  <Input
-                    type="tel"
-                    value={rescueData.phoneNumber}
-                    disabled
-                  />
+                  <Input type="tel" value={rescueData.phoneNumber} disabled />
                 ) : (
                   <PhoneSearchWrapper>
                     <Input
@@ -232,11 +228,15 @@ const RescuePage = () => {
                       onChange={(e) => {
                         const val = e.target.value;
                         setPhoneSearch(val);
-                        setRescueData((prev) => ({ ...prev, phoneNumber: val }));
+                        setRescueData((prev) => ({
+                          ...prev,
+                          phoneNumber: val,
+                        }));
                         setShowPhoneDropdown(val.trim().length >= 2);
                       }}
                       onFocus={() => {
-                        if (phoneSearch.trim().length >= 2) setShowPhoneDropdown(true);
+                        if (phoneSearch.trim().length >= 2)
+                          setShowPhoneDropdown(true);
                       }}
                       onBlur={() => {
                         setTimeout(() => setShowPhoneDropdown(false), 200);
@@ -261,7 +261,9 @@ const RescuePage = () => {
 
               <FormGroup>
                 <Label>
-                  <FaMapMarkerAlt style={{ color: "#dc2626", marginRight: "0.5rem" }} />
+                  <FaMapMarkerAlt
+                    style={{ color: "#dc2626", marginRight: "0.5rem" }}
+                  />
                   {t("rescueAddressLabel")} <Required>*</Required>
                 </Label>
                 <Textarea
@@ -269,7 +271,10 @@ const RescuePage = () => {
                   rows={3}
                   value={rescueData.address}
                   onChange={(e) =>
-                    setRescueData((prev) => ({ ...prev, address: e.target.value }))
+                    setRescueData((prev) => ({
+                      ...prev,
+                      address: e.target.value,
+                    }))
                   }
                 />
               </FormGroup>
@@ -284,7 +289,8 @@ const RescuePage = () => {
                   {userVehicles.map((vehicle) => {
                     const isSelected =
                       rescueData.selectedVehicle != null &&
-                      rescueData.selectedVehicle.licensePlate === vehicle.licensePlate;
+                      rescueData.selectedVehicle.licensePlate ===
+                        vehicle.licensePlate;
 
                     return (
                       <VehicleCard
@@ -337,7 +343,10 @@ const RescuePage = () => {
                   placeholder={t("rescueIssueTitlePlaceholder")}
                   value={rescueData.issueTitle}
                   onChange={(e) =>
-                    setRescueData((prev) => ({ ...prev, issueTitle: e.target.value }))
+                    setRescueData((prev) => ({
+                      ...prev,
+                      issueTitle: e.target.value,
+                    }))
                   }
                 />
               </FormGroup>
@@ -438,8 +447,12 @@ const RescuePage = () => {
                   {rescueData.symptoms.length > 0 && (
                     <SymptomList>
                       {rescueData.symptoms.map((symptomId) => {
-                        const s = symptomList.find((item) => item.id === symptomId);
-                        return s ? <SymptomBadge key={s.id}>{s.name}</SymptomBadge> : null;
+                        const s = symptomList.find(
+                          (item) => item.id === symptomId,
+                        );
+                        return s ? (
+                          <SymptomBadge key={s.id}>{s.name}</SymptomBadge>
+                        ) : null;
                       })}
                     </SymptomList>
                   )}
@@ -447,9 +460,7 @@ const RescuePage = () => {
 
                 <NoteCard>
                   <FaExclamationCircle size={20} color="#dc2626" />
-                  <NoteText $emergency>
-                    {t("rescueNote")}
-                  </NoteText>
+                  <NoteText $emergency>{t("rescueNote")}</NoteText>
                 </NoteCard>
               </ConfirmationCard>
             </StepContent>

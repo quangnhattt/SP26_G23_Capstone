@@ -79,7 +79,6 @@ const BookingPage = () => {
       try {
         setIsLoadingVehicles(true);
         const cars = await getCars();
-        console.log("Fetched cars:", cars);
         setUserVehicles(cars);
       } catch (error) {
         console.error("Error fetching vehicles:", error);
@@ -168,12 +167,7 @@ const BookingPage = () => {
 
     try {
       setSubmitting(true);
-      console.log("=== SUBMITTING BOOKING ===");
-      console.log("Selected vehicle:", bookingData.selectedVehicle);
-      console.log("Car ID:", bookingData.selectedVehicle.carId);
-      console.log("Selected technician ID:", bookingData.selectedTechnician);
-      console.log("Full booking data:", bookingData);
-      
+
       const payload = {
         carId: bookingData.selectedVehicle.carId,
         description: `${bookingData.issueTitle}\n${bookingData.issueDescription}`,
@@ -185,9 +179,8 @@ const BookingPage = () => {
         preferredTime: bookingData.preferredTime,
         symptomIds: bookingData.symptoms,
       };
-      
-      console.log("Payload to send:", payload);
-      
+
+
       await createRepairRequest(payload);
       toast.success(t("bookingAlertSuccess"));
       navigate(ROUTER_PAGE.home);
@@ -355,14 +348,11 @@ const BookingPage = () => {
                 <VehicleGrid>
                   {userVehicles.map((vehicle) => {
                     const isSelected = bookingData.selectedVehicle != null && bookingData.selectedVehicle.licensePlate === vehicle.licensePlate;
-                    
                     return (
                       <VehicleCard
                         key={vehicle.carId}
                         $selected={isSelected}
                         onClick={() => {
-                          console.log("Clicked vehicle:", vehicle);
-                          console.log("Current selected:", bookingData.selectedVehicle);
                           setBookingData((prev) => ({
                             ...prev,
                             selectedVehicle: isSelected ? null : vehicle,
@@ -716,8 +706,8 @@ const BookingPage = () => {
                       {bookingData.selectedTechnician === null
                         ? t("bookingAutoAssignSummary")
                         : technicians.find(
-                            (t) => t.userID === bookingData.selectedTechnician
-                          )?.fullName}
+                          (t) => t.userID === bookingData.selectedTechnician
+                        )?.fullName}
                     </InfoValue>
                   </InfoItem>
                 </CardSection>
@@ -733,10 +723,9 @@ const BookingPage = () => {
                     <InfoValue>
                       {bookingData.preferredDate && bookingData.preferredTime
                         ? `${new Date(bookingData.preferredDate).toLocaleDateString(
-                            "vi-VN"
-                          )} - ${bookingData.preferredTime} - ${
-                            parseInt(bookingData.preferredTime) + 1
-                          }:00`
+                          "vi-VN"
+                        )} - ${bookingData.preferredTime} - ${parseInt(bookingData.preferredTime) + 1
+                        }:00`
                         : t("bookingNotSpecified")}
                     </InfoValue>
                   </InfoItem>
