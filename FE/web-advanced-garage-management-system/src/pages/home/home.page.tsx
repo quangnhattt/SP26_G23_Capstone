@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import HeroSection from "./components/hero.section";
 import StatsSection from "./components/stats.section";
 import FeaturesContainer from "./components/features.container";
@@ -9,19 +9,30 @@ import { AuthContext } from "@/context/AuthContext";
 import { useAppDispatch } from "@/store/store";
 import { setVisibleLogin } from "@/store/slices/appSlice";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { ROUTER_PAGE } from "@/routes/contants";
+import { FaPhoneAlt } from "react-icons/fa";
 
 const HomePage = () => {
   const { t } = useTranslation();
   const { user } = React.useContext(AuthContext);
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   const handleBookAppointment = () => {
     if (!user) {
       dispatch(setVisibleLogin(true));
       return;
     }
-    // TODO: Navigate to booking page
-    console.log("Navigate to booking page");
+    navigate(ROUTER_PAGE.booking);
+  };
+
+  const handleRescue = () => {
+    if (!user) {
+      dispatch(setVisibleLogin(true));
+      return;
+    }
+    navigate(ROUTER_PAGE.rescue);
   };
 
   return (
@@ -135,6 +146,14 @@ const HomePage = () => {
           </CTAButtonGroup>
         </CTAContainer>
       </CTASection>
+      {/* Floating Rescue Button */}
+      <RescueFloatingButton onClick={handleRescue}>
+        <RescuePulse />
+        <RescueIconWrapper>
+          <FaPhoneAlt size={22} />
+        </RescueIconWrapper>
+        <RescueLabel>{t("homeRescue")}</RescueLabel>
+      </RescueFloatingButton>
     </PageContainer>
   );
 };
@@ -142,6 +161,21 @@ const HomePage = () => {
 export default HomePage;
 
 // Styled Components
+const pulse = keyframes`
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+`;
+
 const PageContainer = styled.div`
   flex: 1;
   display: flex;
@@ -369,4 +403,55 @@ const CTASecondaryButton = styled.button`
     width: 18px;
     height: 18px;
   }
+`;
+
+const RescueFloatingButton = styled.button`
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+  transition: all 0.3s;
+
+  &:hover {
+    background: #b91c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+  }
+
+  @media (max-width: 768px) {
+    bottom: 1.5rem;
+    right: 1.5rem;
+    padding: 0.75rem 1.25rem;
+  }
+`;
+
+const RescuePulse = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  background: #dc2626;
+  animation: ${pulse} 2s infinite;
+  z-index: -1;
+`;
+
+const RescueIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const RescueLabel = styled.span`
+  font-size: 0.9375rem;
+  font-weight: 700;
+  white-space: nowrap;
 `;

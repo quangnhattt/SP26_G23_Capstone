@@ -57,12 +57,7 @@ const ContactPage = () => {
       dispatch(setVisibleLogin(true));
       return;
     }
-    navigate(ROUTER_PAGE.home);
-    setTimeout(() => {
-      document
-        .getElementById("services")
-        ?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    navigate(ROUTER_PAGE.booking);
   };
 
   return (
