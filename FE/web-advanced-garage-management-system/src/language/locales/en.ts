@@ -899,6 +899,16 @@ export default {
   rescueMgrClose: "Close",
   rescueMgrSelectTech: "Select technician",
   rescueMgrAssign: "Dispatch",
+  rescueMgrSpamReasonModalTitle: "Mark as spam",
+  rescueMgrCancelRescueModalTitle: "Cancel rescue request",
+  rescueMgrSpamReasonLabel: "Spam reason",
+  rescueMgrCancelReasonLabel: "Cancellation reason",
+  rescueMgrSpamReasonPlaceholder:
+    "e.g. Customer sent repeated requests in one day, no real incident.",
+  rescueMgrCancelReasonPlaceholder:
+    "e.g. SA refused to accept due to insufficient workshop capacity.",
+  rescueMgrReasonRequired: "Please enter a reason.",
+  rescueMgrConfirmSubmit: "Confirm",
 
   // Home - Rescue Button
   heroMyAppointments: "My Appointments",

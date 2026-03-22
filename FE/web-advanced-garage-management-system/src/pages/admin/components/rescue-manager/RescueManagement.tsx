@@ -24,6 +24,8 @@ import {
   updateRescueStatus,
   assignTechnician,
   sendRescueQuote,
+  cancelRescueRequest,
+  markSpamRescueRequest,
   type IRescueRequest,
   type RescueStatus,
 } from "@/apis/rescue";
@@ -181,6 +183,13 @@ const RescueManagement = () => {
   const [canFixOnSite, setCanFixOnSite] = useState<boolean | null>(null);
   const [diagnosisNote, setDiagnosisNote] = useState("");
 
+  // Spam / Cancel — nhập lý do trước khi gọi API
+  const [reasonModal, setReasonModal] = useState<
+    null | { type: "spam" | "cancel"; rescue: IRescueRequest }
+  >(null);
+  const [reasonInput, setReasonInput] = useState("");
+  const [reasonSubmitting, setReasonSubmitting] = useState(false);
+
   const fetchRescues = useCallback(async () => {
     try {
       setLoading(true);
@@ -284,6 +293,43 @@ const RescueManagement = () => {
     setDiagnosisNote("");
   };
 
+  const openReasonModal = (type: "spam" | "cancel", rescue: IRescueRequest) => {
+    setReasonModal({ type, rescue });
+    setReasonInput("");
+  };
+
+  const closeReasonModal = () => {
+    setReasonModal(null);
+    setReasonInput("");
+    setReasonSubmitting(false);
+  };
+
+  const handleConfirmReason = async () => {
+    const trimmed = reasonInput.trim();
+    if (!trimmed) {
+      toast.error(t("rescueMgrReasonRequired"));
+      return;
+    }
+    if (!reasonModal) return;
+    const { type, rescue } = reasonModal;
+    try {
+      setReasonSubmitting(true);
+      if (type === "spam") {
+        await markSpamRescueRequest(rescue.rescueId, trimmed);
+      } else {
+        await cancelRescueRequest(rescue.rescueId, trimmed);
+      }
+      toast.success(t("rescueMgrStatusUpdated"));
+      closeReasonModal();
+      fetchRescues();
+    } catch (error) {
+      console.error("Error submitting reason:", error);
+      toast.error(t("rescueMgrStatusError"));
+    } finally {
+      setReasonSubmitting(false);
+    }
+  };
+
   // ─── Filter & count ──────────────────────────────────────
   const totalCount = rescues.length;
   const pendingCount = rescues.filter((r) => r.status === "PENDING").length;
@@ -371,7 +417,7 @@ const RescueManagement = () => {
           label: t("rescueMgrMarkSpam"),
           icon: <FaBan size={12} />,
           color: "#6b7280",
-          onClick: () => handleUpdateStatus(rescue.rescueId, "SPAM"),
+          onClick: () => openReasonModal("spam", rescue),
         });
         break;
 
@@ -511,8 +557,7 @@ const RescueManagement = () => {
         label: t("rescueMgrCancel"),
         icon: <FaTimes size={12} />,
         color: "#dc2626",
-        onClick: () =>
-          handleUpdateStatus(rescue.rescueId, "CANCELLED"),
+        onClick: () => openReasonModal("cancel", rescue),
       });
     }
 
@@ -858,6 +903,62 @@ const RescueManagement = () => {
                 disabled={canFixOnSite === null}
               >
                 {t("rescueMgrSaveDiagnosis")}
+              </ModalConfirmBtn>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {/* ─── Spam / Cancel reason modal ─── */}
+      {reasonModal && (
+        <ModalOverlay onClick={closeReasonModal}>
+          <ModalContent
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "500px" }}
+          >
+            <ModalHeader>
+              <ModalTitle>
+                {reasonModal.type === "spam"
+                  ? t("rescueMgrSpamReasonModalTitle")
+                  : t("rescueMgrCancelRescueModalTitle")}
+              </ModalTitle>
+              <CloseBtn onClick={closeReasonModal} disabled={reasonSubmitting}>
+                <FaTimes />
+              </CloseBtn>
+            </ModalHeader>
+            <ModalBody>
+              <FormGroup>
+                <FormLabel>
+                  {reasonModal.type === "spam"
+                    ? t("rescueMgrSpamReasonLabel")
+                    : t("rescueMgrCancelReasonLabel")}{" "}
+                  *
+                </FormLabel>
+                <FormTextarea
+                  value={reasonInput}
+                  onChange={(e) => setReasonInput(e.target.value)}
+                  rows={4}
+                  placeholder={
+                    reasonModal.type === "spam"
+                      ? t("rescueMgrSpamReasonPlaceholder")
+                      : t("rescueMgrCancelReasonPlaceholder")
+                  }
+                  disabled={reasonSubmitting}
+                />
+              </FormGroup>
+            </ModalBody>
+            <ModalFooter>
+              <ModalCancelBtn
+                onClick={closeReasonModal}
+                disabled={reasonSubmitting}
+              >
+                {t("rescueMgrCancel")}
+              </ModalCancelBtn>
+              <ModalConfirmBtn
+                onClick={handleConfirmReason}
+                disabled={reasonSubmitting}
+              >
+                {reasonSubmitting ? t("loading") : t("rescueMgrConfirmSubmit")}
               </ModalConfirmBtn>
             </ModalFooter>
           </ModalContent>
@@ -1257,6 +1358,17 @@ const FormInput = styled.input`
   font-size: 0.875rem;
   outline: none;
   box-sizing: border-box;
+  color: #111827;
+  background: #ffffff;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:disabled {
+    color: #6b7280;
+    background: #f9fafb;
+  }
 
   &:focus {
     border-color: #dc2626;
@@ -1272,6 +1384,17 @@ const FormTextarea = styled.textarea`
   outline: none;
   resize: vertical;
   box-sizing: border-box;
+  color: #111827;
+  background: #ffffff;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:disabled {
+    color: #6b7280;
+    background: #f9fafb;
+  }
 
   &:focus {
     border-color: #dc2626;

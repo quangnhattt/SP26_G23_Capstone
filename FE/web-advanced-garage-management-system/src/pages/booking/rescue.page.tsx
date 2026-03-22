@@ -1015,12 +1015,6 @@ const GetLocationButton = styled.button`
   }
 `;
 
-const LocationInfo = styled.div`
-  font-size: 0.75rem;
-  color: #16a34a;
-  margin-top: 0.375rem;
-  font-family: monospace;
-`;
 
 const ImagePickerRow = styled.div`
   display: flex;

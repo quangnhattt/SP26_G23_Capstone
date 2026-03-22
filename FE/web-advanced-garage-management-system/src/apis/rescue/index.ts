@@ -141,3 +141,27 @@ export const submitDiagnosis = async (
   );
   return data;
 };
+
+// SA: Cancel rescue request
+export const cancelRescueRequest = async (
+  id: number,
+  reason: string,
+) => {
+  const { data } = await AxiosClient.patch(
+    `/api/rescue-requests/${id}/cancel`,
+    { reason },
+  );
+  return data;
+};
+
+// SA: Mark rescue request as spam
+export const markSpamRescueRequest = async (
+  id: number,
+  spamReason: string,
+) => {
+  const { data } = await AxiosClient.patch(
+    `/api/rescue-requests/${id}/mark-spam`,
+    { spamReason },
+  );
+  return data;
+};

@@ -898,6 +898,16 @@ export default {
   rescueMgrClose: "Đóng",
   rescueMgrSelectTech: "Chọn kỹ thuật viên",
   rescueMgrAssign: "Điều động",
+  rescueMgrSpamReasonModalTitle: "Đánh dấu spam",
+  rescueMgrCancelRescueModalTitle: "Hủy yêu cầu cứu hộ",
+  rescueMgrSpamReasonLabel: "Lý do spam",
+  rescueMgrCancelReasonLabel: "Lý do hủy",
+  rescueMgrSpamReasonPlaceholder:
+    "Ví dụ: Khách hàng gửi yêu cầu lặp lại nhiều lần trong ngày, không có sự cố thực.",
+  rescueMgrCancelReasonPlaceholder:
+    "Ví dụ: SA từ chối tiếp nhận do năng lực xưởng không đáp ứng.",
+  rescueMgrReasonRequired: "Vui lòng nhập lý do.",
+  rescueMgrConfirmSubmit: "Xác nhận",
 
   // Home - Rescue Button
   heroMyAppointments: "Lịch hẹn của tôi",
