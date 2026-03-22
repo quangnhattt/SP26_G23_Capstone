@@ -132,9 +132,11 @@ const RescuePage = () => {
     }
   };
 
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
   const handleSubmit = () => {
     toast.success(t("rescueAlertSuccess"));
-    navigate(ROUTER_PAGE.home);
+    setShowSuccessModal(true);
   };
 
   const filteredUsers =
@@ -485,6 +487,65 @@ const RescuePage = () => {
           )}
         </Footer>
       </Container>
+      {showSuccessModal && (
+        <ModalOverlay onClick={() => { setShowSuccessModal(false); navigate(ROUTER_PAGE.home); }}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <SuccessIcon>
+                <FaCheck size={28} />
+              </SuccessIcon>
+              <ModalTitle>{t("rescueAlertSuccess")}</ModalTitle>
+            </ModalHeader>
+
+            <ModalBody>
+              <ModalSection>
+                <ModalSectionTitle><FaCar size={16} /> {t("rescueVehicleInfo")}</ModalSectionTitle>
+                <ModalValue>
+                  {rescueData.selectedVehicle?.brand} {rescueData.selectedVehicle?.model} — {rescueData.selectedVehicle?.licensePlate}
+                </ModalValue>
+              </ModalSection>
+
+              <ModalDivider />
+
+              <ModalSection>
+                <ModalSectionTitle><FaUser size={16} /> {t("rescueContactPhone")}</ModalSectionTitle>
+                <ModalValue>{rescueData.phoneNumber}</ModalValue>
+              </ModalSection>
+
+              <ModalDivider />
+
+              <ModalSection>
+                <ModalSectionTitle><FaMapMarkerAlt size={16} /> {t("rescueAddress")}</ModalSectionTitle>
+                <ModalValue>{rescueData.address}</ModalValue>
+              </ModalSection>
+
+              <ModalDivider />
+
+              <ModalSection>
+                <ModalSectionTitle><FaFileAlt size={16} /> {t("rescueIssueSummary")}</ModalSectionTitle>
+                <ModalValue>{rescueData.issueTitle}</ModalValue>
+                {rescueData.issueDescription && (
+                  <ModalSubValue>{rescueData.issueDescription}</ModalSubValue>
+                )}
+                {rescueData.symptoms.length > 0 && (
+                  <ModalChips>
+                    {rescueData.symptoms.map((symptomId) => {
+                      const s = symptomList.find((item) => item.id === symptomId);
+                      return s ? <ModalChip key={s.id}>{s.name}</ModalChip> : null;
+                    })}
+                  </ModalChips>
+                )}
+              </ModalSection>
+            </ModalBody>
+
+            <ModalFooter>
+              <ModalCloseButton onClick={() => { setShowSuccessModal(false); navigate(ROUTER_PAGE.home); }}>
+                {t("bookingBackToHome")}
+              </ModalCloseButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
     </PageWrapper>
   );
 };
@@ -524,7 +585,7 @@ const Header = styled.div`
 `;
 
 const BackButton = styled.button`
-  background: #f8f9fa;
+  background: #dc2626;
   border: none;
   width: 40px;
   height: 40px;
@@ -533,10 +594,11 @@ const BackButton = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  color: white;
   transition: background 0.2s;
 
   &:hover {
-    background: #e9ecef;
+    background: #b91c1c;
   }
 `;
 
@@ -1045,6 +1107,130 @@ const SubmitButton = styled.button<{ $emergency?: boolean }>`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+
+  &:hover {
+    background: #b91c1c;
+  }
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 2rem 1rem;
+`;
+
+const SuccessIcon = styled.div`
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  text-align: center;
+`;
+
+const ModalBody = styled.div`
+  padding: 1rem 2rem;
+`;
+
+const ModalSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+`;
+
+const ModalSectionTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+`;
+
+const ModalValue = styled.div`
+  font-size: 0.9375rem;
+  color: #111827;
+  padding-left: 1.5rem;
+`;
+
+const ModalSubValue = styled.div`
+  font-size: 0.875rem;
+  color: #6b7280;
+  padding-left: 1.5rem;
+`;
+
+const ModalChips = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding-left: 1.5rem;
+  margin-top: 0.25rem;
+`;
+
+const ModalChip = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+`;
+
+const ModalDivider = styled.div`
+  height: 1px;
+  background: #f3f4f6;
+  margin: 0.75rem 0;
+`;
+
+const ModalFooter = styled.div`
+  padding: 1rem 2rem 2rem;
+  display: flex;
+  justify-content: center;
+`;
+
+const ModalCloseButton = styled.button`
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 8px;
+  background: #dc2626;
+  color: white;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
 
   &:hover {
     background: #b91c1c;

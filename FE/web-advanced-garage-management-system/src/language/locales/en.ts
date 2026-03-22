@@ -791,6 +791,7 @@ export default {
   bookingAlertFillIssue: "Please fill in complete issue information",
   bookingAlertSelectService: "Please select at least one service",
   bookingAlertSuccess: "Repair request has been submitted successfully!",
+  bookingBackToHome: "Back to Home",
 
   // Rescue Page
   rescueHeaderTitle: "Rescue request",

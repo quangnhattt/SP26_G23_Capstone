@@ -790,6 +790,7 @@ export default {
   bookingAlertFillIssue: "Vui lòng điền đầy đủ thông tin vấn đề",
   bookingAlertSelectService: "Vui lòng chọn ít nhất một dịch vụ",
   bookingAlertSuccess: "Yêu cầu sửa chữa đã được gửi thành công!",
+  bookingBackToHome: "Về trang chủ",
 
   // Rescue Page
   rescueHeaderTitle: "Yêu cầu cứu hộ",

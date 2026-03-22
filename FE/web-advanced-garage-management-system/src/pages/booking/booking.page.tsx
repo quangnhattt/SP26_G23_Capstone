@@ -19,6 +19,7 @@ import {
 import type { ICar } from "@/apis/cars/types";
 import { getServices, type IService } from "@/services/admin/serviceService";
 import { getUsers, type IUser } from "@/services/admin/userService";
+import { getTechnicians, type ITechnician } from "@/apis/technicians";
 import { getCars } from "@/apis/cars";
 import { getSymptoms, type ISymptom } from "@/apis/symptoms";
 import { createRepairRequest } from "@/apis/repairRequests";
@@ -52,7 +53,7 @@ const BookingPage = () => {
   const [phoneSearch, setPhoneSearch] = useState("");
   const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
   const isCustomer = user?.roleID === 4;
-  const [technicians, setTechnicians] = useState<IUser[]>([]);
+  const [technicians, setTechnicians] = useState<ITechnician[]>([]);
   const [symptomList, setSymptomList] = useState<ISymptom[]>([]);
 
   const [bookingData, setBookingData] = useState<BookingData>({
@@ -103,9 +104,17 @@ const BookingPage = () => {
       try {
         const users = await getUsers();
         setAllUsers(users);
-        setTechnicians(users.filter((u) => u.roleID === 3 && u.isActive));
       } catch (error) {
         console.error("Error fetching users:", error);
+      }
+    };
+
+    const fetchTechnicians = async () => {
+      try {
+        const data = await getTechnicians();
+        setTechnicians(data);
+      } catch (error) {
+        console.error("Error fetching technicians:", error);
       }
     };
 
@@ -121,6 +130,7 @@ const BookingPage = () => {
     fetchVehicles();
     fetchServices();
     fetchUsers();
+    fetchTechnicians();
     fetchSymptoms();
   }, [user, navigate, isCustomer]);
 
@@ -157,6 +167,7 @@ const BookingPage = () => {
   };
 
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = async () => {
     if (!bookingData.selectedVehicle || !bookingData.selectedVehicle.carId) {
@@ -183,7 +194,7 @@ const BookingPage = () => {
 
       await createRepairRequest(payload);
       toast.success(t("bookingAlertSuccess"));
-      navigate(ROUTER_PAGE.home);
+      setShowSuccessModal(true);
     } catch (error) {
       console.error("Error submitting booking:", error);
       toast.error(getApiErrorMessage(error, t("errorOccurred")));
@@ -516,12 +527,12 @@ const BookingPage = () => {
 
                   {technicians.map((tech) => (
                     <TechnicianCard
-                      key={tech.userID}
-                      $selected={bookingData.selectedTechnician === tech.userID}
+                      key={tech.technicianId}
+                      $selected={bookingData.selectedTechnician === tech.technicianId}
                       onClick={() =>
                         setBookingData((prev) => ({
                           ...prev,
-                          selectedTechnician: tech.userID,
+                          selectedTechnician: tech.technicianId,
                         }))
                       }
                     >
@@ -706,7 +717,7 @@ const BookingPage = () => {
                       {bookingData.selectedTechnician === null
                         ? t("bookingAutoAssignSummary")
                         : technicians.find(
-                          (t) => t.userID === bookingData.selectedTechnician
+                          (t) => t.technicianId === bookingData.selectedTechnician
                         )?.fullName}
                     </InfoValue>
                   </InfoItem>
@@ -761,6 +772,113 @@ const BookingPage = () => {
           )}
         </Footer>
       </Container>
+      {showSuccessModal && (
+        <ModalOverlay onClick={() => { setShowSuccessModal(false); navigate(ROUTER_PAGE.home); }}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <SuccessIcon>
+                <FaCheck size={28} />
+              </SuccessIcon>
+              <ModalTitle>{t("bookingAlertSuccess")}</ModalTitle>
+            </ModalHeader>
+
+            <ModalBody>
+              <ModalSection>
+                <ModalSectionTitle><FaCar size={16} /> {t("bookingVehicleInfo")}</ModalSectionTitle>
+                <ModalValue>
+                  {bookingData.selectedVehicle?.brand} {bookingData.selectedVehicle?.model} — {bookingData.selectedVehicle?.licensePlate}
+                </ModalValue>
+              </ModalSection>
+
+              <ModalDivider />
+
+              <ModalSection>
+                <ModalSectionTitle><FaUser size={16} /> {t("bookingContactPhone")}</ModalSectionTitle>
+                <ModalValue>{bookingData.phoneNumber}</ModalValue>
+              </ModalSection>
+
+              <ModalDivider />
+
+              <ModalSection>
+                <ModalSectionTitle><FaFileAlt size={16} /> {t("bookingServiceType")}</ModalSectionTitle>
+                <ModalValue>
+                  {bookingData.serviceType === "repair" && `🔧 ${t("bookingServiceTypeRepair")}`}
+                  {bookingData.serviceType === "maintenance" && `🚗 ${t("bookingServiceTypeMaintenance")}`}
+                </ModalValue>
+              </ModalSection>
+
+              <ModalDivider />
+
+              <ModalSection>
+                <ModalSectionTitle><FaFileAlt size={16} /> {t("bookingIssueSummary")}</ModalSectionTitle>
+                <ModalValue>{bookingData.issueTitle}</ModalValue>
+                {bookingData.issueDescription && (
+                  <ModalSubValue>{bookingData.issueDescription}</ModalSubValue>
+                )}
+                {bookingData.symptoms.length > 0 && (
+                  <ModalChips>
+                    {bookingData.symptoms.map((symptomId) => {
+                      const s = symptomList.find((item) => item.id === symptomId);
+                      return s ? <ModalChip key={s.id}>{s.name}</ModalChip> : null;
+                    })}
+                  </ModalChips>
+                )}
+              </ModalSection>
+
+              {bookingData.selectedServices.length > 0 && (
+                <>
+                  <ModalDivider />
+                  <ModalSection>
+                    <ModalSectionTitle><FaWrench size={16} /> {t("bookingSelectedServices")}</ModalSectionTitle>
+                    {bookingData.selectedServices.map((serviceId) => {
+                      const service = availableServices.find((s) => s.id === serviceId);
+                      if (!service) return null;
+                      return (
+                        <ModalServiceRow key={serviceId}>
+                          <span>{service.name}</span>
+                          <span>{service.price.toLocaleString()}đ</span>
+                        </ModalServiceRow>
+                      );
+                    })}
+                    <ModalTotalRow>
+                      <strong>{t("bookingTotal")}</strong>
+                      <strong>{getTotalPrice().toLocaleString()}đ</strong>
+                    </ModalTotalRow>
+                  </ModalSection>
+                </>
+              )}
+
+              <ModalDivider />
+
+              <ModalSection>
+                <ModalSectionTitle><FaUser size={16} /> {t("bookingTechnician")}</ModalSectionTitle>
+                <ModalValue>
+                  {bookingData.selectedTechnician === null
+                    ? t("bookingAutoAssignSummary")
+                    : technicians.find((t) => t.technicianId === bookingData.selectedTechnician)?.fullName}
+                </ModalValue>
+              </ModalSection>
+
+              <ModalDivider />
+
+              <ModalSection>
+                <ModalSectionTitle><FaCalendarAlt size={16} /> {t("bookingPreferredTimeSummary")}</ModalSectionTitle>
+                <ModalValue>
+                  {bookingData.preferredDate && bookingData.preferredTime
+                    ? `${new Date(bookingData.preferredDate).toLocaleDateString("vi-VN")} - ${bookingData.preferredTime} - ${parseInt(bookingData.preferredTime) + 1}:00`
+                    : t("bookingNotSpecified")}
+                </ModalValue>
+              </ModalSection>
+            </ModalBody>
+
+            <ModalFooter>
+              <ModalCloseButton onClick={() => { setShowSuccessModal(false); navigate(ROUTER_PAGE.home); }}>
+                {t("bookingBackToHome")}
+              </ModalCloseButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
     </PageWrapper>
   );
 };
@@ -800,7 +918,7 @@ const Header = styled.div`
 `;
 
 const BackButton = styled.button`
-  background: #f8f9fa;
+  background: #1d4ed8;
   border: none;
   width: 40px;
   height: 40px;
@@ -809,10 +927,11 @@ const BackButton = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  color: white;
   transition: background 0.2s;
 
   &:hover {
-    background: #e9ecef;
+    background: #1e40af;
   }
 `;
 
@@ -1616,6 +1735,148 @@ const SubmitButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+
+  &:hover {
+    background: #1e40af;
+  }
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 2rem 1rem;
+`;
+
+const SuccessIcon = styled.div`
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  text-align: center;
+`;
+
+const ModalBody = styled.div`
+  padding: 1rem 2rem;
+`;
+
+const ModalSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+`;
+
+const ModalSectionTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+`;
+
+const ModalValue = styled.div`
+  font-size: 0.9375rem;
+  color: #111827;
+  padding-left: 1.5rem;
+`;
+
+const ModalSubValue = styled.div`
+  font-size: 0.875rem;
+  color: #6b7280;
+  padding-left: 1.5rem;
+`;
+
+const ModalChips = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding-left: 1.5rem;
+  margin-top: 0.25rem;
+`;
+
+const ModalChip = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+`;
+
+const ModalServiceRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 0.375rem 0 0.375rem 1.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+`;
+
+const ModalTotalRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0 0 1.5rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.9375rem;
+  color: #1d4ed8;
+`;
+
+const ModalDivider = styled.div`
+  height: 1px;
+  background: #f3f4f6;
+  margin: 0.75rem 0;
+`;
+
+const ModalFooter = styled.div`
+  padding: 1rem 2rem 2rem;
+  display: flex;
+  justify-content: center;
+`;
+
+const ModalCloseButton = styled.button`
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 8px;
+  background: #1d4ed8;
+  color: white;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
 
   &:hover {
     background: #1e40af;
