@@ -6,6 +6,7 @@ import {
   FaFileAlt,
   FaMapMarkerAlt,
   FaUser,
+  FaExclamationCircle,
 } from "react-icons/fa";
 import type { ICar } from "@/apis/cars/types";
 
@@ -81,6 +82,11 @@ const RescueSuccessModal = ({
               />
             )}
           </ModalSection>
+
+          <NoteCard>
+            <FaExclamationCircle size={20} color="#dc2626" />
+            <NoteText>{t("rescueNote")}</NoteText>
+          </NoteCard>
         </ModalBody>
 
         <ModalFooter>
@@ -204,4 +210,21 @@ const ImagePreview = styled.img`
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   object-fit: cover;
+`;
+
+const NoteCard = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin-top: 1rem;
+`;
+
+const NoteText = styled.p`
+  font-size: 0.875rem;
+  color: #991b1b;
+  margin: 0;
+  line-height: 1.5;
 `;

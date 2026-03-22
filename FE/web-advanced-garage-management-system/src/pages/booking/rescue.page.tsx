@@ -408,11 +408,6 @@ const RescuePage = () => {
                       : t("rescueGetLocation")}
                   </GetLocationButton>
                 </AddressRow>
-                {rescueData.latitude !== null && rescueData.longitude !== null && (
-                  <LocationInfo>
-                    GPS: {rescueData.latitude.toFixed(6)}, {rescueData.longitude.toFixed(6)}
-                  </LocationInfo>
-                )}
               </FormGroup>
 
               <SectionTitle>{t("rescueSelectVehicle")}</SectionTitle>
