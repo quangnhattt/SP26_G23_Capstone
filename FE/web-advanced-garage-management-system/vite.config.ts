@@ -107,7 +107,6 @@ export default defineConfig({
     exclude: [
       '@tanstack/react-query-devtools',
     ],
-    // Force pre-bundle these
     force: true,
   },
 });

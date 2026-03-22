@@ -123,7 +123,7 @@ public class AppointmentService : IAppointmentService
     {
         var roleId = await _repo.GetUserRoleIdAsync(currentUserId, ct);
         if (roleId != 2)
-            throw new UnauthorizedAccessException("Only Service Advisor (RoleID = 2) can approve appointments.");
+            throw new UnauthorizedAccessException("Chỉ Service Advisor (RoleID = 2) mới có thể duyệt lịch hẹn.");
 
         await _repo.ApproveAsync(appointmentId, currentUserId, ct);
     }
@@ -132,11 +132,11 @@ public class AppointmentService : IAppointmentService
     {
         var roleID= await _repo.GetUserRoleIdAsync(currentUserId, ct);
         if(roleID!=2)
-            throw new UnauthorizedAccessException("Only Service Advisor (RoleID = 2) can reject appointments.");
+            throw new UnauthorizedAccessException("Chỉ Service Advisor (RoleID = 2) mới có thể từ chối lịch hẹn.");
 
         var reason = rejectionReason?.Trim();
         if (string.IsNullOrWhiteSpace(reason))
-            throw new InvalidOperationException("Rejection reason is required.");
+            throw new InvalidOperationException("Lý do từ chối là bắt buộc.");
 
         await _repo.RejectAsync(appointmentId, currentUserId, reason, ct);
     }
@@ -145,7 +145,7 @@ public class AppointmentService : IAppointmentService
     {
         var roleId = await _repo.GetUserRoleIdAsync(currentUserId, ct);
         if (roleId != 2)
-            throw new UnauthorizedAccessException("Only Service Advisor (RoleID = 2) can check in appointments.");
+            throw new UnauthorizedAccessException("Chỉ Service Advisor (RoleID = 2) mới có thể check-in lịch hẹn.");
 
         await _repo.CheckInAsync(appointmentId, currentUserId, ct);
     }

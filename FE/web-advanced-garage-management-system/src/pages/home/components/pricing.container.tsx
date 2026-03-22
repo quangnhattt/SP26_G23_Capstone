@@ -4,19 +4,21 @@ import { AuthContext } from "@/context/AuthContext";
 import { useAppDispatch } from "@/store/store";
 import { setVisibleLogin } from "@/store/slices/appSlice";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { ROUTER_PAGE } from "@/routes/contants";
 
 const PricingContainer = () => {
   const { t } = useTranslation();
   const { user } = useContext(AuthContext);
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   const handleBooking = () => {
     if (!user) {
       dispatch(setVisibleLogin(true));
       return;
     }
-    // TODO: Navigate to booking page
-    console.log("Navigate to booking page");
+    navigate(ROUTER_PAGE.booking);
   };
 
   return (

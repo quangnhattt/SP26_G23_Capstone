@@ -74,9 +74,9 @@ public class CarService : ICarService
         return MapToDetail(car);
     }
 
-    public async Task<IEnumerable<CustomerCarListItemDto>> GetCustomerCarsAsync(int userId, CancellationToken ct)
+    public async Task<IEnumerable<CustomerCarListItemDto>> GetCustomerCarsAsync(int userId, string? phone, CancellationToken ct)
     {
-        return await _repo.GetCustomerCarsAsync(userId, ct);
+        return await _repo.GetCustomerCarsAsync(userId, phone, ct);
     }
 
     private static CarDetailDto MapToDetail(Car car)

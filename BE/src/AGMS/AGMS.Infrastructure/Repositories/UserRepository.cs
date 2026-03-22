@@ -69,7 +69,7 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.UserID == userId, ct);
     }
 
-    public async Task<IEnumerable<User>> SearchUsersExceptAdminAsync(string? q, int? roleId, bool? isActive, CancellationToken ct)
+    public async Task<IEnumerable<User>> SearchUsersExceptAdminAsync(string? q, string? phone, int? roleId, bool? isActive, CancellationToken ct)
     {
         var query = _db.Users
             .AsNoTracking()
@@ -82,6 +82,12 @@ public class UserRepository : IUserRepository
                 (u.FullName != null && u.FullName.Contains(q)) ||
                 (u.Email != null && u.Email.Contains(q)) ||
                 (u.Phone != null && u.Phone.Contains(q)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(phone))
+        {
+            var normalizedPhone = phone.Trim();
+            query = query.Where(u => u.Phone != null && u.Phone.Contains(normalizedPhone));
         }
 
         if (roleId.HasValue)

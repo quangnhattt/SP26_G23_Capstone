@@ -23,11 +23,23 @@ public class UsersController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<UserListItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(
+        [FromQuery] string? q,
+        [FromQuery] string? phone,
+        [FromQuery] int? roleId,
+        [FromQuery] bool? isActive,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
         CancellationToken ct)
     {
-        var users = await _userService.GetUsersExceptAdminAsync(ct);
+        var hasFilters =
+            !string.IsNullOrWhiteSpace(q) ||
+            !string.IsNullOrWhiteSpace(phone) ||
+            roleId.HasValue ||
+            isActive.HasValue;
+
+        var users = hasFilters
+            ? await _userService.SearchUsersAsync(q, phone, roleId, isActive, ct)
+            : await _userService.GetUsersExceptAdminAsync(ct);
 
         if (page.HasValue && pageSize.HasValue && page > 0 && pageSize > 0)
         {
@@ -100,13 +112,14 @@ public class UsersController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<UserListItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search(
         [FromQuery] string? q,
+        [FromQuery] string? phone,
         [FromQuery] int? roleId,
         [FromQuery] bool? isActive,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
         CancellationToken ct)
     {
-        var users = await _userService.SearchUsersAsync(q, roleId, isActive, ct);
+        var users = await _userService.SearchUsersAsync(q, phone, roleId, isActive, ct);
 
         if (page.HasValue && pageSize.HasValue && page > 0 && pageSize > 0)
         {

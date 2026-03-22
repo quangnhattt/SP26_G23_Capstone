@@ -6,6 +6,7 @@ public class Category
     public string Name { get; set; } = null!;
     public string Type { get; set; } = null!;
     public string? Description { get; set; }
+    public decimal MarkupPercent { get; set; }
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 }

@@ -37,10 +37,10 @@ public class AuthService : IAuthService
     public async Task RegisterAsync(RegisterRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.Password) || req.Password != req.ConfirmPassword)
-            throw new InvalidOperationException("Password and confirmation do not match.");
+            throw new InvalidOperationException("Mật khẩu và xác nhận mật khẩu không khớp.");
 
         if (!IsPasswordStrong(req.Password))
-            throw new InvalidOperationException("Password does not meet security requirements.");
+            throw new InvalidOperationException("Mật khẩu không đáp ứng yêu cầu bảo mật.");
 
         var fullName = req.FullName.Trim();
         var username = req.Username?.Trim() ?? string.Empty;
@@ -48,13 +48,13 @@ public class AuthService : IAuthService
         var phone = string.IsNullOrWhiteSpace(req.PhoneNumber) ? null : req.PhoneNumber.Trim();
 
         if (string.IsNullOrWhiteSpace(username))
-            throw new InvalidOperationException("Username is required.");
+            throw new InvalidOperationException("Tên đăng nhập là bắt buộc.");
 
         if (username.Equals(email, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Username must not equal email.");
+            throw new InvalidOperationException("Tên đăng nhập không được trùng với email.");
 
         if (await _userRepo.GetByUsernameAsync(username, ct) != null)
-            throw new InvalidOperationException("Username is already registered.");
+            throw new InvalidOperationException("Tên đăng nhập đã tồn tại.");
 
         var existingByEmail = await _userRepo.GetByEmailAsync(email, ct);
         var now = DateTime.UtcNow;
@@ -69,16 +69,16 @@ public class AuthService : IAuthService
             }
             else
             {
-                throw new InvalidOperationException("Email is already registered.");
+                throw new InvalidOperationException("Email đã được đăng ký.");
             }
         }
 
         if (!string.IsNullOrWhiteSpace(phone) && await _userRepo.GetByPhoneAsync(phone, ct) != null)
-            throw new InvalidOperationException("Phone number is already registered.");
+            throw new InvalidOperationException("Số điện thoại đã được đăng ký.");
 
         var roleId = _configuration.GetValue<int>("Auth:DefaultCustomerRoleId");
         if (roleId <= 0)
-            throw new InvalidOperationException("Invalid default customer role configuration.");
+            throw new InvalidOperationException("Cấu hình vai trò mặc định cho khách hàng không hợp lệ.");
 
         var (hash, salt) = _passwordHasher.Hash(req.Password);
         var userCode = "USR" + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
@@ -108,13 +108,13 @@ public class AuthService : IAuthService
     public async Task<LoginResponse> LoginAsync(LoginRequest req, CancellationToken ct)
     {
         var user = await _userRepo.GetByEmailAsync(req.Email.Trim(), ct)
-            ?? throw new InvalidOperationException("Invalid email or password.");
+            ?? throw new InvalidOperationException("Email hoặc mật khẩu không đúng.");
 
         if (!user.IsActive)
-            throw new InvalidOperationException("Account is disabled.");
+            throw new InvalidOperationException("Tài khoản đã bị khóa.");
 
         if (!_passwordHasher.Verify(req.Password, user.PasswordHash, user.PasswordSalt))
-            throw new InvalidOperationException("Invalid email or password.");
+            throw new InvalidOperationException("Email hoặc mật khẩu không đúng.");
 
         var now = DateTime.UtcNow;
 
@@ -125,11 +125,11 @@ public class AuthService : IAuthService
             {
                 // Hết hạn verify: xóa user và yêu cầu đăng ký lại
                 await _userRepo.DeleteAsync(user.UserID, ct);
-                throw new EmailNotVerifiedException("Account expired. Please register again.", isExpired: true);
+                throw new EmailNotVerifiedException("Tài khoản đã hết hạn xác thực. Vui lòng đăng ký lại.", isExpired: true);
             }
 
             // Chưa verify nhưng vẫn trong thời gian cho phép
-            throw new EmailNotVerifiedException("Email is not verified.", isExpired: false);
+            throw new EmailNotVerifiedException("Email chưa được xác thực.", isExpired: false);
         }
 
         var (token, expiresAtUtc) = _tokenService.GenerateToken(user.UserID, user.Email, user.FullName, user.RoleID);
@@ -152,11 +152,11 @@ public class AuthService : IAuthService
 
         await _verificationCodeRepo.CreateAsync(email, otp, VerificationCodeTypes.ForgotPassword, expiresAtUtc, ct);
 
-        var subject = "AGMS - Password reset code";
+        var subject = "AGMS - Mã đặt lại mật khẩu";
         var body =
-            $"Your password reset code is: {otp}\n" +
-            $"This code will expire in {OtpValidMinutes} minutes.\n\n" +
-            "If you did not request this, please ignore this email.";
+            $"Mã đặt lại mật khẩu của bạn là: {otp}\n" +
+            $"Mã này sẽ hết hạn sau {OtpValidMinutes} phút.\n\n" +
+            "Nếu bạn không yêu cầu thao tác này, vui lòng bỏ qua email.";
 
         // For security, always return a generic response and do not disclose
         // whether the email exists in the system.
@@ -164,7 +164,7 @@ public class AuthService : IAuthService
 
         return new ForgotPasswordOtpResponse
         {
-            Message = "If the email exists in our system, an OTP has been sent.",
+            Message = "Nếu email tồn tại trong hệ thống, mã OTP đã được gửi.",
             ExpiresAtUtc = expiresAtUtc
         };
     }
@@ -173,19 +173,19 @@ public class AuthService : IAuthService
     public async Task ResetPasswordWithOtpAsync(ResetPasswordRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword != req.ConfirmNewPassword)
-            throw new InvalidOperationException("New password and confirmation do not match.");
+            throw new InvalidOperationException("Mật khẩu mới và xác nhận mật khẩu không khớp.");
 
         if (!IsPasswordStrong(req.NewPassword))
-            throw new InvalidOperationException("Password does not meet security requirements.");
+            throw new InvalidOperationException("Mật khẩu không đáp ứng yêu cầu bảo mật.");
 
         var email = req.Email.Trim();
         var nowUtc = DateTime.UtcNow;
 
         var vc = await _verificationCodeRepo.GetValidAsync(email, req.Otp.Trim(), VerificationCodeTypes.ForgotPassword, nowUtc, ct)
-            ?? throw new InvalidOperationException("Invalid or expired OTP.");
+            ?? throw new InvalidOperationException("OTP không hợp lệ hoặc đã hết hạn.");
 
         var user = await _userRepo.GetByEmailAsync(email, ct)
-            ?? throw new InvalidOperationException("User not found.");
+            ?? throw new InvalidOperationException("Không tìm thấy người dùng.");
 
         var (hash, salt) = _passwordHasher.Hash(req.NewPassword);
         await _userRepo.UpdatePasswordAsync(user.UserID, hash, salt, ct);
@@ -196,7 +196,7 @@ public class AuthService : IAuthService
     {
         var email = req.Email.Trim();
         if (string.IsNullOrWhiteSpace(email))
-            throw new InvalidOperationException("Email is required.");
+            throw new InvalidOperationException("Email là bắt buộc.");
 
         await SendEmailVerificationOtpInternal(email, ct);
     }
@@ -208,7 +208,7 @@ public class AuthService : IAuthService
         var nowUtc = DateTime.UtcNow;
 
         var vc = await _verificationCodeRepo.GetValidAsync(email, otp, VerificationCodeTypes.EmailVerify, nowUtc, ct)
-            ?? throw new InvalidOperationException("Invalid or expired OTP.");
+            ?? throw new InvalidOperationException("OTP không hợp lệ hoặc đã hết hạn.");
 
         await _verificationCodeRepo.MarkUsedAsync(vc.Id, ct);
 
@@ -256,11 +256,11 @@ public class AuthService : IAuthService
 
         await _verificationCodeRepo.CreateAsync(email, otp, VerificationCodeTypes.EmailVerify, expiresAtUtc, ct);
 
-        var subject = "AGMS - Email verification code";
+        var subject = "AGMS - Mã xác thực email";
         var body =
-            $"Your email verification code is: {otp}\n" +
-            $"This code will expire in {OtpValidMinutes} minutes.\n\n" +
-            "If you did not request this, you can ignore this email.";
+            $"Mã xác thực email của bạn là: {otp}\n" +
+            $"Mã này sẽ hết hạn sau {OtpValidMinutes} phút.\n\n" +
+            "Nếu bạn không yêu cầu thao tác này, bạn có thể bỏ qua email.";
 
         await TrySendEmailAsync(email, subject, body, ct);
     }

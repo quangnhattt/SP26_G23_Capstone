@@ -5,6 +5,7 @@ import { userService, type IUser, type IUserRequest } from "@/services/admin/use
 import { validateStrongPassword } from "@/utils/validation";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
+import { AxiosError } from "axios";
 
 const UserPage = () => {
   const { t } = useTranslation();
@@ -33,6 +34,29 @@ const UserPage = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const getApiErrorMessage = (error: unknown): string => {
+    const err = error as AxiosError<{
+      message?: string;
+      Message?: string;
+      errors?: Record<string, string[]>;
+      title?: string;
+    }>;
+
+    const data = err.response?.data;
+
+    if (data?.message) return data.message;
+    if (data?.Message) return data.Message;
+
+    const firstValidationError = data?.errors
+      ? Object.values(data.errors).flat().find(Boolean)
+      : undefined;
+
+    if (firstValidationError && typeof firstValidationError === 'string') return firstValidationError;
+    if (data?.title) return data.title;
+
+    return t("errorOccurred");
+  };
 
   const fetchUsers = async () => {
     try {
@@ -205,7 +229,7 @@ const UserPage = () => {
         toast.success(t("deleteUserSuccess"));
         fetchUsers();
       } catch (err) {
-        toast.error(t("errorDeletingUser"));
+        toast.error(getApiErrorMessage(err));
         console.error("Error deleting user:", err);
       }
     }

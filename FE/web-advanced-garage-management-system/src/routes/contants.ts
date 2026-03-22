@@ -6,6 +6,9 @@ export const ROUTER_PAGE = {
   contact: "/contact",
   admin: "/admin",
   profile: "/profile",
+  booking: "/booking",
+  rescue: "/rescue",
+  appointments: "/appointments",
   auth: {
     login: "/auth/login",
     register: "/auth/register",
@@ -19,5 +22,6 @@ export const ROUTER_PAGE = {
     category: "/admin/category",
     service: "/admin/service",
     supplier: "/admin/supplier",
+    rescue: "/admin/rescue-management",
   },
 };

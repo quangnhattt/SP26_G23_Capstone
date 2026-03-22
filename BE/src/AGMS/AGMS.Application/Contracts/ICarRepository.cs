@@ -18,5 +18,5 @@ public interface ICarRepository
     Task UpdateAsync(Car car, CancellationToken ct);
 
     // Lấy danh sách xe của customer
-    Task<IEnumerable<CustomerCarListItemDto>> GetCustomerCarsAsync(int userId, CancellationToken ct);
+    Task<IEnumerable<CustomerCarListItemDto>> GetCustomerCarsAsync(int userId, string? phone, CancellationToken ct);
 }

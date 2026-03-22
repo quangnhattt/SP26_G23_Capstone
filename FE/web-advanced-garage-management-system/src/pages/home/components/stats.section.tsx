@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 
 const useCountAnimation = (end: number, duration: number = 2000, decimals: number = 0) => {
@@ -71,25 +72,27 @@ const AnimatedStatNumber = ({
 };
 
 const StatsSection = () => {
+  const { t } = useTranslation();
+
   return (
     <StatsSectionContainer>
       <StatsContainer>
         <StatsGrid>
           <StatItem>
             <AnimatedStatNumber value={10000} suffix="+" />
-            <StatLabel>Khách hàng tin tưởng</StatLabel>
+            <StatLabel>{t("homeStatTrustedCustomers")}</StatLabel>
           </StatItem>
           <StatItem>
             <AnimatedStatNumber value={50000} suffix="+" />
-            <StatLabel>Lượt sử dụng dịch vụ</StatLabel>
+            <StatLabel>{t("homeStatServiceUses")}</StatLabel>
           </StatItem>
           <StatItem>
             <AnimatedStatNumber value={15} suffix="+" />
-            <StatLabel>Năm kinh nghiệm</StatLabel>
+            <StatLabel>{t("homeStatYearsExperience")}</StatLabel>
           </StatItem>
           <StatItem>
             <AnimatedStatNumber value={4.9} suffix="/5" decimals={1} />
-            <StatLabel>Đánh giá từ khách hàng</StatLabel>
+            <StatLabel>{t("homeStatCustomerRatings")}</StatLabel>
           </StatItem>
         </StatsGrid>
       </StatsContainer>

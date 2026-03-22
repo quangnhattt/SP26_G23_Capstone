@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import HeroSection from "./components/hero.section";
 import StatsSection from "./components/stats.section";
 import FeaturesContainer from "./components/features.container";
@@ -8,18 +8,31 @@ import React from "react";
 import { AuthContext } from "@/context/AuthContext";
 import { useAppDispatch } from "@/store/store";
 import { setVisibleLogin } from "@/store/slices/appSlice";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { ROUTER_PAGE } from "@/routes/contants";
+import { FaPhoneAlt } from "react-icons/fa";
 
 const HomePage = () => {
+  const { t } = useTranslation();
   const { user } = React.useContext(AuthContext);
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   const handleBookAppointment = () => {
     if (!user) {
       dispatch(setVisibleLogin(true));
       return;
     }
-    // TODO: Navigate to booking page
-    console.log("Navigate to booking page");
+    navigate(ROUTER_PAGE.booking);
+  };
+
+  const handleRescue = () => {
+    if (!user) {
+      dispatch(setVisibleLogin(true));
+      return;
+    }
+    navigate(ROUTER_PAGE.rescue);
   };
 
   return (
@@ -44,9 +57,9 @@ const HomePage = () => {
       <WorkflowSection>
         <WorkflowContainer>
           <SectionHeader>
-            <SectionTitle>Cách thức hoạt động</SectionTitle>
+            <SectionTitle>{t("homeWorkflowTitle")}</SectionTitle>
             <SectionDescription>
-              Quy trình đơn giản để sử dụng dịch vụ của chúng tôi
+              {t("homeWorkflowDesc")}
             </SectionDescription>
           </SectionHeader>
 
@@ -55,9 +68,9 @@ const HomePage = () => {
               <StepNumber>
                 <span>1</span>
               </StepNumber>
-              <StepTitle>Đặt lịch hẹn</StepTitle>
+              <StepTitle>{t("homeWorkflowStep1Title")}</StepTitle>
               <StepDescription>
-                Chọn thời gian và dịch vụ phù hợp với bạn
+                {t("homeWorkflowStep1Desc")}
               </StepDescription>
             </WorkflowStep>
 
@@ -65,9 +78,9 @@ const HomePage = () => {
               <StepNumber>
                 <span>2</span>
               </StepNumber>
-              <StepTitle>Mang xe đến</StepTitle>
+              <StepTitle>{t("homeWorkflowStep2Title")}</StepTitle>
               <StepDescription>
-                Đưa xe đến garage theo lịch hẹn đã đặt
+                {t("homeWorkflowStep2Desc")}
               </StepDescription>
             </WorkflowStep>
 
@@ -75,9 +88,9 @@ const HomePage = () => {
               <StepNumber>
                 <span>3</span>
               </StepNumber>
-              <StepTitle>Sửa chữa bảo dưỡng</StepTitle>
+              <StepTitle>{t("homeWorkflowStep3Title")}</StepTitle>
               <StepDescription>
-                Đội ngũ kỹ thuật viên chuyên nghiệp thực hiện
+                {t("homeWorkflowStep3Desc")}
               </StepDescription>
             </WorkflowStep>
 
@@ -85,9 +98,9 @@ const HomePage = () => {
               <StepNumber>
                 <span>4</span>
               </StepNumber>
-              <StepTitle>Nhận xe</StepTitle>
+              <StepTitle>{t("homeWorkflowStep4Title")}</StepTitle>
               <StepDescription>
-                Nhận xe đã được chăm sóc tốt nhất
+                {t("homeWorkflowStep4Desc")}
               </StepDescription>
             </WorkflowStep>
           </WorkflowGrid>
@@ -112,10 +125,9 @@ const HomePage = () => {
               />
             </svg>
           </CTAIconWrapper>
-          <CTATitle>Sẵn sàng trải nghiệm dịch vụ chuyên nghiệp?</CTATitle>
+          <CTATitle>{t("homeCTATitle")}</CTATitle>
           <CTADescription>
-            Đăng ký ngay để nhận ưu đãi giảm 10% cho lần bảo dưỡng đầu tiên.
-            Tham gia cộng đồng hơn 10,000 khách hàng tin tưởng.
+            {t("homeCTADesc")}
           </CTADescription>
           <CTAButtonGroup>
             <CTAPrimaryButton onClick={handleBookAppointment}>
@@ -123,17 +135,25 @@ const HomePage = () => {
                 <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z" />
                 <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z" />
               </svg>
-              Đặt lịch ngay
+              {t("homeCTABookNow")}
             </CTAPrimaryButton>
             <CTASecondaryButton>
               <svg fill="currentColor" viewBox="0 0 16 16">
                 <path d="M3.654 1.328a.678.678 0 0 0-1.015-.063L1.605 2.3c-.483.484-.661 1.169-.45 1.77a17.568 17.568 0 0 0 4.168 6.608 17.569 17.569 0 0 0 6.608 4.168c.601.211 1.286.033 1.77-.45l1.034-1.034a.678.678 0 0 0-.063-1.015l-2.307-1.794a.678.678 0 0 0-.58-.122l-2.19.547a1.745 1.745 0 0 1-1.657-.459L5.482 8.062a1.745 1.745 0 0 1-.46-1.657l.548-2.19a.678.678 0 0 0-.122-.58L3.654 1.328zM1.884.511a1.745 1.745 0 0 1 2.612.163L6.29 2.98c.329.423.445.974.315 1.494l-.547 2.19a.678.678 0 0 0 .178.643l2.457 2.457a.678.678 0 0 0 .644.178l2.189-.547a1.745 1.745 0 0 1 1.494.315l2.306 1.794c.829.645.905 1.87.163 2.611l-1.034 1.034c-.74.74-1.846 1.065-2.877.702a18.634 18.634 0 0 1-7.01-4.42 18.634 18.634 0 0 1-4.42-7.009c-.362-1.03-.037-2.137.703-2.877L1.885.511z" />
               </svg>
-              1900 123 456
+              {t("homeCTAPhone")}
             </CTASecondaryButton>
           </CTAButtonGroup>
         </CTAContainer>
       </CTASection>
+      {/* Floating Rescue Button */}
+      <RescueFloatingButton onClick={handleRescue}>
+        <RescuePulse />
+        <RescueIconWrapper>
+          <FaPhoneAlt size={22} />
+        </RescueIconWrapper>
+        <RescueLabel>{t("homeRescue")}</RescueLabel>
+      </RescueFloatingButton>
     </PageContainer>
   );
 };
@@ -141,6 +161,21 @@ const HomePage = () => {
 export default HomePage;
 
 // Styled Components
+const pulse = keyframes`
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+`;
+
 const PageContainer = styled.div`
   flex: 1;
   display: flex;
@@ -368,4 +403,55 @@ const CTASecondaryButton = styled.button`
     width: 18px;
     height: 18px;
   }
+`;
+
+const RescueFloatingButton = styled.button`
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+  transition: all 0.3s;
+
+  &:hover {
+    background: #b91c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+  }
+
+  @media (max-width: 768px) {
+    bottom: 1.5rem;
+    right: 1.5rem;
+    padding: 0.75rem 1.25rem;
+  }
+`;
+
+const RescuePulse = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  background: #dc2626;
+  animation: ${pulse} 2s infinite;
+  z-index: -1;
+`;
+
+const RescueIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const RescueLabel = styled.span`
+  font-size: 0.9375rem;
+  font-weight: 700;
+  white-space: nowrap;
 `;

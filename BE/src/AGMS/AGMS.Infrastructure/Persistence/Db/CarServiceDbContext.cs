@@ -197,6 +197,9 @@ public partial class CarServiceDbContext : DbContext
             entity.ToTable("Category");
 
             entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.MarkupPercent)
+                .HasColumnType("decimal(5, 2)")
+                .HasDefaultValue(0m);
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Type).HasMaxLength(20);
         });
@@ -490,7 +493,6 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.ProductID).ValueGeneratedNever();
             entity.Property(e => e.LastUpdated).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Quantity).HasColumnType("decimal(10, 2)");
-            entity.Property(e => e.ReservedQuantity).HasColumnType("decimal(10, 2)");
 
             entity.HasOne(d => d.Product).WithOne(p => p.ProductInventory)
                 .HasForeignKey<ProductInventory>(d => d.ProductID)

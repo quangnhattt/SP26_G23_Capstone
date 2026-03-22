@@ -104,7 +104,7 @@ interface ILogoutResponse {
 
 export const logout = async (payload: ILogoutPayload) => {
   const response = await AxiosClient.post<ILogoutResponse>(
-    "identity-service/v1/auth/logout",
+    "/api/auth/logout",
     { ...payload }
   );
 

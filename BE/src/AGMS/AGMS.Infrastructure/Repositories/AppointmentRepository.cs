@@ -103,10 +103,10 @@ public class AppointmentRepository : IAppointmentRepository
     {
         var appointment = await _db.Appointments
             .FirstOrDefaultAsync(a => a.AppointmentID == appointmentId, ct)
-            ?? throw new KeyNotFoundException("Appointment not found.");
+            ?? throw new KeyNotFoundException("Không tìm thấy lịch hẹn.");
 
         if (appointment.Status != "PENDING")
-            throw new InvalidOperationException("Only PENDING appointments can be approved.");
+            throw new InvalidOperationException("Chỉ có thể duyệt lịch hẹn đang ở trạng thái PENDING.");
 
         appointment.Status = "CONFIRMED";
         appointment.ConfirmedBy = approvedByUserId;
@@ -118,10 +118,10 @@ public class AppointmentRepository : IAppointmentRepository
     {
         var appointment = await _db.Appointments
             .FirstOrDefaultAsync(a => a.AppointmentID == appointmentId, ct)
-            ?? throw new KeyNotFoundException("Appointment not found.");
+            ?? throw new KeyNotFoundException("Không tìm thấy lịch hẹn.");
 
         if (appointment.Status != "PENDING")
-            throw new InvalidOperationException("Only PENDING appointments can be rejected");
+            throw new InvalidOperationException("Chỉ có thể từ chối lịch hẹn đang ở trạng thái PENDING.");
 
         appointment.Status = "CANCELLED";
         appointment.RejectionReason = rejectionReason;
@@ -140,10 +140,10 @@ public class AppointmentRepository : IAppointmentRepository
                 .Include(a => a.Car)
                 .Include(a => a.RequestedPackage)
                 .FirstOrDefaultAsync(a => a.AppointmentID == appointmentId, ct)
-                ?? throw new KeyNotFoundException("Appointment not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy lịch hẹn.");
 
             if (appointment.Status != "CONFIRMED")
-                throw new InvalidOperationException("Only CONFIRMED appointments can be checked in.");
+                throw new InvalidOperationException("Chỉ có thể check-in lịch hẹn đang ở trạng thái CONFIRMED.");
 
             // 1. Đổi trạng thái Appointment → CHECKED_IN
             appointment.Status = "CHECKED_IN";

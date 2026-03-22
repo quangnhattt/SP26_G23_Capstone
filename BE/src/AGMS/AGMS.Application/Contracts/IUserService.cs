@@ -8,7 +8,7 @@ public interface IUserService
 
     Task<UserDetailDto> CreateUserAsync(CreateUserRequest request, CancellationToken ct);
     Task<UserDetailDto> UpdateUserAsync(int userId, UpdateUserRequest request, CancellationToken ct);
-    Task<IEnumerable<UserListItemDto>> SearchUsersAsync(string? q, int? roleId, bool? isActive, CancellationToken ct);
+    Task<IEnumerable<UserListItemDto>> SearchUsersAsync(string? q, string? phone, int? roleId, bool? isActive, CancellationToken ct);
     Task DeactivateUserAsync(int userId, CancellationToken ct);
     Task ActivateUserAsync(int userId, CancellationToken ct);
 

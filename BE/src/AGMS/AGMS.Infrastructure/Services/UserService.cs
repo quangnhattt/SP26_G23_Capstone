@@ -30,34 +30,34 @@ public class UserService : IUserService
         var phone = request.PhoneNumber?.Trim();
 
         if (string.IsNullOrWhiteSpace(email))
-            throw new ArgumentException("Email is required.");
+            throw new ArgumentException("Email là bắt buộc.");
 
         if (string.IsNullOrWhiteSpace(username))
-            throw new ArgumentException("Username is required.");
+            throw new ArgumentException("Tên đăng nhập là bắt buộc.");
 
         if (username.Equals(email, StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("Username must not equal email.");
+            throw new ArgumentException("Tên đăng nhập không được trùng với email.");
 
         if (request.Password != request.ConfirmPassword)
-            throw new ArgumentException("Password and confirmation do not match.");
+            throw new ArgumentException("Mật khẩu và xác nhận mật khẩu không khớp.");
 
         if (!IsPasswordStrong(request.Password))
-            throw new ArgumentException("Password does not meet security requirements.");
+            throw new ArgumentException("Mật khẩu không đáp ứng yêu cầu bảo mật.");
 
         if (request.RoleID is < 2 or > 4)
-            throw new ArgumentException("RoleID must be 2 (ServiceAdvisor), 3 (Technician), or 4 (Customer).");
+            throw new ArgumentException("Vai trò chỉ được phép là 2 (Cố vấn dịch vụ), 3 (Kỹ thuật viên), hoặc 4 (Khách hàng).");
 
         if (await _userRepository.GetByUsernameAsync(username, ct) != null)
-            throw new ConflictException("Username is already in use.");
+            throw new ConflictException("Tên đăng nhập đã được sử dụng.");
 
         if (await _userRepository.GetByEmailAsync(email, ct) != null)
-            throw new ConflictException("Email is already in use.");
+            throw new ConflictException("Email đã được sử dụng.");
 
         if (!string.IsNullOrWhiteSpace(phone))
         {
             var existingByPhone = await _userRepository.GetByPhoneAsync(phone, ct);
             if (existingByPhone != null)
-                throw new ConflictException("Phone number is already in use.");
+                throw new ConflictException("Số điện thoại đã được sử dụng.");
         }
 
         // Validate Gender if provided
@@ -68,7 +68,7 @@ public class UserService : IUserService
             if (!g.Equals("Male", StringComparison.OrdinalIgnoreCase) &&
                 !g.Equals("Female", StringComparison.OrdinalIgnoreCase))
             {
-                throw new ArgumentException("Gender must be either 'Male' or 'Female'.");
+                throw new ArgumentException("Giới tính chỉ được phép là 'Male' hoặc 'Female'.");
             }
 
             genderValue = g.Equals("Male", StringComparison.OrdinalIgnoreCase) ? "Male" : "Female";
@@ -99,7 +99,7 @@ public class UserService : IUserService
         await _userRepository.AddAsync(user, ct);
 
         var created = await _userRepository.GetByIdAsync(user.UserID, ct)
-                      ?? throw new InvalidOperationException("Failed to load created user.");
+                      ?? throw new InvalidOperationException("Không thể tải thông tin người dùng vừa tạo.");
 
         return MapToDetail(created);
     }
@@ -107,13 +107,13 @@ public class UserService : IUserService
     public async Task<UserDetailDto> UpdateUserAsync(int userId, UpdateUserRequest request, CancellationToken ct)
     {
         var user = await _userRepository.GetByIdAsync(userId, ct)
-                   ?? throw new KeyNotFoundException($"User with ID {userId} not found.");
+                   ?? throw new KeyNotFoundException($"Không tìm thấy người dùng với ID {userId}.");
 
         if (user.RoleID == 1)
-            throw new InvalidOperationException("Cannot modify Admin user.");
+            throw new InvalidOperationException("Không thể chỉnh sửa tài khoản Admin.");
 
         if (request.RoleID is < 2 or > 4)
-            throw new ArgumentException("RoleID must be 2 (ServiceAdvisor), 3 (Technician), or 4 (Customer).");
+            throw new ArgumentException("Vai trò chỉ được phép là 2 (Cố vấn dịch vụ), 3 (Kỹ thuật viên), hoặc 4 (Khách hàng).");
 
         var fullName = request.FullName.Trim();
         var newEmail = user.Email;
@@ -124,7 +124,7 @@ public class UserService : IUserService
         if (!string.IsNullOrWhiteSpace(request.UserCode) &&
             !string.Equals(request.UserCode.Trim(), user.UserCode, StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException("UserCode cannot be changed.");
+            throw new ArgumentException("Không được thay đổi mã người dùng.");
         }
 
         // Email: nếu được cung cấp và thay đổi thì check unique
@@ -135,7 +135,7 @@ public class UserService : IUserService
             {
                 var existingByEmail = await _userRepository.GetByEmailAsync(emailTrim, ct);
                 if (existingByEmail != null && existingByEmail.UserID != userId)
-                    throw new ConflictException("Email is already in use.");
+                    throw new ConflictException("Email đã được sử dụng.");
 
                 newEmail = emailTrim;
             }
@@ -146,7 +146,7 @@ public class UserService : IUserService
         {
             var existingByPhone = await _userRepository.GetByPhoneAsync(newPhone, ct);
             if (existingByPhone != null && existingByPhone.UserID != userId)
-                throw new ConflictException("Phone number is already in use.");
+                throw new ConflictException("Số điện thoại đã được sử dụng.");
         }
 
         // Username: nếu được cung cấp và thay đổi thì check unique
@@ -154,18 +154,18 @@ public class UserService : IUserService
         {
             var usernameTrim = request.Username.Trim();
             if (string.IsNullOrWhiteSpace(usernameTrim))
-                throw new ArgumentException("Username cannot be empty.");
+                throw new ArgumentException("Tên đăng nhập không được để trống.");
 
             var existingByUsername = await _userRepository.GetByUsernameAsync(usernameTrim, ct);
             if (existingByUsername != null && existingByUsername.UserID != userId)
-                throw new ConflictException("Username is already in use.");
+                throw new ConflictException("Tên đăng nhập đã được sử dụng.");
 
             newUsername = usernameTrim;
         }
 
         // Username must not equal Email (mới)
         if (newUsername.Equals(newEmail, StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("Username must not equal email.");
+            throw new ArgumentException("Tên đăng nhập không được trùng với email.");
 
         // Gán lại vào domain entity
         user.FullName = fullName;
@@ -183,7 +183,7 @@ public class UserService : IUserService
             if (!g.Equals("Male", StringComparison.OrdinalIgnoreCase) &&
                 !g.Equals("Female", StringComparison.OrdinalIgnoreCase))
             {
-                throw new ArgumentException("Gender must be either 'Male' or 'Female'.");
+                throw new ArgumentException("Giới tính chỉ được phép là 'Male' hoặc 'Female'.");
             }
 
             // Lưu đúng kiểu chữ để tương thích với CHAR(10) 'Male'/'Female'
@@ -199,24 +199,24 @@ public class UserService : IUserService
         await _userRepository.UpdateAsync(user, ct);
 
         var updated = await _userRepository.GetByIdAsync(userId, ct)
-                      ?? throw new InvalidOperationException("Failed to load updated user.");
+                      ?? throw new InvalidOperationException("Không thể tải thông tin người dùng sau khi cập nhật.");
 
         return MapToDetail(updated);
     }
 
-    public async Task<IEnumerable<UserListItemDto>> SearchUsersAsync(string? q, int? roleId, bool? isActive, CancellationToken ct)
+    public async Task<IEnumerable<UserListItemDto>> SearchUsersAsync(string? q, string? phone, int? roleId, bool? isActive, CancellationToken ct)
     {
-        var users = await _userRepository.SearchUsersExceptAdminAsync(q, roleId, isActive, ct);
+        var users = await _userRepository.SearchUsersExceptAdminAsync(q, phone, roleId, isActive, ct);
         return users.Select(MapToListItem);
     }
 
     public async Task DeactivateUserAsync(int userId, CancellationToken ct)
     {
         var user = await _userRepository.GetByIdAsync(userId, ct)
-                   ?? throw new KeyNotFoundException($"User with ID {userId} not found.");
+                   ?? throw new KeyNotFoundException($"Không tìm thấy người dùng với ID {userId}.");
 
         if (user.RoleID == 1)
-            throw new InvalidOperationException("Cannot deactivate Admin user.");
+            throw new InvalidOperationException("Không thể khóa tài khoản Admin.");
 
         if (!user.IsActive) return;
 
@@ -226,10 +226,10 @@ public class UserService : IUserService
     public async Task ActivateUserAsync(int userId, CancellationToken ct)
     {
         var user = await _userRepository.GetByIdAsync(userId, ct)
-                   ?? throw new KeyNotFoundException($"User with ID {userId} not found.");
+                   ?? throw new KeyNotFoundException($"Không tìm thấy người dùng với ID {userId}.");
 
         if (user.RoleID == 1)
-            throw new InvalidOperationException("Cannot activate Admin user.");
+            throw new InvalidOperationException("Không thể mở khóa tài khoản Admin.");
 
         if (user.IsActive) return;
 
@@ -239,7 +239,7 @@ public class UserService : IUserService
     public async Task<UserDetailDto> GetCurrentUserAsync(int userId, CancellationToken ct)
     {
         var user = await _userRepository.GetByIdAsync(userId, ct)
-                   ?? throw new KeyNotFoundException($"User with ID {userId} not found.");
+                   ?? throw new KeyNotFoundException($"Không tìm thấy người dùng với ID {userId}.");
 
         return MapToDetail(user);
     }
@@ -247,11 +247,11 @@ public class UserService : IUserService
     public async Task<UserDetailDto> UpdateCurrentUserProfileAsync(int userId, UpdateMyProfileRequest request, CancellationToken ct)
     {
         var user = await _userRepository.GetByIdAsync(userId, ct)
-                   ?? throw new KeyNotFoundException($"User with ID {userId} not found.");
+                   ?? throw new KeyNotFoundException($"Không tìm thấy người dùng với ID {userId}.");
 
         var fullName = request.FullName.Trim();
         if (string.IsNullOrWhiteSpace(fullName))
-            throw new ArgumentException("FullName is required.", nameof(request.FullName));
+            throw new ArgumentException("Họ và tên là bắt buộc.", nameof(request.FullName));
 
         var newPhone = request.PhoneNumber?.Trim();
 
@@ -260,7 +260,7 @@ public class UserService : IUserService
         {
             var existingByPhone = await _userRepository.GetByPhoneAsync(newPhone, ct);
             if (existingByPhone != null && existingByPhone.UserID != userId)
-                throw new ConflictException("Phone number is already in use.");
+                throw new ConflictException("Số điện thoại đã được sử dụng.");
         }
 
         // Gender (optional, Male/Female)
@@ -270,7 +270,7 @@ public class UserService : IUserService
             if (!g.Equals("Male", StringComparison.OrdinalIgnoreCase) &&
                 !g.Equals("Female", StringComparison.OrdinalIgnoreCase))
             {
-                throw new ArgumentException("Gender must be either 'Male' or 'Female'.");
+                throw new ArgumentException("Giới tính chỉ được phép là 'Male' hoặc 'Female'.");
             }
 
             user.Gender = g.Equals("Male", StringComparison.OrdinalIgnoreCase) ? "Male" : "Female";
@@ -288,7 +288,7 @@ public class UserService : IUserService
         await _userRepository.UpdateAsync(user, ct);
 
         var updated = await _userRepository.GetByIdAsync(userId, ct)
-                      ?? throw new InvalidOperationException("Failed to load updated user.");
+                      ?? throw new InvalidOperationException("Không thể tải thông tin người dùng sau khi cập nhật.");
 
         return MapToDetail(updated);
     }
