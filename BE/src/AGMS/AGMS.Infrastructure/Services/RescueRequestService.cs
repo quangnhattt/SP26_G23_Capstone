@@ -52,7 +52,8 @@ public class RescueRequestService : IRescueRequestService
                                      ? null : request.ImageEvidence.Trim(),
             Status             = RescueStatus.Pending,
             ServiceFee         = 0,
-            CreatedDate        = DateTime.UtcNow
+            CreatedDate        = DateTime.UtcNow,
+            Phone              = request.Phone
         };
 
         await _rescueRepo.AddAsync(rescue, ct);

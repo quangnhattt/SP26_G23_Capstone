@@ -10,6 +10,7 @@ public class RescueRequest
     public string CurrentAddress { get; set; } = null!;
     public string? ProblemDescription { get; set; }
     public string? ImageEvidence { get; set; }
+    public string? Phone { get; set; }
     public string Status { get; set; } = null!;
     public string? RescueType { get; set; }
     public int? ServiceAdvisorID { get; set; }

@@ -32,4 +32,9 @@ public class CreateRescueRequestDto
     /// <summary>URL ảnh minh chứng sự cố (tùy chọn)</summary>
     [MaxLength(500)]
     public string? ImageEvidence { get; set; }
+
+    /// <summary>Phone</summary>
+    [Required(ErrorMessage = "Số điện thoại bắt buộc phải nhập")]
+    [MaxLength(15)]
+    public string Phone { get; set; } = null!;
 }
