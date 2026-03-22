@@ -11,6 +11,7 @@ import CategoryPage from "@/pages/admin/components/category-manager/category.pag
 import SupplierPage from "@/pages/admin/components/supplier-manager/supplier.page";
 import UnitPage from "@/pages/admin/components/unit-manager/unit.page";
 import ManagermentAppointment from "@/pages/admin/components/appointment-manager/ManagermentAppointment";
+import RescueManagement from "@/pages/admin/components/rescue-manager/RescueManagement";
 
 const HomePage = lazy(() => import("@/pages/home/home.page"));
 const ServicesPageHome = lazy(() => import("@/pages/services/services.page.home"));
@@ -51,7 +52,7 @@ const AppRoutesContent = () => {
             <Route path="category" element={<CategoryPage />} />
             <Route path="service" element={<ServicePage />} />
             <Route path="supplier" element={<SupplierPage />} />
-
+            <Route path="rescue-management" element={<RescueManagement />} />
           </Route>
           <Route path={ROUTER_PAGE.profile} element={<ProfilePage />} />
         </Route>

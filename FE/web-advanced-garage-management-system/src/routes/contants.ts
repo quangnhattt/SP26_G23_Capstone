@@ -22,5 +22,6 @@ export const ROUTER_PAGE = {
     category: "/admin/category",
     service: "/admin/service",
     supplier: "/admin/supplier",
+    rescue: "/admin/rescue-management",
   },
 };

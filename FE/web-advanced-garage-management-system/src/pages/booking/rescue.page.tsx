@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { AuthContext } from "@/context/AuthContext";
@@ -15,11 +15,17 @@ import {
   FaUser,
   FaExclamationCircle,
   FaPhoneAlt,
+  FaCrosshairs,
+  FaCamera,
+  FaImages,
+  FaTrash,
 } from "react-icons/fa";
 import type { ICar } from "@/apis/cars/types";
 import { getCars } from "@/apis/cars";
 import { getUsers, type IUser } from "@/services/admin/userService";
-import { getSymptoms, type ISymptom } from "@/apis/symptoms";
+import { createRescueRequest } from "@/apis/rescue";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import RescueSuccessModal from "./RescueSuccessModal";
 
 type RescueStep = 1 | 2 | 3;
 
@@ -27,9 +33,10 @@ interface RescueData {
   selectedVehicle: ICar | null;
   phoneNumber: string;
   address: string;
-  issueTitle: string;
-  issueDescription: string;
-  symptoms: number[];
+  latitude: number | null;
+  longitude: number | null;
+  problemDescription: string;
+  imageEvidence: string;
 }
 
 const RescuePage = () => {
@@ -43,15 +50,15 @@ const RescuePage = () => {
   const [phoneSearch, setPhoneSearch] = useState("");
   const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
   const isCustomer = user?.roleID === 4;
-  const [symptomList, setSymptomList] = useState<ISymptom[]>([]);
 
   const [rescueData, setRescueData] = useState<RescueData>({
     selectedVehicle: null,
     phoneNumber: user?.msisdn || "",
     address: "",
-    issueTitle: "",
-    issueDescription: "",
-    symptoms: [],
+    latitude: null,
+    longitude: null,
+    problemDescription: "",
+    imageEvidence: "",
   });
 
   useEffect(() => {
@@ -81,19 +88,25 @@ const RescuePage = () => {
       }
     };
 
-    const fetchSymptoms = async () => {
-      try {
-        const data = await getSymptoms();
-        setSymptomList(data);
-      } catch (error) {
-        console.error("Error fetching symptoms:", error);
-      }
-    };
-
     fetchVehicles();
-    fetchSymptoms();
     if (!isCustomer) {
       fetchUsers();
+    }
+
+    // Auto-detect GPS location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setRescueData((prev) => ({
+            ...prev,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }));
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+        },
+      );
     }
   }, [user, navigate, isCustomer]);
 
@@ -114,7 +127,7 @@ const RescuePage = () => {
     }
     if (
       currentStep === 2 &&
-      (!rescueData.issueTitle || !rescueData.issueDescription)
+      !rescueData.problemDescription.trim()
     ) {
       toast.warn(t("rescueAlertFillIssue"));
       return;
@@ -133,10 +146,122 @@ const RescuePage = () => {
   };
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = () => {
-    toast.success(t("rescueAlertSuccess"));
-    setShowSuccessModal(true);
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setRescueData((prev) => ({
+        ...prev,
+        imageEvidence: reader.result as string,
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setRescueData((prev) => ({ ...prev, imageEvidence: "" }));
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+  };
+
+  const handleGetLocation = async () => {
+    setIsLoadingLocation(true);
+    try {
+      const pos = await getCurrentPosition();
+      setRescueData((prev) => ({
+        ...prev,
+        latitude: pos.lat,
+        longitude: pos.lng,
+      }));
+
+      // Reverse geocode to get address
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${pos.lat}&lon=${pos.lng}&format=json&accept-language=vi`,
+        );
+        const data = await res.json();
+        if (data.display_name) {
+          setRescueData((prev) => ({
+            ...prev,
+            address: data.display_name,
+          }));
+        }
+      } catch {
+        // Reverse geocode failed, just keep lat/lng
+      }
+
+      toast.success(t("rescueLocationSuccess"));
+    } catch {
+      toast.warn(t("rescueAlertNoLocation"));
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+
+  const getCurrentPosition = (): Promise<{ lat: number; lng: number }> =>
+    new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation not supported"));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 10000 },
+      );
+    });
+
+  const handleSubmit = async () => {
+    if (!rescueData.selectedVehicle) return;
+
+    setIsSubmitting(true);
+
+    // If GPS not yet available, try fetching one more time
+    let lat = rescueData.latitude;
+    let lng = rescueData.longitude;
+    if (lat === null || lng === null) {
+      try {
+        const pos = await getCurrentPosition();
+        lat = pos.lat;
+        lng = pos.lng;
+        setRescueData((prev) => ({ ...prev, latitude: lat, longitude: lng }));
+      } catch {
+        setIsSubmitting(false);
+        toast.warn(t("rescueAlertNoLocation"));
+        return;
+      }
+    }
+
+    try {
+      await createRescueRequest({
+        carId: rescueData.selectedVehicle.carId,
+        phone: rescueData.phoneNumber,
+        latitude: lat,
+        longitude: lng,
+        currentAddress: rescueData.address,
+        problemDescription: rescueData.problemDescription,
+        imageEvidence: rescueData.imageEvidence || null,
+      });
+      toast.success(t("rescueAlertSuccess"));
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error("Error creating rescue request:", error);
+      toast.error(getApiErrorMessage(error, t("rescueAlertError")));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredUsers =
@@ -150,14 +275,6 @@ const RescuePage = () => {
     setShowPhoneDropdown(false);
   };
 
-  const toggleSymptom = (symptomId: number) => {
-    setRescueData((prev) => ({
-      ...prev,
-      symptoms: prev.symptoms.includes(symptomId)
-        ? prev.symptoms.filter((id) => id !== symptomId)
-        : [...prev.symptoms, symptomId],
-    }));
-  };
 
   return (
     <PageWrapper>
@@ -268,17 +385,35 @@ const RescuePage = () => {
                   />
                   {t("rescueAddressLabel")} <Required>*</Required>
                 </Label>
-                <Textarea
-                  placeholder={t("rescueAddressPlaceholder")}
-                  rows={3}
-                  value={rescueData.address}
-                  onChange={(e) =>
-                    setRescueData((prev) => ({
-                      ...prev,
-                      address: e.target.value,
-                    }))
-                  }
-                />
+                <AddressRow>
+                  <Textarea
+                    placeholder={t("rescueAddressPlaceholder")}
+                    rows={3}
+                    value={rescueData.address}
+                    onChange={(e) =>
+                      setRescueData((prev) => ({
+                        ...prev,
+                        address: e.target.value,
+                      }))
+                    }
+                    style={{ flex: 1 }}
+                  />
+                  <GetLocationButton
+                    type="button"
+                    onClick={handleGetLocation}
+                    disabled={isLoadingLocation}
+                  >
+                    <FaCrosshairs size={16} />
+                    {isLoadingLocation
+                      ? t("rescueLocationLoading")
+                      : t("rescueGetLocation")}
+                  </GetLocationButton>
+                </AddressRow>
+                {rescueData.latitude !== null && rescueData.longitude !== null && (
+                  <LocationInfo>
+                    GPS: {rescueData.latitude.toFixed(6)}, {rescueData.longitude.toFixed(6)}
+                  </LocationInfo>
+                )}
               </FormGroup>
 
               <SectionTitle>{t("rescueSelectVehicle")}</SectionTitle>
@@ -338,51 +473,64 @@ const RescuePage = () => {
 
               <FormGroup>
                 <Label>
-                  {t("rescueIssueTitleLabel")} <Required>*</Required>
-                </Label>
-                <Input
-                  type="text"
-                  placeholder={t("rescueIssueTitlePlaceholder")}
-                  value={rescueData.issueTitle}
-                  onChange={(e) =>
-                    setRescueData((prev) => ({
-                      ...prev,
-                      issueTitle: e.target.value,
-                    }))
-                  }
-                />
-              </FormGroup>
-
-              <FormGroup>
-                <Label>
-                  {t("rescueIssueDescLabel")} <Required>*</Required>
+                  {t("rescueProblemDescLabel")} <Required>*</Required>
                 </Label>
                 <Textarea
-                  placeholder={t("rescueIssueDescPlaceholder")}
-                  rows={4}
-                  value={rescueData.issueDescription}
+                  placeholder={t("rescueProblemDescPlaceholder")}
+                  rows={5}
+                  value={rescueData.problemDescription}
                   onChange={(e) =>
                     setRescueData((prev) => ({
                       ...prev,
-                      issueDescription: e.target.value,
+                      problemDescription: e.target.value,
                     }))
                   }
                 />
               </FormGroup>
 
               <FormGroup>
-                <Label>{t("rescueSymptomLabel")}</Label>
-                <SymptomGrid>
-                  {symptomList.map((symptom) => (
-                    <SymptomChip
-                      key={symptom.id}
-                      $selected={rescueData.symptoms.includes(symptom.id)}
-                      onClick={() => toggleSymptom(symptom.id)}
+                <Label>{t("rescueImageEvidenceLabel")}</Label>
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleImageSelect}
+                  style={{ display: "none" }}
+                />
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  style={{ display: "none" }}
+                />
+                {imagePreview ? (
+                  <ImagePreviewWrapper>
+                    <ImagePreview src={imagePreview} alt="Evidence" />
+                    <RemoveImageButton type="button" onClick={handleRemoveImage}>
+                      <FaTrash size={14} />
+                      {t("rescueImageRemove")}
+                    </RemoveImageButton>
+                  </ImagePreviewWrapper>
+                ) : (
+                  <ImagePickerRow>
+                    <ImagePickerButton
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
                     >
-                      {symptom.name}
-                    </SymptomChip>
-                  ))}
-                </SymptomGrid>
+                      <FaCamera size={20} />
+                      {t("rescueImageCamera")}
+                    </ImagePickerButton>
+                    <ImagePickerButton
+                      type="button"
+                      onClick={() => galleryInputRef.current?.click()}
+                    >
+                      <FaImages size={20} />
+                      {t("rescueImageGallery")}
+                    </ImagePickerButton>
+                  </ImagePickerRow>
+                )}
               </FormGroup>
             </StepContent>
           )}
@@ -443,20 +591,13 @@ const RescuePage = () => {
                     {t("rescueIssueSummary")}
                   </CardSectionTitle>
                   <InfoItem>
-                    <InfoLabel>{rescueData.issueTitle}</InfoLabel>
-                    <InfoValue>{rescueData.issueDescription}</InfoValue>
+                    <InfoValue>{rescueData.problemDescription}</InfoValue>
                   </InfoItem>
-                  {rescueData.symptoms.length > 0 && (
-                    <SymptomList>
-                      {rescueData.symptoms.map((symptomId) => {
-                        const s = symptomList.find(
-                          (item) => item.id === symptomId,
-                        );
-                        return s ? (
-                          <SymptomBadge key={s.id}>{s.name}</SymptomBadge>
-                        ) : null;
-                      })}
-                    </SymptomList>
+                  {imagePreview && (
+                    <InfoItem>
+                      <InfoLabel>{t("rescueImageEvidenceLabel")}</InfoLabel>
+                      <ConfirmImagePreview src={imagePreview} alt="Evidence" />
+                    </InfoItem>
                   )}
                 </CardSection>
 
@@ -480,71 +621,25 @@ const RescuePage = () => {
               <FaChevronRight size={18} />
             </NextButton>
           ) : (
-            <SubmitButton $emergency onClick={handleSubmit}>
+            <SubmitButton $emergency onClick={handleSubmit} disabled={isSubmitting}>
               <FaPhoneAlt size={18} />
-              {t("rescueSubmit")}
+              {isSubmitting ? t("rescueSubmitting") : t("rescueSubmit")}
             </SubmitButton>
           )}
         </Footer>
       </Container>
       {showSuccessModal && (
-        <ModalOverlay onClick={() => { setShowSuccessModal(false); navigate(ROUTER_PAGE.home); }}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
-              <SuccessIcon>
-                <FaCheck size={28} />
-              </SuccessIcon>
-              <ModalTitle>{t("rescueAlertSuccess")}</ModalTitle>
-            </ModalHeader>
-
-            <ModalBody>
-              <ModalSection>
-                <ModalSectionTitle><FaCar size={16} /> {t("rescueVehicleInfo")}</ModalSectionTitle>
-                <ModalValue>
-                  {rescueData.selectedVehicle?.brand} {rescueData.selectedVehicle?.model} — {rescueData.selectedVehicle?.licensePlate}
-                </ModalValue>
-              </ModalSection>
-
-              <ModalDivider />
-
-              <ModalSection>
-                <ModalSectionTitle><FaUser size={16} /> {t("rescueContactPhone")}</ModalSectionTitle>
-                <ModalValue>{rescueData.phoneNumber}</ModalValue>
-              </ModalSection>
-
-              <ModalDivider />
-
-              <ModalSection>
-                <ModalSectionTitle><FaMapMarkerAlt size={16} /> {t("rescueAddress")}</ModalSectionTitle>
-                <ModalValue>{rescueData.address}</ModalValue>
-              </ModalSection>
-
-              <ModalDivider />
-
-              <ModalSection>
-                <ModalSectionTitle><FaFileAlt size={16} /> {t("rescueIssueSummary")}</ModalSectionTitle>
-                <ModalValue>{rescueData.issueTitle}</ModalValue>
-                {rescueData.issueDescription && (
-                  <ModalSubValue>{rescueData.issueDescription}</ModalSubValue>
-                )}
-                {rescueData.symptoms.length > 0 && (
-                  <ModalChips>
-                    {rescueData.symptoms.map((symptomId) => {
-                      const s = symptomList.find((item) => item.id === symptomId);
-                      return s ? <ModalChip key={s.id}>{s.name}</ModalChip> : null;
-                    })}
-                  </ModalChips>
-                )}
-              </ModalSection>
-            </ModalBody>
-
-            <ModalFooter>
-              <ModalCloseButton onClick={() => { setShowSuccessModal(false); navigate(ROUTER_PAGE.home); }}>
-                {t("bookingBackToHome")}
-              </ModalCloseButton>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
+        <RescueSuccessModal
+          vehicle={rescueData.selectedVehicle}
+          phoneNumber={rescueData.phoneNumber}
+          address={rescueData.address}
+          problemDescription={rescueData.problemDescription}
+          imagePreview={imagePreview}
+          onClose={() => {
+            setShowSuccessModal(false);
+            navigate(ROUTER_PAGE.home);
+          }}
+        />
       )}
     </PageWrapper>
   );
@@ -877,6 +972,125 @@ const Input = styled.input`
   }
 `;
 
+const AddressRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+`;
+
+const GetLocationButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+  min-height: 42px;
+
+  &:hover {
+    background: #b91c1c;
+  }
+
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+`;
+
+const LocationInfo = styled.div`
+  font-size: 0.75rem;
+  color: #16a34a;
+  margin-top: 0.375rem;
+  font-family: monospace;
+`;
+
+const ImagePickerRow = styled.div`
+  display: flex;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+`;
+
+const ImagePickerButton = styled.button`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #dc2626;
+    color: #dc2626;
+    background: #fef2f2;
+  }
+`;
+
+const ImagePreviewWrapper = styled.div`
+  position: relative;
+  display: inline-block;
+`;
+
+const ImagePreview = styled.img`
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  object-fit: cover;
+`;
+
+const RemoveImageButton = styled.button`
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(220, 38, 38, 0.9);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(185, 28, 28, 0.95);
+  }
+`;
+
+const ConfirmImagePreview = styled.img`
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  object-fit: cover;
+`;
+
 const PhoneSearchWrapper = styled.div`
   position: relative;
 `;
@@ -944,28 +1158,6 @@ const Textarea = styled.textarea`
   }
 `;
 
-const SymptomGrid = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-`;
-
-const SymptomChip = styled.button<{ $selected: boolean }>`
-  padding: 0.5rem 1rem;
-  border: 1px solid ${({ $selected }) => ($selected ? "#dc2626" : "#d1d5db")};
-  border-radius: 20px;
-  background: ${({ $selected }) => ($selected ? "#fef2f2" : "white")};
-  color: ${({ $selected }) => ($selected ? "#dc2626" : "#6b7280")};
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: #dc2626;
-    background: #fef2f2;
-  }
-`;
-
 const ConfirmationCard = styled.div`
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -1009,20 +1201,6 @@ const InfoLabel = styled.div`
 const InfoValue = styled.div`
   font-size: 0.875rem;
   color: #6b7280;
-`;
-
-const SymptomList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-`;
-
-const SymptomBadge = styled.span`
-  font-size: 0.75rem;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
 `;
 
 const NoteCard = styled.div`
@@ -1113,126 +1291,3 @@ const SubmitButton = styled.button<{ $emergency?: boolean }>`
   }
 `;
 
-const ModalOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-`;
-
-const ModalContent = styled.div`
-  background: white;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 560px;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 2rem 2rem 1rem;
-`;
-
-const SuccessIcon = styled.div`
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #dcfce7;
-  color: #16a34a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ModalTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-  text-align: center;
-`;
-
-const ModalBody = styled.div`
-  padding: 1rem 2rem;
-`;
-
-const ModalSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-`;
-
-const ModalSectionTitle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-`;
-
-const ModalValue = styled.div`
-  font-size: 0.9375rem;
-  color: #111827;
-  padding-left: 1.5rem;
-`;
-
-const ModalSubValue = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-  padding-left: 1.5rem;
-`;
-
-const ModalChips = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-  padding-left: 1.5rem;
-  margin-top: 0.25rem;
-`;
-
-const ModalChip = styled.span`
-  font-size: 0.75rem;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-`;
-
-const ModalDivider = styled.div`
-  height: 1px;
-  background: #f3f4f6;
-  margin: 0.75rem 0;
-`;
-
-const ModalFooter = styled.div`
-  padding: 1rem 2rem 2rem;
-  display: flex;
-  justify-content: center;
-`;
-
-const ModalCloseButton = styled.button`
-  padding: 0.75rem 2rem;
-  border: none;
-  border-radius: 8px;
-  background: #dc2626;
-  color: white;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: 100%;
-
-  &:hover {
-    background: #b91c1c;
-  }
-`;
