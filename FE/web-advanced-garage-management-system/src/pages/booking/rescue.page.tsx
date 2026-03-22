@@ -396,7 +396,6 @@ const RescuePage = () => {
                         address: e.target.value,
                       }))
                     }
-                    style={{ flex: 1 }}
                   />
                   <GetLocationButton
                     type="button"
@@ -951,6 +950,8 @@ const Input = styled.input`
   color: #111827 !important;
   background: white;
   -webkit-text-fill-color: #111827 !important;
+  width: 100%;
+  box-sizing: border-box;
 
   &:focus {
     outline: none;
@@ -976,15 +977,21 @@ const AddressRow = styled.div`
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
+  width: 100%;
 
   @media (max-width: 768px) {
     flex-direction: column;
+    
+    & > * {
+      width: 100%;
+    }
   }
 `;
 
 const GetLocationButton = styled.button`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.625rem 1rem;
   background: #dc2626;
@@ -997,6 +1004,7 @@ const GetLocationButton = styled.button`
   white-space: nowrap;
   transition: background 0.2s;
   min-height: 42px;
+  flex-shrink: 0;
 
   &:hover {
     background: #b91c1c;
@@ -1005,6 +1013,10 @@ const GetLocationButton = styled.button`
   &:disabled {
     background: #9ca3af;
     cursor: not-allowed;
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
   }
 `;
 
@@ -1093,6 +1105,7 @@ const ConfirmImagePreview = styled.img`
 
 const PhoneSearchWrapper = styled.div`
   position: relative;
+  width: 100%;
 `;
 
 const PhoneDropdown = styled.div`
@@ -1145,6 +1158,8 @@ const Textarea = styled.textarea`
   resize: vertical;
   font-family: inherit;
   -webkit-text-fill-color: #111827 !important;
+  width: 100%;
+  box-sizing: border-box;
 
   &:focus {
     outline: none;

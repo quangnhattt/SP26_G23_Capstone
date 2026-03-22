@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { FaCar, FaSearch, FaEye, FaCheck, FaTimes, FaUser, FaCalendarAlt } from "react-icons/fa";
-import { getAppointments, getAppointmentById, type IAppointment, type IAppointmentDetail } from "@/apis/appointments";
+import { getAppointments, getAppointmentById, approveAppointment, rejectAppointment, type IAppointment, type IAppointmentDetail } from "@/apis/appointments";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import AppointmentDetailModal from "@/pages/appointments/AppointmentDetailModal";
@@ -27,6 +27,12 @@ const ManagermentAppointment = () => {
   const [detailData, setDetailData] = useState<IAppointmentDetail | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Reject modal
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -61,6 +67,49 @@ const ManagermentAppointment = () => {
   const closeModal = () => {
     setShowModal(false);
     setDetailData(null);
+  };
+
+  const handleApprove = async (id: number) => {
+    try {
+      setIsSubmitting(true);
+      await approveAppointment(id);
+      toast.success(t("mgrAppointmentApproveSuccess"));
+      await fetchAppointments();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t("mgrAppointmentApproveError")));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRejectClick = (id: number) => {
+    setSelectedAppointmentId(id);
+    setRejectionReason("");
+    setShowRejectModal(true);
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!selectedAppointmentId) return;
+    
+    try {
+      setIsSubmitting(true);
+      await rejectAppointment(selectedAppointmentId, rejectionReason.trim() || undefined);
+      toast.success(t("mgrAppointmentRejectSuccess"));
+      setShowRejectModal(false);
+      setSelectedAppointmentId(null);
+      setRejectionReason("");
+      await fetchAppointments();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t("mgrAppointmentRejectError")));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const closeRejectModal = () => {
+    setShowRejectModal(false);
+    setSelectedAppointmentId(null);
+    setRejectionReason("");
   };
 
   // Counts
@@ -239,11 +288,11 @@ const ManagermentAppointment = () => {
                   </ActionButton>
                   {item.status === "PENDING" && (
                     <>
-                      <AcceptButton>
+                      <AcceptButton onClick={() => handleApprove(item.appointmentId)} disabled={isSubmitting}>
                         <FaCheck size={14} />
                         {t("mgrAppointmentAccept")}
                       </AcceptButton>
-                      <RejectButton>
+                      <RejectButton onClick={() => handleRejectClick(item.appointmentId)} disabled={isSubmitting}>
                         <FaTimes size={14} />
                         {t("mgrAppointmentReject")}
                       </RejectButton>
@@ -262,6 +311,37 @@ const ManagermentAppointment = () => {
           loading={loadingDetail}
           onClose={closeModal}
         />
+      )}
+
+      {showRejectModal && (
+        <ModalOverlay onClick={closeRejectModal}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>{t("mgrAppointmentRejectTitle")}</ModalTitle>
+              <CloseBtn onClick={closeRejectModal}>
+                <FaTimes />
+              </CloseBtn>
+            </ModalHeader>
+            <ModalBody>
+              <FormLabel>{t("mgrAppointmentRejectReason")}</FormLabel>
+              <FormTextarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder={t("mgrAppointmentRejectPlaceholder")}
+                rows={4}
+              />
+            </ModalBody>
+            <ModalFooter>
+              <CancelButton onClick={closeRejectModal} disabled={isSubmitting}>
+                {t("cancel")}
+              </CancelButton>
+              <ConfirmRejectButton onClick={handleRejectConfirm} disabled={isSubmitting}>
+                <FaTimes size={14} />
+                {isSubmitting ? t("processing") : t("mgrAppointmentReject")}
+              </ConfirmRejectButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
       )}
     </PageWrapper>
   );
@@ -556,6 +636,11 @@ const AcceptButton = styled(ActionButton)`
   &:hover {
     background: #f0fdf4;
   }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const RejectButton = styled(ActionButton)`
@@ -564,5 +649,149 @@ const RejectButton = styled(ActionButton)`
 
   &:hover {
     background: #fef2f2;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+// Modal styles
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const ModalTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+`;
+
+const CloseBtn = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: #111827;
+  }
+`;
+
+const ModalBody = styled.div`
+  padding: 1.5rem;
+`;
+
+const FormLabel = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+`;
+
+const FormTextarea = styled.textarea`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  color: #111827;
+
+  &:focus {
+    outline: none;
+    border-color: #1d4ed8;
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+`;
+
+const CancelButton = styled.button`
+  padding: 0.5rem 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #f9fafb;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ConfirmRejectButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  background: #dc2626;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #b91c1c;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;

@@ -15,6 +15,7 @@ import {
   FaWrench,
   FaUser,
   FaExclamationCircle,
+  FaPlus,
 } from "react-icons/fa";
 import type { ICar } from "@/apis/cars/types";
 import { getServices, type IService } from "@/services/admin/serviceService";
@@ -24,6 +25,7 @@ import { getCars } from "@/apis/cars";
 import { getSymptoms, type ISymptom } from "@/apis/symptoms";
 import { createRepairRequest } from "@/apis/repairRequests";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import { AddCarModal } from "./components";
 
 type BookingStep = 1 | 2 | 3 | 4;
 
@@ -166,8 +168,21 @@ const BookingPage = () => {
     }
   };
 
+  const fetchVehiclesData = async () => {
+    try {
+      setIsLoadingVehicles(true);
+      const cars = await getCars();
+      setUserVehicles(cars);
+    } catch (error) {
+      console.error("Error fetching vehicles:", error);
+    } finally {
+      setIsLoadingVehicles(false);
+    }
+  };
+
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showAddCarModal, setShowAddCarModal] = useState(false);
 
   const handleSubmit = async () => {
     if (!bookingData.selectedVehicle || !bookingData.selectedVehicle.carId) {
@@ -354,7 +369,13 @@ const BookingPage = () => {
               {isLoadingVehicles ? (
                 <LoadingMessage>{t("bookingLoadingVehicles")}</LoadingMessage>
               ) : userVehicles.length === 0 ? (
-                <EmptyMessage>{t("bookingNoVehicles")}</EmptyMessage>
+                <EmptyStateWrapper>
+                  <EmptyMessage>{t("bookingNoVehicles")}</EmptyMessage>
+                  <AddCarButton onClick={() => setShowAddCarModal(true)}>
+                    <FaPlus size={16} />
+                    {t("addNewVehicle")}
+                  </AddCarButton>
+                </EmptyStateWrapper>
               ) : (
                 <VehicleGrid>
                   {userVehicles.map((vehicle) => {
@@ -879,6 +900,11 @@ const BookingPage = () => {
           </ModalContent>
         </ModalOverlay>
       )}
+      <AddCarModal
+        isOpen={showAddCarModal}
+        onClose={() => setShowAddCarModal(false)}
+        onCarAdded={fetchVehiclesData}
+      />
     </PageWrapper>
   );
 };
@@ -1877,6 +1903,33 @@ const ModalCloseButton = styled.button`
   cursor: pointer;
   transition: all 0.2s;
   width: 100%;
+
+  &:hover {
+    background: #1e40af;
+  }
+`;
+
+const EmptyStateWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 3rem;
+`;
+
+const AddCarButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  background: #1d4ed8;
+  color: white;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 
   &:hover {
     background: #1e40af;

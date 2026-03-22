@@ -274,6 +274,13 @@ const Header = () => {
                     <IconUser size={20} />
                     <span>{user.fullName}</span>
                   </MobileUserInfo>
+                  <MobileActionButton onClick={() => {
+                    navigate(ROUTER_PAGE.profile);
+                    setIsMobileMenuOpen(false);
+                  }}>
+                    <IconUser size={20} />
+                    {t("profile")}
+                  </MobileActionButton>
                   <MobileLoginButton onClick={() => {
                     handleLogout();
                     setIsMobileMenuOpen(false);
@@ -558,6 +565,29 @@ const MobileLoginButton = styled.button`
     background: #0069d9;
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const MobileActionButton = styled.button`
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid #e9ecef;
+  border-radius: 14px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin: 0 1rem;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  &:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
 `;
 

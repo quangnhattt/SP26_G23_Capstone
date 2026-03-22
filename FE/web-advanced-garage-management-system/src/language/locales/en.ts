@@ -287,6 +287,7 @@ export default {
   currentOdometer: "Current odometer",
   currentOdometerPlaceholder: "E.g: 50000",
   cancel: "Cancel",
+  processing: "Processing...",
   addVehicle: "Add vehicle",
   adding: "Adding...",
   licensePlateRequired: "License plate is required",
@@ -930,6 +931,13 @@ export default {
   mgrAppointmentPreferred: "Preferred",
   mgrAppointmentAccept: "Accept",
   mgrAppointmentReject: "Reject",
+  mgrAppointmentRejectTitle: "Reject Request",
+  mgrAppointmentRejectReason: "Rejection Reason",
+  mgrAppointmentRejectPlaceholder: "Enter rejection reason (optional)...",
+  mgrAppointmentApproveSuccess: "Request approved successfully",
+  mgrAppointmentApproveError: "Error approving request",
+  mgrAppointmentRejectSuccess: "Request rejected successfully",
+  mgrAppointmentRejectError: "Error rejecting request",
 
   // Unit Management
   unitManagement: "Unit Management",

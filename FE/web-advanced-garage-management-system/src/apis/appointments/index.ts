@@ -80,3 +80,15 @@ export const getAppointmentById = async (id: number): Promise<IAppointmentDetail
   const { data } = await AxiosClient.get<IAppointmentDetail>(`/api/appointments/${id}`);
   return data;
 };
+
+export const approveAppointment = async (id: number) => {
+  const { data } = await AxiosClient.post(`/api/appointments/${id}/approve`);
+  return data;
+};
+
+export const rejectAppointment = async (id: number, reason?: string) => {
+  const { data } = await AxiosClient.post(`/api/appointments/${id}/reject`, {
+    reason: reason,
+  });
+  return data;
+};

@@ -287,6 +287,7 @@ export default {
   currentOdometer: "Số km hiện tại",
   currentOdometerPlaceholder: "VD: 50000",
   cancel: "Hủy",
+  processing: "Đang xử lý...",
   addVehicle: "Thêm xe",
   adding: "Đang thêm...",
   licensePlateRequired: "Biển số xe không được để trống",
@@ -929,6 +930,13 @@ export default {
   mgrAppointmentPreferred: "Mong muốn",
   mgrAppointmentAccept: "Chấp nhận",
   mgrAppointmentReject: "Từ chối",
+  mgrAppointmentRejectTitle: "Từ chối yêu cầu",
+  mgrAppointmentRejectReason: "Lý do từ chối",
+  mgrAppointmentRejectPlaceholder: "Nhập lý do từ chối (không bắt buộc)...",
+  mgrAppointmentApproveSuccess: "Đã chấp nhận yêu cầu thành công",
+  mgrAppointmentApproveError: "Lỗi khi chấp nhận yêu cầu",
+  mgrAppointmentRejectSuccess: "Đã từ chối yêu cầu thành công",
+  mgrAppointmentRejectError: "Lỗi khi từ chối yêu cầu",
 
   // Unit Management
   unitManagement: "Quản lý đơn vị tính",
