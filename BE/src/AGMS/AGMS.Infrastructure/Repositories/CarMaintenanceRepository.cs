@@ -91,7 +91,92 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             LineItems = serviceItems.Concat(partItems).ToList()
         };
     }
+    public async Task<MaintenanceInvoiceDto?> GetMaintenanceInvoiceAsync(int maintenanceId, CancellationToken ct = default)
+    {
+        var maintenance = await _db.CarMaintenances
+            .AsNoTracking()
+            .Include(m => m.Car).ThenInclude(c => c.Owner).ThenInclude(o => o.CurrentRank)
+            .Include(m => m.MaintenancePackageUsages).ThenInclude(mpu => mpu.Package)
+            .Include(m => m.ServiceDetails).ThenInclude(sd => sd.Product)
+            .Include(m => m.ServicePartDetails).ThenInclude(spd => spd.Product)
+            .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+        if(maintenance == null)
+        {
+            return null;
+        }
+        var owner = maintenance.Car.Owner;
+        var baseAmount = maintenance.TotalAmount;
+        var rank = owner.CurrentRank;
+        var memberPercent=rank?.DiscountPercent ?? 0m;
+        var memberAmount=Math.Round(baseAmount* memberPercent/100m, 2);
+        var finalAmount = baseAmount - maintenance.DiscountAmount - memberAmount;
+        var packageUsages=maintenance.MaintenancePackageUsages.OrderByDescending(x=>x.UsageID).Select(pu=> new MaintenancePackageUsagePrintDto
+        {
+            PackageId=pu.PackageID,
+            PackageCode=pu.Package.PackageCode,
+            PackageName=pu.Package.Name,
+            PackagePrice=pu.AppliedPrice,
+            PackageDiscountAmount=pu.DiscountAmount
+        }).ToList();
 
+        var serviceItems = maintenance.ServiceDetails.OrderByDescending(sd => sd.FromPackage).ThenBy(sd => sd.ServiceDetailID)
+            .Select(sd => new MaintenanceInvoiceLineItemDto
+            {
+                SourceType = sd.FromPackage ? "Dich vu tu goi" : "Dich vu le",
+                ItemCode = sd.Product.Code,
+                ItemName = sd.Product.Name,
+                Quantity = sd.Quantity,
+                UnitPrice = sd.UnitPrice,
+                TotalPrice = sd.Quantity * sd.UnitPrice,
+                Notes = sd.Notes,
+                ItemStatus = sd.ItemStatus,
+            }).ToList();
+
+        var partItems = maintenance.ServicePartDetails.OrderByDescending(spd => spd.ServicePartDetailID)
+            .Select(spd => new MaintenanceInvoiceLineItemDto
+            {
+                SourceType = spd.FromPackage ? "Phu tung tu goi" : "Phu tung le",
+                ItemCode = spd.Product.Code,
+                ItemName = spd.Product.Name,
+                Quantity = spd.Quantity,
+                UnitPrice = spd.UnitPrice,
+                TotalPrice = spd.Quantity * spd.UnitPrice,
+                Notes = spd.Notes,
+                ItemStatus = spd.ItemStatus,
+            }).ToList();
+        return new MaintenanceInvoiceDto
+        {
+            MaintenanceId = maintenance.MaintenanceID,
+            Customer = new MaintenanceCustomerDto
+            {
+                UserCode = owner.UserCode,
+                FullName = owner.FullName,
+                Email=owner.Email,
+                Phone=owner.Phone,
+                Gender=owner.Gender,
+                Dob=owner.DateOfBirth,
+                CurrentRankId=owner.CurrentRankID,
+                TotalSpending=owner.TotalSpending,
+            },
+            Brand=maintenance.Car.Brand,
+            Model=maintenance.Car.Model,    
+            Color=maintenance.Car.Color,
+            LicensePlate=maintenance.Car.LicensePlate,  
+            EngineNumber=maintenance.Car.EngineNumber,
+            ChassisNumber=maintenance.Car.ChassisNumber,
+            Odometer=maintenance.Car.CurrentOdometer,
+            Status=maintenance.Status,
+            CreatedDate=maintenance.CreatedDate,
+            MaintenanceDate=maintenance.MaintenanceDate,
+            TotalAmount=maintenance.TotalAmount,    
+            MembershipRankApplied=rank?.RankName,
+            MemberDiscountAmount=memberAmount,
+            FinalAmount=finalAmount,
+            PackageUsages=packageUsages,
+            LineItems=serviceItems.Concat(partItems).ToList()
+        };
+
+    }
     public async Task ProposeAdditionalItemsAsync(int maintenanceId, ProposeAdditionalItemsRequest request, CancellationToken ct = default)
     {
         var maintenance = await _db.CarMaintenances

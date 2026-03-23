@@ -39,6 +39,18 @@ public class ServiceOrdersController : ControllerBase
 
         return Ok(result);
     }
+    [HttpGet("{id:int}/invoice")]
+    [ProducesResponseType(typeof(MaintenanceInvoiceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMaintenanceInvoice(int id, CancellationToken ct)
+    {
+        var result=await _carMaintenanceService.GetMaintenanceInvoiceAsync(id, ct);
+        if(result== null)
+        
+            return NotFound(new {message=$"Không tìm thấy phiếu bảo dưỡng vơi ID= {id}"});
+        return Ok(result);
+    }
+
     [HttpPost("{id:int}/additional-items")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
