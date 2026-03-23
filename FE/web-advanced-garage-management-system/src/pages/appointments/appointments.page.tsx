@@ -4,11 +4,26 @@ import styled from "styled-components";
 import { AuthContext } from "@/context/AuthContext";
 import { ROUTER_PAGE } from "@/routes/contants";
 import { useTranslation } from "react-i18next";
-import { FaCar, FaPlus, FaSearch, FaEllipsisV, FaFileAlt, FaClock, FaUser, FaPhone, FaEye } from "react-icons/fa";
+import {
+  FaCar,
+  FaPlus,
+  FaSearch,
+  FaEllipsisV,
+  FaFileAlt,
+  FaClock,
+  FaUser,
+  FaPhone,
+  FaEye,
+  FaMapMarkerAlt,
+  FaTools,
+} from "react-icons/fa";
 import { getAppointments, getAppointmentById, type IAppointment, type IAppointmentDetail } from "@/apis/appointments";
+import { getRescueRequests, getRescueCustomerById, type IRescueRequest } from "@/apis/rescue";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import AppointmentDetailModal from "./AppointmentDetailModal";
+import RescueDetailModal from "./RescueDetailModal";
+import { rescueStatusConfig } from "./rescueStatusConfig";
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   PENDING: { label: "Chờ xác nhận", color: "#d97706", bg: "#fef3c7" },
@@ -19,19 +34,41 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
 };
 
 const IN_PROGRESS_STATUSES = ["PENDING", "CONFIRMED", "CHECKED_IN"];
+const IN_PROGRESS_RESCUE_STATUSES = [
+  "PENDING",
+  "ACCEPTED",
+  "EVALUATING",
+  "QUOTE_SENT",
+  "CUSTOMER_APPROVED",
+  "TECHNICIAN_DISPATCHED",
+  "RESCUE_VEHICLE_DISPATCHED",
+  "DIAGNOSING",
+  "REPAIRING_ON_SITE",
+  "NEED_TOWING",
+  "TOWING_CONFIRMED",
+  "INVOICED",
+  "PAID",
+];
+type MainTab = "BOOKING" | "RESCUE";
 
 const AppointmentsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [appointments, setAppointments] = useState<IAppointment[]>([]);
+  const [rescueRequests, setRescueRequests] = useState<IRescueRequest[]>([]);
+  const [activeTab, setActiveTab] = useState<MainTab>("BOOKING");
   const [loading, setLoading] = useState(true);
+  const [loadingRescue, setLoadingRescue] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [detailData, setDetailData] = useState<IAppointmentDetail | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [rescueDetailData, setRescueDetailData] = useState<IRescueRequest | null>(null);
+  const [showRescueModal, setShowRescueModal] = useState(false);
+  const [loadingRescueDetail, setLoadingRescueDetail] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -51,7 +88,20 @@ const AppointmentsPage = () => {
       }
     };
 
+    const fetchRescueRequests = async () => {
+      try {
+        setLoadingRescue(true);
+        const data = await getRescueRequests();
+        setRescueRequests(data);
+      } catch (error) {
+        console.error("Error fetching rescue requests:", error);
+      } finally {
+        setLoadingRescue(false);
+      }
+    };
+
     fetchAppointments();
+    fetchRescueRequests();
   }, [user, navigate]);
 
   const filteredAppointments = appointments
@@ -78,6 +128,11 @@ const AppointmentsPage = () => {
   const inProgressCount = appointments.filter((a) => IN_PROGRESS_STATUSES.includes(a.status)).length;
   const completedCount = appointments.filter((a) => a.status === "DONE").length;
   const cancelledCount = appointments.filter((a) => a.status === "CANCELLED").length;
+  const rescueInProgressCount = rescueRequests.filter((r) =>
+    IN_PROGRESS_RESCUE_STATUSES.includes(r.status),
+  ).length;
+  const rescueCompletedCount = rescueRequests.filter((r) => r.status === "COMPLETED").length;
+  const rescueCancelledCount = rescueRequests.filter((r) => r.status === "CANCELLED").length;
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
@@ -94,6 +149,38 @@ const AppointmentsPage = () => {
 
   const getStatusInfo = (status: string) =>
     statusConfig[status] || { label: status, color: "#6b7280", bg: "#f3f4f6" };
+  const getRescueStatusInfo = (status: string) => {
+    const cfg = rescueStatusConfig[status];
+    if (!cfg) return { label: status, color: "#6b7280", bg: "#f3f4f6" };
+    return {
+      label: cfg.labelKey ? t(cfg.labelKey) : status,
+      color: cfg.color,
+      bg: cfg.bg,
+    };
+  };
+
+  const filteredRescueRequests = rescueRequests
+    .filter((r) => {
+      if (filterStatus === "all") return true;
+      if (filterStatus === "IN_PROGRESS") {
+        return IN_PROGRESS_RESCUE_STATUSES.includes(r.status);
+      }
+      if (filterStatus === "DONE") return r.status === "COMPLETED";
+      return r.status === filterStatus;
+    })
+    .filter((r) => {
+      if (!searchTerm.trim()) return true;
+      const q = searchTerm.toLowerCase();
+      const carName = `${r.brand} ${r.model}`.toLowerCase();
+      return (
+        carName.includes(q) ||
+        r.licensePlate?.toLowerCase().includes(q) ||
+        r.problemDescription?.toLowerCase().includes(q) ||
+        r.currentAddress?.toLowerCase().includes(q) ||
+        r.customerName?.toLowerCase().includes(q) ||
+        r.customerPhone?.toLowerCase().includes(q)
+      );
+    });
 
   const handleViewDetail = async (id: number) => {
     setOpenMenuId(null);
@@ -114,12 +201,31 @@ const AppointmentsPage = () => {
     setShowModal(false);
     setDetailData(null);
   };
+  const closeRescueModal = () => {
+    setShowRescueModal(false);
+    setRescueDetailData(null);
+  };
 
   const getServiceTypeLabel = (type: string) => {
     switch (type?.toUpperCase()) {
       case "REPAIR": return t("bookingServiceTypeRepair");
       case "MAINTENANCE": return t("bookingServiceTypeMaintenance");
       default: return type;
+    }
+  };
+
+  const handleViewRescueDetail = async (id: number) => {
+    setOpenMenuId(null);
+    setLoadingRescueDetail(true);
+    setShowRescueModal(true);
+    try {
+      const data = await getRescueCustomerById(id);
+      setRescueDetailData(data);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t("errorOccurred")));
+      setShowRescueModal(false);
+    } finally {
+      setLoadingRescueDetail(false);
     }
   };
 
@@ -137,6 +243,27 @@ const AppointmentsPage = () => {
           </NewBookingButton>
         </Header>
 
+        <MainTabs>
+          <MainTabButton
+            $active={activeTab === "BOOKING"}
+            onClick={() => {
+              setActiveTab("BOOKING");
+              setFilterStatus("all");
+            }}
+          >
+            Đặt lịch
+          </MainTabButton>
+          <MainTabButton
+            $active={activeTab === "RESCUE"}
+            onClick={() => {
+              setActiveTab("RESCUE");
+              setFilterStatus("all");
+            }}
+          >
+            Cứu hộ
+          </MainTabButton>
+        </MainTabs>
+
         <ToolBar>
           <FilterTabs>
             <FilterTab
@@ -144,28 +271,36 @@ const AppointmentsPage = () => {
               onClick={() => setFilterStatus("all")}
             >
               {t("appointmentsAll")}
-              <TabCount $active={filterStatus === "all"}>{appointments.length}</TabCount>
+              <TabCount $active={filterStatus === "all"}>
+                {activeTab === "BOOKING" ? appointments.length : rescueRequests.length}
+              </TabCount>
             </FilterTab>
             <FilterTab
               $active={filterStatus === "IN_PROGRESS"}
               onClick={() => setFilterStatus("IN_PROGRESS")}
             >
               {t("appointmentsInProgress")}
-              <TabCount $active={filterStatus === "IN_PROGRESS"}>{inProgressCount}</TabCount>
+              <TabCount $active={filterStatus === "IN_PROGRESS"}>
+                {activeTab === "BOOKING" ? inProgressCount : rescueInProgressCount}
+              </TabCount>
             </FilterTab>
             <FilterTab
               $active={filterStatus === "DONE"}
               onClick={() => setFilterStatus("DONE")}
             >
               {t("appointmentsCompleted")}
-              <TabCount $active={filterStatus === "DONE"}>{completedCount}</TabCount>
+              <TabCount $active={filterStatus === "DONE"}>
+                {activeTab === "BOOKING" ? completedCount : rescueCompletedCount}
+              </TabCount>
             </FilterTab>
             <FilterTab
               $active={filterStatus === "CANCELLED"}
               onClick={() => setFilterStatus("CANCELLED")}
             >
               {t("appointmentsCancelled")}
-              <TabCount $active={filterStatus === "CANCELLED"}>{cancelledCount}</TabCount>
+              <TabCount $active={filterStatus === "CANCELLED"}>
+                {activeTab === "BOOKING" ? cancelledCount : rescueCancelledCount}
+              </TabCount>
             </FilterTab>
           </FilterTabs>
           <SearchBox>
@@ -179,9 +314,11 @@ const AppointmentsPage = () => {
         </ToolBar>
 
         <ContentSection>
-          {loading ? (
+          {activeTab === "BOOKING" && loading ? (
             <LoadingMessage>{t("loading")}</LoadingMessage>
-          ) : filteredAppointments.length === 0 ? (
+          ) : activeTab === "RESCUE" && loadingRescue ? (
+            <LoadingMessage>{t("loading")}</LoadingMessage>
+          ) : activeTab === "BOOKING" && filteredAppointments.length === 0 ? (
             <EmptyState>
               <FaCar size={48} color="#d1d5db" />
               <EmptyTitle>{t("appointmentsEmpty")}</EmptyTitle>
@@ -191,9 +328,16 @@ const AppointmentsPage = () => {
                 {t("appointmentsNewBooking")}
               </EmptyButton>
             </EmptyState>
+          ) : activeTab === "RESCUE" && filteredRescueRequests.length === 0 ? (
+            <EmptyState>
+              <FaTools size={48} color="#d1d5db" />
+              <EmptyTitle>Chưa có yêu cầu cứu hộ</EmptyTitle>
+              <EmptyDesc>Danh sách yêu cầu cứu hộ sẽ hiển thị tại đây.</EmptyDesc>
+            </EmptyState>
           ) : (
             <AppointmentList>
-              {filteredAppointments.map((appointment) => {
+              {activeTab === "BOOKING" &&
+                filteredAppointments.map((appointment) => {
                 const statusInfo = getStatusInfo(appointment.status);
                 const carName = `${appointment.carBrand} ${appointment.carModel}`;
                 return (
@@ -267,6 +411,78 @@ const AppointmentsPage = () => {
                   </AppointmentCard>
                 );
               })}
+
+              {activeTab === "RESCUE" &&
+                filteredRescueRequests.map((rescue) => {
+                  const statusInfo = getRescueStatusInfo(rescue.status);
+                  const carName = `${rescue.brand} ${rescue.model}`;
+                  return (
+                    <AppointmentCard key={rescue.rescueId}>
+                      <CardLeft>
+                        <CarIconWrapper>
+                          <FaTools size={20} color="#6b7280" />
+                        </CarIconWrapper>
+                        <CarInfo>
+                          <CarName>{carName}</CarName>
+                          <CarPlate>{rescue.licensePlate}</CarPlate>
+                        </CarInfo>
+                      </CardLeft>
+
+                      <CardRight>
+                        <CardTitleRow>
+                          <CardTitle>{rescue.problemDescription || "Yêu cầu cứu hộ"}</CardTitle>
+                          <BadgeGroup>
+                            <StatusBadge $color={statusInfo.color} $bg={statusInfo.bg}>
+                              {statusInfo.label}
+                            </StatusBadge>
+                          </BadgeGroup>
+                          <MoreButtonWrapper>
+                            <MoreButton
+                              onClick={() =>
+                                setOpenMenuId(
+                                  openMenuId === rescue.rescueId ? null : rescue.rescueId,
+                                )
+                              }
+                            >
+                              <FaEllipsisV size={14} color="#9ca3af" />
+                            </MoreButton>
+                            {openMenuId === rescue.rescueId && (
+                              <DropdownMenu>
+                                <DropdownItem onClick={() => handleViewRescueDetail(rescue.rescueId)}>
+                                  <FaEye size={14} color="#6b7280" />
+                                  {t("appointmentsViewDetail")}
+                                </DropdownItem>
+                              </DropdownMenu>
+                            )}
+                          </MoreButtonWrapper>
+                        </CardTitleRow>
+
+                        <InfoRow>
+                          <FaUser size={13} color="#9ca3af" />
+                          <InfoText>{rescue.customerName}</InfoText>
+                          <FaPhone size={12} color="#9ca3af" style={{ marginLeft: "0.75rem" }} />
+                          <InfoText>{rescue.customerPhone}</InfoText>
+                        </InfoRow>
+
+                        <InfoRow>
+                          <FaMapMarkerAlt size={12} color="#9ca3af" />
+                          <InfoText>{rescue.currentAddress}</InfoText>
+                        </InfoRow>
+
+                        <CardFooter>
+                          <FooterItem>
+                            <FaFileAlt size={12} />
+                            #rescue-{rescue.rescueId}
+                          </FooterItem>
+                          <FooterItem>
+                            <FaClock size={12} />
+                            {formatDate(rescue.createdDate)}
+                          </FooterItem>
+                        </CardFooter>
+                      </CardRight>
+                    </AppointmentCard>
+                  );
+                })}
             </AppointmentList>
           )}
         </ContentSection>
@@ -277,6 +493,13 @@ const AppointmentsPage = () => {
           data={detailData}
           loading={loadingDetail}
           onClose={closeModal}
+        />
+      )}
+      {showRescueModal && (
+        <RescueDetailModal
+          data={rescueDetailData}
+          loading={loadingRescueDetail}
+          onClose={closeRescueModal}
         />
       )}
     </PageWrapper>
@@ -358,6 +581,29 @@ const ToolBar = styled.div`
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: stretch;
+  }
+`;
+
+const MainTabs = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+`;
+
+const MainTabButton = styled.button<{ $active: boolean }>`
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  border: 1px solid ${({ $active }) => ($active ? "#1d4ed8" : "#e5e7eb")};
+  background: ${({ $active }) => ($active ? "#eff6ff" : "#ffffff")};
+  color: ${({ $active }) => ($active ? "#1d4ed8" : "#6b7280")};
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #1d4ed8;
+    color: #1d4ed8;
   }
 `;
 
@@ -704,4 +950,5 @@ const DropdownItem = styled.button`
     background: #f9fafb;
   }
 `;
+
 

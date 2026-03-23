@@ -183,12 +183,7 @@ const Header = () => {
                   dispatch(setVisibleLogin(true));
                   return;
                 }
-                navigate(ROUTER_PAGE.home);
-                setTimeout(() => {
-                  document
-                    .getElementById("services")
-                    ?.scrollIntoView({ behavior: "smooth" });
-                }, 100);
+                navigate(ROUTER_PAGE.booking);
               }}
             >
               <IconCar size={20} stroke={2} />

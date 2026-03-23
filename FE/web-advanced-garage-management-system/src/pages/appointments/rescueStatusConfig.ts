@@ -1,0 +1,21 @@
+export const rescueStatusConfig: Record<string, { labelKey: string; color: string; bg: string }> = {
+  PENDING: { labelKey: "rescueStatusPending", color: "#d97706", bg: "#fef3c7" },
+  ACCEPTED: { labelKey: "rescueStatusAccepted", color: "#16a34a", bg: "#dcfce7" },
+  EVALUATING: { labelKey: "rescueStatusEvaluating", color: "#2563eb", bg: "#dbeafe" },
+  QUOTE_SENT: { labelKey: "rescueStatusQuoteSent", color: "#7c3aed", bg: "#ede9fe" },
+  CUSTOMER_APPROVED: { labelKey: "rescueStatusCustomerApproved", color: "#16a34a", bg: "#dcfce7" },
+  CUSTOMER_REJECTED: { labelKey: "rescueStatusCustomerRejected", color: "#dc2626", bg: "#fee2e2" },
+  TECHNICIAN_DISPATCHED: { labelKey: "rescueStatusTechnicianDispatched", color: "#0891b2", bg: "#cffafe" },
+  RESCUE_VEHICLE_DISPATCHED: { labelKey: "rescueStatusVehicleDispatched", color: "#0891b2", bg: "#cffafe" },
+  DIAGNOSING: { labelKey: "rescueStatusDiagnosing", color: "#ea580c", bg: "#fff7ed" },
+  REPAIRING_ON_SITE: { labelKey: "rescueStatusRepairingOnSite", color: "#2563eb", bg: "#dbeafe" },
+  NEED_TOWING: { labelKey: "rescueStatusNeedTowing", color: "#dc2626", bg: "#fee2e2" },
+  TOWING_CONFIRMED: { labelKey: "rescueStatusTowingConfirmed", color: "#16a34a", bg: "#dcfce7" },
+  TOWING_REJECTED: { labelKey: "rescueStatusTowingRejected", color: "#dc2626", bg: "#fee2e2" },
+  INVOICED: { labelKey: "rescueStatusInvoiced", color: "#7c3aed", bg: "#ede9fe" },
+  PAID: { labelKey: "rescueStatusPaid", color: "#16a34a", bg: "#dcfce7" },
+  COMPLETED: { labelKey: "rescueStatusCompleted", color: "#16a34a", bg: "#dcfce7" },
+  CANCELLED: { labelKey: "rescueStatusCancelled", color: "#dc2626", bg: "#fee2e2" },
+  SPAM: { labelKey: "rescueStatusSpam", color: "#6b7280", bg: "#f3f4f6" },
+};
+

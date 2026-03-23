@@ -94,6 +94,16 @@ export const getRescueById = async (
   return data;
 };
 
+// customer: Get rescue detail
+export const getRescueCustomerById = async (
+  id: number,
+): Promise<IRescueRequest> => {
+  const { data } = await AxiosClient.get<IRescueRequest>(
+    `/api/rescue-requests/${id}`,
+  );
+  return data;
+};
+
 // SA: Update rescue status
 export const updateRescueStatus = async (
   id: number,
