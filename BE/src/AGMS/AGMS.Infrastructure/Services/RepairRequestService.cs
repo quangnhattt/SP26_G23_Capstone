@@ -89,9 +89,6 @@ public class RepairRequestService : IRepairRequestService
         var (car, technician, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
         var customerPhone = await _repo.GetUserPhoneByIdAsync(userId, ct);
 
-        var (totalCost, _) = GetEstimatedCostAndMinutes(appointmentServiceType);
-        var maintenanceType = MapMaintenanceTypeForCarMaintenance(request.ServiceType);
-
         var preferredDate = ParsePreferredDate(request.PreferredDate);
         var preferredTime = ParsePreferredTime(request.PreferredTime);
         var appointmentDateTime = preferredDate.ToDateTime(preferredTime);
@@ -109,30 +106,6 @@ public class RepairRequestService : IRepairRequestService
         };
 
         await _repo.AddAppointmentAsync(appointment, ct);
-
-        var maintenance = new CarMaintenance
-        {
-            CarID = car.CarID,
-            AppointmentID = appointment.AppointmentID,
-            MaintenanceDate = appointmentDateTime,
-            Odometer = car.CurrentOdometer,
-            Status = "WAITING",
-            TotalAmount = totalCost,
-            DiscountAmount = 0m,
-            MaintenanceType = maintenanceType,
-            MemberDiscountAmount = 0m,
-            MemberDiscountPercent = 0m,
-            RankAtTimeOfService = null,
-            Notes = BuildNotes(request),
-            BayID = null,
-            CreatedBy = userId,
-            AssignedTechnicianID = technician?.UserID,
-            TechnicianHistory = null,
-            CreatedDate = DateTime.UtcNow,
-            CompletedDate = null
-        };
-
-        await _repo.AddCarMaintenanceAsync(maintenance, ct);
 
         // Lưu triệu chứng gắn với appointment (nếu có)
         if (request.SymptomIds != null && request.SymptomIds.Count > 0)
@@ -187,21 +160,6 @@ public class RepairRequestService : IRepairRequestService
     private static (decimal totalCost, int totalMinutes) GetEstimatedCostAndMinutes(string appointmentServiceType)
     {
         return (0m, 0);
-    }
-
-    private static string MapMaintenanceTypeForCarMaintenance(string? serviceType)
-    {
-        if (string.IsNullOrWhiteSpace(serviceType))
-            return "MAINTENANCE";
-
-        var normalized = serviceType.Trim().ToLowerInvariant();
-        return normalized switch
-        {
-            "maintenance" => "MAINTENANCE",
-            "repair" => "REPAIR",
-            "rescue" => "RESCUE",
-            _ => "MAINTENANCE"
-        };
     }
 
     private static DateOnly ParsePreferredDate(string date)
