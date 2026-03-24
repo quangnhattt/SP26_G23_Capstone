@@ -20,7 +20,7 @@ public class RescueRequestController : ControllerBase
     }
 
     // =========================================================================
-    // UC-RES-01: Tiếp nhận & Đánh giá
+    // API Taoj đơn cứu hộ cho Khách Hàng
     // =========================================================================
 
     // POST /api/rescue-requests
@@ -33,12 +33,17 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Create([FromBody] CreateRescueRequestDto request, CancellationToken ct)
+    public async Task<IActionResult> Create(
+        [FromBody] CreateRescueRequestDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -71,16 +76,25 @@ public class RescueRequestController : ControllerBase
         [FromQuery] DateTime? toDate,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         // Customer chỉ được xem rescue của chính mình
         if (IsRole(Roles.Customer))
             customerId = userId;
 
-        var result = await _rescueService.GetListAsync(status, rescueType, customerId, fromDate, toDate, ct);
+        var result = await _rescueService.GetListAsync(
+            status,
+            rescueType,
+            customerId,
+            fromDate,
+            toDate,
+            ct
+        );
 
         if (page.HasValue && pageSize.HasValue && page > 0 && pageSize > 0)
         {
@@ -139,6 +153,8 @@ public class RescueRequestController : ControllerBase
     /// <summary>
     /// SA gửi đề xuất sửa tại chỗ hoặc kéo xe (UC-RES-01 Step 5-6). BR-17, BR-18.
     /// </summary>
+    ///
+    /// Suwar DB thêm [Status]='PENDING' OR [Status]='PROPOSED_ROADSIDE' OR [Status]='PROPOSED_TOWING vào CK_Rescue_Status
     [HttpPatch("{id:int}/propose")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
     [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
@@ -147,12 +163,18 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> Propose(int id, [FromBody] ProposeRescueDto request, CancellationToken ct)
+    public async Task<IActionResult> Propose(
+        int id,
+        [FromBody] ProposeRescueDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -191,12 +213,18 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> AssignTechnician(int id, [FromBody] AssignTechnicianDto request, CancellationToken ct)
+    public async Task<IActionResult> AssignTechnician(
+        int id,
+        [FromBody] AssignTechnicianDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -233,7 +261,8 @@ public class RescueRequestController : ControllerBase
     public async Task<IActionResult> AcceptJob(int id, CancellationToken ct)
     {
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -268,7 +297,8 @@ public class RescueRequestController : ControllerBase
     public async Task<IActionResult> Arrive(int id, CancellationToken ct)
     {
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -302,12 +332,18 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> RecordCustomerConsent(int id, [FromBody] CustomerConsentDto request, CancellationToken ct)
+    public async Task<IActionResult> RecordCustomerConsent(
+        int id,
+        [FromBody] CustomerConsentDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -337,12 +373,18 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> StartDiagnosis(int id, [FromBody] StartDiagnosisDto request, CancellationToken ct)
+    public async Task<IActionResult> StartDiagnosis(
+        int id,
+        [FromBody] StartDiagnosisDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -376,9 +418,14 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> AddRepairItems(int id, [FromBody] AddRepairItemsDto request, CancellationToken ct)
+    public async Task<IActionResult> AddRepairItems(
+        int id,
+        [FromBody] AddRepairItemsDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         try
         {
@@ -407,12 +454,18 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> CompleteRepair(int id, [FromBody] CompleteRepairDto request, CancellationToken ct)
+    public async Task<IActionResult> CompleteRepair(
+        int id,
+        [FromBody] CompleteRepairDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -449,17 +502,29 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> DispatchTowing(int id, [FromBody] DispatchTowingDto request, CancellationToken ct)
+    public async Task<IActionResult> DispatchTowing(
+        int id,
+        [FromBody] DispatchTowingDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
             var result = await _rescueService.DispatchTowingAsync(id, userId, request, ct);
-            return Ok(new { data = result, message = "Dịch vụ kéo xe đã được điều phối. Đề xuất đã gửi đến khách hàng." });
+            return Ok(
+                new
+                {
+                    data = result,
+                    message = "Dịch vụ kéo xe đã được điều phối. Đề xuất đã gửi đến khách hàng."
+                }
+            );
         }
         catch (KeyNotFoundException ex)
         {
@@ -486,7 +551,8 @@ public class RescueRequestController : ControllerBase
     public async Task<IActionResult> AcceptTowing(int id, CancellationToken ct)
     {
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -519,21 +585,29 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> CompleteTowing(int id, [FromBody] CompleteTowingDto request, CancellationToken ct)
+    public async Task<IActionResult> CompleteTowing(
+        int id,
+        [FromBody] CompleteTowingDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
             var result = await _rescueService.CompleteTowingAsync(id, userId, request, ct);
-            return Ok(new
-            {
-                data    = result,
-                message = $"Xe đã được kéo về. Repair Order #{result.ResultingMaintenance?.MaintenanceId} đã được tạo."
-            });
+            return Ok(
+                new
+                {
+                    data = result,
+                    message = $"Xe đã được kéo về. Repair Order #{result.ResultingMaintenance?.MaintenanceId} đã được tạo."
+                }
+            );
         }
         catch (KeyNotFoundException ex)
         {
@@ -561,18 +635,26 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> CreateInvoice(int id, [FromBody] CreateInvoiceDto request, CancellationToken ct)
+    public async Task<IActionResult> CreateInvoice(
+        int id,
+        [FromBody] CreateInvoiceDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
             var result = await _rescueService.CreateInvoiceAsync(id, userId, request, ct);
-            return StatusCode(StatusCodes.Status201Created,
-                new { data = result, message = "Hóa đơn đã được tạo thành công." });
+            return StatusCode(
+                StatusCodes.Status201Created,
+                new { data = result, message = "Hóa đơn đã được tạo thành công." }
+            );
         }
         catch (KeyNotFoundException ex)
         {
@@ -628,7 +710,8 @@ public class RescueRequestController : ControllerBase
     public async Task<IActionResult> SendInvoice(int id, CancellationToken ct)
     {
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -660,12 +743,19 @@ public class RescueRequestController : ControllerBase
     public async Task<IActionResult> AcceptInvoice(int id, CancellationToken ct)
     {
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
             var result = await _rescueService.AcceptInvoiceAsync(id, userId, ct);
-            return Ok(new { data = result, message = "Hóa đơn đã được chấp nhận. Vui lòng tiến hành thanh toán." });
+            return Ok(
+                new
+                {
+                    data = result,
+                    message = "Hóa đơn đã được chấp nhận. Vui lòng tiến hành thanh toán."
+                }
+            );
         }
         catch (KeyNotFoundException ex)
         {
@@ -694,17 +784,29 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> ProcessPayment(int id, [FromBody] ProcessPaymentDto request, CancellationToken ct)
+    public async Task<IActionResult> ProcessPayment(
+        int id,
+        [FromBody] ProcessPaymentDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
             var result = await _rescueService.ProcessPaymentAsync(id, userId, request, ct);
-            return Ok(new { data = result, message = "Thanh toán thành công. Cảm ơn bạn đã sử dụng dịch vụ." });
+            return Ok(
+                new
+                {
+                    data = result,
+                    message = "Thanh toán thành công. Cảm ơn bạn đã sử dụng dịch vụ."
+                }
+            );
         }
         catch (KeyNotFoundException ex)
         {
@@ -741,18 +843,30 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> CreateDispute(int id, [FromBody] CreateDisputeDto request, CancellationToken ct)
+    public async Task<IActionResult> CreateDispute(
+        int id,
+        [FromBody] CreateDisputeDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
             var result = await _rescueService.CreateDisputeAsync(id, userId, request, ct);
-            return StatusCode(StatusCodes.Status201Created,
-                new { data = result, message = "Khiếu nại đã được ghi nhận. SA sẽ xem xét và phản hồi." });
+            return StatusCode(
+                StatusCodes.Status201Created,
+                new
+                {
+                    data = result,
+                    message = "Khiếu nại đã được ghi nhận. SA sẽ xem xét và phản hồi."
+                }
+            );
         }
         catch (KeyNotFoundException ex)
         {
@@ -780,12 +894,18 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> ResolveDispute(int id, [FromBody] ResolveDisputeDto request, CancellationToken ct)
+    public async Task<IActionResult> ResolveDispute(
+        int id,
+        [FromBody] ResolveDisputeDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -826,12 +946,18 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> Cancel(int id, [FromBody] CancelRescueDto request, CancellationToken ct)
+    public async Task<IActionResult> Cancel(
+        int id,
+        [FromBody] CancelRescueDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -860,12 +986,18 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> MarkSpam(int id, [FromBody] MarkSpamDto request, CancellationToken ct)
+    public async Task<IActionResult> MarkSpam(
+        int id,
+        [FromBody] MarkSpamDto request,
+        CancellationToken ct
+    )
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
         var (userId, err) = ExtractUserId();
-        if (err != null) return err;
+        if (err != null)
+            return err;
 
         try
         {
@@ -894,11 +1026,15 @@ public class RescueRequestController : ControllerBase
     {
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrWhiteSpace(claim) || !int.TryParse(claim, out var uid))
-            return (0, Unauthorized(new { message = "Token không hợp lệ hoặc thiếu thông tin người dùng." }));
+            return (
+                0,
+                Unauthorized(
+                    new { message = "Token không hợp lệ hoặc thiếu thông tin người dùng." }
+                )
+            );
         return (uid, null);
     }
 
     /// <summary>Kiểm tra role của user hiện tại từ JWT claim Role.</summary>
-    private bool IsRole(string role) =>
-        User.FindFirstValue(ClaimTypes.Role) == role;
+    private bool IsRole(string role) => User.FindFirstValue(ClaimTypes.Role) == role;
 }
