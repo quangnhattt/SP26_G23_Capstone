@@ -53,6 +53,12 @@ export interface IRescueUpdateStatusPayload {
   note?: string;
 }
 
+export interface IRescueProposePayload {
+  rescueType: "ROADSIDE" | "TOWING";
+  proposalNotes?: string;
+  estimatedServiceFee?: number;
+}
+
 export interface IRescueAssignTechPayload {
   technicianId: number;
 }
@@ -111,6 +117,18 @@ export const updateRescueStatus = async (
 ) => {
   const { data } = await AxiosClient.put(
     `/api/rescues/${id}/status`,
+    payload,
+  );
+  return data;
+};
+
+// SA: Propose rescue option to customer
+export const proposeRescueToCustomer = async (
+  id: number,
+  payload: IRescueProposePayload,
+) => {
+  const { data } = await AxiosClient.patch(
+    `/api/rescue-requests/${id}/propose`,
     payload,
   );
   return data;

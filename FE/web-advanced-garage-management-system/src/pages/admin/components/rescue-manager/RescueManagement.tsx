@@ -22,6 +22,7 @@ import {
 import {
   getRescueRequests,
   updateRescueStatus,
+  proposeRescueToCustomer,
   assignTechnician,
   sendRescueQuote,
   cancelRescueRequest,
@@ -183,6 +184,13 @@ const RescueManagement = () => {
   const [canFixOnSite, setCanFixOnSite] = useState<boolean | null>(null);
   const [diagnosisNote, setDiagnosisNote] = useState("");
 
+  // Proposal modal (Đề xuất)
+  const [showProposalModal, setShowProposalModal] = useState(false);
+  const [proposalType, setProposalType] = useState<"TOWING" | "ON_SITE" | null>(null);
+  const [proposalNote, setProposalNote] = useState("");
+  const [proposalFee, setProposalFee] = useState("");
+  const [proposalSubmitting, setProposalSubmitting] = useState(false);
+
   // Spam / Cancel — nhập lý do trước khi gọi API
   const [reasonModal, setReasonModal] = useState<
     null | { type: "spam" | "cancel"; rescue: IRescueRequest }
@@ -291,6 +299,33 @@ const RescueManagement = () => {
   const resetDiagnosisForm = () => {
     setCanFixOnSite(null);
     setDiagnosisNote("");
+  };
+
+  const resetProposalForm = () => {
+    setProposalType(null);
+    setProposalNote("");
+    setProposalFee("");
+  };
+
+  const handleProposalSubmit = async () => {
+    if (!selectedRescue || !proposalType || !proposalFee) return;
+    try {
+      setProposalSubmitting(true);
+      await proposeRescueToCustomer(selectedRescue.rescueId, {
+        rescueType: proposalType === "TOWING" ? "TOWING" : "ROADSIDE",
+        proposalNotes: proposalNote.trim() || undefined,
+        estimatedServiceFee: Number(proposalFee),
+      });
+      toast.success("Đã gửi đề xuất cho khách hàng!");
+      setShowProposalModal(false);
+      resetProposalForm();
+      fetchRescues();
+    } catch (error) {
+      console.error("Error submitting proposal:", error);
+      toast.error("Gửi đề xuất thất bại!");
+    } finally {
+      setProposalSubmitting(false);
+    }
   };
 
   const openReasonModal = (type: "spam" | "cancel", rescue: IRescueRequest) => {
@@ -406,12 +441,16 @@ const RescueManagement = () => {
 
     switch (rescue.status) {
       case "PENDING":
-        // SA: Kiểm tra yêu cầu → Chấp nhận / Đánh dấu spam
+        // SA: Kiểm tra yêu cầu → Đề xuất / Đánh dấu spam
         actions.push({
-          label: t("rescueMgrAccept"),
-          icon: <FaCheck size={12} />,
-          color: "#16a34a",
-          onClick: () => handleUpdateStatus(rescue.rescueId, "ACCEPTED"),
+          label: "Đề xuất",
+          icon: <FaClipboardCheck size={12} />,
+          color: "#2563eb",
+          onClick: () => {
+            setSelectedRescue(rescue);
+            resetProposalForm();
+            setShowProposalModal(true);
+          },
         });
         actions.push({
           label: t("rescueMgrMarkSpam"),
@@ -909,6 +948,76 @@ const RescueManagement = () => {
         </ModalOverlay>
       )}
 
+      {/* ─── Proposal Modal (Đề xuất) ─── */}
+      {showProposalModal && selectedRescue && (
+        <ModalOverlay onClick={() => { setShowProposalModal(false); resetProposalForm(); }}>
+          <ModalContent
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "500px" }}
+          >
+            <ModalHeader>
+              <ModalTitle>Đề xuất phương án cứu hộ</ModalTitle>
+              <CloseBtn onClick={() => { setShowProposalModal(false); resetProposalForm(); }}>
+                <FaTimes />
+              </CloseBtn>
+            </ModalHeader>
+            <ModalBody>
+              <FormGroup>
+                <FormLabel>Phương án xử lý *</FormLabel>
+                <RadioGroup>
+                  <RadioOption
+                    $selected={proposalType === "TOWING"}
+                    onClick={() => setProposalType("TOWING")}
+                  >
+                    <FaTruck size={14} />
+                    Kéo xe
+                  </RadioOption>
+                  <RadioOption
+                    $selected={proposalType === "ON_SITE"}
+                    onClick={() => setProposalType("ON_SITE")}
+                  >
+                    <FaWrench size={14} />
+                    Sửa tại chỗ
+                  </RadioOption>
+                </RadioGroup>
+              </FormGroup>
+              <FormGroup>
+                <FormLabel>Ghi chú</FormLabel>
+                <FormTextarea
+                  value={proposalNote}
+                  onChange={(e) => setProposalNote(e.target.value)}
+                  rows={3}
+                  placeholder="Ghi chú thêm cho khách hàng..."
+                />
+              </FormGroup>
+              <FormGroup>
+                <FormLabel>Phí dịch vụ ước tính (VND) *</FormLabel>
+                <FormInput
+                  type="number"
+                  value={proposalFee}
+                  onChange={(e) => setProposalFee(e.target.value)}
+                  placeholder="Nhập phí dịch vụ ước tính"
+                />
+              </FormGroup>
+            </ModalBody>
+            <ModalFooter>
+              <ModalCancelBtn
+                onClick={() => { setShowProposalModal(false); resetProposalForm(); }}
+                disabled={proposalSubmitting}
+              >
+                Hủy
+              </ModalCancelBtn>
+              <ModalConfirmBtn
+                onClick={handleProposalSubmit}
+                disabled={!proposalType || !proposalFee || proposalSubmitting}
+              >
+                {proposalSubmitting ? "Đang gửi..." : "Gửi"}
+              </ModalConfirmBtn>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
       {/* ─── Spam / Cancel reason modal ─── */}
       {reasonModal && (
         <ModalOverlay onClick={closeReasonModal}>
@@ -1358,8 +1467,8 @@ const FormInput = styled.input`
   font-size: 0.875rem;
   outline: none;
   box-sizing: border-box;
-  color: #111827;
-  background: #ffffff;
+  color: #000000 !important;
+  background: #ffffff !important;
 
   &::placeholder {
     color: #9ca3af;
@@ -1384,8 +1493,8 @@ const FormTextarea = styled.textarea`
   outline: none;
   resize: vertical;
   box-sizing: border-box;
-  color: #111827;
-  background: #ffffff;
+  color: #000000 !important;
+  background: #ffffff !important;
 
   &::placeholder {
     color: #9ca3af;
