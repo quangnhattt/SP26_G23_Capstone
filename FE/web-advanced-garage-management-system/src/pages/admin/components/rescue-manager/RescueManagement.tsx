@@ -28,7 +28,6 @@ import {
   markSpamRescueRequest,
   acceptRescueJob,
   arriveRescue,
-  customerConsent,
   startDiagnosis,
   completeRepair,
   createRescueInvoice,
@@ -226,7 +225,6 @@ const RescueManagement = () => {
   const [quoteNote, setQuoteNote] = useState("");
 
   // Assign form
-  const [selectedTechId, setSelectedTechId] = useState<number | null>(null);
   const [estimatedArrival, setEstimatedArrival] = useState("");
 
   // Diagnosis form
@@ -347,17 +345,6 @@ const RescueManagement = () => {
     } catch (error) {
       console.error("Error arriving:", error);
       toast.error("Xác nhận đến nơi thất bại!");
-    }
-  };
-
-  const handleCustomerConsent = async (id: number) => {
-    try {
-      await customerConsent(id);
-      toast.success("Khách hàng đã duyệt sửa tại chỗ!");
-      fetchRescues();
-    } catch (error) {
-      console.error("Error customer consent:", error);
-      toast.error("Duyệt sửa tại chỗ thất bại!");
     }
   };
 
@@ -634,7 +621,7 @@ const RescueManagement = () => {
             label: t("rescueMgrDispatchTech"),
             icon: <FaUserCog size={12} />,
             color: "#0891b2",
-            onClick: () => { setSelectedRescue(rescue); setSelectedTechId(null); setEstimatedArrival(""); setShowAssignModal(true); },
+            onClick: () => { setSelectedRescue(rescue); setEstimatedArrival(""); setShowAssignModal(true); },
           });
           actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
         }
