@@ -16,14 +16,25 @@ import {
   FaEye,
   FaMapMarkerAlt,
   FaTools,
+  FaTimes,
 } from "react-icons/fa";
 import { getAppointments, getAppointmentById, type IAppointment, type IAppointmentDetail } from "@/apis/appointments";
-import { getRescueRequests, getRescueCustomerById, type IRescueRequest } from "@/apis/rescue";
+import {
+  getRescueRequests,
+  getRescueCustomerById,
+  customerConsent,
+  makeRescuePayment,
+  acceptRescueJob,
+  arriveRescue,
+  type IRescueRequest,
+  type IRescuePaymentPayload,
+} from "@/apis/rescue";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import AppointmentDetailModal from "./AppointmentDetailModal";
 import RescueDetailModal from "./RescueDetailModal";
 import { rescueStatusConfig } from "./rescueStatusConfig";
+import RescueStepProgress from "@/pages/admin/components/rescue-manager/RescueStepProgress";
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   PENDING: { label: "Chờ xác nhận", color: "#d97706", bg: "#fef3c7" },
@@ -39,14 +50,20 @@ const IN_PROGRESS_RESCUE_STATUSES = [
   "ACCEPTED",
   "EVALUATING",
   "QUOTE_SENT",
+  "PROPOSED_ROADSIDE",
+  "PROPOSED_TOWING",
   "CUSTOMER_APPROVED",
   "TECHNICIAN_DISPATCHED",
+  "EN_ROUTE",
+  "ON_SITE",
   "RESCUE_VEHICLE_DISPATCHED",
   "DIAGNOSING",
   "REPAIRING_ON_SITE",
+  "REPAIR_COMPLETED",
   "NEED_TOWING",
   "TOWING_CONFIRMED",
   "INVOICED",
+  "INVOICE_SENT",
   "PAID",
 ];
 type MainTab = "BOOKING" | "RESCUE";
@@ -69,6 +86,22 @@ const AppointmentsPage = () => {
   const [rescueDetailData, setRescueDetailData] = useState<IRescueRequest | null>(null);
   const [showRescueModal, setShowRescueModal] = useState(false);
   const [loadingRescueDetail, setLoadingRescueDetail] = useState(false);
+
+  // Role detection: 3 = Technician, 4 = Customer
+  const isTechnician = user?.roleID === 3;
+  const isCustomer = user?.roleID === 4;
+
+  // Customer action states
+  const [consentingId, setConsentingId] = useState<number | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentRescueId, setPaymentRescueId] = useState<number | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<IRescuePaymentPayload["paymentMethod"]>("TRANSFER");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentRef, setPaymentRef] = useState("");
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+
+  // Technician simple action loading
+  const [techActionLoadingId, setTechActionLoadingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -212,6 +245,86 @@ const AppointmentsPage = () => {
       case "MAINTENANCE": return t("bookingServiceTypeMaintenance");
       default: return type;
     }
+  };
+
+  const fetchRescueRequestsRefresh = async () => {
+    try {
+      const data = await getRescueRequests();
+      setRescueRequests(data);
+    } catch (error) {
+      console.error("Error fetching rescue requests:", error);
+    }
+  };
+
+  // ─── Technician simple actions ─────────────────────────────
+  const handleTechAcceptJob = async (id: number) => {
+    setTechActionLoadingId(id);
+    try {
+      await acceptRescueJob(id);
+      toast.success("Đã nhận job cứu hộ!");
+      fetchRescueRequestsRefresh();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Nhận job thất bại!"));
+    } finally {
+      setTechActionLoadingId(null);
+    }
+  };
+
+  const handleTechArrive = async (id: number) => {
+    setTechActionLoadingId(id);
+    try {
+      await arriveRescue(id);
+      toast.success("Đã xác nhận đến nơi!");
+      fetchRescueRequestsRefresh();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Xác nhận thất bại!"));
+    } finally {
+      setTechActionLoadingId(null);
+    }
+  };
+
+  // ─── Customer actions ─────────────────────────────────────
+  const handleCustomerConsent = async (id: number) => {
+    setConsentingId(id);
+    try {
+      await customerConsent(id);
+      toast.success("Đã xác nhận duyệt sửa tại chỗ!");
+      fetchRescueRequestsRefresh();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Xác nhận thất bại!"));
+    } finally {
+      setConsentingId(null);
+    }
+  };
+
+  const handlePaymentSubmit = async () => {
+    if (!paymentRescueId || !paymentAmount) return;
+    setPaymentSubmitting(true);
+    try {
+      await makeRescuePayment(paymentRescueId, {
+        paymentMethod,
+        amount: Number(paymentAmount),
+        transactionReference: paymentRef.trim() || undefined,
+      });
+      toast.success("Thanh toán thành công!");
+      setShowPaymentModal(false);
+      setPaymentRescueId(null);
+      setPaymentAmount("");
+      setPaymentRef("");
+      fetchRescueRequestsRefresh();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Thanh toán thất bại!"));
+    } finally {
+      setPaymentSubmitting(false);
+    }
+  };
+
+  const openPaymentModal = (rescueId: number) => {
+    setPaymentRescueId(rescueId);
+    setPaymentMethod("TRANSFER");
+    setPaymentAmount("");
+    setPaymentRef("");
+    setShowPaymentModal(true);
   };
 
   const handleViewRescueDetail = async (id: number) => {
@@ -469,6 +582,67 @@ const AppointmentsPage = () => {
                           <InfoText>{rescue.currentAddress}</InfoText>
                         </InfoRow>
 
+                        <RescueStepProgress status={rescue.status} />
+
+                        {/* ── Technician actions ── */}
+                        {isTechnician && rescue.status === "TECHNICIAN_DISPATCHED" && (
+                          <CustomerActionRow>
+                            <CustomerActionBtn
+                              $color="#0891b2"
+                              onClick={() => handleTechAcceptJob(rescue.rescueId)}
+                              disabled={techActionLoadingId === rescue.rescueId}
+                            >
+                              {techActionLoadingId === rescue.rescueId ? "Đang xử lý..." : "Nhận job"}
+                            </CustomerActionBtn>
+                          </CustomerActionRow>
+                        )}
+                        {isTechnician && rescue.status === "EN_ROUTE" && (
+                          <CustomerActionRow>
+                            <CustomerActionBtn
+                              $color="#0d9488"
+                              onClick={() => handleTechArrive(rescue.rescueId)}
+                              disabled={techActionLoadingId === rescue.rescueId}
+                            >
+                              {techActionLoadingId === rescue.rescueId ? "Đang xử lý..." : "Xác nhận đã đến nơi"}
+                            </CustomerActionBtn>
+                          </CustomerActionRow>
+                        )}
+                        {isTechnician && ["ON_SITE", "DIAGNOSING", "REPAIRING_ON_SITE"].includes(rescue.status) && (
+                          <CustomerActionRow>
+                            <CustomerActionBtn
+                              $color="#ea580c"
+                              onClick={() => handleViewRescueDetail(rescue.rescueId)}
+                            >
+                              {rescue.status === "REPAIRING_ON_SITE" ? "Báo hoàn tất sửa chữa" : "Chẩn đoán & xử lý"}
+                            </CustomerActionBtn>
+                          </CustomerActionRow>
+                        )}
+
+                        {/* ── Customer actions ── */}
+                        {isCustomer && rescue.status === "ON_SITE" && (
+                          <CustomerActionRow>
+                            <CustomerActionBtn
+                              $color="#16a34a"
+                              onClick={() => handleCustomerConsent(rescue.rescueId)}
+                              disabled={consentingId === rescue.rescueId}
+                            >
+                              {consentingId === rescue.rescueId
+                                ? "Đang xử lý..."
+                                : "Duyệt sửa tại chỗ"}
+                            </CustomerActionBtn>
+                          </CustomerActionRow>
+                        )}
+                        {isCustomer && rescue.status === "INVOICE_SENT" && (
+                          <CustomerActionRow>
+                            <CustomerActionBtn
+                              $color="#1d4ed8"
+                              onClick={() => openPaymentModal(rescue.rescueId)}
+                            >
+                              Xác nhận thanh toán
+                            </CustomerActionBtn>
+                          </CustomerActionRow>
+                        )}
+
                         <CardFooter>
                           <FooterItem>
                             <FaFileAlt size={12} />
@@ -500,7 +674,74 @@ const AppointmentsPage = () => {
           data={rescueDetailData}
           loading={loadingRescueDetail}
           onClose={closeRescueModal}
+          onRefresh={fetchRescueRequestsRefresh}
+          userRoleID={user?.roleID}
         />
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && paymentRescueId && (
+        <PaymentOverlay onClick={() => setShowPaymentModal(false)}>
+          <PaymentCard onClick={(e) => e.stopPropagation()}>
+            <PaymentHeader>
+              <PaymentTitle>Xác nhận thanh toán</PaymentTitle>
+              <CloseModalBtn onClick={() => setShowPaymentModal(false)}>
+                <FaTimes size={18} />
+              </CloseModalBtn>
+            </PaymentHeader>
+            <PaymentBody>
+              <div>
+                <FormLabel>Phương thức thanh toán *</FormLabel>
+                <FormSelect
+                  value={paymentMethod}
+                  onChange={(e) =>
+                    setPaymentMethod(
+                      e.target.value as IRescuePaymentPayload["paymentMethod"],
+                    )
+                  }
+                >
+                  <option value="TRANSFER">Chuyển khoản</option>
+                  <option value="CASH">Tiền mặt</option>
+                  <option value="CARD">Thẻ</option>
+                  <option value="EWALLET">Ví điện tử</option>
+                </FormSelect>
+              </div>
+              <div>
+                <FormLabel>Số tiền (VND) *</FormLabel>
+                <FormInput
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="Nhập số tiền"
+                />
+              </div>
+              {paymentMethod === "TRANSFER" && (
+                <div>
+                  <FormLabel>Mã giao dịch</FormLabel>
+                  <FormInput
+                    value={paymentRef}
+                    onChange={(e) => setPaymentRef(e.target.value)}
+                    placeholder="VD: VCB20260228001234"
+                  />
+                </div>
+              )}
+            </PaymentBody>
+            <PaymentFooter>
+              <PaymentCancelBtn
+                onClick={() => setShowPaymentModal(false)}
+                disabled={paymentSubmitting}
+              >
+                Hủy
+              </PaymentCancelBtn>
+              <PaymentConfirmBtn
+                onClick={handlePaymentSubmit}
+                disabled={!paymentAmount || paymentSubmitting}
+              >
+                {paymentSubmitting ? "Đang xử lý..." : "Thanh toán"}
+              </PaymentConfirmBtn>
+            </PaymentFooter>
+          </PaymentCard>
+        </PaymentOverlay>
       )}
     </PageWrapper>
   );
@@ -948,6 +1189,171 @@ const DropdownItem = styled.button`
 
   &:hover {
     background: #f9fafb;
+  }
+`;
+
+const CustomerActionRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const CustomerActionBtn = styled.button<{ $color: string }>`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: ${({ $color }) => $color};
+  color: white;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const PaymentOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+`;
+
+const PaymentCard = styled.div`
+  background: white;
+  border-radius: 16px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+`;
+
+const PaymentHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const PaymentTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+`;
+
+const PaymentBody = styled.div`
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const PaymentFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+`;
+
+const FormLabel = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.375rem;
+`;
+
+const FormInput = styled.input`
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  outline: none;
+  box-sizing: border-box;
+  color: #000;
+  background: #fff;
+
+  &:focus {
+    border-color: #1d4ed8;
+  }
+`;
+
+const FormSelect = styled.select`
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  outline: none;
+  box-sizing: border-box;
+  color: #000;
+  background: #fff;
+
+  &:focus {
+    border-color: #1d4ed8;
+  }
+`;
+
+const PaymentCancelBtn = styled.button`
+  padding: 0.5rem 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:hover {
+    background: #f9fafb;
+  }
+`;
+
+const PaymentConfirmBtn = styled.button`
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  background: #1d4ed8;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #1e40af;
+  }
+
+  &:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+  }
+`;
+
+const CloseModalBtn = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.25rem;
+
+  &:hover {
+    color: #111827;
   }
 `;
 

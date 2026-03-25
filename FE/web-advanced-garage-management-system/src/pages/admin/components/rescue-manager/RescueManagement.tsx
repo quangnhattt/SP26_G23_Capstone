@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useContext } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,17 +22,26 @@ import {
 import {
   getRescueRequests,
   updateRescueStatus,
-  proposeRescueToCustomer,
   assignTechnician,
   sendRescueQuote,
   cancelRescueRequest,
   markSpamRescueRequest,
+  acceptRescueJob,
+  arriveRescue,
+  customerConsent,
+  startDiagnosis,
+  completeRepair,
+  createRescueInvoice,
+  sendRescueInvoice,
   type IRescueRequest,
   type RescueStatus,
 } from "@/apis/rescue";
 import { getTechnicians, type ITechnician } from "@/apis/technicians";
 import { toast } from "react-toastify";
 import RescueDetailModal from "./RescueDetailModal";
+import ProposalModal from "./ProposalModal";
+import RescueStepProgress from "./RescueStepProgress";
+import { AuthContext } from "@/context/AuthContext";
 
 // ─── Status config ───────────────────────────────────────────
 const rescueStatusConfig: Record<
@@ -81,6 +90,18 @@ const rescueStatusConfig: Record<
     bg: "#cffafe",
     border: "#67e8f9",
   },
+  EN_ROUTE: {
+    label: "KTV đang đến",
+    color: "#0891b2",
+    bg: "#cffafe",
+    border: "#67e8f9",
+  },
+  ON_SITE: {
+    label: "KTV đã đến nơi",
+    color: "#0d9488",
+    bg: "#ccfbf1",
+    border: "#5eead4",
+  },
   RESCUE_VEHICLE_DISPATCHED: {
     label: "Đã điều xe cứu hộ",
     color: "#0891b2",
@@ -98,6 +119,12 @@ const rescueStatusConfig: Record<
     color: "#2563eb",
     bg: "#dbeafe",
     border: "#93c5fd",
+  },
+  REPAIR_COMPLETED: {
+    label: "Sửa xong",
+    color: "#16a34a",
+    bg: "#dcfce7",
+    border: "#86efac",
   },
   NEED_TOWING: {
     label: "Cần kéo xe",
@@ -117,8 +144,26 @@ const rescueStatusConfig: Record<
     bg: "#fee2e2",
     border: "#fca5a5",
   },
+  PROPOSED_ROADSIDE: {
+    label: "Đề xuất sửa tại chỗ",
+    color: "#2563eb",
+    bg: "#dbeafe",
+    border: "#93c5fd",
+  },
+  PROPOSED_TOWING: {
+    label: "Đề xuất kéo xe",
+    color: "#ea580c",
+    bg: "#fff7ed",
+    border: "#fdba74",
+  },
   INVOICED: {
     label: "Đã xuất hóa đơn",
+    color: "#7c3aed",
+    bg: "#ede9fe",
+    border: "#c4b5fd",
+  },
+  INVOICE_SENT: {
+    label: "Đã gửi hóa đơn",
     color: "#7c3aed",
     bg: "#ede9fe",
     border: "#c4b5fd",
@@ -152,6 +197,9 @@ const rescueStatusConfig: Record<
 // ─── Component ───────────────────────────────────────────────
 const RescueManagement = () => {
   const { t } = useTranslation();
+  const { user } = useContext(AuthContext);
+  const isSA = user?.roleID === 2;
+  const isTech = user?.roleID === 3;
   const [rescues, setRescues] = useState<IRescueRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -179,17 +227,29 @@ const RescueManagement = () => {
 
   // Assign form
   const [selectedTechId, setSelectedTechId] = useState<number | null>(null);
+  const [estimatedArrival, setEstimatedArrival] = useState("");
 
   // Diagnosis form
   const [canFixOnSite, setCanFixOnSite] = useState<boolean | null>(null);
   const [diagnosisNote, setDiagnosisNote] = useState("");
 
+  // Start Diagnosis modal
+  const [showStartDiagnosisModal, setShowStartDiagnosisModal] = useState(false);
+  const [diagnosisNotes, setDiagnosisNotes] = useState("");
+  const [canRepairOnSite, setCanRepairOnSite] = useState<boolean | null>(null);
+
+  // Complete Repair modal
+  const [showCompleteRepairModal, setShowCompleteRepairModal] = useState(false);
+  const [completionNotes, setCompletionNotes] = useState("");
+
+  // Invoice modal
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [rescueServiceFee, setRescueServiceFee] = useState("");
+  const [manualDiscount, setManualDiscount] = useState("0");
+  const [invoiceNotes, setInvoiceNotes] = useState("");
+
   // Proposal modal (Đề xuất)
   const [showProposalModal, setShowProposalModal] = useState(false);
-  const [proposalType, setProposalType] = useState<"TOWING" | "ON_SITE" | null>(null);
-  const [proposalNote, setProposalNote] = useState("");
-  const [proposalFee, setProposalFee] = useState("");
-  const [proposalSubmitting, setProposalSubmitting] = useState(false);
 
   // Spam / Cancel — nhập lý do trước khi gọi API
   const [reasonModal, setReasonModal] = useState<
@@ -237,19 +297,132 @@ const RescueManagement = () => {
     }
   };
 
-  const handleAssignTech = async () => {
-    if (!selectedRescue || !selectedTechId) return;
+  const [assignSubmitting, setAssignSubmitting] = useState(false);
+
+  const handleAssignAllTechs = async () => {
+    if (!selectedRescue || !estimatedArrival || technicians.length === 0) return;
+    setAssignSubmitting(true);
+    const isoDate = new Date(estimatedArrival).toISOString();
+    const errors: string[] = [];
+
+    const promises = technicians.map((tech) =>
+      assignTechnician(selectedRescue.rescueId, {
+        technicianId: tech.technicianId,
+        estimatedArrivalDateTime: isoDate,
+      }).catch(() => {
+        errors.push(tech.fullName);
+      }),
+    );
+    await Promise.all(promises);
+
+    setAssignSubmitting(false);
+    const successCount = technicians.length - errors.length;
+    if (successCount > 0) {
+      toast.success(`Đã gửi yêu cầu đến ${successCount} kỹ thuật viên!`);
+    }
+    if (errors.length > 0 && successCount === 0) {
+      toast.error(t("rescueMgrAssignError"));
+    }
+    setShowAssignModal(false);
+    setEstimatedArrival("");
+    fetchRescues();
+  };
+
+  const handleAcceptJob = async (id: number) => {
     try {
-      await assignTechnician(selectedRescue.rescueId, {
-        technicianId: selectedTechId,
-      });
-      toast.success(t("rescueMgrTechAssigned"));
-      setShowAssignModal(false);
-      setSelectedTechId(null);
+      await acceptRescueJob(id);
+      toast.success("KTV đã nhận job!");
       fetchRescues();
     } catch (error) {
-      console.error("Error assigning technician:", error);
-      toast.error(t("rescueMgrAssignError"));
+      console.error("Error accepting job:", error);
+      toast.error("Nhận job thất bại!");
+    }
+  };
+
+  const handleArrive = async (id: number) => {
+    try {
+      await arriveRescue(id);
+      toast.success("KTV đã xác nhận đến nơi!");
+      fetchRescues();
+    } catch (error) {
+      console.error("Error arriving:", error);
+      toast.error("Xác nhận đến nơi thất bại!");
+    }
+  };
+
+  const handleCustomerConsent = async (id: number) => {
+    try {
+      await customerConsent(id);
+      toast.success("Khách hàng đã duyệt sửa tại chỗ!");
+      fetchRescues();
+    } catch (error) {
+      console.error("Error customer consent:", error);
+      toast.error("Duyệt sửa tại chỗ thất bại!");
+    }
+  };
+
+  const handleStartDiagnosis = async () => {
+    if (!selectedRescue || canRepairOnSite === null) return;
+    try {
+      await startDiagnosis(selectedRescue.rescueId, {
+        diagnosisNotes: diagnosisNotes.trim(),
+        canRepairOnSite,
+      });
+      toast.success("Đã gửi kết quả chẩn đoán!");
+      setShowStartDiagnosisModal(false);
+      setDiagnosisNotes("");
+      setCanRepairOnSite(null);
+      fetchRescues();
+    } catch (error) {
+      console.error("Error starting diagnosis:", error);
+      toast.error("Gửi chẩn đoán thất bại!");
+    }
+  };
+
+  const handleCompleteRepair = async () => {
+    if (!selectedRescue) return;
+    try {
+      await completeRepair(selectedRescue.rescueId, {
+        completionNotes: completionNotes.trim() || undefined,
+      });
+      toast.success("Đã báo hoàn tất sửa chữa!");
+      setShowCompleteRepairModal(false);
+      setCompletionNotes("");
+      fetchRescues();
+    } catch (error) {
+      console.error("Error completing repair:", error);
+      toast.error("Báo hoàn tất thất bại!");
+    }
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!selectedRescue || !rescueServiceFee) return;
+    try {
+      await createRescueInvoice(selectedRescue.rescueId, {
+        rescueServiceFee: Number(rescueServiceFee),
+        manualDiscount: Number(manualDiscount) || 0,
+        notes: invoiceNotes.trim() || undefined,
+      });
+      toast.success("Đã tạo hóa đơn!");
+      setShowInvoiceModal(false);
+      setRescueServiceFee("");
+      setManualDiscount("0");
+      setInvoiceNotes("");
+      fetchRescues();
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      toast.error("Tạo hóa đơn thất bại!");
+    }
+  };
+
+  const handleSendInvoice = async (id: number) => {
+    try {
+      await sendRescueInvoice(id);
+      toast.success("Đã gửi hóa đơn cho khách hàng!");
+      fetchRescues();
+    } catch (error) {
+      console.error("Error sending invoice:", error);
+      toast.error("Gửi hóa đơn thất bại!");
     }
   };
 
@@ -301,32 +474,6 @@ const RescueManagement = () => {
     setDiagnosisNote("");
   };
 
-  const resetProposalForm = () => {
-    setProposalType(null);
-    setProposalNote("");
-    setProposalFee("");
-  };
-
-  const handleProposalSubmit = async () => {
-    if (!selectedRescue || !proposalType || !proposalFee) return;
-    try {
-      setProposalSubmitting(true);
-      await proposeRescueToCustomer(selectedRescue.rescueId, {
-        rescueType: proposalType === "TOWING" ? "TOWING" : "ROADSIDE",
-        proposalNotes: proposalNote.trim() || undefined,
-        estimatedServiceFee: Number(proposalFee),
-      });
-      toast.success("Đã gửi đề xuất cho khách hàng!");
-      setShowProposalModal(false);
-      resetProposalForm();
-      fetchRescues();
-    } catch (error) {
-      console.error("Error submitting proposal:", error);
-      toast.error("Gửi đề xuất thất bại!");
-    } finally {
-      setProposalSubmitting(false);
-    }
-  };
 
   const openReasonModal = (type: "spam" | "cancel", rescue: IRescueRequest) => {
     setReasonModal({ type, rescue });
@@ -369,7 +516,7 @@ const RescueManagement = () => {
   const totalCount = rescues.length;
   const pendingCount = rescues.filter((r) => r.status === "PENDING").length;
   const activeCount = rescues.filter((r) =>
-    ["ACCEPTED", "EVALUATING", "QUOTE_SENT", "CUSTOMER_APPROVED", "TECHNICIAN_DISPATCHED", "RESCUE_VEHICLE_DISPATCHED", "DIAGNOSING", "REPAIRING_ON_SITE"].includes(r.status),
+    ["ACCEPTED", "EVALUATING", "QUOTE_SENT", "PROPOSED_ROADSIDE", "PROPOSED_TOWING", "CUSTOMER_APPROVED", "TECHNICIAN_DISPATCHED", "EN_ROUTE", "ON_SITE", "RESCUE_VEHICLE_DISPATCHED", "DIAGNOSING", "REPAIRING_ON_SITE", "REPAIR_COMPLETED", "INVOICED", "INVOICE_SENT"].includes(r.status),
   ).length;
   const towingCount = rescues.filter((r) =>
     ["NEED_TOWING", "TOWING_CONFIRMED"].includes(r.status),
@@ -385,7 +532,7 @@ const RescueManagement = () => {
     .filter((r) => {
       if (filterStatus === "all") return true;
       if (filterStatus === "ACTIVE")
-        return ["ACCEPTED", "EVALUATING", "QUOTE_SENT", "CUSTOMER_APPROVED", "TECHNICIAN_DISPATCHED", "RESCUE_VEHICLE_DISPATCHED", "DIAGNOSING", "REPAIRING_ON_SITE"].includes(r.status);
+        return ["ACCEPTED", "EVALUATING", "QUOTE_SENT", "PROPOSED_ROADSIDE", "PROPOSED_TOWING", "CUSTOMER_APPROVED", "TECHNICIAN_DISPATCHED", "EN_ROUTE", "ON_SITE", "RESCUE_VEHICLE_DISPATCHED", "DIAGNOSING", "REPAIRING_ON_SITE", "REPAIR_COMPLETED", "INVOICED", "INVOICE_SENT"].includes(r.status);
       if (filterStatus === "TOWING")
         return ["NEED_TOWING", "TOWING_CONFIRMED"].includes(r.status);
       if (filterStatus === "DONE")
@@ -440,164 +587,177 @@ const RescueManagement = () => {
     }[] = [];
 
     switch (rescue.status) {
+      // ═══ SA-only steps ═══
       case "PENDING":
-        // SA: Kiểm tra yêu cầu → Đề xuất / Đánh dấu spam
-        actions.push({
-          label: "Đề xuất",
-          icon: <FaClipboardCheck size={12} />,
-          color: "#2563eb",
-          onClick: () => {
-            setSelectedRescue(rescue);
-            resetProposalForm();
-            setShowProposalModal(true);
-          },
-        });
-        actions.push({
-          label: t("rescueMgrMarkSpam"),
-          icon: <FaBan size={12} />,
-          color: "#6b7280",
-          onClick: () => openReasonModal("spam", rescue),
-        });
+        if (isSA) {
+          actions.push({
+            label: "Đề xuất",
+            icon: <FaClipboardCheck size={12} />,
+            color: "#2563eb",
+            onClick: () => { setSelectedRescue(rescue); setShowProposalModal(true); },
+          });
+          actions.push({
+            label: t("rescueMgrMarkSpam"),
+            icon: <FaBan size={12} />,
+            color: "#6b7280",
+            onClick: () => openReasonModal("spam", rescue),
+          });
+        }
         break;
 
       case "ACCEPTED":
-        // SA: Đánh giá năng lực xưởng → Gửi báo giá
-        actions.push({
-          label: t("rescueMgrEvaluate"),
-          icon: <FaClipboardCheck size={12} />,
-          color: "#2563eb",
-          onClick: () =>
-            handleUpdateStatus(rescue.rescueId, "EVALUATING"),
-        });
+        if (isSA) {
+          actions.push({
+            label: t("rescueMgrEvaluate"),
+            icon: <FaClipboardCheck size={12} />,
+            color: "#2563eb",
+            onClick: () => handleUpdateStatus(rescue.rescueId, "EVALUATING"),
+          });
+        }
         break;
 
       case "EVALUATING":
-        // SA: Gửi báo giá
-        actions.push({
-          label: t("rescueMgrSendQuote"),
-          icon: <FaFileInvoiceDollar size={12} />,
-          color: "#7c3aed",
-          onClick: () => {
-            setSelectedRescue(rescue);
-            setDepositRequired(false);
-            setShowQuoteModal(true);
-          },
-        });
+        if (isSA) {
+          actions.push({
+            label: t("rescueMgrSendQuote"),
+            icon: <FaFileInvoiceDollar size={12} />,
+            color: "#7c3aed",
+            onClick: () => { setSelectedRescue(rescue); setDepositRequired(false); setShowQuoteModal(true); },
+          });
+        }
         break;
 
+      case "PROPOSED_ROADSIDE":
       case "CUSTOMER_APPROVED":
-        // SA: Điều động kỹ thuật viên
-        actions.push({
-          label: t("rescueMgrDispatchTech"),
-          icon: <FaUserCog size={12} />,
-          color: "#0891b2",
-          onClick: () => {
-            setSelectedRescue(rescue);
-            setShowAssignModal(true);
-          },
-        });
+        if (isSA) {
+          actions.push({
+            label: t("rescueMgrDispatchTech"),
+            icon: <FaUserCog size={12} />,
+            color: "#0891b2",
+            onClick: () => { setSelectedRescue(rescue); setSelectedTechId(null); setEstimatedArrival(""); setShowAssignModal(true); },
+          });
+          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+        }
         break;
 
+      // ═══ Technician steps ═══
       case "TECHNICIAN_DISPATCHED":
-        // SA: Điều xe cứu hộ
-        actions.push({
-          label: t("rescueMgrDispatchVehicle"),
-          icon: <FaTruck size={12} />,
-          color: "#0891b2",
-          onClick: () =>
-            handleUpdateStatus(
-              rescue.rescueId,
-              "RESCUE_VEHICLE_DISPATCHED",
-            ),
-        });
+        if (isTech) {
+          actions.push({
+            label: "Nhận job",
+            icon: <FaCheck size={12} />,
+            color: "#0891b2",
+            onClick: () => handleAcceptJob(rescue.rescueId),
+          });
+        }
+        if (isSA) {
+          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+        }
+        break;
+
+      case "EN_ROUTE":
+        if (isTech) {
+          actions.push({
+            label: "Xác nhận đã đến nơi",
+            icon: <FaMapMarkerAlt size={12} />,
+            color: "#0d9488",
+            onClick: () => handleArrive(rescue.rescueId),
+          });
+        }
+        if (isSA) {
+          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+        }
+        break;
+
+      case "ON_SITE":
+      case "DIAGNOSING":
+        if (isTech) {
+          actions.push({
+            label: "Bắt đầu chẩn đoán",
+            icon: <FaTools size={12} />,
+            color: "#ea580c",
+            onClick: () => { setSelectedRescue(rescue); setDiagnosisNotes(""); setCanRepairOnSite(null); setShowStartDiagnosisModal(true); },
+          });
+        }
+        if (isSA) {
+          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+        }
         break;
 
       case "RESCUE_VEHICLE_DISPATCHED":
-        // KTV: Chẩn đoán tại chỗ
-        actions.push({
-          label: t("rescueMgrDiagnose"),
-          icon: <FaTools size={12} />,
-          color: "#ea580c",
-          onClick: () => {
-            setSelectedRescue(rescue);
-            setShowDiagnosisModal(true);
-          },
-        });
+        if (isTech) {
+          actions.push({
+            label: t("rescueMgrDiagnose"),
+            icon: <FaTools size={12} />,
+            color: "#ea580c",
+            onClick: () => { setSelectedRescue(rescue); setShowDiagnosisModal(true); },
+          });
+        }
+        if (isSA) {
+          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+        }
         break;
 
       case "REPAIRING_ON_SITE":
-        // KTV: Hoàn tất sửa chữa → Báo cáo SA → Xuất hóa đơn
-        actions.push({
-          label: t("rescueMgrCompleteRepair"),
-          icon: <FaWrench size={12} />,
-          color: "#16a34a",
-          onClick: () =>
-            handleUpdateStatus(rescue.rescueId, "INVOICED"),
-        });
+        if (isTech) {
+          actions.push({
+            label: "Hoàn tất sửa chữa",
+            icon: <FaWrench size={12} />,
+            color: "#16a34a",
+            onClick: () => { setSelectedRescue(rescue); setCompletionNotes(""); setShowCompleteRepairModal(true); },
+          });
+        }
+        if (isSA) {
+          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+        }
+        break;
+
+      // ═══ SA-only steps (invoice flow) ═══
+      case "REPAIR_COMPLETED":
+        if (isSA) {
+          actions.push({
+            label: "Tạo hóa đơn",
+            icon: <FaFileInvoiceDollar size={12} />,
+            color: "#7c3aed",
+            onClick: () => { setSelectedRescue(rescue); setRescueServiceFee(""); setManualDiscount("0"); setInvoiceNotes(""); setShowInvoiceModal(true); },
+          });
+          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+        }
         break;
 
       case "NEED_TOWING":
-        // SA: Gửi phương án cứu hộ → Khách đồng ý kéo xe?
-        actions.push({
-          label: t("rescueMgrConfirmTowing"),
-          icon: <FaTruck size={12} />,
-          color: "#16a34a",
-          onClick: () =>
-            handleUpdateStatus(rescue.rescueId, "TOWING_CONFIRMED"),
-        });
-        actions.push({
-          label: t("rescueMgrRejectTowing"),
-          icon: <FaTimes size={12} />,
-          color: "#dc2626",
-          onClick: () =>
-            handleUpdateStatus(rescue.rescueId, "TOWING_REJECTED"),
-        });
+        if (isSA) {
+          actions.push({ label: t("rescueMgrConfirmTowing"), icon: <FaTruck size={12} />, color: "#16a34a", onClick: () => handleUpdateStatus(rescue.rescueId, "TOWING_CONFIRMED") });
+          actions.push({ label: t("rescueMgrRejectTowing"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => handleUpdateStatus(rescue.rescueId, "TOWING_REJECTED") });
+        }
         break;
 
       case "TOWING_CONFIRMED":
-        // Kích hoạt tiếp nhận dịch vụ → Xuất hóa đơn
-        actions.push({
-          label: t("rescueMgrGenerateInvoice"),
-          icon: <FaFileInvoiceDollar size={12} />,
-          color: "#7c3aed",
-          onClick: () =>
-            handleUpdateStatus(rescue.rescueId, "INVOICED"),
-        });
+        if (isSA) {
+          actions.push({ label: t("rescueMgrGenerateInvoice"), icon: <FaFileInvoiceDollar size={12} />, color: "#7c3aed", onClick: () => handleUpdateStatus(rescue.rescueId, "INVOICED") });
+          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+        }
         break;
 
       case "INVOICED":
-        // Thanh toán thành công
-        actions.push({
-          label: t("rescueMgrMarkPaid"),
-          icon: <FaMoneyBillWave size={12} />,
-          color: "#16a34a",
-          onClick: () =>
-            handleUpdateStatus(rescue.rescueId, "PAID"),
-        });
+        if (isSA) {
+          actions.push({ label: "Gửi hóa đơn", icon: <FaFileInvoiceDollar size={12} />, color: "#7c3aed", onClick: () => handleSendInvoice(rescue.rescueId) });
+          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+        }
+        break;
+
+      case "INVOICE_SENT":
+        if (isSA) {
+          actions.push({ label: t("rescueMgrMarkPaid"), icon: <FaMoneyBillWave size={12} />, color: "#16a34a", onClick: () => handleUpdateStatus(rescue.rescueId, "PAID") });
+          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+        }
         break;
 
       case "PAID":
-        // Hoàn thành
-        actions.push({
-          label: t("rescueMgrComplete"),
-          icon: <FaCheck size={12} />,
-          color: "#16a34a",
-          onClick: () =>
-            handleUpdateStatus(rescue.rescueId, "COMPLETED"),
-        });
+        if (isSA) {
+          actions.push({ label: t("rescueMgrComplete"), icon: <FaCheck size={12} />, color: "#16a34a", onClick: () => handleUpdateStatus(rescue.rescueId, "COMPLETED") });
+        }
         break;
-    }
-
-    // Cancel always available for non-terminal states
-    if (
-      !["COMPLETED", "CANCELLED", "SPAM", "PAID"].includes(rescue.status)
-    ) {
-      actions.push({
-        label: t("rescueMgrCancel"),
-        icon: <FaTimes size={12} />,
-        color: "#dc2626",
-        onClick: () => openReasonModal("cancel", rescue),
-      });
     }
 
     return actions;
@@ -739,6 +899,8 @@ const RescueManagement = () => {
                       </InfoChip>
                     </CardInfoRow>
                   )}
+
+                  <RescueStepProgress status={item.status} />
                 </CardLeft>
 
                 <CardRight>
@@ -859,14 +1021,12 @@ const RescueManagement = () => {
             </ModalHeader>
             <ModalBody>
               <FormGroup>
-                <FormLabel>{t("rescueMgrSelectTech")} *</FormLabel>
+                <FormLabel>
+                  Gửi đến tất cả {technicians.length} kỹ thuật viên
+                </FormLabel>
                 <TechList>
                   {technicians.map((tech) => (
-                    <TechCard
-                      key={tech.technicianId}
-                      $selected={selectedTechId === tech.technicianId}
-                      onClick={() => setSelectedTechId(tech.technicianId)}
-                    >
+                    <TechCard key={tech.technicianId} $selected={false}>
                       <TechName>{tech.fullName}</TechName>
                       <TechInfo>{tech.phone}</TechInfo>
                       {tech.skills && <TechInfo>{tech.skills}</TechInfo>}
@@ -874,16 +1034,26 @@ const RescueManagement = () => {
                   ))}
                 </TechList>
               </FormGroup>
+              <FormGroup>
+                <FormLabel>Thời gian dự kiến đến *</FormLabel>
+                <FormInput
+                  type="datetime-local"
+                  value={estimatedArrival}
+                  onChange={(e) => setEstimatedArrival(e.target.value)}
+                />
+              </FormGroup>
             </ModalBody>
             <ModalFooter>
               <ModalCancelBtn onClick={() => setShowAssignModal(false)}>
                 {t("rescueMgrCancel")}
               </ModalCancelBtn>
               <ModalConfirmBtn
-                onClick={handleAssignTech}
-                disabled={!selectedTechId}
+                onClick={handleAssignAllTechs}
+                disabled={!estimatedArrival || assignSubmitting}
               >
-                {t("rescueMgrAssign")}
+                {assignSubmitting
+                  ? "Đang gửi..."
+                  : `Gửi cho tất cả KTV (${technicians.length})`}
               </ModalConfirmBtn>
             </ModalFooter>
           </ModalContent>
@@ -950,68 +1120,161 @@ const RescueManagement = () => {
 
       {/* ─── Proposal Modal (Đề xuất) ─── */}
       {showProposalModal && selectedRescue && (
-        <ModalOverlay onClick={() => { setShowProposalModal(false); resetProposalForm(); }}>
+        <ProposalModal
+          rescue={selectedRescue}
+          onClose={() => setShowProposalModal(false)}
+          onSuccess={() => {
+            setShowProposalModal(false);
+            fetchRescues();
+          }}
+        />
+      )}
+
+      {/* ─── Start Diagnosis Modal ─── */}
+      {showStartDiagnosisModal && selectedRescue && (
+        <ModalOverlay onClick={() => setShowStartDiagnosisModal(false)}>
           <ModalContent
             onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: "500px" }}
           >
             <ModalHeader>
-              <ModalTitle>Đề xuất phương án cứu hộ</ModalTitle>
-              <CloseBtn onClick={() => { setShowProposalModal(false); resetProposalForm(); }}>
+              <ModalTitle>Chẩn đoán lỗi xe</ModalTitle>
+              <CloseBtn onClick={() => setShowStartDiagnosisModal(false)}>
                 <FaTimes />
               </CloseBtn>
             </ModalHeader>
             <ModalBody>
               <FormGroup>
-                <FormLabel>Phương án xử lý *</FormLabel>
-                <RadioGroup>
-                  <RadioOption
-                    $selected={proposalType === "TOWING"}
-                    onClick={() => setProposalType("TOWING")}
-                  >
-                    <FaTruck size={14} />
-                    Kéo xe
-                  </RadioOption>
-                  <RadioOption
-                    $selected={proposalType === "ON_SITE"}
-                    onClick={() => setProposalType("ON_SITE")}
-                  >
-                    <FaWrench size={14} />
-                    Sửa tại chỗ
-                  </RadioOption>
-                </RadioGroup>
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>Ghi chú</FormLabel>
+                <FormLabel>Ghi chú chẩn đoán *</FormLabel>
                 <FormTextarea
-                  value={proposalNote}
-                  onChange={(e) => setProposalNote(e.target.value)}
-                  rows={3}
-                  placeholder="Ghi chú thêm cho khách hàng..."
+                  value={diagnosisNotes}
+                  onChange={(e) => setDiagnosisNotes(e.target.value)}
+                  rows={4}
+                  placeholder="Mô tả tình trạng xe sau khi chẩn đoán..."
                 />
               </FormGroup>
               <FormGroup>
-                <FormLabel>Phí dịch vụ ước tính (VND) *</FormLabel>
-                <FormInput
-                  type="number"
-                  value={proposalFee}
-                  onChange={(e) => setProposalFee(e.target.value)}
-                  placeholder="Nhập phí dịch vụ ước tính"
+                <FormLabel>Có thể sửa tại chỗ? *</FormLabel>
+                <RadioGroup>
+                  <RadioOption
+                    $selected={canRepairOnSite === true}
+                    onClick={() => setCanRepairOnSite(true)}
+                  >
+                    <FaCheck size={14} />
+                    Sửa tại chỗ
+                  </RadioOption>
+                  <RadioOption
+                    $selected={canRepairOnSite === false}
+                    onClick={() => setCanRepairOnSite(false)}
+                  >
+                    <FaTruck size={14} />
+                    Cần kéo xe
+                  </RadioOption>
+                </RadioGroup>
+              </FormGroup>
+            </ModalBody>
+            <ModalFooter>
+              <ModalCancelBtn onClick={() => setShowStartDiagnosisModal(false)}>
+                Hủy
+              </ModalCancelBtn>
+              <ModalConfirmBtn
+                onClick={handleStartDiagnosis}
+                disabled={!diagnosisNotes.trim() || canRepairOnSite === null}
+              >
+                Gửi chẩn đoán
+              </ModalConfirmBtn>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {/* ─── Complete Repair Modal ─── */}
+      {showCompleteRepairModal && selectedRescue && (
+        <ModalOverlay onClick={() => setShowCompleteRepairModal(false)}>
+          <ModalContent
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "500px" }}
+          >
+            <ModalHeader>
+              <ModalTitle>Hoàn tất sửa chữa</ModalTitle>
+              <CloseBtn onClick={() => setShowCompleteRepairModal(false)}>
+                <FaTimes />
+              </CloseBtn>
+            </ModalHeader>
+            <ModalBody>
+              <FormGroup>
+                <FormLabel>Ghi chú hoàn tất</FormLabel>
+                <FormTextarea
+                  value={completionNotes}
+                  onChange={(e) => setCompletionNotes(e.target.value)}
+                  rows={4}
+                  placeholder="Mô tả công việc đã thực hiện..."
                 />
               </FormGroup>
             </ModalBody>
             <ModalFooter>
-              <ModalCancelBtn
-                onClick={() => { setShowProposalModal(false); resetProposalForm(); }}
-                disabled={proposalSubmitting}
-              >
+              <ModalCancelBtn onClick={() => setShowCompleteRepairModal(false)}>
+                Hủy
+              </ModalCancelBtn>
+              <ModalConfirmBtn onClick={handleCompleteRepair}>
+                Xác nhận hoàn tất
+              </ModalConfirmBtn>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {/* ─── Create Invoice Modal ─── */}
+      {showInvoiceModal && selectedRescue && (
+        <ModalOverlay onClick={() => setShowInvoiceModal(false)}>
+          <ModalContent
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "500px" }}
+          >
+            <ModalHeader>
+              <ModalTitle>Tạo hóa đơn</ModalTitle>
+              <CloseBtn onClick={() => setShowInvoiceModal(false)}>
+                <FaTimes />
+              </CloseBtn>
+            </ModalHeader>
+            <ModalBody>
+              <FormGroup>
+                <FormLabel>Phí dịch vụ cứu hộ (VND) *</FormLabel>
+                <FormInput
+                  type="number"
+                  value={rescueServiceFee}
+                  onChange={(e) => setRescueServiceFee(e.target.value)}
+                  placeholder="Nhập phí dịch vụ"
+                />
+              </FormGroup>
+              <FormGroup>
+                <FormLabel>Giảm giá (VND)</FormLabel>
+                <FormInput
+                  type="number"
+                  value={manualDiscount}
+                  onChange={(e) => setManualDiscount(e.target.value)}
+                  placeholder="0"
+                />
+              </FormGroup>
+              <FormGroup>
+                <FormLabel>Ghi chú</FormLabel>
+                <FormTextarea
+                  value={invoiceNotes}
+                  onChange={(e) => setInvoiceNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Ghi chú hóa đơn..."
+                />
+              </FormGroup>
+            </ModalBody>
+            <ModalFooter>
+              <ModalCancelBtn onClick={() => setShowInvoiceModal(false)}>
                 Hủy
               </ModalCancelBtn>
               <ModalConfirmBtn
-                onClick={handleProposalSubmit}
-                disabled={!proposalType || !proposalFee || proposalSubmitting}
+                onClick={handleCreateInvoice}
+                disabled={!rescueServiceFee}
               >
-                {proposalSubmitting ? "Đang gửi..." : "Gửi"}
+                Tạo hóa đơn
               </ModalConfirmBtn>
             </ModalFooter>
           </ModalContent>
