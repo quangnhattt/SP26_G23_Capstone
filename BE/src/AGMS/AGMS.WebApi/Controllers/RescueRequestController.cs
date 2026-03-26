@@ -1038,3 +1038,24 @@ public class RescueRequestController : ControllerBase
     /// <summary>Kiểm tra role của user hiện tại từ JWT claim Role.</summary>
     private bool IsRole(string role) => User.FindFirstValue(ClaimTypes.Role) == role;
 }
+
+// Bổ sung Enum status Rescue cho FE
+// PENDING: khách vừa tạo yêu cầu cứu hộ, hệ thống mới tiếp nhận.
+// REVIEWING: SA đang xem xét yêu cầu. Có khai báo trong constants, nhưng hiện chưa thấy service set trực tiếp.
+// PROPOSED_ROADSIDE: SA đã đề xuất phương án sửa tại chỗ.
+// PROPOSED_TOWING: SA đã đề xuất kéo xe về xưởng. Trạng thái này cũng dùng khi khách từ chối sửa tại chỗ hoặc kỹ thuật viên xác nhận không sửa tại chỗ được.
+// DISPATCHED: SA đã phân công kỹ thuật viên cho ca cứu hộ tại chỗ.
+// EN_ROUTE: kỹ thuật viên đã nhận job và đang di chuyển tới hiện trường.
+// ON_SITE: kỹ thuật viên đã tới nơi.
+// DIAGNOSING: bắt đầu chẩn đoán tại hiện trường, đồng thời đã tạo Repair Order.
+// REPAIRING: đang thực hiện sửa chữa tại chỗ.
+// REPAIR_COMPLETE: sửa tại chỗ xong.
+// TOWING_DISPATCHED: đã điều phối dịch vụ kéo xe.
+// TOWING_ACCEPTED: khách đã chấp nhận phương án kéo xe.
+// TOWED: xe đã được kéo về xưởng.
+// INVOICED: đã tạo hóa đơn.
+// INVOICE_SENT: hóa đơn đã được gửi cho khách.
+// PAYMENT_PENDING: khách đã chấp nhận hóa đơn, đang chờ thanh toán.
+// COMPLETED: đã thanh toán xong, ca cứu hộ hoàn tất.
+// CANCELLED: yêu cầu bị hủy.
+// SPAM: trạng thái logic cho yêu cầu rác. Có khai báo trong constants, nhưng code hiện tại khi mark spam lại set thẳng sang CANCELLED, nên thực tế gần như không lưu SPAM riêng
