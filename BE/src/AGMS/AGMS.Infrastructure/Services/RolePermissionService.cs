@@ -87,15 +87,17 @@ namespace AGMS.Infrastructure.Services
             // 2. Lấy tất cả các nhóm quyền từ DB
             var groups = await _groupRepo.GetAllWithPermissionsAsync();
 
-            // 3. Lọc và trả về kết quả
+            // 3. Lọc, Sắp xếp và trả về kết quả
             return groups
-                // Điều kiện: Nhóm này phải chứa ít nhất 1 quyền nằm trong danh sách allowedPermissionIds
                 .Where(g => g.Permissions.Any(p => allowedPermissionIds.Contains(p.PermissionID)))
                 .Select(g => new MenuGroupDto
                 {
                     GroupID = g.GroupID,
                     GroupName = g.GroupName
                 })
+                .OrderBy(g => g.GroupName.ToLower().Contains("dashboard") ? 0 : 1)
+                // xếp theo ID
+                .ThenBy(g => g.GroupID)
                 .ToList();
         }
     }
