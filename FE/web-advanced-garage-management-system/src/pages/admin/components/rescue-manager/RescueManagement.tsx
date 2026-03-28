@@ -73,8 +73,10 @@ const rescueStatusConfig: Record<
   INVOICE_SENT:      { label: "Đã gửi hóa đơn",       color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd" },
   PAYMENT_PENDING:   { label: "Chờ thanh toán",        color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
   COMPLETED:         { label: "Hoàn thành",            color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  CANCELLED:         { label: "Đã hủy",               color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" },
-  SPAM:              { label: "Thư rác",               color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" },
+  CANCELLED:          { label: "Đã hủy",               color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" },
+  SPAM:               { label: "Thư rác",               color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" },
+  CUSTOMER_REJECTED:  { label: "KH từ chối",            color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
+  TOWING_REJECTED:    { label: "Từ chối kéo xe",        color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
 };
 
 // ─── Component ───────────────────────────────────────────────

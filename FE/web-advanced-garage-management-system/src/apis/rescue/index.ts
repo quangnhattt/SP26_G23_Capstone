@@ -52,7 +52,9 @@ export type RescueStatus =
   | "PAYMENT_PENDING"
   | "COMPLETED"
   | "CANCELLED"
-  | "SPAM";
+  | "SPAM"
+  | "CUSTOMER_REJECTED"
+  | "TOWING_REJECTED";
 
 export interface IRescueCreatePayload {
   carId: number;

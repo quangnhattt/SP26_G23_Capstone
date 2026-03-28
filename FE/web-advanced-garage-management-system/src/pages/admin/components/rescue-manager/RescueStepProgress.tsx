@@ -31,13 +31,13 @@ const ON_SITE_STEPS: {
     key: "assign",
     label: "Điều phối KTV",
     icon: <FaUserCog size={14} />,
-    statuses: ["CUSTOMER_APPROVED"],
+    statuses: ["TOWING_ACCEPTED"],
   },
   {
     key: "accept",
     label: "KTV nhận job",
     icon: <FaTruck size={14} />,
-    statuses: ["TECHNICIAN_DISPATCHED"],
+    statuses: ["DISPATCHED"],
   },
   {
     key: "arrive",
@@ -55,13 +55,13 @@ const ON_SITE_STEPS: {
     key: "repair",
     label: "Sửa chữa",
     icon: <FaWrench size={14} />,
-    statuses: ["REPAIRING_ON_SITE"],
+    statuses: ["REPAIRING"],
   },
   {
     key: "complete",
     label: "Sửa xong",
     icon: <FaCheckCircle size={14} />,
-    statuses: ["REPAIR_COMPLETED"],
+    statuses: ["REPAIR_COMPLETE"],
   },
   {
     key: "invoice",
@@ -79,7 +79,7 @@ const ON_SITE_STEPS: {
     key: "paid",
     label: "Thanh toán",
     icon: <FaMoneyBillWave size={14} />,
-    statuses: ["PAID"],
+    statuses: ["PAYMENT_PENDING"],
   },
   {
     key: "done",
