@@ -22,8 +22,9 @@ import { getAppointments, getAppointmentById, type IAppointment, type IAppointme
 import {
   getRescueRequests,
   getRescueCustomerById,
-  customerConsent,
   makeRescuePayment,
+  customerConsent,
+  acceptTowing,
   acceptRescueJob,
   arriveRescue,
   type IRescueRequest,
@@ -47,24 +48,21 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
 const IN_PROGRESS_STATUSES = ["PENDING", "CONFIRMED", "CHECKED_IN"];
 const IN_PROGRESS_RESCUE_STATUSES = [
   "PENDING",
-  "ACCEPTED",
-  "EVALUATING",
-  "QUOTE_SENT",
+  "REVIEWING",
   "PROPOSED_ROADSIDE",
   "PROPOSED_TOWING",
-  "CUSTOMER_APPROVED",
-  "TECHNICIAN_DISPATCHED",
+  "DISPATCHED",
   "EN_ROUTE",
   "ON_SITE",
-  "RESCUE_VEHICLE_DISPATCHED",
   "DIAGNOSING",
-  "REPAIRING_ON_SITE",
-  "REPAIR_COMPLETED",
-  "NEED_TOWING",
-  "TOWING_CONFIRMED",
+  "REPAIRING",
+  "REPAIR_COMPLETE",
+  "TOWING_DISPATCHED",
+  "TOWING_ACCEPTED",
+  "TOWED",
   "INVOICED",
   "INVOICE_SENT",
-  "PAID",
+  "PAYMENT_PENDING",
 ];
 type MainTab = "BOOKING" | "RESCUE";
 
@@ -92,9 +90,12 @@ const AppointmentsPage = () => {
   const isCustomer = user?.roleID === 4;
 
   // Customer action states
-  const [consentingId, setConsentingId] = useState<number | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentRescueId, setPaymentRescueId] = useState<number | null>(null);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [consentModalRescue, setConsentModalRescue] = useState<IRescueRequest | null>(null);
+  const [consentNotes, setConsentNotes] = useState("");
+  const [consenting, setConsenting] = useState(false);
+  const [acceptingTowingId, setAcceptingTowingId] = useState<number | null>(null);
+  const [invoiceModalRescue, setInvoiceModalRescue] = useState<IRescueRequest | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<IRescuePaymentPayload["paymentMethod"]>("TRANSFER");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
@@ -102,6 +103,10 @@ const AppointmentsPage = () => {
 
   // Technician simple action loading
   const [techActionLoadingId, setTechActionLoadingId] = useState<number | null>(null);
+
+  // Technician accept-job modal
+  const [showAcceptJobModal, setShowAcceptJobModal] = useState(false);
+  const [acceptJobRescue, setAcceptJobRescue] = useState<IRescueRequest | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -135,6 +140,15 @@ const AppointmentsPage = () => {
 
     fetchAppointments();
     fetchRescueRequests();
+
+    // Auto-refresh rescue list when another tab (SA/KTV/Customer) updates localStorage
+    const onStorageChange = (e: StorageEvent) => {
+      if (e.key === "sp26_rescue_mock_v1") {
+        fetchRescueRequests();
+      }
+    };
+    window.addEventListener("storage", onStorageChange);
+    return () => window.removeEventListener("storage", onStorageChange);
   }, [user, navigate]);
 
   const filteredAppointments = appointments
@@ -262,12 +276,19 @@ const AppointmentsPage = () => {
     try {
       await acceptRescueJob(id);
       toast.success("Đã nhận job cứu hộ!");
+      setShowAcceptJobModal(false);
+      setAcceptJobRescue(null);
       fetchRescueRequestsRefresh();
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Nhận job thất bại!"));
     } finally {
       setTechActionLoadingId(null);
     }
+  };
+
+  const openAcceptJobModal = (rescue: IRescueRequest) => {
+    setAcceptJobRescue(rescue);
+    setShowAcceptJobModal(true);
   };
 
   const handleTechArrive = async (id: number) => {
@@ -283,32 +304,17 @@ const AppointmentsPage = () => {
     }
   };
 
-  // ─── Customer actions ─────────────────────────────────────
-  const handleCustomerConsent = async (id: number) => {
-    setConsentingId(id);
-    try {
-      await customerConsent(id);
-      toast.success("Đã xác nhận duyệt sửa tại chỗ!");
-      fetchRescueRequestsRefresh();
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, "Xác nhận thất bại!"));
-    } finally {
-      setConsentingId(null);
-    }
-  };
-
   const handlePaymentSubmit = async () => {
-    if (!paymentRescueId || !paymentAmount) return;
+    if (!invoiceModalRescue || !paymentAmount) return;
     setPaymentSubmitting(true);
     try {
-      await makeRescuePayment(paymentRescueId, {
+      await makeRescuePayment(invoiceModalRescue.rescueId, {
         paymentMethod,
         amount: Number(paymentAmount),
         transactionReference: paymentRef.trim() || undefined,
       });
       toast.success("Thanh toán thành công!");
-      setShowPaymentModal(false);
-      setPaymentRescueId(null);
+      setInvoiceModalRescue(null);
       setPaymentAmount("");
       setPaymentRef("");
       fetchRescueRequestsRefresh();
@@ -319,12 +325,49 @@ const AppointmentsPage = () => {
     }
   };
 
-  const openPaymentModal = (rescueId: number) => {
-    setPaymentRescueId(rescueId);
+  const openInvoiceModal = (rescue: IRescueRequest) => {
+    setInvoiceModalRescue(rescue);
     setPaymentMethod("TRANSFER");
     setPaymentAmount("");
     setPaymentRef("");
-    setShowPaymentModal(true);
+  };
+
+  const openConsentModal = (rescue: IRescueRequest) => {
+    setConsentModalRescue(rescue);
+    setConsentNotes("");
+    setShowConsentModal(true);
+  };
+
+  const handleCustomerConsent = async (consentGiven: boolean) => {
+    if (!consentModalRescue) return;
+    setConsenting(true);
+    try {
+      await customerConsent(consentModalRescue.rescueId, {
+        consentGiven,
+        consentNotes: consentNotes.trim() || undefined,
+      });
+      toast.success(consentGiven ? "Đã xác nhận đồng ý sửa tại chỗ!" : "Đã từ chối sửa tại chỗ!");
+      setShowConsentModal(false);
+      setConsentModalRescue(null);
+      fetchRescueRequestsRefresh();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Xác nhận thất bại!"));
+    } finally {
+      setConsenting(false);
+    }
+  };
+
+  const handleAcceptTowing = async (rescueId: number) => {
+    setAcceptingTowingId(rescueId);
+    try {
+      await acceptTowing(rescueId);
+      toast.success("Đã chấp nhận dịch vụ kéo xe!");
+      fetchRescueRequestsRefresh();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Xác nhận thất bại!"));
+    } finally {
+      setAcceptingTowingId(null);
+    }
   };
 
   const handleViewRescueDetail = async (id: number) => {
@@ -585,14 +628,13 @@ const AppointmentsPage = () => {
                         <RescueStepProgress status={rescue.status} />
 
                         {/* ── Technician actions ── */}
-                        {isTechnician && rescue.status === "TECHNICIAN_DISPATCHED" && (
+                        {isTechnician && rescue.status === "DISPATCHED" && (
                           <CustomerActionRow>
                             <CustomerActionBtn
                               $color="#0891b2"
-                              onClick={() => handleTechAcceptJob(rescue.rescueId)}
-                              disabled={techActionLoadingId === rescue.rescueId}
+                              onClick={() => openAcceptJobModal(rescue)}
                             >
-                              {techActionLoadingId === rescue.rescueId ? "Đang xử lý..." : "Nhận job"}
+                              Nhận job
                             </CustomerActionBtn>
                           </CustomerActionRow>
                         )}
@@ -607,38 +649,46 @@ const AppointmentsPage = () => {
                             </CustomerActionBtn>
                           </CustomerActionRow>
                         )}
-                        {isTechnician && ["ON_SITE", "DIAGNOSING", "REPAIRING_ON_SITE"].includes(rescue.status) && (
+                        {isTechnician && ["ON_SITE", "DIAGNOSING", "REPAIRING"].includes(rescue.status) && (
                           <CustomerActionRow>
                             <CustomerActionBtn
                               $color="#ea580c"
                               onClick={() => handleViewRescueDetail(rescue.rescueId)}
                             >
-                              {rescue.status === "REPAIRING_ON_SITE" ? "Báo hoàn tất sửa chữa" : "Chẩn đoán & xử lý"}
+                              {rescue.status === "REPAIRING" ? "Báo hoàn tất sửa chữa" : "Chẩn đoán & xử lý"}
                             </CustomerActionBtn>
                           </CustomerActionRow>
                         )}
 
                         {/* ── Customer actions ── */}
-                        {isCustomer && rescue.status === "ON_SITE" && (
+                        {isCustomer && rescue.status === "DIAGNOSING" && (
                           <CustomerActionRow>
                             <CustomerActionBtn
                               $color="#16a34a"
-                              onClick={() => handleCustomerConsent(rescue.rescueId)}
-                              disabled={consentingId === rescue.rescueId}
+                              onClick={() => openConsentModal(rescue)}
                             >
-                              {consentingId === rescue.rescueId
-                                ? "Đang xử lý..."
-                                : "Duyệt sửa tại chỗ"}
+                              Xem kết quả chẩn đoán & xác nhận
                             </CustomerActionBtn>
                           </CustomerActionRow>
                         )}
-                        {isCustomer && rescue.status === "INVOICE_SENT" && (
+                        {isCustomer && rescue.status === "TOWING_DISPATCHED" && (
+                          <CustomerActionRow>
+                            <CustomerActionBtn
+                              $color="#0891b2"
+                              onClick={() => handleAcceptTowing(rescue.rescueId)}
+                              disabled={acceptingTowingId === rescue.rescueId}
+                            >
+                              {acceptingTowingId === rescue.rescueId ? "Đang xử lý..." : "Chấp nhận kéo xe"}
+                            </CustomerActionBtn>
+                          </CustomerActionRow>
+                        )}
+                        {isCustomer && ["INVOICE_SENT", "PAYMENT_PENDING"].includes(rescue.status) && (
                           <CustomerActionRow>
                             <CustomerActionBtn
                               $color="#1d4ed8"
-                              onClick={() => openPaymentModal(rescue.rescueId)}
+                              onClick={() => openInvoiceModal(rescue)}
                             >
-                              Xác nhận thanh toán
+                              Xem hoá đơn & thanh toán
                             </CustomerActionBtn>
                           </CustomerActionRow>
                         )}
@@ -679,65 +729,235 @@ const AppointmentsPage = () => {
         />
       )}
 
-      {/* Payment Modal */}
-      {showPaymentModal && paymentRescueId && (
-        <PaymentOverlay onClick={() => setShowPaymentModal(false)}>
-          <PaymentCard onClick={(e) => e.stopPropagation()}>
+      {/* Customer Consent Modal */}
+      {showConsentModal && consentModalRescue && (
+        <PaymentOverlay onClick={() => setShowConsentModal(false)}>
+          <PaymentCard onClick={(e) => e.stopPropagation()} style={{ maxWidth: "500px" }}>
             <PaymentHeader>
-              <PaymentTitle>Xác nhận thanh toán</PaymentTitle>
-              <CloseModalBtn onClick={() => setShowPaymentModal(false)}>
+              <PaymentTitle>Xác nhận sửa chữa tại chỗ</PaymentTitle>
+              <CloseModalBtn onClick={() => setShowConsentModal(false)}>
                 <FaTimes size={18} />
               </CloseModalBtn>
             </PaymentHeader>
             <PaymentBody>
-              <div>
-                <FormLabel>Phương thức thanh toán *</FormLabel>
-                <FormSelect
-                  value={paymentMethod}
-                  onChange={(e) =>
-                    setPaymentMethod(
-                      e.target.value as IRescuePaymentPayload["paymentMethod"],
-                    )
-                  }
-                >
-                  <option value="TRANSFER">Chuyển khoản</option>
-                  <option value="CASH">Tiền mặt</option>
-                  <option value="CARD">Thẻ</option>
-                  <option value="EWALLET">Ví điện tử</option>
-                </FormSelect>
-              </div>
-              <div>
-                <FormLabel>Số tiền (VND) *</FormLabel>
-                <FormInput
-                  type="number"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="Nhập số tiền"
+              <AcceptJobInfo>
+                <AcceptJobRow>
+                  <AcceptJobLabel>Xe</AcceptJobLabel>
+                  <AcceptJobValue>{consentModalRescue.brand} {consentModalRescue.model} — {consentModalRescue.licensePlate}</AcceptJobValue>
+                </AcceptJobRow>
+                <AcceptJobRow>
+                  <AcceptJobLabel>Vấn đề</AcceptJobLabel>
+                  <AcceptJobValue>{consentModalRescue.problemDescription}</AcceptJobValue>
+                </AcceptJobRow>
+              </AcceptJobInfo>
+              <div style={{ marginTop: "1rem" }}>
+                <FormLabel>Ghi chú xác nhận (tuỳ chọn)</FormLabel>
+                <textarea
+                  rows={3}
+                  value={consentNotes}
+                  onChange={(e) => setConsentNotes(e.target.value)}
+                  placeholder="VD: Khách hàng đồng ý kiểm tra và sửa chữa tại chỗ."
+                  disabled={consenting}
+                  style={{
+                    width: "100%",
+                    padding: "0.5rem 0.75rem",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    fontSize: "0.875rem",
+                    resize: "vertical",
+                    minHeight: "80px",
+                    fontFamily: "inherit",
+                    boxSizing: "border-box",
+                  }}
                 />
               </div>
-              {paymentMethod === "TRANSFER" && (
-                <div>
-                  <FormLabel>Mã giao dịch</FormLabel>
-                  <FormInput
-                    value={paymentRef}
-                    onChange={(e) => setPaymentRef(e.target.value)}
-                    placeholder="VD: VCB20260228001234"
-                  />
-                </div>
-              )}
             </PaymentBody>
             <PaymentFooter>
               <PaymentCancelBtn
-                onClick={() => setShowPaymentModal(false)}
+                onClick={() => handleCustomerConsent(false)}
+                disabled={consenting}
+                style={{ color: "#dc2626", borderColor: "#dc2626" }}
+              >
+                {consenting ? "Đang xử lý..." : "Từ chối"}
+              </PaymentCancelBtn>
+              <PaymentConfirmBtn
+                onClick={() => handleCustomerConsent(true)}
+                disabled={consenting}
+                style={{ background: "#16a34a" }}
+              >
+                {consenting ? "Đang xử lý..." : "Đồng ý sửa tại chỗ"}
+              </PaymentConfirmBtn>
+            </PaymentFooter>
+          </PaymentCard>
+        </PaymentOverlay>
+      )}
+
+      {/* Invoice + Payment Modal */}
+      {invoiceModalRescue && (
+        <PaymentOverlay onClick={() => setInvoiceModalRescue(null)}>
+          <PaymentCard onClick={(e) => e.stopPropagation()} style={{ maxWidth: "520px" }}>
+            <PaymentHeader>
+              <PaymentTitle>Hoá đơn cứu hộ</PaymentTitle>
+              <CloseModalBtn onClick={() => setInvoiceModalRescue(null)}>
+                <FaTimes size={18} />
+              </CloseModalBtn>
+            </PaymentHeader>
+            <PaymentBody>
+              {/* ── Invoice details ── */}
+              <AcceptJobInfo>
+                <AcceptJobRow>
+                  <AcceptJobLabel>Xe</AcceptJobLabel>
+                  <AcceptJobValue>
+                    {invoiceModalRescue.brand} {invoiceModalRescue.model} — {invoiceModalRescue.licensePlate}
+                  </AcceptJobValue>
+                </AcceptJobRow>
+                <AcceptJobRow>
+                  <AcceptJobLabel>Loại cứu hộ</AcceptJobLabel>
+                  <AcceptJobValue>
+                    {invoiceModalRescue.rescueType === "ROADSIDE" ? "Sửa tại chỗ" : invoiceModalRescue.rescueType === "TOWING" ? "Kéo xe về gara" : "—"}
+                  </AcceptJobValue>
+                </AcceptJobRow>
+                {invoiceModalRescue.invoice ? (
+                  <>
+                    <AcceptJobRow>
+                      <AcceptJobLabel>Phí dịch vụ</AcceptJobLabel>
+                      <AcceptJobValue>
+                        {invoiceModalRescue.invoice.rescueServiceFee.toLocaleString("vi-VN")} đ
+                      </AcceptJobValue>
+                    </AcceptJobRow>
+                    {invoiceModalRescue.invoice.manualDiscount > 0 && (
+                      <AcceptJobRow>
+                        <AcceptJobLabel>Giảm giá</AcceptJobLabel>
+                        <AcceptJobValue style={{ color: "#16a34a" }}>
+                          − {invoiceModalRescue.invoice.manualDiscount.toLocaleString("vi-VN")} đ
+                        </AcceptJobValue>
+                      </AcceptJobRow>
+                    )}
+                    <AcceptJobRow style={{ borderTop: "1px solid #e5e7eb", paddingTop: "0.5rem", marginTop: "0.25rem" }}>
+                      <AcceptJobLabel style={{ fontWeight: 700, color: "#111827" }}>Tổng thanh toán</AcceptJobLabel>
+                      <AcceptJobValue style={{ fontWeight: 700, fontSize: "1.05rem", color: "#1d4ed8" }}>
+                        {invoiceModalRescue.invoice.total.toLocaleString("vi-VN")} đ
+                      </AcceptJobValue>
+                    </AcceptJobRow>
+                    {invoiceModalRescue.invoice.notes && (
+                      <AcceptJobRow>
+                        <AcceptJobLabel>Ghi chú</AcceptJobLabel>
+                        <AcceptJobValue>{invoiceModalRescue.invoice.notes}</AcceptJobValue>
+                      </AcceptJobRow>
+                    )}
+                  </>
+                ) : (
+                  <AcceptJobRow>
+                    <AcceptJobValue style={{ color: "#6b7280", fontStyle: "italic" }}>
+                      Chưa có thông tin hoá đơn chi tiết
+                    </AcceptJobValue>
+                  </AcceptJobRow>
+                )}
+              </AcceptJobInfo>
+
+              {/* ── Payment form ── */}
+              <div style={{ borderTop: "2px dashed #e5e7eb", marginTop: "1.25rem", paddingTop: "1.25rem" }}>
+                <div style={{ marginBottom: "0.875rem" }}>
+                  <FormLabel>Phương thức thanh toán *</FormLabel>
+                  <FormSelect
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value as IRescuePaymentPayload["paymentMethod"])}
+                  >
+                    <option value="TRANSFER">Chuyển khoản</option>
+                    <option value="CASH">Tiền mặt</option>
+                    <option value="CARD">Thẻ</option>
+                    <option value="EWALLET">Ví điện tử</option>
+                  </FormSelect>
+                </div>
+                <div style={{ marginBottom: "0.875rem" }}>
+                  <FormLabel>Số tiền (VND) *</FormLabel>
+                  <FormInput
+                    type="number"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    placeholder={
+                      invoiceModalRescue.invoice
+                        ? String(invoiceModalRescue.invoice.total)
+                        : "Nhập số tiền"
+                    }
+                  />
+                </div>
+                {paymentMethod === "TRANSFER" && (
+                  <div>
+                    <FormLabel>Mã giao dịch</FormLabel>
+                    <FormInput
+                      value={paymentRef}
+                      onChange={(e) => setPaymentRef(e.target.value)}
+                      placeholder="VD: VCB20260228001234"
+                    />
+                  </div>
+                )}
+              </div>
+            </PaymentBody>
+            <PaymentFooter>
+              <PaymentCancelBtn
+                onClick={() => setInvoiceModalRescue(null)}
                 disabled={paymentSubmitting}
               >
-                Hủy
+                Đóng
               </PaymentCancelBtn>
               <PaymentConfirmBtn
                 onClick={handlePaymentSubmit}
                 disabled={!paymentAmount || paymentSubmitting}
               >
-                {paymentSubmitting ? "Đang xử lý..." : "Thanh toán"}
+                {paymentSubmitting ? "Đang xử lý..." : "Xác nhận thanh toán"}
+              </PaymentConfirmBtn>
+            </PaymentFooter>
+          </PaymentCard>
+        </PaymentOverlay>
+      )}
+
+      {/* Accept Job Modal */}
+      {showAcceptJobModal && acceptJobRescue && (
+        <PaymentOverlay onClick={() => { setShowAcceptJobModal(false); setAcceptJobRescue(null); }}>
+          <PaymentCard onClick={(e) => e.stopPropagation()} style={{ maxWidth: "480px" }}>
+            <PaymentHeader>
+              <PaymentTitle>Xác nhận nhận job cứu hộ</PaymentTitle>
+              <CloseModalBtn onClick={() => { setShowAcceptJobModal(false); setAcceptJobRescue(null); }}>
+                <FaTimes size={18} />
+              </CloseModalBtn>
+            </PaymentHeader>
+            <PaymentBody>
+              <AcceptJobInfo>
+                <AcceptJobRow>
+                  <AcceptJobLabel>Khách hàng</AcceptJobLabel>
+                  <AcceptJobValue>{acceptJobRescue.customerName}</AcceptJobValue>
+                </AcceptJobRow>
+                <AcceptJobRow>
+                  <AcceptJobLabel>Số điện thoại</AcceptJobLabel>
+                  <AcceptJobValue>{acceptJobRescue.customerPhone}</AcceptJobValue>
+                </AcceptJobRow>
+                <AcceptJobRow>
+                  <AcceptJobLabel>Xe</AcceptJobLabel>
+                  <AcceptJobValue>{acceptJobRescue.brand} {acceptJobRescue.model} — {acceptJobRescue.licensePlate}</AcceptJobValue>
+                </AcceptJobRow>
+                <AcceptJobRow>
+                  <AcceptJobLabel>Địa chỉ</AcceptJobLabel>
+                  <AcceptJobValue>{acceptJobRescue.currentAddress}</AcceptJobValue>
+                </AcceptJobRow>
+                <AcceptJobRow>
+                  <AcceptJobLabel>Vấn đề</AcceptJobLabel>
+                  <AcceptJobValue>{acceptJobRescue.problemDescription}</AcceptJobValue>
+                </AcceptJobRow>
+              </AcceptJobInfo>
+            </PaymentBody>
+            <PaymentFooter>
+              <PaymentCancelBtn
+                onClick={() => { setShowAcceptJobModal(false); setAcceptJobRescue(null); }}
+                disabled={techActionLoadingId === acceptJobRescue.rescueId}
+              >
+                Hủy
+              </PaymentCancelBtn>
+              <PaymentConfirmBtn
+                onClick={() => handleTechAcceptJob(acceptJobRescue.rescueId)}
+                disabled={techActionLoadingId === acceptJobRescue.rescueId}
+              >
+                {techActionLoadingId === acceptJobRescue.rescueId ? "Đang xử lý..." : "Nhận job"}
               </PaymentConfirmBtn>
             </PaymentFooter>
           </PaymentCard>
@@ -1287,8 +1507,12 @@ const FormInput = styled.input`
   font-size: 0.875rem;
   outline: none;
   box-sizing: border-box;
-  color: #000;
+  color: #111827;
   background: #fff;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
 
   &:focus {
     border-color: #1d4ed8;
@@ -1303,7 +1527,7 @@ const FormSelect = styled.select`
   font-size: 0.875rem;
   outline: none;
   box-sizing: border-box;
-  color: #000;
+  color: #111827;
   background: #fff;
 
   &:focus {
@@ -1355,6 +1579,32 @@ const CloseModalBtn = styled.button`
   &:hover {
     color: #111827;
   }
+`;
+
+const AcceptJobInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const AcceptJobRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+`;
+
+const AcceptJobLabel = styled.span`
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+`;
+
+const AcceptJobValue = styled.span`
+  font-size: 0.875rem;
+  color: #111827;
+  line-height: 1.4;
 `;
 
 

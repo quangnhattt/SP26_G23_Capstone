@@ -102,7 +102,6 @@ input[type=number] {
   input, textarea {
     // font-size: 14px;
     font-family: 'Jost', sans-serif;
-    color: ${({ theme }) => theme.white}
   }
   
   div {

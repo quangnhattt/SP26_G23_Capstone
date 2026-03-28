@@ -11,21 +11,25 @@ interface ProposalModalProps {
 }
 
 const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
-  const [proposalType, setProposalType] = useState<"TOWING" | "ON_SITE" | null>(null);
+  const [proposalType, setProposalType] = useState<"ROADSIDE" | "TOWING" | null>(null);
   const [proposalNote, setProposalNote] = useState("");
   const [proposalFee, setProposalFee] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!proposalType || !proposalFee) return;
+    if (!proposalType) return;
     try {
       setSubmitting(true);
       await proposeRescueToCustomer(rescue.rescueId, {
-        rescueType: proposalType === "TOWING" ? "TOWING" : "ROADSIDE",
+        rescueType: proposalType,
         proposalNotes: proposalNote.trim() || undefined,
-        estimatedServiceFee: Number(proposalFee),
+        estimatedServiceFee: proposalFee ? Number(proposalFee) : undefined,
       });
-      toast.success("Đã gửi đề xuất cho khách hàng!");
+      toast.success(
+        proposalType === "ROADSIDE"
+          ? "Đã đề xuất sửa tại chỗ — SA tiếp tục điều KTV!"
+          : "Đã đề xuất kéo xe — SA tiếp tục điều xe kéo!",
+      );
       onSuccess();
     } catch (error) {
       console.error("Error submitting proposal:", error);
@@ -52,37 +56,46 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
             <FormLabel>Phương án xử lý *</FormLabel>
             <RadioGroup>
               <RadioOption
-                $selected={proposalType === "TOWING"}
-                onClick={() => setProposalType("TOWING")}
-              >
-                <FaTruck size={14} />
-                Kéo xe
-              </RadioOption>
-              <RadioOption
-                $selected={proposalType === "ON_SITE"}
-                onClick={() => setProposalType("ON_SITE")}
+                $selected={proposalType === "ROADSIDE"}
+                $type="ROADSIDE"
+                onClick={() => setProposalType("ROADSIDE")}
               >
                 <FaWrench size={14} />
                 Sửa tại chỗ
               </RadioOption>
+              <RadioOption
+                $selected={proposalType === "TOWING"}
+                $type="TOWING"
+                onClick={() => setProposalType("TOWING")}
+              >
+                <FaTruck size={14} />
+                Kéo xe về gara
+              </RadioOption>
             </RadioGroup>
+            {proposalType && (
+              <FlowHint $type={proposalType}>
+                {proposalType === "ROADSIDE"
+                  ? "→ Luồng: Điều KTV → KTV đến → Chẩn đoán → KH xác nhận → Sửa → Hoàn tất → Hóa đơn"
+                  : "→ Luồng: Điều xe kéo → KH chấp nhận → Xe về xưởng → Hóa đơn"}
+              </FlowHint>
+            )}
           </FormGroup>
           <FormGroup>
-            <FormLabel>Ghi chú</FormLabel>
+            <FormLabel>Ghi chú cho khách hàng</FormLabel>
             <FormTextarea
               value={proposalNote}
               onChange={(e) => setProposalNote(e.target.value)}
               rows={3}
-              placeholder="Ghi chú thêm cho khách hàng..."
+              placeholder="VD: Kỹ thuật viên sẽ đến trong vòng 30 phút..."
             />
           </FormGroup>
           <FormGroup>
-            <FormLabel>Phí dịch vụ ước tính (VND) *</FormLabel>
+            <FormLabel>Phí dịch vụ ước tính (VND)</FormLabel>
             <FormInput
               type="number"
               value={proposalFee}
               onChange={(e) => setProposalFee(e.target.value)}
-              placeholder="Nhập phí dịch vụ ước tính"
+              placeholder="Tuỳ chọn — nhập nếu đã có ước tính"
             />
           </FormGroup>
         </ModalBody>
@@ -91,10 +104,17 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
             Hủy
           </ModalCancelBtn>
           <ModalConfirmBtn
+            $type={proposalType}
             onClick={handleSubmit}
-            disabled={!proposalType || !proposalFee || submitting}
+            disabled={!proposalType || submitting}
           >
-            {submitting ? "Đang gửi..." : "Gửi"}
+            {submitting
+              ? "Đang gửi..."
+              : proposalType === "ROADSIDE"
+                ? "Xác nhận sửa tại chỗ"
+                : proposalType === "TOWING"
+                  ? "Xác nhận kéo xe"
+                  : "Gửi đề xuất"}
           </ModalConfirmBtn>
         </ModalFooter>
       </ModalContent>
@@ -183,18 +203,20 @@ const ModalCancelBtn = styled.button`
   }
 `;
 
-const ModalConfirmBtn = styled.button`
+const ModalConfirmBtn = styled.button<{ $type: "ROADSIDE" | "TOWING" | null }>`
   padding: 0.5rem 1.25rem;
   border: none;
   border-radius: 8px;
-  background: #dc2626;
+  background: ${({ $type }) =>
+    $type === "ROADSIDE" ? "#16a34a" : $type === "TOWING" ? "#0891b2" : "#6b7280"};
   color: white;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
 
   &:hover {
-    background: #b91c1c;
+    background: ${({ $type }) =>
+      $type === "ROADSIDE" ? "#15803d" : $type === "TOWING" ? "#0e7490" : "#4b5563"};
   }
 
   &:disabled {
@@ -223,15 +245,15 @@ const FormInput = styled.input`
   font-size: 0.875rem;
   outline: none;
   box-sizing: border-box;
-  color: #000000 !important;
-  background: #ffffff !important;
+  color: #111827;
+  background: #ffffff;
 
   &::placeholder {
     color: #9ca3af;
   }
 
   &:focus {
-    border-color: #dc2626;
+    border-color: #6b7280;
   }
 `;
 
@@ -244,15 +266,15 @@ const FormTextarea = styled.textarea`
   outline: none;
   resize: vertical;
   box-sizing: border-box;
-  color: #000000 !important;
-  background: #ffffff !important;
+  color: #111827;
+  background: #ffffff;
 
   &::placeholder {
     color: #9ca3af;
   }
 
   &:focus {
-    border-color: #dc2626;
+    border-color: #6b7280;
   }
 `;
 
@@ -261,23 +283,36 @@ const RadioGroup = styled.div`
   gap: 0.75rem;
 `;
 
-const RadioOption = styled.div<{ $selected: boolean }>`
+const RadioOption = styled.div<{ $selected: boolean; $type: "ROADSIDE" | "TOWING" }>`
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem;
-  border: 2px solid ${({ $selected }) => ($selected ? "#dc2626" : "#e5e7eb")};
-  border-radius: 8px;
+  padding: 0.875rem;
+  border: 2px solid ${({ $selected, $type }) =>
+    $selected ? ($type === "ROADSIDE" ? "#16a34a" : "#0891b2") : "#e5e7eb"};
+  border-radius: 10px;
   cursor: pointer;
-  background: ${({ $selected }) => ($selected ? "#fef2f2" : "white")};
-  color: ${({ $selected }) => ($selected ? "#dc2626" : "#374151")};
+  background: ${({ $selected, $type }) =>
+    $selected ? ($type === "ROADSIDE" ? "#f0fdf4" : "#ecfeff") : "white"};
+  color: ${({ $selected, $type }) =>
+    $selected ? ($type === "ROADSIDE" ? "#16a34a" : "#0891b2") : "#374151"};
   font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s;
+  font-weight: 600;
+  transition: all 0.15s;
 
   &:hover {
-    border-color: ${({ $selected }) => ($selected ? "#dc2626" : "#d1d5db")};
+    border-color: ${({ $type }) => ($type === "ROADSIDE" ? "#16a34a" : "#0891b2")};
   }
+`;
+
+const FlowHint = styled.div<{ $type: "ROADSIDE" | "TOWING" }>`
+  margin-top: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  background: ${({ $type }) => ($type === "ROADSIDE" ? "#f0fdf4" : "#ecfeff")};
+  color: ${({ $type }) => ($type === "ROADSIDE" ? "#15803d" : "#0e7490")};
+  border-left: 3px solid ${({ $type }) => ($type === "ROADSIDE" ? "#16a34a" : "#0891b2")};
 `;

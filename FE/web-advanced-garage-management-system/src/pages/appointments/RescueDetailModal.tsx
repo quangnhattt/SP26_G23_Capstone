@@ -5,13 +5,16 @@ import { FaTimes, FaUser, FaCar, FaMapMarkerAlt, FaWrench } from "react-icons/fa
 import type { IRescueRequest } from "@/apis/rescue";
 import {
   customerConsent,
+  acceptTowing,
   makeRescuePayment,
   cancelRescueRequest,
   acceptRescueJob,
   arriveRescue,
   startDiagnosis,
+  addRepairItems,
   completeRepair,
   type IRescuePaymentPayload,
+  type IRescueCustomerConsentPayload,
 } from "@/apis/rescue";
 import { toast } from "react-toastify";
 import RescueStepProgress from "@/pages/admin/components/rescue-manager/RescueStepProgress";
@@ -33,6 +36,7 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
 
   // Customer states
   const [consenting, setConsenting] = useState(false);
+  const [consentNotes, setConsentNotes] = useState("");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<IRescuePaymentPayload["paymentMethod"]>("TRANSFER");
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -44,21 +48,44 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
   const [diagnosisNotes, setDiagnosisNotes] = useState("");
   const [canRepairOnSite, setCanRepairOnSite] = useState<boolean | null>(null);
   const [completionNotes, setCompletionNotes] = useState("");
+  const [repairItems, setRepairItems] = useState([
+    { productId: "", quantity: "", unitPrice: "", notes: "" },
+  ]);
+  const [repairItemsSubmitting, setRepairItemsSubmitting] = useState(false);
 
   // Cancel state
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
-  const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "SPAM", "PAID", "CUSTOMER_REJECTED", "TOWING_REJECTED"];
+  const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "SPAM"];
   const canCancel = data ? !TERMINAL_STATUSES.includes(data.status) : false;
 
-  const handleConsent = async () => {
+  const handleConsent = async (payload: IRescueCustomerConsentPayload) => {
     if (!data) return;
     setConsenting(true);
     try {
-      await customerConsent(data.rescueId);
-      toast.success("Đã xác nhận duyệt sửa tại chỗ!");
+      await customerConsent(data.rescueId, payload);
+      toast.success(
+        payload.consentGiven
+          ? "Đã xác nhận đồng ý sửa tại chỗ!"
+          : "Đã từ chối sửa tại chỗ!",
+      );
+      onRefresh?.();
+      onClose();
+    } catch {
+      toast.error("Xác nhận thất bại!");
+    } finally {
+      setConsenting(false);
+    }
+  };
+
+  const handleAcceptTowing = async () => {
+    if (!data) return;
+    setConsenting(true);
+    try {
+      await acceptTowing(data.rescueId);
+      toast.success("Đã xác nhận chấp nhận dịch vụ kéo xe!");
       onRefresh?.();
       onClose();
     } catch {
@@ -151,6 +178,34 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
       toast.error("Báo hoàn tất thất bại!");
     } finally {
       setTechLoading(false);
+    }
+  };
+
+  const handleAddRepairItems = async () => {
+    if (!data) return;
+    const validItems = repairItems.filter(
+      (i) => i.productId.trim() && i.quantity.trim() && i.unitPrice.trim(),
+    );
+    if (validItems.length === 0) {
+      toast.error("Vui lòng nhập ít nhất 1 vật tư/dịch vụ hợp lệ!");
+      return;
+    }
+    setRepairItemsSubmitting(true);
+    try {
+      await addRepairItems(data.rescueId, {
+        items: validItems.map((i) => ({
+          productId: Number(i.productId),
+          quantity: Number(i.quantity),
+          unitPrice: Number(i.unitPrice),
+          notes: i.notes.trim() || undefined,
+        })),
+      });
+      toast.success("Đã ghi nhận vật tư/dịch vụ!");
+      onRefresh?.();
+    } catch {
+      toast.error("Ghi nhận vật tư thất bại!");
+    } finally {
+      setRepairItemsSubmitting(false);
     }
   };
 
@@ -297,7 +352,7 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
             {/* ═══ TECHNICIAN actions ═══ */}
 
             {/* KTV: Nhận job */}
-            {isTechnician && data.status === "TECHNICIAN_DISPATCHED" && (
+            {isTechnician && data.status === "DISPATCHED" && (
               <>
                 <Divider />
                 <ActionCard $highlight>
@@ -329,7 +384,7 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
             )}
 
             {/* KTV: Chẩn đoán */}
-            {isTechnician && ["ON_SITE", "DIAGNOSING"].includes(data.status) && (
+            {isTechnician && ["ON_SITE", "DIAGNOSING"].includes(data.status as string) && (
               <>
                 <Divider />
                 <ActionCard $highlight>
@@ -368,20 +423,105 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
               </>
             )}
 
-            {/* KTV: Hoàn tất sửa chữa */}
-            {isTechnician && data.status === "REPAIRING_ON_SITE" && (
+            {/* KTV: Ghi nhận vật tư + Hoàn tất sửa chữa */}
+            {isTechnician && data.status === "REPAIRING" && (
               <>
                 <Divider />
+                {/* --- Repair items --- */}
+                <ActionCard $highlight>
+                  <ActionCardTitle>Ghi nhận vật tư / dịch vụ sử dụng</ActionCardTitle>
+                  <ActionInfo>Thêm các vật tư và công dịch vụ đã sử dụng.</ActionInfo>
+                  {repairItems.map((item, idx) => (
+                    <RepairItemRow key={idx}>
+                      <RepairItemInputs>
+                        <FormInput
+                          type="number"
+                          placeholder="Product ID *"
+                          value={item.productId}
+                          onChange={(e) => {
+                            const next = [...repairItems];
+                            next[idx] = { ...next[idx], productId: e.target.value };
+                            setRepairItems(next);
+                          }}
+                          style={{ flex: "0 0 100px" }}
+                        />
+                        <FormInput
+                          type="number"
+                          placeholder="Số lượng *"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const next = [...repairItems];
+                            next[idx] = { ...next[idx], quantity: e.target.value };
+                            setRepairItems(next);
+                          }}
+                          style={{ flex: "0 0 80px" }}
+                        />
+                        <FormInput
+                          type="number"
+                          placeholder="Đơn giá *"
+                          value={item.unitPrice}
+                          onChange={(e) => {
+                            const next = [...repairItems];
+                            next[idx] = { ...next[idx], unitPrice: e.target.value };
+                            setRepairItems(next);
+                          }}
+                          style={{ flex: "1" }}
+                        />
+                        <FormInput
+                          placeholder="Ghi chú"
+                          value={item.notes}
+                          onChange={(e) => {
+                            const next = [...repairItems];
+                            next[idx] = { ...next[idx], notes: e.target.value };
+                            setRepairItems(next);
+                          }}
+                          style={{ flex: "2" }}
+                        />
+                        {repairItems.length > 1 && (
+                          <RemoveItemBtn
+                            onClick={() =>
+                              setRepairItems(repairItems.filter((_, i) => i !== idx))
+                            }
+                          >
+                            ✕
+                          </RemoveItemBtn>
+                        )}
+                      </RepairItemInputs>
+                    </RepairItemRow>
+                  ))}
+                  <ActionBtnRow>
+                    <ActionBtnOutline
+                      onClick={() =>
+                        setRepairItems([
+                          ...repairItems,
+                          { productId: "", quantity: "", unitPrice: "", notes: "" },
+                        ])
+                      }
+                    >
+                      + Thêm dòng
+                    </ActionBtnOutline>
+                    <ActionBtn
+                      $color="#2563eb"
+                      onClick={handleAddRepairItems}
+                      disabled={repairItemsSubmitting}
+                    >
+                      {repairItemsSubmitting ? "Đang lưu..." : "Lưu vật tư"}
+                    </ActionBtn>
+                  </ActionBtnRow>
+                </ActionCard>
+
+                <Divider />
+                {/* --- Complete repair --- */}
                 <ActionCard $highlight>
                   <ActionCardTitle>Hoàn tất sửa chữa</ActionCardTitle>
-                  <ActionInfo>Đã sửa xong? Ghi chú kết quả và báo hoàn tất.</ActionInfo>
+                  <ActionInfo>Sửa xong? Ghi chú kết quả và báo hoàn tất để SA tạo hóa đơn.</ActionInfo>
                   <FormGroup>
                     <FormLabel>Ghi chú hoàn tất</FormLabel>
                     <FormTextarea
                       value={completionNotes}
                       onChange={(e) => setCompletionNotes(e.target.value)}
                       rows={3}
-                      placeholder="Mô tả công việc đã thực hiện..."
+                      placeholder="VD: Đã thay bơm xăng thành công, xe đã khởi động bình thường."
                     />
                   </FormGroup>
                   <ActionBtnRow>
@@ -394,7 +534,7 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
             )}
 
             {/* KTV: Các trạng thái chờ (không cần hành động) */}
-            {isTechnician && ["REPAIR_COMPLETED", "INVOICED", "INVOICE_SENT"].includes(data.status) && (
+            {isTechnician && ["REPAIR_COMPLETE", "TOWING_DISPATCHED", "TOWING_ACCEPTED", "TOWED", "INVOICED", "INVOICE_SENT", "PAYMENT_PENDING"].includes(data.status as string) && (
               <>
                 <Divider />
                 <ActionCard>
@@ -406,7 +546,7 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
             {/* ═══ CUSTOMER actions ═══ */}
 
             {/* KH: Chờ SA xử lý */}
-            {isCustomer && ["PENDING", "ACCEPTED", "EVALUATING", "QUOTE_SENT"].includes(data.status) && (
+            {isCustomer && ["PENDING", "REVIEWING"].includes(data.status as string) && (
               <>
                 <Divider />
                 <ActionCard>
@@ -415,42 +555,60 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
               </>
             )}
 
-            {/* KH: Chờ điều phối KTV */}
-            {isCustomer && data.status === "CUSTOMER_APPROVED" && (
-              <>
-                <Divider />
-                <ActionCard>
-                  <ActionInfo>Bạn đã đồng ý. Xưởng đang điều phối kỹ thuật viên đến hỗ trợ.</ActionInfo>
-                </ActionCard>
-              </>
-            )}
-
             {/* KH: Chờ KTV */}
-            {isCustomer && ["TECHNICIAN_DISPATCHED", "EN_ROUTE"].includes(data.status) && (
+            {isCustomer && ["PROPOSED_ROADSIDE", "PROPOSED_TOWING", "DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
               <>
                 <Divider />
                 <ActionCard>
                   <ActionInfo>
-                    {data.status === "TECHNICIAN_DISPATCHED"
-                      ? "Kỹ thuật viên đã được phân công. Đang chờ KTV xác nhận."
-                      : "Kỹ thuật viên đang trên đường đến vị trí của bạn."}
+                    {["PROPOSED_ROADSIDE", "PROPOSED_TOWING"].includes(data.status as string)
+                      ? "Xưởng đang đề xuất phương án. Đang chờ điều phối kỹ thuật viên."
+                      : data.status === "DISPATCHED"
+                        ? "Kỹ thuật viên đã được phân công. Đang chờ KTV xác nhận."
+                        : "Kỹ thuật viên đang trên đường đến vị trí của bạn."}
                   </ActionInfo>
                 </ActionCard>
               </>
             )}
 
-            {/* KH: Duyệt sửa tại chỗ */}
+            {/* KH: KTV đến nơi — chờ chẩn đoán */}
             {isCustomer && data.status === "ON_SITE" && (
               <>
                 <Divider />
+                <ActionCard>
+                  <ActionInfo>Kỹ thuật viên đã đến nơi. Đang tiến hành kiểm tra xe.</ActionInfo>
+                </ActionCard>
+              </>
+            )}
+
+            {/* KH: Chẩn đoán xong — cần xác nhận sửa tại chỗ */}
+            {isCustomer && data.status === "DIAGNOSING" && (
+              <>
+                <Divider />
                 <ActionCard $highlight>
-                  <ActionCardTitle>Cần xác nhận của bạn</ActionCardTitle>
-                  <ActionInfo>Kỹ thuật viên đã đến nơi. Bạn có đồng ý cho sửa chữa tại chỗ không?</ActionInfo>
+                  <ActionCardTitle>Kỹ thuật viên đã hoàn tất chẩn đoán</ActionCardTitle>
+                  <ActionInfo>Xem xét kết quả và xác nhận để kỹ thuật viên tiến hành sửa chữa tại chỗ.</ActionInfo>
+                  <FormGroup>
+                    <FormLabel>Ghi chú xác nhận (tuỳ chọn)</FormLabel>
+                    <FormTextarea
+                      value={consentNotes}
+                      onChange={(e) => setConsentNotes(e.target.value)}
+                      rows={2}
+                      placeholder="VD: Khách hàng đồng ý kiểm tra và sửa chữa tại chỗ."
+                    />
+                  </FormGroup>
                   <ActionBtnRow>
-                    <ActionBtn $color="#16a34a" onClick={handleConsent} disabled={consenting}>
+                    <ActionBtn
+                      $color="#16a34a"
+                      onClick={() => handleConsent({ consentGiven: true, consentNotes: consentNotes.trim() || undefined })}
+                      disabled={consenting}
+                    >
                       {consenting ? "Đang xử lý..." : "Đồng ý sửa tại chỗ"}
                     </ActionBtn>
-                    <ActionBtnOutline onClick={() => setShowCancelForm(true)} disabled={consenting}>
+                    <ActionBtnOutline
+                      onClick={() => handleConsent({ consentGiven: false, consentNotes: consentNotes.trim() || undefined })}
+                      disabled={consenting}
+                    >
                       Từ chối
                     </ActionBtnOutline>
                   </ActionBtnRow>
@@ -458,27 +616,53 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
               </>
             )}
 
-            {/* KH: Chờ KTV sửa */}
-            {isCustomer && ["DIAGNOSING", "REPAIRING_ON_SITE"].includes(data.status) && (
+            {/* KH: KTV đang sửa tại chỗ */}
+            {isCustomer && data.status === "REPAIRING" && (
+              <>
+                <Divider />
+                <ActionCard>
+                  <ActionInfo>Kỹ thuật viên đang tiến hành sửa chữa tại chỗ.</ActionInfo>
+                </ActionCard>
+              </>
+            )}
+
+            {/* KH: Xưởng đã điều xe kéo — cần xác nhận */}
+            {isCustomer && data.status === "TOWING_DISPATCHED" && (
+              <>
+                <Divider />
+                <ActionCard $highlight>
+                  <ActionCardTitle>Xưởng đề xuất dịch vụ kéo xe</ActionCardTitle>
+                  <ActionInfo>Xưởng đã điều phối xe kéo đến vị trí của bạn. Bạn có đồng ý sử dụng dịch vụ kéo xe không?</ActionInfo>
+                  <ActionBtnRow>
+                    <ActionBtn $color="#16a34a" onClick={handleAcceptTowing} disabled={consenting}>
+                      {consenting ? "Đang xử lý..." : "Chấp nhận kéo xe"}
+                    </ActionBtn>
+                  </ActionBtnRow>
+                </ActionCard>
+              </>
+            )}
+
+            {/* KH: Đã chấp nhận kéo / xe về xưởng */}
+            {isCustomer && ["TOWING_ACCEPTED", "TOWED"].includes(data.status as string) && (
               <>
                 <Divider />
                 <ActionCard>
                   <ActionInfo>
-                    {data.status === "DIAGNOSING"
-                      ? "Kỹ thuật viên đang chẩn đoán lỗi xe của bạn."
-                      : "Kỹ thuật viên đang tiến hành sửa chữa."}
+                    {data.status === "TOWING_ACCEPTED"
+                      ? "Bạn đã chấp nhận kéo xe. Xe đang được kéo về xưởng."
+                      : "Xe đã được kéo về xưởng. Đang chờ xử lý."}
                   </ActionInfo>
                 </ActionCard>
               </>
             )}
 
             {/* KH: Chờ hóa đơn */}
-            {isCustomer && ["REPAIR_COMPLETED", "INVOICED"].includes(data.status) && (
+            {isCustomer && ["REPAIR_COMPLETE", "INVOICED"].includes(data.status as string) && (
               <>
                 <Divider />
                 <ActionCard>
                   <ActionInfo>
-                    {data.status === "REPAIR_COMPLETED"
+                    {data.status === "REPAIR_COMPLETE"
                       ? "Sửa chữa đã hoàn tất. Xưởng đang tạo hóa đơn."
                       : "Hóa đơn đã được tạo. Đang chờ xưởng gửi hóa đơn đến bạn."}
                   </ActionInfo>
@@ -813,8 +997,12 @@ const FormInput = styled.input`
   border-radius: 8px;
   font-size: 0.875rem;
   outline: none;
-  color: #000;
+  color: #111827;
   background: #fff;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
 
   &:focus {
     border-color: #1d4ed8;
@@ -827,7 +1015,7 @@ const FormSelect = styled.select`
   border-radius: 8px;
   font-size: 0.875rem;
   outline: none;
-  color: #000;
+  color: #111827;
   background: #fff;
 
   &:focus {
@@ -842,8 +1030,12 @@ const FormTextarea = styled.textarea`
   font-size: 0.875rem;
   outline: none;
   resize: vertical;
-  color: #000;
+  color: #111827;
   background: #fff;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
 
   &:focus {
     border-color: #1d4ed8;
@@ -913,5 +1105,33 @@ const RadioBtn = styled.div<{ $selected: boolean }>`
 
   &:hover {
     border-color: ${({ $selected }) => ($selected ? "#1d4ed8" : "#d1d5db")};
+  }
+`;
+
+const RepairItemRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const RepairItemInputs = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+`;
+
+const RemoveItemBtn = styled.button`
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  background: white;
+  color: #dc2626;
+  font-size: 0.75rem;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #fef2f2;
   }
 `;

@@ -9,35 +9,31 @@ import {
   FaUserCog,
 } from "react-icons/fa";
 import type { IRescueRequest, RescueStatus } from "@/apis/rescue";
+import RescueStepProgress from "./RescueStepProgress";
 
 const rescueStatusConfig: Record<
   string,
   { label: string; color: string; bg: string; border: string }
 > = {
-  PENDING: { label: "Cho kiem tra", color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
-  ACCEPTED: { label: "Da chap nhan", color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  EVALUATING: { label: "Dang danh gia", color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
-  QUOTE_SENT: { label: "Da gui bao gia", color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd" },
-  CUSTOMER_APPROVED: { label: "KH dong y", color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  CUSTOMER_REJECTED: { label: "KH tu choi", color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
-  TECHNICIAN_DISPATCHED: { label: "Da dieu KTV", color: "#0891b2", bg: "#cffafe", border: "#67e8f9" },
-  RESCUE_VEHICLE_DISPATCHED: { label: "Da dieu xe cuu ho", color: "#0891b2", bg: "#cffafe", border: "#67e8f9" },
-  DIAGNOSING: { label: "Dang chan doan", color: "#ea580c", bg: "#fff7ed", border: "#fdba74" },
-  REPAIRING_ON_SITE: { label: "Dang sua tai cho", color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
-  NEED_TOWING: { label: "Can keo xe", color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
-  TOWING_CONFIRMED: { label: "KH dong y keo xe", color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  TOWING_REJECTED: { label: "KH tu choi keo xe", color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
-  PROPOSED_ROADSIDE: { label: "Đề xuất sửa tại chỗ", color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
-  PROPOSED_TOWING: { label: "Đề xuất kéo xe", color: "#ea580c", bg: "#fff7ed", border: "#fdba74" },
-  EN_ROUTE: { label: "KTV đang đến", color: "#0891b2", bg: "#cffafe", border: "#67e8f9" },
-  ON_SITE: { label: "KTV đã đến nơi", color: "#0d9488", bg: "#ccfbf1", border: "#5eead4" },
-  REPAIR_COMPLETED: { label: "Sửa xong", color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  INVOICE_SENT: { label: "Đã gửi hóa đơn", color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd" },
-  INVOICED: { label: "Da xuat hoa don", color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd" },
-  PAID: { label: "Da thanh toan", color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  COMPLETED: { label: "Hoan thanh", color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  CANCELLED: { label: "Da huy", color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" },
-  SPAM: { label: "Thu rac", color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" },
+  PENDING:            { label: "Chờ xem xét",           color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
+  REVIEWING:          { label: "Đang xem xét",           color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
+  PROPOSED_ROADSIDE:  { label: "Đề xuất sửa tại chỗ",   color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
+  PROPOSED_TOWING:    { label: "Đề xuất kéo xe",         color: "#ea580c", bg: "#fff7ed", border: "#fdba74" },
+  DISPATCHED:         { label: "Đã điều KTV",             color: "#0891b2", bg: "#cffafe", border: "#67e8f9" },
+  EN_ROUTE:           { label: "KTV đang đến",            color: "#0891b2", bg: "#cffafe", border: "#67e8f9" },
+  ON_SITE:            { label: "KTV đã đến nơi",          color: "#0d9488", bg: "#ccfbf1", border: "#5eead4" },
+  DIAGNOSING:         { label: "Đang chẩn đoán",          color: "#ea580c", bg: "#fff7ed", border: "#fdba74" },
+  REPAIRING:          { label: "Đang sửa tại chỗ",       color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
+  REPAIR_COMPLETE:    { label: "Sửa tại chỗ xong",       color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+  TOWING_DISPATCHED:  { label: "Đã điều xe kéo",          color: "#0891b2", bg: "#cffafe", border: "#67e8f9" },
+  TOWING_ACCEPTED:    { label: "KH chấp nhận kéo",        color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+  TOWED:              { label: "Đã kéo về xưởng",         color: "#0d9488", bg: "#ccfbf1", border: "#5eead4" },
+  INVOICED:           { label: "Đã tạo hóa đơn",          color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd" },
+  INVOICE_SENT:       { label: "Đã gửi hóa đơn",          color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd" },
+  PAYMENT_PENDING:    { label: "Chờ thanh toán",           color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
+  COMPLETED:          { label: "Hoàn thành",               color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+  CANCELLED:          { label: "Đã hủy",                   color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" },
+  SPAM:               { label: "Thư rác",                  color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" },
 };
 
 interface RescueDetailModalProps {
@@ -123,6 +119,7 @@ const RescueDetailModal = ({ rescue, onClose }: RescueDetailModalProps) => {
               </DetailSection>
             )}
           </DetailGrid>
+          <RescueStepProgress status={rescue.status} />
         </ModalBody>
         <ModalFooter>
           <Badge $color={statusInfo.color} $bg={statusInfo.bg}>
