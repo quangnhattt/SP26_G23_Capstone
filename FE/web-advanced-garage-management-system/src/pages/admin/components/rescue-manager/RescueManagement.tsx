@@ -1660,13 +1660,6 @@ const FormTextarea = styled.textarea`
   }
 `;
 
-const CheckboxRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-
 // ─── Technician selection ────────────────────────────────────
 const TechList = styled.div`
   display: flex;
