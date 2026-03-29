@@ -96,7 +96,8 @@ public class AuthService : IAuthService
             RoleID = roleId,
             IsActive = true,
             CreatedDate = now,
-            IsEmailVerified = false
+            IsEmailVerified = false,
+            TrustScore = 0
         };
 
         await _userRepo.AddAsync(user, ct);

@@ -17,6 +17,7 @@ public interface IRescueRequestService
     /// customerId lấy từ JWT token. Validate: BR-16 (địa chỉ + mô tả), xe thuộc sở hữu.
     /// </summary>
     Task<RescueRequestDetailDto> CreateAsync(int customerId, CreateRescueRequestDto request, CancellationToken ct);
+    Task<RescueDepositResultDto> PayDepositAsync(int rescueId, int customerId, PayRescueDepositDto request, CancellationToken ct);
 
     /// <summary>SA lấy danh sách yêu cầu cứu hộ với bộ lọc (UC-RES-01 Step 3)</summary>
     Task<IEnumerable<RescueRequestListItemDto>> GetListAsync(

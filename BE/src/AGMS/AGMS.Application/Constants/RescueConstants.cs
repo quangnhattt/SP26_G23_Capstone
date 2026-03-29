@@ -196,6 +196,11 @@ public static class PaymentStatus
     public const string Failed  = "FAILED";
 }
 
+public static class RescueDepositPolicy
+{
+    public const decimal DefaultInitialDepositAmount = 500000m;
+}
+
 /// <summary>
 /// Hằng số RoleID người dùng trong hệ thống
 /// </summary>

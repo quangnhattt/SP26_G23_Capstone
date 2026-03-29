@@ -2,6 +2,7 @@ using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Rescue;
 using AGMS.Domain.Entities;
+using Microsoft.Extensions.Configuration;
 
 namespace AGMS.Infrastructure.Services;
 
@@ -9,13 +10,19 @@ public class RescueRequestService : IRescueRequestService
 {
     private readonly IRescueRequestRepository _rescueRepo;
     private readonly IUserRepository _userRepo;
+    private readonly decimal _initialDepositAmount;
 
     public RescueRequestService(
         IRescueRequestRepository rescueRepo,
-        IUserRepository userRepo)
+        IUserRepository userRepo,
+        IConfiguration configuration)
     {
         _rescueRepo = rescueRepo;
         _userRepo   = userRepo;
+        // Giữ mức đặt cọc ở dạng cấu hình để có thể thay đổi theo nghiệp vụ mà không cần sửa code.
+        _initialDepositAmount =
+            configuration.GetValue<decimal?>("Rescue:InitialDepositAmount")
+            ?? RescueDepositPolicy.DefaultInitialDepositAmount;
     }
 
     // =========================================================================
@@ -40,6 +47,10 @@ public class RescueRequestService : IRescueRequestService
         if (car.OwnerID != customerId)
             throw new ArgumentException("Xe không thuộc sở hữu của khách hàng này.");
 
+        // Khách có TrustScore = 0 phải đóng cọc trước cho đến khi đã hoàn tất ít nhất một ca cứu hộ.
+        var requiresDeposit = customer.TrustScore <= 0;
+        var depositAmount = requiresDeposit ? _initialDepositAmount : 0m;
+
         var rescue = new RescueRequest
         {
             CarID              = request.CarId,
@@ -52,6 +63,9 @@ public class RescueRequestService : IRescueRequestService
                                      ? null : request.ImageEvidence.Trim(),
             Status             = RescueStatus.Pending,
             ServiceFee         = 0,
+            RequiresDeposit    = requiresDeposit,
+            DepositAmount      = depositAmount,
+            IsDepositPaid      = !requiresDeposit,
             CreatedDate        = DateTime.UtcNow,
             Phone              = request.Phone
         };
@@ -64,6 +78,57 @@ public class RescueRequestService : IRescueRequestService
     }
 
     /// <summary>SA lấy danh sách yêu cầu cứu hộ với bộ lọc (UC-RES-01 Step 3).</summary>
+    // Thanh toán đặt cọc chỉ mở khóa luồng xử lý tiếp theo, không tự động đổi trạng thái rescue.
+    public async Task<RescueDepositResultDto> PayDepositAsync(
+        int rescueId,
+        int customerId,
+        PayRescueDepositDto request,
+        CancellationToken ct)
+    {
+        var rescue = await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (rescue.CustomerID != customerId)
+            throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
+
+        if (!rescue.RequiresDeposit)
+            throw new InvalidOperationException("Yêu cầu này không yêu cầu đặt cọc.");
+
+        if (rescue.IsDepositPaid)
+            throw new InvalidOperationException("Yêu cầu này đã được đặt cọc.");
+
+        if (rescue.Status == RescueStatus.Cancelled || rescue.Status == RescueStatus.Completed)
+            throw new InvalidOperationException("Không thể đặt cọc cho yêu cầu đã kết thúc.");
+
+        var method = request.PaymentMethod.ToUpperInvariant();
+        if (!PaymentMethod.ValidMethods.Contains(method))
+            throw new InvalidOperationException(
+                $"Phương thức thanh toán '{method}' không được hỗ trợ. Hợp lệ: CASH, CARD, TRANSFER, EWALLET.");
+
+        if (Math.Round(request.Amount, 2) != Math.Round(rescue.DepositAmount, 2))
+            throw new ArgumentException(
+                $"Số tiền đặt cọc không khớp. Phải là {rescue.DepositAmount:N0}đ.");
+
+        var now = DateTime.UtcNow;
+        // Lưu chứng từ đặt cọc ngay trên rescue để các bước hóa đơn và kiểm tra workflow dùng chung.
+        rescue.IsDepositPaid = true;
+        rescue.DepositPaidDate = now;
+        rescue.DepositPaymentMethod = method;
+        rescue.DepositTransactionReference = request.TransactionReference?.Trim();
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        return new RescueDepositResultDto
+        {
+            RescueId = rescueId,
+            Status = rescue.Status,
+            DepositAmount = rescue.DepositAmount,
+            IsDepositPaid = true,
+            DepositPaidDate = now,
+            PaymentMethod = method,
+            TransactionReference = rescue.DepositTransactionReference
+        };
+    }
+
     public async Task<IEnumerable<RescueRequestListItemDto>> GetListAsync(
         string? status, string? rescueType, int? customerId,
         DateTime? fromDate, DateTime? toDate, CancellationToken ct)
@@ -98,7 +163,10 @@ public class RescueRequestService : IRescueRequestService
             throw new InvalidOperationException(
                 $"Không thể gửi đề xuất. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PENDING hoặc REVIEWING.");
 
-        // Validate SA (BR-17)
+        EnsureDepositPaid(rescue);
+
+        // Kiểm tra quyền của Service Advisor (BR-17)
+
         var sa = await _userRepo.GetByIdAsync(saId, ct)
             ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
         if (sa.RoleID != UserRole.ServiceAdvisor)
@@ -134,6 +202,8 @@ public class RescueRequestService : IRescueRequestService
         if (!RescueStatus.AllowedForAssignTechnician.Contains(rescue.Status))
             throw new InvalidOperationException(
                 $"Không thể assign kỹ thuật viên. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSED_ROADSIDE.");
+
+        EnsureDepositPaid(rescue);
 
         var sa = await _userRepo.GetByIdAsync(saId, ct)
             ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
@@ -424,6 +494,8 @@ public class RescueRequestService : IRescueRequestService
         if (sa.RoleID != UserRole.ServiceAdvisor)
             throw new ArgumentException("Chỉ Service Advisor mới có quyền điều phối dịch vụ kéo xe.");
 
+        EnsureDepositPaid(rescue);
+
         rescue.RescueType               = RescueType.Towing;
         rescue.Status                   = RescueStatus.TowingDispatched;
         rescue.ServiceFee               = request.TowingServiceFee ?? rescue.ServiceFee;
@@ -580,7 +652,7 @@ public class RescueRequestService : IRescueRequestService
         {
             RescueId = rescueId,
             Status   = RescueStatus.Invoiced,
-            Invoice  = MapToInvoiceDetail(maintenance, RescueStatus.Invoiced, now)
+            Invoice  = MapToInvoiceDetail(maintenance, rescue, RescueStatus.Invoiced, now)
         };
     }
 
@@ -601,7 +673,7 @@ public class RescueRequestService : IRescueRequestService
         return new InvoiceWithItemsResponseDto
         {
             RescueId    = rescueId,
-            Invoice     = MapToInvoiceDetail(maintenance, rescue.Status, maintenance.CreatedDate),
+            Invoice     = MapToInvoiceDetail(maintenance, rescue, rescue.Status, maintenance.CreatedDate),
             RepairItems = repairItems
         };
     }
@@ -654,10 +726,14 @@ public class RescueRequestService : IRescueRequestService
             throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
 
         var finalAmount = 0m;
+        var depositApplied = 0m;
         if (rescue.ResultingMaintenanceID.HasValue)
         {
             var mnt = await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID.Value, ct);
-            finalAmount = mnt?.FinalAmount ?? rescue.ServiceFee;
+            // Khách xác nhận phần tiền còn lại sau khi đã trừ tiền cọc đã thanh toán.
+            var invoiceFinalAmount = mnt?.FinalAmount ?? rescue.ServiceFee;
+            depositApplied = GetDepositAppliedAmount(rescue, invoiceFinalAmount);
+            finalAmount = GetOutstandingAmount(rescue, invoiceFinalAmount);
         }
 
         rescue.Status = RescueStatus.PaymentPending;
@@ -668,7 +744,8 @@ public class RescueRequestService : IRescueRequestService
             RescueId      = rescueId,
             Status        = RescueStatus.PaymentPending,
             InvoiceStatus = InvoiceStatus.Accepted,
-            FinalAmount   = finalAmount
+            FinalAmount   = finalAmount,
+            DepositAppliedAmount = depositApplied
         };
     }
 
@@ -700,7 +777,10 @@ public class RescueRequestService : IRescueRequestService
         var maintenance = await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID.Value, ct)
             ?? throw new InvalidOperationException("Repair Order không tồn tại.");
 
-        var finalAmount = maintenance.FinalAmount ?? rescue.ServiceFee;
+        // Thanh toán cuối chỉ thu phần còn lại vì tiền cọc được xem như khoản trả trước.
+        var invoiceFinalAmount = maintenance.FinalAmount ?? rescue.ServiceFee;
+        var depositApplied = GetDepositAppliedAmount(rescue, invoiceFinalAmount);
+        var finalAmount = GetOutstandingAmount(rescue, invoiceFinalAmount);
 
         // BR-23: Validate số tiền phải khớp finalAmount
         if (Math.Round(request.Amount, 2) != Math.Round(finalAmount, 2))
@@ -729,12 +809,15 @@ public class RescueRequestService : IRescueRequestService
         rescue.Status        = RescueStatus.Completed;
         rescue.CompletedDate = now;
         await _rescueRepo.UpdateAsync(rescue, ct);
+        // Chỉ tăng điểm tin cậy khi ca cứu hộ đã hoàn tất và thanh toán thành công.
+        await _userRepo.IncrementTrustScoreAsync(customerId, ct);
 
         return new PaymentResultDto
         {
             RescueId      = rescueId,
             Status        = RescueStatus.Completed,
             CompletedDate = now,
+            DepositAppliedAmount = depositApplied,
             Payment       = new PaymentInfoDto
             {
                 TransactionId        = created.TransactionID,
@@ -853,7 +936,12 @@ public class RescueRequestService : IRescueRequestService
         rescue.Status = RescueStatus.InvoiceSent;
         await _rescueRepo.UpdateAsync(rescue, ct);
 
-        var invoiceBase = MapToInvoiceDetail(maintenance, RescueStatus.InvoiceSent, maintenance.CreatedDate);
+        var invoiceBase = MapToInvoiceDetail(
+            maintenance,
+            rescue,
+            RescueStatus.InvoiceSent,
+            maintenance.CreatedDate
+        );
 
         return new ResolveDisputeResultDto
         {
@@ -867,6 +955,8 @@ public class RescueRequestService : IRescueRequestService
                 MemberDiscountPercent = invoiceBase.MemberDiscountPercent,
                 MemberDiscountAmount  = invoiceBase.MemberDiscountAmount,
                 FinalAmount           = invoiceBase.FinalAmount,
+                DepositAppliedAmount  = invoiceBase.DepositAppliedAmount,
+                OutstandingAmount     = invoiceBase.OutstandingAmount,
                 Notes                 = invoiceBase.Notes,
                 CreatedAt             = invoiceBase.CreatedAt,
                 InvoiceStatus         = InvoiceStatus.Sent,
@@ -990,12 +1080,12 @@ public class RescueRequestService : IRescueRequestService
     }
 
     // =========================================================================
-    // Private mapping methods — nhất quán với pattern UserService.MapToDetail()
+    // Các hàm mapping nội bộ, giữ nhất quán với pattern UserService.MapToDetail()
     // =========================================================================
 
-    /// <summary>Map CarMaintenance sang InvoiceDetailDto.</summary>
+    /// <summary>Ánh xạ CarMaintenance sang InvoiceDetailDto.</summary>
     private static InvoiceDetailDto MapToInvoiceDetail(
-        CarMaintenance m, string rescueStatus, DateTime createdAt) => new()
+        CarMaintenance m, RescueRequest rescue, string rescueStatus, DateTime createdAt) => new()
     {
         BaseAmount            = m.TotalAmount,
         ManualDiscountAmount  = m.DiscountAmount,
@@ -1003,12 +1093,14 @@ public class RescueRequestService : IRescueRequestService
         MemberDiscountPercent = m.MemberDiscountPercent,
         MemberDiscountAmount  = m.MemberDiscountAmount,
         FinalAmount           = m.FinalAmount ?? m.TotalAmount,
+        DepositAppliedAmount  = GetDepositAppliedAmount(rescue, m.FinalAmount ?? m.TotalAmount),
+        OutstandingAmount     = GetOutstandingAmount(rescue, m.FinalAmount ?? m.TotalAmount),
         Notes                 = m.Notes,
         CreatedAt             = createdAt,
         InvoiceStatus         = InvoiceStatus.FromRescueStatus(rescueStatus)
     };
 
-    /// <summary>Map entity RescueRequest (đã load navigation props) sang DTO chi tiết.</summary>
+    /// <summary>Ánh xạ entity RescueRequest (đã load navigation props) sang DTO chi tiết.</summary>
     private static RescueRequestDetailDto MapToDetail(RescueRequest r) => new()
     {
         RescueId                 = r.RescueID,
@@ -1020,6 +1112,10 @@ public class RescueRequestService : IRescueRequestService
         ProblemDescription       = r.ProblemDescription,
         ImageEvidence            = r.ImageEvidence,
         ServiceFee               = r.ServiceFee,
+        RequiresDeposit          = r.RequiresDeposit,
+        DepositAmount            = r.DepositAmount,
+        IsDepositPaid            = r.IsDepositPaid,
+        DepositPaidDate          = r.DepositPaidDate,
         EstimatedArrivalDateTime = r.EstimatedArrivalDateTime,
         CreatedDate              = r.CreatedDate,
         CompletedDate            = r.CompletedDate,
@@ -1028,6 +1124,7 @@ public class RescueRequestService : IRescueRequestService
         CustomerName   = r.Customer.FullName,
         CustomerPhone  = r.Customer.Phone,
         CustomerEmail  = r.Customer.Email,
+        CustomerTrustScore = r.Customer.TrustScore,
         MembershipRank = r.Customer.CurrentRank?.RankName,
 
         CarId        = r.CarID,
@@ -1046,4 +1143,27 @@ public class RescueRequestService : IRescueRequestService
 
         ResultingMaintenanceId = r.ResultingMaintenanceID
     };
+
+    private static decimal GetDepositAppliedAmount(RescueRequest rescue, decimal invoiceFinalAmount)
+    {
+        if (!rescue.RequiresDeposit || !rescue.IsDepositPaid)
+            return 0m;
+
+        // Không áp tiền cọc vượt quá tổng tiền hóa đơn.
+        return Math.Min(rescue.DepositAmount, invoiceFinalAmount);
+    }
+
+    private static decimal GetOutstandingAmount(RescueRequest rescue, decimal invoiceFinalAmount)
+    {
+        // Số tiền còn lại không được âm nếu tiền cọc lớn hơn hoặc bằng tiền hóa đơn.
+        var outstanding = invoiceFinalAmount - GetDepositAppliedAmount(rescue, invoiceFinalAmount);
+        return outstanding < 0 ? 0 : outstanding;
+    }
+
+    private static void EnsureDepositPaid(RescueRequest rescue)
+    {
+        // Mọi rescue yêu cầu đặt cọc đều bị chặn ở đây cho đến khi khách hoàn tất bước thanh toán cọc.
+        if (rescue.RequiresDeposit && !rescue.IsDepositPaid)
+            throw new InvalidOperationException("Khách hàng phải đóng cọc trước khi xử lý yêu cầu cứu hộ.");
+    }
 }

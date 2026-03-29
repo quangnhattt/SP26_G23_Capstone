@@ -106,6 +106,12 @@ public class RescueRequestRepository : IRescueRequestRepository
         entity.RescueType               = rescue.RescueType;
         entity.ServiceAdvisorID         = rescue.ServiceAdvisorID;
         entity.ServiceFee               = rescue.ServiceFee;
+        entity.RequiresDeposit          = rescue.RequiresDeposit;
+        entity.DepositAmount            = rescue.DepositAmount;
+        entity.IsDepositPaid            = rescue.IsDepositPaid;
+        entity.DepositPaidDate          = rescue.DepositPaidDate;
+        entity.DepositPaymentMethod     = rescue.DepositPaymentMethod;
+        entity.DepositTransactionReference = rescue.DepositTransactionReference;
         entity.EstimatedArrivalDateTime = rescue.EstimatedArrivalDateTime;
         entity.AssignedTechnicianID     = rescue.AssignedTechnicianID;
         entity.ResultingMaintenanceID   = rescue.ResultingMaintenanceID;

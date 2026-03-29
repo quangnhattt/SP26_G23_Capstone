@@ -164,4 +164,14 @@ public class UserRepository : IUserRepository
 		entity.IsEmailVerified = isVerified;
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task IncrementTrustScoreAsync(int userId, CancellationToken ct)
+    {
+        var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
+        if (entity == null) return;
+
+        // Điểm tin cậy chỉ tăng từ rescue đã hoàn tất, nên hàm này chỉ được gọi sau thanh toán cuối.
+        entity.TrustScore += 1;
+        await _db.SaveChangesAsync(ct);
+    }
 }

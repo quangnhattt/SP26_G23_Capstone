@@ -14,5 +14,6 @@ public class UserListItemDto
     public int RoleID { get; set; }
     public string RoleName { get; set; } = null!;
     public bool IsActive { get; set; }
+    public int TrustScore { get; set; }
     public DateTime CreatedDate { get; set; }
 }

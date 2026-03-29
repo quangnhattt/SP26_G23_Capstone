@@ -520,6 +520,13 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.CurrentAddress).HasMaxLength(500);
             entity.Property(e => e.Latitude).HasColumnType("decimal(18, 8)");
             entity.Property(e => e.Longitude).HasColumnType("decimal(18, 8)");
+            entity.Property(e => e.DepositAmount)
+                .HasColumnType("decimal(18, 2)")
+                .HasDefaultValue(0m);
+            entity.Property(e => e.DepositPaymentMethod).HasMaxLength(20);
+            entity.Property(e => e.DepositTransactionReference).HasMaxLength(100);
+            entity.Property(e => e.IsDepositPaid).HasDefaultValue(false);
+            entity.Property(e => e.RequiresDeposit).HasDefaultValue(false);
             entity.Property(e => e.RescueType).HasMaxLength(50);
             entity.Property(e => e.ServiceFee).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Status)
@@ -826,6 +833,7 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.Phone).HasMaxLength(20);
             entity.Property(e => e.Skills).HasMaxLength(500);
             entity.Property(e => e.TotalSpending).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TrustScore).HasDefaultValue(0);
             entity.Property(e => e.UserCode).HasMaxLength(20);
             entity.Property(e => e.Username).HasMaxLength(50);
 

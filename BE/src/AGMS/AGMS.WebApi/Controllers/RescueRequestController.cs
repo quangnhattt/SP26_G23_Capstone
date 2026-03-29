@@ -60,6 +60,43 @@ public class RescueRequestController : ControllerBase
         }
     }
 
+    // POST /api/rescue-requests/{id}/deposit
+    // Khách mới hoặc có điểm tin cậy thấp dùng endpoint này để mở khóa việc xử lý rescue.
+    [HttpPost("{id:int}/deposit")]
+    [Authorize(Roles = Roles.Customer)]
+    [ProducesResponseType(typeof(RescueDepositResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> PayDeposit(int id, [FromBody] PayRescueDepositDto request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var (userId, err) = ExtractUserId();
+        if (err != null)
+            return err;
+
+        try
+        {
+            var result = await _rescueService.PayDepositAsync(id, userId, request, ct);
+            return Ok(new { data = result, message = "Dong coc thanh cong." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
     // GET /api/rescue-requests
     /// <summary>
     /// Lấy danh sách yêu cầu cứu hộ (UC-RES-01 Step 3).
