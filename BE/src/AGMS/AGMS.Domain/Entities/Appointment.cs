@@ -15,6 +15,11 @@ public class Appointment
     public DateTime? ConfirmedDate { get; set; }
 
     /// <summary>
+    /// KTV được gán khi đặt lịch (optional). 1 KTV chỉ nhận 1 xe/slot.
+    /// </summary>
+    public int? AssignedTechnicianID { get; set; }
+
+    /// <summary>
     /// Appointment classification: REPAIR or MAINTENANCE. DB CHECK: ServiceType IN ('REPAIR','MAINTENANCE').
     /// </summary>
     public string ServiceType { get; set; } = "REPAIR";
@@ -23,6 +28,7 @@ public class Appointment
     public virtual ICollection<CarMaintenance> CarMaintenances { get; set; } = new List<CarMaintenance>();
     public virtual User? ConfirmedByNavigation { get; set; }
     public virtual User CreatedByNavigation { get; set; } = null!;
+    public virtual User? AssignedTechnician { get; set; }
     public virtual MaintenancePackage? RequestedPackage { get; set; }
 
     public virtual ICollection<AppointmentSymptom> AppointmentSymptoms { get; set; } = new List<AppointmentSymptom>();

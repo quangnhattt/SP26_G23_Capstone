@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Appointments;
+using AGMS.Application.DTOs.Scheduling;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,11 +14,16 @@ public class AppointmentsController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
     private readonly IAppointmentRepository _appointmentRepo;
+    private readonly IRepairRequestService _repairRequestService;
 
-    public AppointmentsController(IAppointmentService appointmentService, IAppointmentRepository appointmentRepo)
+    public AppointmentsController(
+        IAppointmentService appointmentService,
+        IAppointmentRepository appointmentRepo,
+        IRepairRequestService repairRequestService)
     {
         _appointmentService = appointmentService;
         _appointmentRepo = appointmentRepo;
+        _repairRequestService = repairRequestService;
     }
 
     // POST /api/appointments/{id}/approve — SA bấm nút Approve: chỉ đổi trạng thái, không trả DTO
@@ -168,6 +174,61 @@ public class AppointmentsController : ControllerBase
             return NotFound(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // === Scheduling: Khung giờ đặt lịch ===
+
+    /// <summary>
+    /// Lấy danh sách khung giờ khả dụng trong 1 ngày.
+    /// Trả về 9 slot (08:00-17:00), mỗi slot kèm trạng thái còn chỗ hay không.
+    /// </summary>
+    [HttpGet("available-slots")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(DayAvailabilityDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetAvailableSlots([FromQuery] string date, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(date))
+            return BadRequest(new { message = "Query parameter 'date' is required (yyyy-MM-dd)." });
+
+        try
+        {
+            var result = await _repairRequestService.GetAvailableSlotsAsync(date, ct);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Lấy danh sách KTV rảnh trong 1 slot cụ thể.
+    /// KTV "rảnh" = chưa có lịch hẹn nào (PENDING/CONFIRMED) trong slot đó.
+    /// </summary>
+    [HttpGet("available-technicians")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(IEnumerable<SlotTechnicianDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetAvailableTechnicians(
+        [FromQuery] string date,
+        [FromQuery] string time,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(date))
+            return BadRequest(new { message = "Query parameter 'date' is required (yyyy-MM-dd)." });
+        if (string.IsNullOrWhiteSpace(time))
+            return BadRequest(new { message = "Query parameter 'time' is required (HH:mm)." });
+
+        try
+        {
+            var result = await _repairRequestService.GetAvailableTechniciansInSlotAsync(date, time, ct);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
         }

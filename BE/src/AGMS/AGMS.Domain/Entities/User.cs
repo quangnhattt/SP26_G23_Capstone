@@ -23,6 +23,7 @@ public class User
     public string? Skills { get; set; }
     public bool IsEmailVerified { get; set; }
 
+    public virtual ICollection<Appointment> AppointmentAssignedTechnicians { get; set; } = new List<Appointment>();
     public virtual ICollection<Appointment> AppointmentConfirmedByNavigations { get; set; } = new List<Appointment>();
     public virtual ICollection<Appointment> AppointmentCreatedByNavigations { get; set; } = new List<Appointment>();
     public virtual ICollection<CarMaintenance> CarMaintenanceAssignedTechnicians { get; set; } = new List<CarMaintenance>();

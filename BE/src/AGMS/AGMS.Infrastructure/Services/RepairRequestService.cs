@@ -1,5 +1,7 @@
+using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.RepairRequests;
+using AGMS.Application.DTOs.Scheduling;
 using AGMS.Domain.Entities;
 
 namespace AGMS.Infrastructure.Services;
@@ -91,6 +93,10 @@ public class RepairRequestService : IRepairRequestService
 
         var preferredDate = ParsePreferredDate(request.PreferredDate);
         var preferredTime = ParsePreferredTime(request.PreferredTime);
+
+        // === Validate slot capacity ===
+        await ValidateSlotCapacityAsync(preferredDate, preferredTime, request.TechnicianId, ct);
+
         var appointmentDateTime = preferredDate.ToDateTime(preferredTime);
 
         var appointment = new Appointment
@@ -102,7 +108,8 @@ public class RepairRequestService : IRepairRequestService
             Status = "PENDING",
             Notes = BuildNotes(request),
             CreatedBy = userId,
-            CreatedDate = DateTime.UtcNow
+            CreatedDate = DateTime.UtcNow,
+            AssignedTechnicianID = technician?.UserID
         };
 
         await _repo.AddAppointmentAsync(appointment, ct);
@@ -127,6 +134,105 @@ public class RepairRequestService : IRepairRequestService
             CreatedDateUtc = appointment.CreatedDate,
             Status = appointment.Status
         };
+    }
+
+    // === Scheduling ===
+
+    public async Task<DayAvailabilityDto> GetAvailableSlotsAsync(string date, CancellationToken ct)
+    {
+        var parsedDate = ParsePreferredDate(date);
+        var techCount = await _repo.CountActiveTechniciansAsync(ct);
+
+        var slots = new List<SlotAvailabilityDto>();
+
+        for (int i = 0; i < SchedulingConfig.SlotStartTimes.Length; i++)
+        {
+            var slotStart = SchedulingConfig.SlotStartTimes[i];
+            var slotEnd = slotStart.AddMinutes(SchedulingConfig.SlotDurationMinutes);
+            var bookedCount = await _repo.CountAppointmentsInSlotAsync(parsedDate, slotStart, ct);
+
+            var availableCount = Math.Max(0, techCount - bookedCount);
+
+            slots.Add(new SlotAvailabilityDto
+            {
+                SlotIndex = i + 1,
+                StartTime = slotStart.ToString("HH:mm"),
+                EndTime = slotEnd.ToString("HH:mm"),
+                BookedCount = bookedCount,
+                Capacity = techCount,
+                AvailableCount = availableCount,
+                IsAvailable = availableCount > 0
+            });
+        }
+
+        return new DayAvailabilityDto
+        {
+            Date = parsedDate.ToString("yyyy-MM-dd"),
+            TotalTechnicians = techCount,
+            Slots = slots
+        };
+    }
+
+    public async Task<IEnumerable<SlotTechnicianDto>> GetAvailableTechniciansInSlotAsync(string date, string time, CancellationToken ct)
+    {
+        var parsedDate = ParsePreferredDate(date);
+        var parsedTime = ParsePreferredTime(time);
+
+        if (!SchedulingConfig.IsValidSlotStartTime(parsedTime))
+            throw new ArgumentException(
+                $"Giờ '{time}' không phải khung giờ hợp lệ. Các khung giờ: 08:00, 09:00, ..., 16:00.",
+                nameof(time));
+
+        // Lấy tất cả KTV active
+        var allTechs = await _repo.GetActiveTechniciansAsync(ct);
+
+        // Lấy danh sách KTV đã bị book trong slot này
+        var bookedTechIds = await _repo.GetBookedTechnicianIdsInSlotAsync(parsedDate, parsedTime, ct);
+        var bookedSet = new HashSet<int>(bookedTechIds);
+
+        // Trả danh sách KTV, đánh dấu ai rảnh ai bận
+        return allTechs.Select(t => new SlotTechnicianDto
+        {
+            TechnicianId = t.TechnicianId,
+            FullName = t.FullName,
+            Email = t.Email,
+            Phone = t.Phone,
+            Skills = t.Skills,
+            IsAvailableInSlot = !bookedSet.Contains(t.TechnicianId)
+        })
+        .OrderByDescending(t => t.IsAvailableInSlot) // Rảnh lên đầu
+        .ToList();
+    }
+
+    // === Private helpers ===
+
+    /// <summary>
+    /// Validate: slot còn chỗ không? KTV (nếu chọn) có bị book chưa?
+    /// </summary>
+    private async Task ValidateSlotCapacityAsync(DateOnly date, TimeOnly time, int? technicianId, CancellationToken ct)
+    {
+        if (!SchedulingConfig.IsValidSlotStartTime(time))
+            throw new ArgumentException(
+                $"Giờ đặt lịch phải là giờ bắt đầu khung giờ hợp lệ (08:00, 09:00, ..., 16:00).");
+
+        // Check tổng slot capacity
+        var techCount = await _repo.CountActiveTechniciansAsync(ct);
+        var bookedCount = await _repo.CountAppointmentsInSlotAsync(date, time, ct);
+
+        if (bookedCount >= techCount)
+            throw new InvalidOperationException(
+                $"Khung giờ {time:HH:mm} ngày {date:dd/MM/yyyy} đã đầy ({bookedCount}/{techCount}). " +
+                "Vui lòng chọn khung giờ khác.");
+
+        // Check KTV cụ thể (nếu có chọn)
+        if (technicianId.HasValue)
+        {
+            var bookedTechIds = await _repo.GetBookedTechnicianIdsInSlotAsync(date, time, ct);
+            if (bookedTechIds.Contains(technicianId.Value))
+                throw new InvalidOperationException(
+                    $"Kỹ thuật viên này đã có lịch hẹn trong khung giờ {time:HH:mm} ngày {date:dd/MM/yyyy}. " +
+                    "Vui lòng chọn kỹ thuật viên khác hoặc khung giờ khác.");
+        }
     }
 
     private async Task<(Car car, User? technician, string appointmentServiceType)> ValidateAndLoadCoreDataAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)

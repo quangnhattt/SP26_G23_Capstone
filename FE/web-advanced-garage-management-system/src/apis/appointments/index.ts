@@ -92,3 +92,47 @@ export const rejectAppointment = async (id: number, reason?: string) => {
   });
   return data;
 };
+
+// === Scheduling: Khung giờ đặt lịch ===
+
+export interface ISlotAvailability {
+  slotIndex: number;
+  startTime: string;
+  endTime: string;
+  bookedCount: number;
+  capacity: number;
+  availableCount: number;
+  isAvailable: boolean;
+}
+
+export interface IDayAvailability {
+  date: string;
+  totalTechnicians: number;
+  slots: ISlotAvailability[];
+}
+
+export interface ISlotTechnician {
+  technicianId: number;
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  skills: string | null;
+  isAvailableInSlot: boolean;
+}
+
+export const getAvailableSlots = async (date: string): Promise<IDayAvailability> => {
+  const { data } = await AxiosClient.get<IDayAvailability>(
+    `/api/appointments/available-slots?date=${date}`
+  );
+  return data;
+};
+
+export const getAvailableTechnicians = async (
+  date: string,
+  time: string
+): Promise<ISlotTechnician[]> => {
+  const { data } = await AxiosClient.get<ISlotTechnician[]>(
+    `/api/appointments/available-technicians?date=${date}&time=${time}`
+  );
+  return data;
+};

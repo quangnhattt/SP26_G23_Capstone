@@ -137,4 +137,43 @@ public class RepairRequestRepository : IRepairRequestRepository
         _db.CarMaintenances.Add(maintenance);
         await _db.SaveChangesAsync(ct);
     }
+
+    // === Scheduling ===
+
+    public async Task<int> CountActiveTechniciansAsync(CancellationToken ct)
+    {
+        return await _db.Users
+            .AsNoTracking()
+            .Where(u => u.RoleID == 3 && u.IsActive)
+            .CountAsync(ct);
+    }
+
+    public async Task<List<int>> GetBookedTechnicianIdsInSlotAsync(DateOnly date, TimeOnly slotStart, CancellationToken ct)
+    {
+        var slotStartDt = date.ToDateTime(slotStart);
+        var slotEndDt = slotStartDt.AddMinutes(Application.Constants.SchedulingConfig.SlotDurationMinutes);
+
+        return await _db.Appointments
+            .AsNoTracking()
+            .Where(a => a.AppointmentDate >= slotStartDt
+                     && a.AppointmentDate < slotEndDt
+                     && a.AssignedTechnicianID != null
+                     && (a.Status == "PENDING" || a.Status == "CONFIRMED"))
+            .Select(a => a.AssignedTechnicianID!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> CountAppointmentsInSlotAsync(DateOnly date, TimeOnly slotStart, CancellationToken ct)
+    {
+        var slotStartDt = date.ToDateTime(slotStart);
+        var slotEndDt = slotStartDt.AddMinutes(Application.Constants.SchedulingConfig.SlotDurationMinutes);
+
+        return await _db.Appointments
+            .AsNoTracking()
+            .Where(a => a.AppointmentDate >= slotStartDt
+                     && a.AppointmentDate < slotEndDt
+                     && (a.Status == "PENDING" || a.Status == "CONFIRMED"))
+            .CountAsync(ct);
+    }
 }

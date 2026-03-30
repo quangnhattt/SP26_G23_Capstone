@@ -119,6 +119,10 @@ public partial class CarServiceDbContext : DbContext
             entity.HasOne(d => d.RequestedPackage).WithMany(p => p.Appointments)
                 .HasForeignKey(d => d.RequestedPackageID)
                 .HasConstraintName("FK_Appointments_Package");
+
+            entity.HasOne(d => d.AssignedTechnician).WithMany(p => p.AppointmentAssignedTechnicians)
+                .HasForeignKey(d => d.AssignedTechnicianID)
+                .HasConstraintName("FK_Appointments_Technician");
         });
 
         modelBuilder.Entity<Car>(entity =>

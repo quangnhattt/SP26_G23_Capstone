@@ -36,4 +36,19 @@ public interface IRepairRequestRepository
 
     // Lưu triệu chứng gắn với Appointment
     Task AddAppointmentSymptomsAsync(int appointmentId, IEnumerable<int> symptomIds, CancellationToken ct);
+
+    // === Scheduling: Khung giờ đặt lịch ===
+
+    /// <summary>Đếm số KTV active (RoleID=3, IsActive=true)</summary>
+    Task<int> CountActiveTechniciansAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Lấy danh sách TechnicianID đã có appointment (PENDING/CONFIRMED) trong 1 slot cụ thể.
+    /// </summary>
+    Task<List<int>> GetBookedTechnicianIdsInSlotAsync(DateOnly date, TimeOnly slotStart, CancellationToken ct);
+
+    /// <summary>
+    /// Đếm tổng số appointment (PENDING/CONFIRMED) trong 1 slot cụ thể.
+    /// </summary>
+    Task<int> CountAppointmentsInSlotAsync(DateOnly date, TimeOnly slotStart, CancellationToken ct);
 }

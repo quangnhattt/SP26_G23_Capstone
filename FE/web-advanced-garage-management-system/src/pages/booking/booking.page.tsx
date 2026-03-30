@@ -26,6 +26,12 @@ import { getSymptoms, type ISymptom } from "@/apis/symptoms";
 import { createRepairRequest } from "@/apis/repairRequests";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { AddCarModal } from "./components";
+import {
+  getAvailableSlots,
+  getAvailableTechnicians,
+  type ISlotAvailability,
+  type ISlotTechnician,
+} from "@/apis/appointments";
 
 type BookingStep = 1 | 2 | 3 | 4;
 
@@ -57,6 +63,12 @@ const BookingPage = () => {
   const isCustomer = user?.roleID === 4;
   const [technicians, setTechnicians] = useState<ITechnician[]>([]);
   const [symptomList, setSymptomList] = useState<ISymptom[]>([]);
+
+  // === Scheduling state ===
+  const [availableSlots, setAvailableSlots] = useState<ISlotAvailability[]>([]);
+  const [slotTechnicians, setSlotTechnicians] = useState<ISlotTechnician[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [isLoadingSlotTechs, setIsLoadingSlotTechs] = useState(false);
 
   const [bookingData, setBookingData] = useState<BookingData>({
     selectedVehicle: null,
@@ -528,52 +540,7 @@ const BookingPage = () => {
               </ServiceList>
 
               <FormGroup>
-                <Label>{t("bookingSelectTechnician")}</Label>
-                <TechnicianInfo>
-                  {t("bookingTechnicianInfo")}
-                </TechnicianInfo>
-                <TechnicianGrid>
-                  <TechnicianCard
-                    $selected={bookingData.selectedTechnician === null}
-                    onClick={() =>
-                      setBookingData((prev) => ({ ...prev, selectedTechnician: null }))
-                    }
-                  >
-                    <TechnicianAvatar>
-                      <FaUser size={24} />
-                    </TechnicianAvatar>
-                    <TechnicianName>{t("bookingAutoAssign")}</TechnicianName>
-                    <TechnicianSubtext>{t("bookingAutoAssignDesc")}</TechnicianSubtext>
-                  </TechnicianCard>
-
-                  {technicians.map((tech) => (
-                    <TechnicianCard
-                      key={tech.technicianId}
-                      $selected={bookingData.selectedTechnician === tech.technicianId}
-                      onClick={() =>
-                        setBookingData((prev) => ({
-                          ...prev,
-                          selectedTechnician: tech.technicianId,
-                        }))
-                      }
-                    >
-                      <TechnicianAvatar $hasImage={false}>
-                        {tech.fullName.charAt(0)}
-                      </TechnicianAvatar>
-                      <TechnicianName>{tech.fullName}</TechnicianName>
-                      <TechnicianBadge>{t("bookingTechRepair")}</TechnicianBadge>
-                      <TechnicianStats>
-                        <TechnicianRating>
-                          ⭐ {t("bookingTechStats")}
-                        </TechnicianRating>
-                      </TechnicianStats>
-                    </TechnicianCard>
-                  ))}
-                </TechnicianGrid>
-              </FormGroup>
-
-              <FormGroup>
-                <Label>{t("bookingPreferredTime")}</Label>
+                <Label>{t("bookingPreferredTime")} <Required>*</Required></Label>
                 <TimeGrid>
                   <TimeField>
                     <TimeLabel>{t("bookingDateLabel")}</TimeLabel>
@@ -581,42 +548,143 @@ const BookingPage = () => {
                       type="date"
                       min={new Date().toISOString().split("T")[0]}
                       value={bookingData.preferredDate}
-                      onChange={(e) =>
+                      onChange={async (e) => {
+                        const selectedDate = e.target.value;
                         setBookingData((prev) => ({
                           ...prev,
-                          preferredDate: e.target.value,
+                          preferredDate: selectedDate,
                           preferredTime: "",
-                        }))
-                      }
+                          selectedTechnician: null,
+                        }));
+                        setSlotTechnicians([]);
+                        if (selectedDate) {
+                          setIsLoadingSlots(true);
+                          try {
+                            const result = await getAvailableSlots(selectedDate);
+                            setAvailableSlots(result.slots);
+                          } catch (err) {
+                            console.error("Error fetching slots:", err);
+                            setAvailableSlots([]);
+                          } finally {
+                            setIsLoadingSlots(false);
+                          }
+                        } else {
+                          setAvailableSlots([]);
+                        }
+                      }}
                     />
                   </TimeField>
-                  <TimeField>
-                    <TimeLabel>{t("bookingTimeLabel")}</TimeLabel>
-                    <Select
-                      value={bookingData.preferredTime}
-                      onChange={(e) =>
-                        setBookingData((prev) => ({
-                          ...prev,
-                          preferredTime: e.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">{t("bookingSelectTime")}</option>
-                      {Array.from({ length: 9 }, (_, i) => {
-                        const hour = 8 + i;
-                        const now = new Date();
-                        const isToday = bookingData.preferredDate === now.toISOString().split("T")[0];
-                        if (isToday && hour <= now.getHours()) return null;
-                        return (
-                          <option key={hour} value={`${hour}:00`}>
-                            {`${hour}:00 - ${hour + 1}:00`}
-                          </option>
-                        );
-                      })}
-                    </Select>
-                  </TimeField>
                 </TimeGrid>
+
+                {bookingData.preferredDate && (
+                  <>
+                    <TimeLabel style={{ marginTop: "1rem", marginBottom: "0.5rem" }}>{t("bookingTimeLabel")}</TimeLabel>
+                    {isLoadingSlots ? (
+                      <LoadingMessage>Đang tải khung giờ...</LoadingMessage>
+                    ) : availableSlots.length === 0 ? (
+                      <LoadingMessage>Không có khung giờ khả dụng</LoadingMessage>
+                    ) : (
+                      <SlotGrid>
+                        {availableSlots.map((slot) => {
+                          const now = new Date();
+                          const isToday = bookingData.preferredDate === now.toISOString().split("T")[0];
+                          const slotHour = parseInt(slot.startTime.split(":")[0]);
+                          const isPast = isToday && slotHour <= now.getHours();
+                          const isDisabled = !slot.isAvailable || isPast;
+                          const isSelected = bookingData.preferredTime === slot.startTime;
+
+                          return (
+                            <SlotButton
+                              key={slot.slotIndex}
+                              $selected={isSelected}
+                              $disabled={isDisabled}
+                              onClick={async () => {
+                                if (isDisabled) return;
+                                setBookingData((prev) => ({
+                                  ...prev,
+                                  preferredTime: slot.startTime,
+                                  selectedTechnician: null,
+                                }));
+                                // Fetch KTV rảnh trong slot này
+                                setIsLoadingSlotTechs(true);
+                                try {
+                                  const techs = await getAvailableTechnicians(
+                                    bookingData.preferredDate,
+                                    slot.startTime
+                                  );
+                                  setSlotTechnicians(techs);
+                                } catch (err) {
+                                  console.error("Error fetching slot technicians:", err);
+                                  setSlotTechnicians([]);
+                                } finally {
+                                  setIsLoadingSlotTechs(false);
+                                }
+                              }}
+                            >
+                              <SlotTime>{slot.startTime} - {slot.endTime}</SlotTime>
+                              <SlotStatus $available={slot.isAvailable && !isPast}>
+                                {isPast
+                                  ? "Đã qua"
+                                  : slot.isAvailable
+                                    ? `Còn ${slot.availableCount} chỗ`
+                                    : "Hết chỗ"}
+                              </SlotStatus>
+                            </SlotButton>
+                          );
+                        })}
+                      </SlotGrid>
+                    )}
+                  </>
+                )}
               </FormGroup>
+
+              {bookingData.preferredTime && (
+                <FormGroup>
+                  <Label>{t("bookingSelectTechnician")}</Label>
+                  <TechnicianInfo>
+                    Chọn kỹ thuật viên còn rảnh trong khung giờ {bookingData.preferredTime}
+                  </TechnicianInfo>
+                  {isLoadingSlotTechs ? (
+                    <LoadingMessage>Đang tải danh sách KTV...</LoadingMessage>
+                  ) : (
+                    <TechnicianGrid>
+                      <TechnicianCard
+                        $selected={bookingData.selectedTechnician === null}
+                        onClick={() =>
+                          setBookingData((prev) => ({ ...prev, selectedTechnician: null }))
+                        }
+                      >
+                        <TechnicianAvatar>
+                          <FaUser size={24} />
+                        </TechnicianAvatar>
+                        <TechnicianName>{t("bookingAutoAssign")}</TechnicianName>
+                        <TechnicianSubtext>{t("bookingAutoAssignDesc")}</TechnicianSubtext>
+                      </TechnicianCard>
+
+                      {slotTechnicians
+                        .filter((tech) => tech.isAvailableInSlot)
+                        .map((tech) => (
+                          <TechnicianCard
+                            key={tech.technicianId}
+                            $selected={bookingData.selectedTechnician === tech.technicianId}
+                            onClick={() =>
+                              setBookingData((prev) => ({
+                                ...prev,
+                                selectedTechnician: tech.technicianId,
+                              }))
+                            }
+                          >
+                            <TechnicianAvatar $hasImage={false}>
+                              {tech.fullName.charAt(0)}
+                            </TechnicianAvatar>
+                            <TechnicianName>{tech.fullName}</TechnicianName>
+                            {tech.skills && <TechnicianBadge>{tech.skills}</TechnicianBadge>}
+                          </TechnicianCard>
+                        ))}
+                    </TechnicianGrid>
+                  )}
+                </FormGroup>
+              )}
             </StepContent>
           )}
 
@@ -1934,4 +2002,59 @@ const AddCarButton = styled.button`
   &:hover {
     background: #1e40af;
   }
+`;
+
+// === Slot Scheduling Components ===
+
+const SlotGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SlotButton = styled.button<{ $selected: boolean; $disabled: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.85rem 0.75rem;
+  border-radius: 10px;
+  border: 2px solid ${({ $selected, $disabled }) =>
+    $disabled ? '#e5e7eb' : $selected ? '#1d4ed8' : '#d1d5db'};
+  background: ${({ $selected, $disabled }) =>
+    $disabled ? '#f9fafb' : $selected ? '#eff6ff' : 'white'};
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
+  transition: all 0.2s;
+
+  &:hover {
+    ${({ $disabled, $selected }) =>
+      !$disabled &&
+      !$selected &&
+      `
+        border-color: #93c5fd;
+        background: #f0f7ff;
+      `}
+  }
+`;
+
+const SlotTime = styled.span`
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #111827;
+`;
+
+const SlotStatus = styled.span<{ $available: boolean }>`
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: ${({ $available }) => ($available ? '#059669' : '#dc2626')};
 `;
