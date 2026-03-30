@@ -1370,25 +1370,6 @@ const Textarea = styled.textarea`
   }
 `;
 
-const Select = styled.select`
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.9375rem;
-  color: #111827 !important;
-  background: white;
-  -webkit-text-fill-color: #111827 !important;
-
-  &:focus {
-    outline: none;
-    border-color: #1d4ed8;
-    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
-  }
-
-  option {
-    color: #111827;
-  }
-`;
 
 const SymptomGrid = styled.div`
   display: flex;
@@ -1597,16 +1578,6 @@ const TechnicianBadge = styled.div`
   border-radius: 12px;
 `;
 
-const TechnicianStats = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-`;
-
-const TechnicianRating = styled.div`
-  font-size: 0.75rem;
-  color: #6b7280;
-`;
 
 const TimeGrid = styled.div`
   display: grid;
