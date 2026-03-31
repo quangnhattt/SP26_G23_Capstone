@@ -1,5 +1,7 @@
-﻿using AGMS.Application.Contracts;
+﻿using AGMS.Application.Constants;
+using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Permission;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -8,6 +10,7 @@ namespace AGMS.WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = Roles.Admin)]
     public class PermissionsController : ControllerBase
     {
         private readonly IPermissionService _permissionService;
