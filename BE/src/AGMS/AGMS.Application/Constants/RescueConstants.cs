@@ -9,6 +9,7 @@ public static class RescueStatus
     public const string Reviewing        = "REVIEWING";
     public const string ProposedRoadside = "PROPOSED_ROADSIDE";
     public const string ProposedTowing   = "PROPOSED_TOWING";
+    public const string ProposalAccepted = "PROPOSAL_ACCEPTED";
     public const string Dispatched       = "DISPATCHED";
     public const string EnRoute          = "EN_ROUTE";
     public const string OnSite           = "ON_SITE";
@@ -30,11 +31,19 @@ public static class RescueStatus
     public static readonly IReadOnlySet<string> AllowedForPropose =
         new HashSet<string> { Pending, Reviewing };
 
+    /// <summary>Customer chấp nhận đề xuất sau khi SA đã gửi phương án xử lý.</summary>
+    public static readonly IReadOnlySet<string> AllowedForAcceptProposal =
+        new HashSet<string> { ProposedRoadside, ProposedTowing };
+
+    /// <summary>Thanh toán đặt cọc chỉ được mở sau khi khách hàng đã đồng ý đề xuất.</summary>
+    public static readonly IReadOnlySet<string> AllowedForDeposit =
+        new HashSet<string> { ProposalAccepted };
+
     // --- UC-RES-02: Status sets cho từng bước dispatch & roadside repair ---
 
-    /// <summary>SA assign kỹ thuật viên — chỉ khi đề xuất sửa tại chỗ đã gửi (BR-18)</summary>
+    /// <summary>SA assign kỹ thuật viên — chỉ khi khách hàng đã đồng ý đề xuất sửa tại chỗ (BR-18)</summary>
     public static readonly IReadOnlySet<string> AllowedForAssignTechnician =
-        new HashSet<string> { ProposedRoadside };
+        new HashSet<string> { ProposalAccepted };
 
     /// <summary>Technician nhận job — chỉ khi đã được điều phối (BR-18)</summary>
     public static readonly IReadOnlySet<string> AllowedForAcceptJob =
@@ -62,9 +71,9 @@ public static class RescueStatus
 
     // --- UC-RES-03: Status sets cho từng bước điều phối kéo xe ---
 
-    /// <summary>SA điều phối kéo xe — chỉ khi đề xuất kéo xe đã được tạo (BR-18)</summary>
+    /// <summary>SA điều phối kéo xe — chỉ khi khách hàng đã đồng ý đề xuất kéo xe (BR-18)</summary>
     public static readonly IReadOnlySet<string> AllowedForDispatchTowing =
-        new HashSet<string> { ProposedTowing };
+        new HashSet<string> { ProposalAccepted };
 
     /// <summary>Customer chấp nhận kéo xe — khi dịch vụ kéo đã được điều phối (BR-18)</summary>
     public static readonly IReadOnlySet<string> AllowedForAcceptTowing =
@@ -135,8 +144,9 @@ public static class RescueMaintenanceType
 {
     /// <summary>Sửa chữa tại chỗ ven đường (UC-RES-02)</summary>
     public const string Roadside = "RESCUE_ROADSIDE";
+
     /// <summary>Kéo xe về xưởng (UC-RES-03)</summary>
-    public const string Towing   = "RESCUE_TOWING";
+    public const string Towing = "RESCUE_TOWING";
 }
 
 /// <summary>

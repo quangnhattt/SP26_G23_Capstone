@@ -38,13 +38,19 @@ public interface IRescueRequestService
     /// </summary>
     Task<RescueRequestDetailDto> ProposeAsync(int rescueId, int saId, ProposeRescueDto request, CancellationToken ct);
 
+    /// <summary>
+    /// Customer chấp nhận đề xuất của SA trước khi chuyển sang bước đặt cọc/điều phối.
+    /// customerId lấy từ JWT token.
+    /// </summary>
+    Task<RescueRequestDetailDto> AcceptProposalAsync(int rescueId, int customerId, CancellationToken ct);
+
     // -------------------------------------------------------------------------
     // UC-RES-02: Điều phối & Sửa ven đường
     // -------------------------------------------------------------------------
 
     /// <summary>
     /// SA assign kỹ thuật viên (UC-RES-02 Step 1-2).
-    /// saId lấy từ JWT token. Validate: BR-17, BR-18 (PROPOSED_ROADSIDE), BR-28. SMC03, SMC10.
+    /// saId lấy từ JWT token. Validate: BR-17, BR-18 (PROPOSAL_ACCEPTED + ROADSIDE), BR-28. SMC03, SMC10.
     /// </summary>
     Task<RescueRequestDetailDto> AssignTechnicianAsync(int rescueId, int saId, AssignTechnicianDto request, CancellationToken ct);
 
@@ -91,7 +97,7 @@ public interface IRescueRequestService
 
     /// <summary>
     /// SA điều phối dịch vụ kéo xe (UC-RES-03 C1).
-    /// saId lấy từ JWT token. PROPOSED_TOWING → TOWING_DISPATCHED. SMC05, SMC11.
+    /// saId lấy từ JWT token. PROPOSAL_ACCEPTED + TOWING → TOWING_DISPATCHED. SMC05, SMC11.
     /// </summary>
     Task<TowingDispatchResultDto> DispatchTowingAsync(int rescueId, int saId, DispatchTowingDto request, CancellationToken ct);
 

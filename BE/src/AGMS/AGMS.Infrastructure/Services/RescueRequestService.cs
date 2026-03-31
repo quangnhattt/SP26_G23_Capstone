@@ -112,6 +112,11 @@ public class RescueRequestService : IRescueRequestService
         if (rescue.Status == RescueStatus.Cancelled || rescue.Status == RescueStatus.Completed)
             throw new InvalidOperationException("Không thể đặt cọc cho yêu cầu đã kết thúc.");
 
+        if (!RescueStatus.AllowedForDeposit.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                "Chỉ có thể đóng cọc sau khi khách hàng đã đồng ý đề xuất."
+            );
+
         var method = request.PaymentMethod.ToUpperInvariant();
         if (!PaymentMethod.ValidMethods.Contains(method))
             throw new InvalidOperationException(
@@ -193,8 +198,6 @@ public class RescueRequestService : IRescueRequestService
                 $"Không thể gửi đề xuất. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PENDING hoặc REVIEWING."
             );
 
-        EnsureDepositPaid(rescue);
-
         // Kiểm tra quyền của Service Advisor (BR-17)
 
         var sa =
@@ -231,8 +234,40 @@ public class RescueRequestService : IRescueRequestService
 
     /// <summary>
     /// SA assign kỹ thuật viên (UC-RES-02 Step 1-2).
-    /// saId từ token. BR-17, BR-18 (PROPOSED_ROADSIDE), BR-28. SMC03, SMC10.
+    /// saId từ token. BR-17, BR-18 (PROPOSAL_ACCEPTED + ROADSIDE), BR-28. SMC03, SMC10.
     /// </summary>
+    /// <summary>
+    /// Khách hàng chấp nhận đề xuất của SA trước khi chuyển sang bước đặt cọc và điều phối.
+    /// </summary>
+    public async Task<RescueRequestDetailDto> AcceptProposalAsync(
+        int rescueId,
+        int customerId,
+        CancellationToken ct
+    )
+    {
+        var rescue =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForAcceptProposal.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể chấp nhận đề xuất. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSED_ROADSIDE hoặc PROPOSED_TOWING."
+            );
+
+        if (rescue.CustomerID != customerId)
+            throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
+
+        rescue.Status = RescueStatus.ProposalAccepted;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        var updated =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new InvalidOperationException(
+                "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
+            );
+        return await MapToDetailAsync(updated, ct);
+    }
+
     public async Task<RescueRequestDetailDto> AssignTechnicianAsync(
         int rescueId,
         int saId,
@@ -246,7 +281,12 @@ public class RescueRequestService : IRescueRequestService
 
         if (!RescueStatus.AllowedForAssignTechnician.Contains(rescue.Status))
             throw new InvalidOperationException(
-                $"Không thể assign kỹ thuật viên. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSED_ROADSIDE."
+                $"Không thể assign kỹ thuật viên. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSAL_ACCEPTED."
+            );
+
+        if (!string.Equals(rescue.RescueType, RescueType.Roadside, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(
+                "Yêu cầu này chưa được khách hàng chấp nhận theo phương án sửa tại chỗ."
             );
 
         EnsureDepositPaid(rescue);
@@ -272,7 +312,7 @@ public class RescueRequestService : IRescueRequestService
 
         rescue.AssignedTechnicianID = request.TechnicianId;
         rescue.EstimatedArrivalDateTime = request.EstimatedArrivalDateTime;
-        rescue.Status = RescueStatus.EnRoute;
+        rescue.Status = RescueStatus.Dispatched;
         await _rescueRepo.UpdateAsync(rescue, ct);
 
         // Đặt trước kỹ thuật viên (SMC10)
@@ -620,7 +660,7 @@ public class RescueRequestService : IRescueRequestService
 
     /// <summary>
     /// SA điều phối kéo xe (UC-RES-03 C1). saId từ token.
-    /// PROPOSED_TOWING → TOWING_DISPATCHED. SMC05, SMC11.
+    /// PROPOSAL_ACCEPTED + TOWING → TOWING_DISPATCHED. SMC05, SMC11.
     /// </summary>
     public async Task<TowingDispatchResultDto> DispatchTowingAsync(
         int rescueId,
@@ -635,7 +675,7 @@ public class RescueRequestService : IRescueRequestService
 
         if (!RescueStatus.AllowedForDispatchTowing.Contains(rescue.Status))
             throw new InvalidOperationException(
-                $"Không thể điều phối kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSED_TOWING."
+                $"Không thể điều phối kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSAL_ACCEPTED."
             );
 
         var sa =
@@ -644,6 +684,11 @@ public class RescueRequestService : IRescueRequestService
         if (sa.RoleID != UserRole.ServiceAdvisor)
             throw new ArgumentException(
                 "Chỉ Service Advisor mới có quyền điều phối dịch vụ kéo xe."
+            );
+
+        if (!string.Equals(rescue.RescueType, RescueType.Towing, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(
+                "Yêu cầu này chưa được khách hàng chấp nhận theo phương án kéo xe."
             );
 
         EnsureDepositPaid(rescue);
