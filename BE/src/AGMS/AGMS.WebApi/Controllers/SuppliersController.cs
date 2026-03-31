@@ -1,5 +1,7 @@
-﻿using AGMS.Application.Contracts;
+﻿using AGMS.Application.Constants;
+using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Supplier;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -8,7 +10,7 @@ namespace AGMS.WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    // [Authorize] // Sau này làm Login thì mở comment dòng này ra
+    [Authorize(Roles = Roles.Admin)]
     public class SuppliersController : ControllerBase
     {
         private readonly ISupplierService _supplierService;
