@@ -1,11 +1,15 @@
-﻿using AGMS.Application.Contracts;
+﻿using AGMS.Application.Constants;
+using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.MembershipRank;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AGMS.WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = Roles.Admin)]
+
     public class MembershipRanksController : ControllerBase
     {
         private readonly IMembershipRankService _membershipRankService;
