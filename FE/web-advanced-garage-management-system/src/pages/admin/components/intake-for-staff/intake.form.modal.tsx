@@ -25,7 +25,7 @@ const BLACK_LABEL_RENDER = (props: { label: React.ReactNode }) => (
 );
 
 const CONDITION_OPTIONS = [
-  "CLEAN", "SCRATCH", "DENT", "CRACK", "RUST", "NONE",
+  "NORMAL", "SCRATCH", "DENT", "DEFORM",
 ].map((v) => ({ value: v, label: v }));
 
 interface Props {
