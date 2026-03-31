@@ -1,5 +1,6 @@
 import AxiosClient from "@/apis/AxiosClient";
 import type { ICar, ICreateCarPayload, ICreateCarResponse } from "./types";
+export type { ICar, ICreateCarPayload, ICreateCarResponse } from "./types";
 
 export const getCars = async (): Promise<ICar[]> => {
   const { data } = await AxiosClient.get<ICar[]>("/api/customer/cars");
