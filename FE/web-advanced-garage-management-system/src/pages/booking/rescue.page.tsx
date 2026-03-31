@@ -410,6 +410,27 @@ const RescuePage = () => {
                 </AddressRow>
               </FormGroup>
 
+              <CoordinatesRow>
+                <FormGroup style={{ flex: 1, marginBottom: 0 }}>
+                  <Label>{t("rescueLatitude")}</Label>
+                  <Input
+                    type="text"
+                    readOnly
+                    value={rescueData.latitude !== null ? rescueData.latitude.toFixed(6) : ""}
+                    placeholder="—"
+                  />
+                </FormGroup>
+                <FormGroup style={{ flex: 1, marginBottom: 0 }}>
+                  <Label>{t("rescueLongitude")}</Label>
+                  <Input
+                    type="text"
+                    readOnly
+                    value={rescueData.longitude !== null ? rescueData.longitude.toFixed(6) : ""}
+                    placeholder="—"
+                  />
+                </FormGroup>
+              </CoordinatesRow>
+
               <SectionTitle>{t("rescueSelectVehicle")}</SectionTitle>
               {isLoadingVehicles ? (
                 <LoadingMessage>{t("rescueLoadingVehicles")}</LoadingMessage>
@@ -965,6 +986,16 @@ const Input = styled.input`
     -webkit-text-fill-color: #9ca3af !important;
     cursor: not-allowed;
     opacity: 0.7;
+  }
+`;
+
+const CoordinatesRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
   }
 `;
 
