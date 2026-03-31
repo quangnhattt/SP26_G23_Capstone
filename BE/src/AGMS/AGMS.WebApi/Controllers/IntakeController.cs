@@ -20,7 +20,8 @@ namespace AGMS.WebApi.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetIntakes(CancellationToken ct)
+        [ProducesResponseType(typeof(PagedResultDto<IntakeListItemDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetIntakes([FromQuery] IntakeListQueryDto query, CancellationToken ct)
         {
             var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrWhiteSpace(claim) || !int.TryParse(claim, out int userId))
@@ -32,8 +33,8 @@ namespace AGMS.WebApi.Controllers
             {
                 return Forbid();
             }
-            var item = await _intakeService.GetWaitingIntakesAsync(ct);
-            return Ok(item);
+            var result = await _intakeService.GetIntakesAsync(query, ct);
+            return Ok(result);
         }
 
         [HttpPost("walk-in")]
