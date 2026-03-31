@@ -1,6 +1,8 @@
 ﻿using AGMS.Application;
+using AGMS.Application.Constants;
 using AGMS.Application.Contracts; 
 using AGMS.Application.DTOs.Unit;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -9,7 +11,7 @@ namespace AGMS.WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    // [Authorize(Roles = "Admin")] // TẠM THỜI TẮT
+   
     public class UnitsController : ControllerBase
     {
         private readonly IUnitService _unitService;
@@ -21,6 +23,7 @@ namespace AGMS.WebApi.Controllers
 
         // UC59 - View Units of Measure
         [HttpGet]
+        [Authorize(Roles = Roles.Admin + "," + Roles.ServiceAdvisor)]
         public async Task<IActionResult> GetUnits([FromQuery] UnitFilterDto filter)
         {
             try
@@ -50,6 +53,7 @@ namespace AGMS.WebApi.Controllers
 
         // Add Unit of Measure
         [HttpPost]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<IActionResult> CreateUnit([FromBody] CreateUnitRequest request)
         {
             // Kiểm tra các field bắt buộc từ DTO
@@ -89,6 +93,7 @@ namespace AGMS.WebApi.Controllers
 
         // Edit Unit of Measure
         [HttpPut("{id}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<IActionResult> UpdateUnit(int id, [FromBody] UpdateUnitRequest request)
         {
             if (!ModelState.IsValid)
@@ -131,6 +136,7 @@ namespace AGMS.WebApi.Controllers
 
         // Delete Unit of Measure
         [HttpDelete("{id}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<IActionResult> DeleteUnit(int id)
         {
             try
