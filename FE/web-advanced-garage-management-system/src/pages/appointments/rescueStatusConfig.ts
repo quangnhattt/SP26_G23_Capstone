@@ -1,3 +1,30 @@
+export const rescueStatusStyle: Record<
+  string,
+  { color: string; bg: string; border: string; labelKey: string }
+> = {
+  PENDING: { color: "#d97706", bg: "#fef3c7", border: "#fcd34d", labelKey: "rescueMgrStatusPending" },
+  REVIEWING: { color: "#2563eb", bg: "#dbeafe", border: "#93c5fd", labelKey: "rescueMgrStatusReviewing" },
+  PROPOSED_ROADSIDE: { color: "#2563eb", bg: "#dbeafe", border: "#93c5fd", labelKey: "rescueMgrStatusProposedRoadside" },
+  PROPOSED_TOWING: { color: "#ea580c", bg: "#fff7ed", border: "#fdba74", labelKey: "rescueMgrStatusProposedTowing" },
+  DISPATCHED: { color: "#0891b2", bg: "#cffafe", border: "#67e8f9", labelKey: "rescueMgrStatusDispatched" },
+  EN_ROUTE: { color: "#0891b2", bg: "#cffafe", border: "#67e8f9", labelKey: "rescueMgrStatusEnRoute" },
+  ON_SITE: { color: "#0d9488", bg: "#ccfbf1", border: "#5eead4", labelKey: "rescueMgrStatusOnSite" },
+  DIAGNOSING: { color: "#ea580c", bg: "#fff7ed", border: "#fdba74", labelKey: "rescueMgrStatusDiagnosing" },
+  REPAIRING: { color: "#2563eb", bg: "#dbeafe", border: "#93c5fd", labelKey: "rescueMgrStatusRepairing" },
+  REPAIR_COMPLETE: { color: "#16a34a", bg: "#dcfce7", border: "#86efac", labelKey: "rescueMgrStatusRepairComplete" },
+  TOWING_DISPATCHED: { color: "#0891b2", bg: "#cffafe", border: "#67e8f9", labelKey: "rescueMgrStatusTowingDispatched" },
+  TOWING_ACCEPTED: { color: "#16a34a", bg: "#dcfce7", border: "#86efac", labelKey: "rescueMgrStatusTowingAccepted" },
+  TOWED: { color: "#0d9488", bg: "#ccfbf1", border: "#5eead4", labelKey: "rescueMgrStatusTowed" },
+  INVOICED: { color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd", labelKey: "rescueMgrStatusInvoiced" },
+  INVOICE_SENT: { color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd", labelKey: "rescueMgrStatusInvoiceSent" },
+  PAYMENT_PENDING: { color: "#d97706", bg: "#fef3c7", border: "#fcd34d", labelKey: "rescueMgrStatusPaymentPending" },
+  COMPLETED: { color: "#16a34a", bg: "#dcfce7", border: "#86efac", labelKey: "rescueMgrStatusCompleted" },
+  CANCELLED: { color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb", labelKey: "rescueMgrStatusCancelled" },
+  SPAM: { color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb", labelKey: "rescueMgrStatusSpam" },
+  CUSTOMER_REJECTED: { color: "#dc2626", bg: "#fee2e2", border: "#fca5a5", labelKey: "rescueMgrStatusCustomerRejected" },
+  TOWING_REJECTED: { color: "#dc2626", bg: "#fee2e2", border: "#fca5a5", labelKey: "rescueMgrStatusTowingRejected" },
+};
+
 export const rescueStatusConfig: Record<string, { labelKey: string; color: string; bg: string }> = {
   PENDING: { labelKey: "rescueStatusPending", color: "#d97706", bg: "#fef3c7" },
   REVIEWING: { labelKey: "rescueStatusReviewing", color: "#2563eb", bg: "#dbeafe" },
