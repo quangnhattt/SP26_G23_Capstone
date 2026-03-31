@@ -9,7 +9,7 @@ namespace AGMS.WebApi.Controllers;
 
 [ApiController]
 [Route("api/users")]
-[Authorize(Roles = Roles.Admin)]
+[Authorize(Roles = Roles.Admin + "," + Roles.ServiceAdvisor)]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -52,6 +52,7 @@ public class UsersController : ControllerBase
 
     // POST /api/users
     [HttpPost]
+    [Authorize(Roles = Roles.Admin)]
     [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -78,6 +79,7 @@ public class UsersController : ControllerBase
 
     // PUT /api/users/{userId}
     [HttpPut("{userId:int}")]
+    [Authorize(Roles = Roles.Admin)]
     [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -132,6 +134,7 @@ public class UsersController : ControllerBase
 
     // PATCH /api/users/{userId}/deactivate
     [HttpPatch("{userId:int}/deactivate")]
+    [Authorize(Roles = Roles.Admin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
