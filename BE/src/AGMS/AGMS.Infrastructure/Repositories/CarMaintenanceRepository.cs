@@ -106,10 +106,32 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         }
         var owner = maintenance.Car.Owner;
         var baseAmount = maintenance.TotalAmount;
-        var rank = owner.CurrentRank;
-        var memberPercent=rank?.DiscountPercent ?? 0m;
-        var memberAmount=Math.Round(baseAmount* memberPercent/100m, 2);
-        var finalAmount = baseAmount - maintenance.DiscountAmount - memberAmount;
+
+        // Ưu tiên "freeze" membership đã được lưu tại thời điểm tạo hóa đơn.
+        var hasFrozenMembership = !string.IsNullOrWhiteSpace(maintenance.RankAtTimeOfService)
+                                   || maintenance.MemberDiscountPercent != 0m
+                                   || maintenance.MemberDiscountAmount != 0m;
+
+        decimal memberPercent;
+        decimal memberAmount;
+        string? rankApplied;
+
+        if (hasFrozenMembership)
+        {
+            memberPercent = maintenance.MemberDiscountPercent;
+            memberAmount = maintenance.MemberDiscountAmount;
+            rankApplied = maintenance.RankAtTimeOfService;
+        }
+        else
+        {
+            // Fallback cho dữ liệu cũ: nếu chưa tạo hóa đơn thì tính theo current rank.
+            var rank = owner.CurrentRank;
+            memberPercent = rank?.DiscountPercent ?? 0m;
+            memberAmount = Math.Round(baseAmount * memberPercent / 100m, 2);
+            rankApplied = rank?.RankName;
+        }
+
+        var finalAmount = maintenance.FinalAmount ?? (baseAmount - maintenance.DiscountAmount - memberAmount);
         var packageUsages=maintenance.MaintenancePackageUsages.OrderByDescending(x=>x.UsageID).Select(pu=> new MaintenancePackageUsagePrintDto
         {
             PackageId=pu.PackageID,
@@ -169,13 +191,49 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             CreatedDate=maintenance.CreatedDate,
             MaintenanceDate=maintenance.MaintenanceDate,
             TotalAmount=maintenance.TotalAmount,    
-            MembershipRankApplied=rank?.RankName,
+            MembershipRankApplied=rankApplied,
+            MemberDiscountPercent=memberPercent,
             MemberDiscountAmount=memberAmount,
             FinalAmount=finalAmount,
             PackageUsages=packageUsages,
             LineItems=serviceItems.Concat(partItems).ToList()
         };
 
+    }
+
+    public async Task<MaintenanceInvoiceDto?> CreateMaintenanceInvoiceAsync(int maintenanceId, CancellationToken ct = default)
+    {
+        var maintenance = await _db.CarMaintenances
+            .Include(m => m.Car).ThenInclude(c => c.Owner).ThenInclude(o => o.CurrentRank)
+            .Include(m => m.MaintenancePackageUsages).ThenInclude(mpu => mpu.Package)
+            .Include(m => m.ServiceDetails).ThenInclude(sd => sd.Product)
+            .Include(m => m.ServicePartDetails).ThenInclude(spd => spd.Product)
+            .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+
+        if (maintenance == null)
+            return null;
+
+        var hasFrozenMembership = !string.IsNullOrWhiteSpace(maintenance.RankAtTimeOfService)
+                                   || maintenance.MemberDiscountPercent != 0m
+                                   || maintenance.MemberDiscountAmount != 0m;
+
+        if (!hasFrozenMembership)
+        {
+            var owner = maintenance.Car.Owner;
+            var rank = owner.CurrentRank;
+
+            var memberPercent = rank?.DiscountPercent ?? 0m;
+            var memberAmount = Math.Round(maintenance.TotalAmount * memberPercent / 100m, 2);
+
+            maintenance.MemberDiscountPercent = memberPercent;
+            maintenance.MemberDiscountAmount = memberAmount;
+            maintenance.RankAtTimeOfService = rank?.RankName;
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        // Trả lại invoice dựa trên dữ liệu đã freeze.
+        return await GetMaintenanceInvoiceAsync(maintenanceId, ct);
     }
     public async Task ProposeAdditionalItemsAsync(int maintenanceId, ProposeAdditionalItemsRequest request, CancellationToken ct = default)
     {

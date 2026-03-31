@@ -39,5 +39,10 @@ public class CarMaintenanceService : ICarMaintenanceService
     {
         return await _repository.GetMaintenanceInvoiceAsync(maintenanceId, ct);
     }
+
+    public async Task<MaintenanceInvoiceDto?> CreateMaintenanceInvoiceAsync(int maintenanceId, CancellationToken ct = default)
+    {
+        return await _repository.CreateMaintenanceInvoiceAsync(maintenanceId, ct);
+    }
 }
 
