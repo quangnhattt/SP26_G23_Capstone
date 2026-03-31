@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal, Form, Input, Select, InputNumber,
   Button, Row, Col, Radio, Divider, ConfigProvider,
@@ -47,7 +47,7 @@ const IntakeFormModal = ({ open, mode, intakeId, detailData, onClose, onSuccess 
   const [technicians, setTechnicians] = useState<ITechnician[]>([]);
   const [users, setUsers] = useState<IUser[]>([]);
   const [userSearchLoading, setUserSearchLoading] = useState(false);
-  const userSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [userSearchValue, setUserSearchValue] = useState("");
   const [customerCars, setCustomerCars] = useState<ICar[]>([]);
   const [carsLoading, setCarsLoading] = useState(false);
   const customerMode = Form.useWatch("customerMode", form);
@@ -71,17 +71,17 @@ const IntakeFormModal = ({ open, mode, intakeId, detailData, onClose, onSuccess 
     getTechnicians().then(setTechnicians).catch(() => {});
   }, []);
 
-  const handleUserSearch = (value: string) => {
-    if (userSearchTimer.current) clearTimeout(userSearchTimer.current);
-    if (!value.trim()) { setUsers([]); return; }
-    userSearchTimer.current = setTimeout(() => {
+  useEffect(() => {
+    if (!userSearchValue.trim()) { setUsers([]); return; }
+    const timer = setTimeout(() => {
       setUserSearchLoading(true);
-      searchUsers(value.trim())
+      searchUsers(userSearchValue.trim())
         .then(setUsers)
         .catch(() => {})
         .finally(() => setUserSearchLoading(false));
     }, 2000);
-  };
+    return () => clearTimeout(timer);
+  }, [userSearchValue]);
 
   useEffect(() => {
     if (!open) return;
@@ -308,7 +308,8 @@ const IntakeFormModal = ({ open, mode, intakeId, detailData, onClose, onSuccess 
                 showSearch
                 placeholder={t("intakeFormSearchByPhone")}
                 filterOption={false}
-                onSearch={handleUserSearch}
+                searchValue={userSearchValue}
+                onSearch={setUserSearchValue}
                 loading={userSearchLoading}
                 options={users.map((u) => ({
                   value: u.userID,
