@@ -16,6 +16,7 @@ public interface IUserRepository
     Task SetActiveAsync(int userId, bool isActive, CancellationToken ct);
     Task DeleteAsync(int userId, CancellationToken ct);
     Task SetEmailVerifiedAsync(int userId, bool isVerified, CancellationToken ct);
+    Task IncrementTrustScoreAsync(int userId, CancellationToken ct);
     /// <summary>
     /// Cập nhật cờ IsOnRescueMission của kỹ thuật viên — dùng khi assign/release nhiệm vụ cứu hộ
     /// </summary>

@@ -60,6 +60,43 @@ public class RescueRequestController : ControllerBase
         }
     }
 
+    // POST /api/rescue-requests/{id}/deposit
+    // Sau khi khách hàng đồng ý đề xuất, khách mới hoặc có điểm tin cậy thấp dùng endpoint này để mở khóa bước điều phối.
+    [HttpPost("{id:int}/deposit")]
+    [Authorize(Roles = Roles.Customer)]
+    [ProducesResponseType(typeof(RescueDepositResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> PayDeposit(int id, [FromBody] PayRescueDepositDto request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var (userId, err) = ExtractUserId();
+        if (err != null)
+            return err;
+
+        try
+        {
+            var result = await _rescueService.PayDepositAsync(id, userId, request, ct);
+            return Ok(new { data = result, message = "Dong coc thanh cong." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
     // GET /api/rescue-requests
     /// <summary>
     /// Lấy danh sách yêu cầu cứu hộ (UC-RES-01 Step 3).
@@ -152,9 +189,10 @@ public class RescueRequestController : ControllerBase
     // PATCH /api/rescue-requests/{id}/propose
     /// <summary>
     /// SA gửi đề xuất sửa tại chỗ hoặc kéo xe (UC-RES-01 Step 5-6). BR-17, BR-18.
+    /// Sau bước này, khách hàng phải gọi /accept-proposal trước khi đóng cọc hoặc điều phối.
     /// </summary>
     ///
-    /// Suwar DB thêm [Status]='PENDING' OR [Status]='PROPOSED_ROADSIDE' OR [Status]='PROPOSED_TOWING vào CK_Rescue_Status
+    /// Lưu ý DB: cần bổ sung PROPOSAL_ACCEPTED vào CK_Rescue_Status nếu DB đang dùng check constraint cho cột Status.
     [HttpPatch("{id:int}/propose")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
     [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
@@ -171,6 +209,8 @@ public class RescueRequestController : ControllerBase
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
+
+        // SuggestedParts cho phép FE gửi sớm danh sách phụ tùng dự kiến kèm số lượng ngay ở bước đề xuất.
 
         var (userId, err) = ExtractUserId();
         if (err != null)
@@ -199,9 +239,53 @@ public class RescueRequestController : ControllerBase
     // UC-RES-02: Điều phối & Sửa ven đường
     // =========================================================================
 
+    // PATCH /api/rescue-requests/{id}/accept-proposal
+    /// <summary>
+    /// Khách hàng chấp nhận đề xuất của SA. Không cần body.
+    /// PROPOSED_ROADSIDE/PROPOSED_TOWING → PROPOSAL_ACCEPTED.
+    /// </summary>
+    [HttpPatch("{id:int}/accept-proposal")]
+    [Authorize(Roles = Roles.Customer)]
+    [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> AcceptProposal(int id, CancellationToken ct)
+    {
+        var (userId, err) = ExtractUserId();
+        if (err != null)
+            return err;
+
+        try
+        {
+            var result = await _rescueService.AcceptProposalAsync(id, userId, ct);
+            return Ok(
+                new
+                {
+                    data = result,
+                    message = "Khách hàng đã đồng ý đề xuất. Nếu yêu cầu cần đặt cọc thì khách hàng có thể đóng cọc từ bước này."
+                }
+            );
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
     // PATCH /api/rescue-requests/{id}/assign-technician
     /// <summary>
     /// SA điều phối kỹ thuật viên (UC-RES-02 Step 1-2). BR-17, BR-18, BR-28. SMC03, SMC10.
+    /// Chỉ gọi sau khi khách hàng đã chấp nhận đề xuất và đã đóng cọc nếu yêu cầu có bắt buộc đặt cọc.
     /// Body: chỉ cần technicianId và estimatedArrivalDateTime.
     /// </summary>
     [HttpPatch("{id:int}/assign-technician")]
@@ -492,7 +576,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/dispatch-towing
     /// <summary>
-    /// SA điều phối kéo xe (UC-RES-03 C1). PROPOSED_TOWING → TOWING_DISPATCHED. SMC05, SMC11.
+    /// SA điều phối kéo xe (UC-RES-03 C1). PROPOSAL_ACCEPTED + TOWING → TOWING_DISPATCHED. SMC05, SMC11.
     /// </summary>
     [HttpPatch("{id:int}/dispatch-towing")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
@@ -522,7 +606,7 @@ public class RescueRequestController : ControllerBase
                 new
                 {
                     data = result,
-                    message = "Dịch vụ kéo xe đã được điều phối. Đề xuất đã gửi đến khách hàng."
+                    message = "Dịch vụ kéo xe đã được điều phối."
                 }
             );
         }
@@ -1044,6 +1128,7 @@ public class RescueRequestController : ControllerBase
 // REVIEWING: SA đang xem xét yêu cầu. Có khai báo trong constants, nhưng hiện chưa thấy service set trực tiếp.
 // PROPOSED_ROADSIDE: SA đã đề xuất phương án sửa tại chỗ.
 // PROPOSED_TOWING: SA đã đề xuất kéo xe về xưởng. Trạng thái này cũng dùng khi khách từ chối sửa tại chỗ hoặc kỹ thuật viên xác nhận không sửa tại chỗ được.
+// PROPOSAL_ACCEPTED: khách hàng đã đồng ý đề xuất của SA; từ đây mới được đóng cọc và điều phối.
 // DISPATCHED: SA đã phân công kỹ thuật viên cho ca cứu hộ tại chỗ.
 // EN_ROUTE: kỹ thuật viên đã nhận job và đang di chuyển tới hiện trường.
 // ON_SITE: kỹ thuật viên đã tới nơi.

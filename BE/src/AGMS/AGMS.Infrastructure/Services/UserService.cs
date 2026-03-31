@@ -93,7 +93,8 @@ public class UserService : IUserService
             Image = string.IsNullOrWhiteSpace(request.Image) ? null : request.Image.Trim(),
             RoleID = request.RoleID,
             IsActive = true,
-            CreatedDate = now
+            CreatedDate = now,
+            TrustScore = 0
         };
 
         await _userRepository.AddAsync(user, ct);
@@ -307,6 +308,7 @@ public class UserService : IUserService
         RoleID = u.RoleID,
         RoleName = u.Role.RoleName,
         IsActive = u.IsActive,
+        TrustScore = u.TrustScore,
         CreatedDate = u.CreatedDate
     };
 
@@ -327,6 +329,7 @@ public class UserService : IUserService
         CreatedDate = u.CreatedDate,
         LastLoginDate = u.LastLoginDate,
         TotalSpending = u.TotalSpending,
+        TrustScore = u.TrustScore,
         CurrentRankID = u.CurrentRankID,
         IsOnRescueMission = u.IsOnRescueMission,
         Skills = u.Skills

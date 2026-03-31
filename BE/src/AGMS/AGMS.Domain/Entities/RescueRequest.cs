@@ -13,11 +13,18 @@ public class RescueRequest
     public string? Phone { get; set; }
     public string Status { get; set; } = null!;
     public string? RescueType { get; set; }
+    public string? SuggestedPartsJson { get; set; }
     public int? ServiceAdvisorID { get; set; }
     public int? AssignedTechnicianID { get; set; }
     public DateTime? EstimatedArrivalDateTime { get; set; }
     public int? ResultingMaintenanceID { get; set; }
     public decimal ServiceFee { get; set; }
+    public bool RequiresDeposit { get; set; }
+    public decimal DepositAmount { get; set; }
+    public bool IsDepositPaid { get; set; }
+    public DateTime? DepositPaidDate { get; set; }
+    public string? DepositPaymentMethod { get; set; }
+    public string? DepositTransactionReference { get; set; }
     public int? RescueRating { get; set; }
     public DateTime CreatedDate { get; set; }
     public DateTime? CompletedDate { get; set; }

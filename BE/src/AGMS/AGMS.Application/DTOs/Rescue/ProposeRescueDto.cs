@@ -23,4 +23,10 @@ public class ProposeRescueDto
     /// <summary>Phí cứu hộ ước tính — cập nhật vào ServiceFee của rescue request</summary>
     [Range(0, double.MaxValue, ErrorMessage = "Phí cứu hộ phải >= 0.")]
     public decimal? EstimatedServiceFee { get; set; }
+
+    /// <summary>
+    /// Danh sách phụ tùng SA dự kiến có thể sử dụng cho phương án đang đề xuất.
+    /// Mỗi phụ tùng có số lượng riêng để không mất thông tin khi FE hiển thị/chốt phương án.
+    /// </summary>
+    public List<SuggestedRescuePartDto> SuggestedParts { get; set; } = [];
 }

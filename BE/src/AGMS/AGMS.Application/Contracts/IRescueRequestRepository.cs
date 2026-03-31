@@ -75,6 +75,7 @@ public interface IRescueRequestRepository
     /// Lấy thông tin sản phẩm để validate khi ghi vật tư (BR-20)
     /// </summary>
     Task<Product?> GetProductByIdAsync(int productId, CancellationToken ct);
+    Task<IReadOnlyDictionary<int, Product>> GetProductsByIdsAsync(IEnumerable<int> productIds, CancellationToken ct);
 
     /// <summary>
     /// Kiểm tra xe có đang có Repair Order active không (BR-11).
