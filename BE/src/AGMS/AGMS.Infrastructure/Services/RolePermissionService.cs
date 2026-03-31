@@ -1,4 +1,4 @@
-﻿using AGMS.Application.Contracts;
+using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Role;
 using System;
 using System.Collections.Generic;
@@ -87,7 +87,28 @@ namespace AGMS.Infrastructure.Services
             // 2. Lấy tất cả các nhóm quyền từ DB
             var groups = await _groupRepo.GetAllWithPermissionsAsync();
 
-            // 3. Lọc, Sắp xếp và trả về kết quả
+            // 3. Bảng thứ tự hiển thị menu (so sánh Contains, chịu được sai chính tả)
+            // Thứ tự: dashboard → product → package → category → service → supplier → inventory → còn lại
+            var priorityMap = new (string keyword, int order)[]
+            {
+                ("dashboard",  0),
+                ("product",    1),
+                ("package",    2),
+                ("category",   3),
+                ("service",    4),
+                ("supplier",   5),
+                ("inventory",  6),
+            };
+
+            int GetPriority(string groupName)
+            {
+                var lower = groupName.ToLower();
+                foreach (var (keyword, order) in priorityMap)
+                    if (lower.Contains(keyword)) return order;
+                return 99; // các mục còn lại xếp cuối
+            }
+
+            // 4. Lọc, sắp xếp theo priority rồi theo GroupID (tie-break)
             return groups
                 .Where(g => g.Permissions.Any(p => allowedPermissionIds.Contains(p.PermissionID)))
                 .Select(g => new MenuGroupDto
@@ -95,8 +116,7 @@ namespace AGMS.Infrastructure.Services
                     GroupID = g.GroupID,
                     GroupName = g.GroupName
                 })
-                .OrderBy(g => g.GroupName.ToLower().Contains("dashboard") ? 0 : 1)
-                // xếp theo ID
+                .OrderBy(g => GetPriority(g.GroupName))
                 .ThenBy(g => g.GroupID)
                 .ToList();
         }
