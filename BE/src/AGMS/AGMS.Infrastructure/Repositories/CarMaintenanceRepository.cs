@@ -15,15 +15,36 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         _db = db;
     }
 
-    public async Task<IEnumerable<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(CancellationToken ct = default)
+    public async Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(ServiceOrderListQueryDto query, CancellationToken ct = default)
     {
-        return await _db.CarMaintenances
+        var page = query.Page <= 0 ? 1 : query.Page;
+        var pageSize = query.PageSize <= 0 ? 20 : Math.Min(100, query.PageSize);
+
+        var q = _db.CarMaintenances
             .AsNoTracking()
-            .Include(m => m.Car)
-                .ThenInclude(c => c.Owner)
+            .Include(m => m.Car).ThenInclude(c => c.Owner)
             .Include(m => m.AssignedTechnician)
             .Where(m => m.Status != "WAITING")
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.MaintenanceType))
+        {
+            var mt = query.MaintenanceType.Trim().ToUpperInvariant();
+            q = q.Where(m => m.MaintenanceType.ToUpper() == mt);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.CustomerName))
+        {
+            var kw = query.CustomerName.Trim();
+            q = q.Where(m => m.Car.Owner.FullName.Contains(kw));
+        }
+
+        var total = await q.CountAsync(ct);
+
+        var items = await q
             .OrderByDescending(m => m.MaintenanceID)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(m => new ServiceOrderListItemDto
             {
                 MaintenanceId = m.MaintenanceID,
@@ -36,6 +57,14 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
                 TechnicianName = m.AssignedTechnician != null ? m.AssignedTechnician.FullName : null
             })
             .ToListAsync(ct);
+
+        return new ServiceOrderPagedResultDto<ServiceOrderListItemDto>
+        {
+            Items = items,
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId, CancellationToken ct = default)

@@ -21,11 +21,11 @@ public class ServiceOrdersController : ControllerBase
     /// Lấy danh sách phiếu bảo dưỡng (service orders) cho màn hình staff.
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<ServiceOrderListItemDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetServiceOrders(CancellationToken ct)
+    [ProducesResponseType(typeof(ServiceOrderPagedResultDto<ServiceOrderListItemDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetServiceOrders([FromQuery] ServiceOrderListQueryDto query, CancellationToken ct)
     {
-        var items = await _carMaintenanceService.GetServiceOrdersAsync(ct);
-        return Ok(items);
+        var result = await _carMaintenanceService.GetServiceOrdersAsync(query, ct);
+        return Ok(result);
     }
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(MaintenancePrintDto), StatusCodes.Status200OK)]

@@ -10,7 +10,7 @@ namespace AGMS.Application.Contracts
 {
     public interface ICarMaintenanceRepository
     {
-        Task<IEnumerable<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(CancellationToken ct = default);
+        Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(ServiceOrderListQueryDto query, CancellationToken ct = default);
         Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId,CancellationToken ct=default);
         Task ProposeAdditionalItemsAsync(int maintenanceId,ProposeAdditionalItemsRequest request,CancellationToken ct=default);
         Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, CancellationToken ct = default);
