@@ -19,12 +19,37 @@ namespace AGMS.Infrastructure.Repositories
             _passwordHasher = passwordHasher;
         }
 
-        public async Task<IEnumerable<IntakeListItemDto>> GetWaitingIntakesAsync(CancellationToken ct = default)
+        public async Task<PagedResultDto<IntakeListItemDto>> GetIntakesAsync(IntakeListQueryDto query, CancellationToken ct = default)
         {
-            return await _db.CarMaintenances.AsNoTracking()
+            var page = query.Page <= 0 ? 1 : query.Page;
+            var pageSize = query.PageSize <= 0 ? 20 : Math.Min(100, query.PageSize);
+
+            // Intake list mặc định = WAITING (giống API cũ).
+            var q = _db.CarMaintenances
+                .AsNoTracking()
                 .Include(m => m.Car).ThenInclude(c => c.Owner)
-                .Include(m => m.AssignedTechnician).Where(m => m.Status == "WAITING")
+                .Include(m => m.AssignedTechnician)
+                .Where(m => m.Status == "WAITING")
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(query.MaintenanceType))
+            {
+                var mt = query.MaintenanceType.Trim().ToUpperInvariant();
+                q = q.Where(m => m.MaintenanceType.ToUpper() == mt);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.CustomerName))
+            {
+                var kw = query.CustomerName.Trim();
+                q = q.Where(m => m.Car.Owner.FullName.Contains(kw));
+            }
+
+            var total = await q.CountAsync(ct);
+
+            var items = await q
                 .OrderByDescending(m => m.MaintenanceID)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(m => new IntakeListItemDto
                 {
                     MaintenanceId = m.MaintenanceID,
@@ -35,7 +60,16 @@ namespace AGMS.Infrastructure.Repositories
                     MaintenanceType = m.MaintenanceType,
                     Status = m.Status,
                     TechnicianName = m.AssignedTechnician != null ? m.AssignedTechnician.FullName : null
-                }).ToListAsync(ct);
+                })
+                .ToListAsync(ct);
+
+            return new PagedResultDto<IntakeListItemDto>
+            {
+                Items = items,
+                TotalCount = total,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<IntakeWalkInCreateResponseDto> CreateWalkInIntakeAsync(IntakeWalkInCreateRequest request, int createdByUserId, CancellationToken ct = default)

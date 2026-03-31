@@ -16,9 +16,9 @@ namespace AGMS.Infrastructure.Services
         {
             _repository = repository;
         }
-        public async Task<IEnumerable<IntakeListItemDto>> GetWaitingIntakesAsync(CancellationToken ct = default)
+        public async Task<PagedResultDto<IntakeListItemDto>> GetIntakesAsync(IntakeListQueryDto query, CancellationToken ct = default)
         {
-            return await _repository.GetWaitingIntakesAsync(ct);
+            return await _repository.GetIntakesAsync(query, ct);
         }
 
         public async Task<IntakeWalkInCreateResponseDto> CreateWalkInIntakeAsync(IntakeWalkInCreateRequest request, int createdByUserId, CancellationToken ct = default)
