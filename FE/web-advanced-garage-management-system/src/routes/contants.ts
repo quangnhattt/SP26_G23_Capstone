@@ -24,5 +24,6 @@ export const ROUTER_PAGE = {
     supplier: "/admin/supplier",
     rescue: "/admin/rescue-management",
     inventory: "/admin/inventory-management",
+    intake: "/admin/intake-management",
   },
 };

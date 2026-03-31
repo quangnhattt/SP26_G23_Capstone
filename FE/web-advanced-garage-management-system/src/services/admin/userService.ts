@@ -39,6 +39,13 @@ export const getUsers = async (): Promise<IUsersResponse> => {
   return data;
 };
 
+export const searchUsers = async (phone: string): Promise<IUsersResponse> => {
+  const { data } = await AxiosClient.get<IUsersResponse>("/api/users", {
+    params: { phone },
+  });
+  return data;
+};
+
 export const getUserById = async (id: number): Promise<IUser> => {
   const { data } = await AxiosClient.get<IUser>(`/api/users/${id}`);
   return data;

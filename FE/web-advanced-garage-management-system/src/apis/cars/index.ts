@@ -6,6 +6,13 @@ export const getCars = async (): Promise<ICar[]> => {
   return data;
 };
 
+export const getCarsByCustomerId = async (customerId: number): Promise<ICar[]> => {
+  const { data } = await AxiosClient.get<ICar[]>("/api/customer/cars", {
+    params: { customerId },
+  });
+  return data;
+};
+
 export const getCarById = async (id: number): Promise<ICar> => {
   const { data } = await AxiosClient.get<ICar>(`/api/customer/cars/${id}`);
   return data;

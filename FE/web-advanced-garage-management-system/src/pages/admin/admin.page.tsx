@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { HiChartBar, HiClipboardList, HiUsers, HiCog, HiViewGrid, HiSupport, HiTruck, HiShieldExclamation } from "react-icons/hi";
+import { HiChartBar, HiClipboardList, HiUsers, HiCog, HiViewGrid, HiSupport, HiTruck, HiShieldExclamation, HiArchive, HiClipboardCheck } from "react-icons/hi";
 import { useEffect, useState } from "react";
 import { getMenuAccess } from "@/services/admin/menuService";
 import type { IMenuGroup } from "@/services/admin/menuService";
@@ -37,9 +37,9 @@ const AdminDashboard = () => {
     if (lowerName.includes("category")) return <HiViewGrid size={18} />;
     if (lowerName.includes("service")) return <HiSupport size={18} />;
     if (lowerName.includes("supplier")) return <HiTruck size={18} />;
-    if (lowerName.includes("rescue") || lowerName.includes("cứu hộ"))
-      return <HiShieldExclamation size={18} />;
-
+    if (lowerName.includes("rescue")) return <HiShieldExclamation size={18} />;
+    if (lowerName.includes("inventory")) return <HiArchive size={18} />;
+    if (lowerName.includes("intake")) return <HiClipboardCheck size={18} />;
     return <HiCog size={18} />;
   };
 
@@ -52,8 +52,9 @@ const AdminDashboard = () => {
     if (lowerName.includes("category")) return "/admin/category";
     if (lowerName.includes("service")) return "/admin/service";
     if (lowerName.includes("supplier")) return "/admin/supplier";
-    if (lowerName.includes("rescue") || lowerName.includes("cứu hộ"))
-      return "/admin/rescue-management";
+    if (lowerName.includes("rescue")) return "/admin/rescue-management";
+    if (lowerName.includes("inventory")) return "/admin/inventory-management";
+    if (lowerName.includes("intake")) return "/admin/intake-management";
     return "/admin";
   };
 

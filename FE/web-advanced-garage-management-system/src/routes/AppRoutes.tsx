@@ -13,6 +13,7 @@ import UnitPage from "@/pages/admin/components/unit-manager/unit.page";
 import ManagermentAppointment from "@/pages/admin/components/appointment-manager/ManagermentAppointment";
 import RescueManagement from "@/pages/admin/components/rescue-manager/RescueManagement";
 import InventoryManager from "@/pages/admin/components/inventory-manager/inventory.manager";
+import IntakeManager from "@/pages/admin/components/intake-for-staff/intake.manager";
 
 const HomePage = lazy(() => import("@/pages/home/home.page"));
 const ServicesPageHome = lazy(() => import("@/pages/services/services.page.home"));
@@ -55,6 +56,7 @@ const AppRoutesContent = () => {
             <Route path="supplier" element={<SupplierPage />} />
             <Route path="rescue-management" element={<RescueManagement />} />
             <Route path="inventory-management" element={<InventoryManager />} />
+            <Route path="intake-management" element={<IntakeManager />} />
           </Route>
           <Route path={ROUTER_PAGE.profile} element={<ProfilePage />} />
         </Route>
