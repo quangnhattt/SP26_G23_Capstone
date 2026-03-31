@@ -3,6 +3,7 @@ using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Rescue;
 using AGMS.Domain.Entities;
 using Microsoft.Extensions.Configuration;
+using System.Text.Json;
 
 namespace AGMS.Infrastructure.Services;
 
@@ -83,7 +84,7 @@ public class RescueRequestService : IRescueRequestService
         var created =
             await _rescueRepo.GetByIdAsync(rescue.RescueID, ct)
             ?? throw new InvalidOperationException("Không thể tải yêu cầu cứu hộ vừa tạo.");
-        return MapToDetail(created);
+        return await MapToDetailAsync(created, ct);
     }
 
     /// <summary>SA lấy danh sách yêu cầu cứu hộ với bộ lọc (UC-RES-01 Step 3).</summary>
@@ -157,7 +158,7 @@ public class RescueRequestService : IRescueRequestService
         var rescue =
             await _rescueRepo.GetByIdAsync(rescueId, ct)
             ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
-        return MapToDetail(rescue);
+        return await MapToDetailAsync(rescue, ct);
     }
 
     /// <summary>SA lấy danh sách kỹ thuật viên khả dụng (UC-RES-01 Step 4, BR-28).</summary>
@@ -206,9 +207,12 @@ public class RescueRequestService : IRescueRequestService
             request.RescueType.ToUpperInvariant() == RescueType.Roadside
                 ? RescueStatus.ProposedRoadside
                 : RescueStatus.ProposedTowing;
+        var suggestedParts = await BuildSuggestedPartSnapshotsAsync(request.SuggestedParts, ct);
 
         rescue.ServiceAdvisorID = saId;
         rescue.RescueType = request.RescueType.ToUpperInvariant();
+        // Luu danh sach phụ tùng dự kiến ngay ở bước đề xuất để FE có thể hiển thị trước khi đi tới chẩn đoán/sửa chữa.
+        rescue.SuggestedPartsJson = SerializeSuggestedParts(suggestedParts);
         rescue.ServiceFee = request.EstimatedServiceFee ?? rescue.ServiceFee;
         rescue.Status = newStatus;
         await _rescueRepo.UpdateAsync(rescue, ct);
@@ -218,7 +222,7 @@ public class RescueRequestService : IRescueRequestService
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
             );
-        return MapToDetail(updated);
+        return await MapToDetailAsync(updated, ct);
     }
 
     // =========================================================================
@@ -279,7 +283,7 @@ public class RescueRequestService : IRescueRequestService
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
             );
-        return MapToDetail(updated);
+        return await MapToDetailAsync(updated, ct);
     }
 
     /// <summary>
@@ -313,7 +317,7 @@ public class RescueRequestService : IRescueRequestService
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
             );
-        return MapToDetail(updated);
+        return await MapToDetailAsync(updated, ct);
     }
 
     /// <summary>
@@ -347,7 +351,7 @@ public class RescueRequestService : IRescueRequestService
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
             );
-        return MapToDetail(updated);
+        return await MapToDetailAsync(updated, ct);
     }
 
     /// <summary>
@@ -389,7 +393,7 @@ public class RescueRequestService : IRescueRequestService
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
             );
-        return MapToDetail(updated);
+        return await MapToDetailAsync(updated, ct);
     }
 
     /// <summary>
@@ -436,7 +440,7 @@ public class RescueRequestService : IRescueRequestService
                 ?? throw new InvalidOperationException(
                     "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
                 );
-            return MapToDetail(notFixed);
+            return await MapToDetailAsync(notFixed, ct);
         }
 
         // Kiểm tra xe chưa có Repair Order active (BR-11)
@@ -472,7 +476,7 @@ public class RescueRequestService : IRescueRequestService
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
             );
-        return MapToDetail(updated);
+        return await MapToDetailAsync(updated, ct);
     }
 
     /// <summary>
@@ -607,7 +611,7 @@ public class RescueRequestService : IRescueRequestService
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
             );
-        return MapToDetail(updated);
+        return await MapToDetailAsync(updated, ct);
     }
 
     // =========================================================================
@@ -692,7 +696,7 @@ public class RescueRequestService : IRescueRequestService
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
             );
-        return MapToDetail(updated);
+        return await MapToDetailAsync(updated, ct);
     }
 
     /// <summary>
@@ -1389,8 +1393,12 @@ public class RescueRequestService : IRescueRequestService
         };
 
     /// <summary>Ánh xạ entity RescueRequest (đã load navigation props) sang DTO chi tiết.</summary>
-    private static RescueRequestDetailDto MapToDetail(RescueRequest r) =>
-        new()
+
+    private async Task<RescueRequestDetailDto> MapToDetailAsync(RescueRequest r, CancellationToken ct)
+    {
+        var suggestedParts = await DeserializeSuggestedPartsAsync(r.SuggestedPartsJson, ct);
+
+        return new RescueRequestDetailDto
         {
             RescueId = r.RescueID,
             Status = r.Status,
@@ -1401,6 +1409,7 @@ public class RescueRequestService : IRescueRequestService
             ProblemDescription = r.ProblemDescription,
             ImageEvidence = r.ImageEvidence,
             ServiceFee = r.ServiceFee,
+            SuggestedParts = suggestedParts,
             RequiresDeposit = r.RequiresDeposit,
             DepositAmount = r.DepositAmount,
             IsDepositPaid = r.IsDepositPaid,
@@ -1427,6 +1436,147 @@ public class RescueRequestService : IRescueRequestService
             AssignedTechnicianPhone = r.AssignedTechnician?.Phone,
             ResultingMaintenanceId = r.ResultingMaintenanceID
         };
+    }
+
+    private async Task<List<SuggestedRescuePartDetailDto>> BuildSuggestedPartSnapshotsAsync(
+        IEnumerable<SuggestedRescuePartDto>? suggestedParts,
+        CancellationToken ct
+    )
+    {
+        var incomingParts = suggestedParts?.ToList() ?? [];
+        if (incomingParts.Any(p => p.PartId <= 0))
+            throw new ArgumentException("SuggestedParts chi duoc chua PartId lon hon 0.");
+        if (incomingParts.Any(p => p.Quantity <= 0))
+            throw new ArgumentException("SuggestedParts chi duoc chua Quantity lon hon 0.");
+
+        var duplicatedPartIds = incomingParts
+            .GroupBy(p => p.PartId)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+        if (duplicatedPartIds.Count > 0)
+            throw new ArgumentException(
+                $"SuggestedParts khong duoc trung PartId. Bi trung: {string.Join(", ", duplicatedPartIds)}."
+            );
+
+        var snapshots = new List<SuggestedRescuePartDetailDto>(incomingParts.Count);
+        foreach (var part in incomingParts)
+        {
+            var product =
+                await _rescueRepo.GetProductByIdAsync(part.PartId, ct)
+                ?? throw new KeyNotFoundException(
+                    $"Phu tung ID={part.PartId} khong ton tai hoac khong con hoat dong."
+                );
+
+            if (!string.Equals(product.Type, "PART", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException(
+                    $"San pham ID={part.PartId} khong phai phu tung nen khong the gan vao buoc de xuat."
+                );
+
+            snapshots.Add(new SuggestedRescuePartDetailDto
+            {
+                PartId = part.PartId,
+                PartCode = product.Code,
+                PartName = product.Name,
+                Quantity = part.Quantity,
+                UnitPrice = product.Price,
+                EstimatedLineAmount = product.Price * part.Quantity
+            });
+        }
+
+        return snapshots;
+    }
+
+    private static string? SerializeSuggestedParts(IReadOnlyCollection<SuggestedRescuePartDetailDto> suggestedParts)
+    {
+        if (suggestedParts.Count == 0)
+            return null;
+
+        return JsonSerializer.Serialize(suggestedParts);
+    }
+
+    private async Task<List<SuggestedRescuePartDetailDto>> DeserializeSuggestedPartsAsync(
+        string? suggestedPartsJson,
+        CancellationToken ct
+    )
+    {
+        if (string.IsNullOrWhiteSpace(suggestedPartsJson))
+            return [];
+
+        try
+        {
+            var detailedParts = JsonSerializer.Deserialize<List<SuggestedRescuePartDetailDto>>(suggestedPartsJson) ?? [];
+            return await EnrichSuggestedPartDetailsAsync(detailedParts, ct);
+        }
+        catch (JsonException)
+        {
+            try
+            {
+                var basicParts = JsonSerializer.Deserialize<List<SuggestedRescuePartDto>>(suggestedPartsJson) ?? [];
+                return await BuildSuggestedPartDetailsFromBasicAsync(basicParts, ct);
+            }
+            catch (JsonException)
+            {
+                try
+                {
+                    var legacyPartIds = JsonSerializer.Deserialize<List<int>>(suggestedPartsJson) ?? [];
+                    var basicParts = legacyPartIds
+                        .Distinct()
+                        .Select(partId => new SuggestedRescuePartDto { PartId = partId, Quantity = 1 })
+                        .ToList();
+                    return await BuildSuggestedPartDetailsFromBasicAsync(basicParts, ct);
+                }
+                catch (JsonException)
+                {
+                    return [];
+                }
+            }
+        }
+    }
+
+    private async Task<List<SuggestedRescuePartDetailDto>> BuildSuggestedPartDetailsFromBasicAsync(
+        IEnumerable<SuggestedRescuePartDto> basicParts,
+        CancellationToken ct
+    )
+    {
+        var parts = basicParts
+            .Select(part => new SuggestedRescuePartDetailDto
+            {
+                PartId = part.PartId,
+                Quantity = part.Quantity
+            })
+            .ToList();
+
+        return await EnrichSuggestedPartDetailsAsync(parts, ct);
+    }
+
+    private async Task<List<SuggestedRescuePartDetailDto>> EnrichSuggestedPartDetailsAsync(
+        List<SuggestedRescuePartDetailDto> parts,
+        CancellationToken ct
+    )
+    {
+        var productIds = parts
+            .Select(part => part.PartId)
+            .Where(partId => partId > 0)
+            .Distinct()
+            .ToList();
+
+        var products = await _rescueRepo.GetProductsByIdsAsync(productIds, ct);
+        foreach (var part in parts)
+        {
+            if (products.TryGetValue(part.PartId, out var product))
+            {
+                part.PartCode ??= product.Code;
+                part.PartName ??= product.Name;
+                part.UnitPrice ??= product.Price;
+            }
+
+            if (!part.EstimatedLineAmount.HasValue && part.UnitPrice.HasValue)
+                part.EstimatedLineAmount = part.UnitPrice.Value * part.Quantity;
+        }
+
+        return parts;
+    }
 
     private static decimal GetDepositAppliedAmount(RescueRequest rescue, decimal invoiceFinalAmount)
     {

@@ -528,6 +528,7 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.IsDepositPaid).HasDefaultValue(false);
             entity.Property(e => e.RequiresDeposit).HasDefaultValue(false);
             entity.Property(e => e.RescueType).HasMaxLength(50);
+            entity.Property(e => e.SuggestedPartsJson).HasColumnType("nvarchar(max)");
             entity.Property(e => e.ServiceFee).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)

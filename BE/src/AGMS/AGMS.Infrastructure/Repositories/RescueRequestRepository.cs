@@ -104,6 +104,7 @@ public class RescueRequestRepository : IRescueRequestRepository
         // Chỉ cập nhật các trường có thể thay đổi theo workflow (không cập nhật CarID, CustomerID, địa chỉ)
         entity.Status                   = rescue.Status;
         entity.RescueType               = rescue.RescueType;
+        entity.SuggestedPartsJson       = rescue.SuggestedPartsJson;
         entity.ServiceAdvisorID         = rescue.ServiceAdvisorID;
         entity.ServiceFee               = rescue.ServiceFee;
         entity.RequiresDeposit          = rescue.RequiresDeposit;
@@ -245,6 +246,25 @@ public class RescueRequestRepository : IRescueRequestRepository
         return await _db.Products
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.ProductID == productId && p.IsActive, ct);
+    }
+
+    public async Task<IReadOnlyDictionary<int, Product>> GetProductsByIdsAsync(
+        IEnumerable<int> productIds,
+        CancellationToken ct
+    )
+    {
+        var ids = productIds
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+            return new Dictionary<int, Product>();
+
+        return await _db.Products
+            .AsNoTracking()
+            .Where(p => ids.Contains(p.ProductID))
+            .ToDictionaryAsync(p => p.ProductID, ct);
     }
 
     /// <summary>

@@ -209,6 +209,8 @@ public class RescueRequestController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
+        // SuggestedParts cho phép FE gửi sớm danh sách phụ tùng dự kiến kèm số lượng ngay ở bước đề xuất.
+
         var (userId, err) = ExtractUserId();
         if (err != null)
             return err;

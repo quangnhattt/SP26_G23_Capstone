@@ -13,6 +13,7 @@ public class RescueRequest
     public string? Phone { get; set; }
     public string Status { get; set; } = null!;
     public string? RescueType { get; set; }
+    public string? SuggestedPartsJson { get; set; }
     public int? ServiceAdvisorID { get; set; }
     public int? AssignedTechnicianID { get; set; }
     public DateTime? EstimatedArrivalDateTime { get; set; }
