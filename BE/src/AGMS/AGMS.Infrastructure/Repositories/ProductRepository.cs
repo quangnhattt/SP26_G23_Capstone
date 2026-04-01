@@ -20,23 +20,32 @@ public class ProductRepository : IProductRepository
 
     public async Task<PagedResultDto<PartProductListItemDto>> GetPartProductsAsync(PartProductQueryDto query, CancellationToken ct)
     {
-       var q=_db.Products.AsNoTracking().Where(p=>p.Type=="PART")
+        var q = _db.Products
+            .AsNoTracking()
+            .Where(p => p.Type == "PART")
             .AsQueryable();
-        if (!string.IsNullOrWhiteSpace(query.Search))
+
+        // Filter by Code OR Name (partial, case-insensitive)
+        if (!string.IsNullOrWhiteSpace(query.Code) || !string.IsNullOrWhiteSpace(query.Name))
         {
-            var kw = query.Search.Trim();
-            var like = $"%{kw}%";
+            var codeLike = $"%{(query.Code ?? string.Empty).Trim()}%";
+            var nameLike = $"%{(query.Name ?? string.Empty).Trim()}%";
+
             q = q.Where(p =>
-                EF.Functions.Like(p.Name, like) ||
-                EF.Functions.Like(p.Code, like));
+                (!string.IsNullOrWhiteSpace(query.Code) && EF.Functions.Like(p.Code, codeLike))
+                || (!string.IsNullOrWhiteSpace(query.Name) && EF.Functions.Like(p.Name, nameLike))
+            );
         }
-        var total=await q.CountAsync(ct);
-        var page=query.Page <=0 ?1: query.Page; 
-        var pageSize=query.PageSize <=0 ? 20 : Math.Min(200,query.PageSize);    
-        var items=await q.OrderBy(p=>p.ProductID)
-            .Skip((page-1)*pageSize)
+
+        var total = await q.CountAsync(ct);
+        var page = query.Page <= 0 ? 1 : query.Page;
+        var pageSize = query.PageSize <= 0 ? 20 : Math.Min(200, query.PageSize);
+
+        var items = await q
+            .OrderBy(p => p.ProductID)
+            .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(p=>new PartProductListItemDto
+            .Select(p => new PartProductListItemDto
             {
                 Id = p.ProductID,
                 Code = p.Code,
@@ -50,7 +59,9 @@ public class ProductRepository : IProductRepository
                 Description = p.Description,
                 Image = p.Image,
                 IsActive = p.IsActive
-            }).ToListAsync(ct);
+            })
+            .ToListAsync(ct);
+
         return new PagedResultDto<PartProductListItemDto>
         {
             Items = items,
@@ -237,37 +248,48 @@ public class ProductRepository : IProductRepository
     }
 
     // Product Service 
-    public async Task<PagedResultDto<ServiceProductListItemDto>> GetServiceProductsAsync(ServiceProductQueryDto query,CancellationToken ct)
+    public async Task<PagedResultDto<ServiceProductListItemDto>> GetServiceProductsAsync(ServiceProductQueryDto query, CancellationToken ct)
     {
-       var q= _db.Products
+        var q = _db.Products
             .AsNoTracking()
-            .Where(p=>p.Type=="SERVICE" || p.Type == "Service")
+            .Where(p => p.Type == "SERVICE" || p.Type == "Service")
             .AsQueryable();
-        if(!string.IsNullOrWhiteSpace(query.Search))
+
+        // Filter by Code OR Name (partial, case-insensitive)
+        if (!string.IsNullOrWhiteSpace(query.Code) || !string.IsNullOrWhiteSpace(query.Name))
         {
-            var kw=query.Search.Trim();
-            var like=$"%{kw}%";
-            q=q.Where(p=>EF.Functions.Like(p.Name,like) || EF.Functions.Like(p.Code,like));
+            var codeLike = $"%{(query.Code ?? string.Empty).Trim()}%";
+            var nameLike = $"%{(query.Name ?? string.Empty).Trim()}%";
+
+            q = q.Where(p =>
+                (!string.IsNullOrWhiteSpace(query.Code) && EF.Functions.Like(p.Code, codeLike))
+                || (!string.IsNullOrWhiteSpace(query.Name) && EF.Functions.Like(p.Name, nameLike))
+            );
         }
-        var total=await q.CountAsync(ct);
-        var page =query.Page <=0 ? 1 : query.Page;
-        var pageSize=query.PageSize <=0 ? 20 : Math.Min(200,query.PageSize);
-        var items=await q.OrderBy(p=>p.ProductID)
-            .Skip((page-1)* pageSize)
+
+        var total = await q.CountAsync(ct);
+        var page = query.Page <= 0 ? 1 : query.Page;
+        var pageSize = query.PageSize <= 0 ? 20 : Math.Min(200, query.PageSize);
+
+        var items = await q
+            .OrderBy(p => p.ProductID)
+            .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(p=> new ServiceProductListItemDto
+            .Select(p => new ServiceProductListItemDto
             {
-                Id=p.ProductID,
-                Code=p.Code,
-                Name=p.Name,
-                Price=p.Price,
-                Unit=p.Unit !=null ? p.Unit.Name : null,
-                Category=p.Category !=null ? p.Category.Name : null,
-                EstimatedDurationHours=p.EstimatedDurationHours,
-                Description=p.Description,  
-                Image=p.Image,
-                IsActive=p.IsActive 
-            }).ToListAsync(ct);
+                Id = p.ProductID,
+                Code = p.Code,
+                Name = p.Name,
+                Price = p.Price,
+                Unit = p.Unit != null ? p.Unit.Name : null,
+                Category = p.Category != null ? p.Category.Name : null,
+                EstimatedDurationHours = p.EstimatedDurationHours,
+                Description = p.Description,
+                Image = p.Image,
+                IsActive = p.IsActive
+            })
+            .ToListAsync(ct);
+
         return new PagedResultDto<ServiceProductListItemDto>
         {
             Items = items,

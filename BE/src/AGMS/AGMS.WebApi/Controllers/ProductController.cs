@@ -18,11 +18,12 @@ public class ProductController : ControllerBase
 
     [HttpGet("parts")]
     [ProducesResponseType(typeof(PagedResultDto<PartProductListItemDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPartProducts([FromQuery] string? search, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
+    public async Task<IActionResult> GetPartProducts([FromQuery] string? code, [FromQuery] string? name, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
         var query = new PartProductQueryDto
         {
-            Search = search,
+            Code = code,
+            Name = name,
             Page = page ?? 1,
             PageSize = pageSize ?? 20
         };
@@ -97,11 +98,12 @@ public class ProductController : ControllerBase
 
     [HttpGet("services")]
     [ProducesResponseType(typeof(PagedResultDto<ServiceProductListItemDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetServiceProducts([FromQuery] string? search, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
+    public async Task<IActionResult> GetServiceProducts([FromQuery] string? code, [FromQuery] string? name, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
         var query = new ServiceProductQueryDto
         {
-            Search = search,
+            Code = code,
+            Name = name,
             Page = page ?? 1,
             PageSize = pageSize ?? 20
         };
@@ -109,7 +111,7 @@ public class ProductController : ControllerBase
         return Ok(response);
     }
     [HttpPost("services")]
-    [ProducesResponseType(typeof(ServiceProductListItemDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ServiceProductListItemDto), StatusCodes.Status201Created)] 
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddServiceProduct([FromBody] CreateServiceProductDto request, CancellationToken ct)
     {

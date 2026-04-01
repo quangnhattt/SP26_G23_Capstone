@@ -8,7 +8,8 @@ namespace AGMS.Application.DTOs.Product
 {
     public class ServiceProductQueryDto
     {
-        public string? Search { get; set; }
+        public string? Code { get; set; }
+        public string? Name { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
     }
