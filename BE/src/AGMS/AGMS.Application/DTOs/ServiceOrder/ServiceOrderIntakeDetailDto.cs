@@ -5,7 +5,9 @@ public class ServiceOrderIntakeDetailDto
     public int MaintenanceId { get; set; }
     public DateTime MaintenanceDate { get; set; }
     public string MaintenanceStatus { get; set; } = null!;
-
+    public string? MaintenanaceType { get; set; }
+    public int? BayId { get; set; }
+    public string? Notes { get; set; }
     public int? TechnicianId { get; set; }
     public string? TechnicianName { get; set; }
     public string? TechnicianPhone { get; set; }
