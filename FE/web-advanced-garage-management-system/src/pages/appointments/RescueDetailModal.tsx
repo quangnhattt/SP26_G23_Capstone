@@ -1,7 +1,7 @@
 import { useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
-import { FaTimes, FaUser, FaCar, FaMapMarkerAlt, FaWrench } from "react-icons/fa";
+import { FaTimes, FaUser, FaCar, FaMapMarkerAlt, FaWrench, FaTruck } from "react-icons/fa";
 import type { IRescueRequest } from "@/apis/rescue";
 import {
   customerConsent,
@@ -13,6 +13,7 @@ import {
   startDiagnosis,
   addRepairItems,
   completeRepair,
+  acceptProposal,
   type IRescuePaymentPayload,
   type IRescueCustomerConsentPayload,
 } from "@/apis/rescue";
@@ -35,6 +36,7 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
   const isCustomer = userRoleID === 4;
 
   // Customer states
+  const [proposalAccepting, setProposalAccepting] = useState(false);
   const [consenting, setConsenting] = useState(false);
   const [consentNotes, setConsentNotes] = useState("");
   const [showPayment, setShowPayment] = useState(false);
@@ -60,6 +62,21 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
 
   const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "SPAM"];
   const canCancel = data ? !TERMINAL_STATUSES.includes(data.status) : false;
+
+  const handleAcceptProposal = async () => {
+    if (!data) return;
+    setProposalAccepting(true);
+    try {
+      await acceptProposal(data.rescueId);
+      toast.success(t("rescueProposalAcceptSuccess"));
+      onRefresh?.();
+      onClose();
+    } catch {
+      toast.error(t("rescueProposalAcceptError"));
+    } finally {
+      setProposalAccepting(false);
+    }
+  };
 
   const handleConsent = async (payload: IRescueCustomerConsentPayload) => {
     if (!data) return;
@@ -555,17 +572,63 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
               </>
             )}
 
-            {/* KH: Chờ KTV */}
-            {isCustomer && ["PROPOSED_ROADSIDE", "PROPOSED_TOWING", "DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
+            {/* KH: SA đề xuất phương án — cần xác nhận */}
+            {isCustomer && ["PROPOSED_ROADSIDE", "PROPOSED_TOWING"].includes(data.status as string) && (
+              <>
+                <Divider />
+                <ActionCard $highlight>
+                  <ActionCardTitle>{t("rescueProposalCardTitle")}</ActionCardTitle>
+                  <ProposalInfoGrid>
+                    <ProposalInfoRow>
+                      <ProposalInfoLabel>{t("rescueProposalType")}</ProposalInfoLabel>
+                      <ProposalInfoValue $rescue={data.status === "PROPOSED_ROADSIDE" ? "ROADSIDE" : "TOWING"}>
+                        {data.status === "PROPOSED_ROADSIDE" ? (
+                          <><FaWrench size={11} style={{ marginRight: 4 }} />{t("rescueProposalRoadsideLabel")}</>
+                        ) : (
+                          <><FaTruck size={11} style={{ marginRight: 4 }} />{t("rescueProposalTowingLabel")}</>
+                        )}
+                      </ProposalInfoValue>
+                    </ProposalInfoRow>
+                    {data.estimatedServiceFee != null && data.estimatedServiceFee > 0 && (
+                      <ProposalInfoRow>
+                        <ProposalInfoLabel>{t("rescueProposalFee")}</ProposalInfoLabel>
+                        <ProposalInfoValue $rescue="FEE">
+                          {data.estimatedServiceFee.toLocaleString()} VND
+                        </ProposalInfoValue>
+                      </ProposalInfoRow>
+                    )}
+                    {data.proposalNotes && (
+                      <ProposalInfoRow>
+                        <ProposalInfoLabel>{t("rescueProposalNotes")}</ProposalInfoLabel>
+                        <ProposalInfoValue $rescue="NOTE">{data.proposalNotes}</ProposalInfoValue>
+                      </ProposalInfoRow>
+                    )}
+                  </ProposalInfoGrid>
+                  <ActionBtnRow>
+                    <ActionBtn
+                      $color="#16a34a"
+                      onClick={handleAcceptProposal}
+                      disabled={proposalAccepting}
+                    >
+                      {proposalAccepting ? t("rescueMgrProcessing") : t("rescueProposalAccept")}
+                    </ActionBtn>
+                    <ActionBtnOutline onClick={() => setShowCancelForm(true)} disabled={proposalAccepting}>
+                      {t("rescueProposalReject")}
+                    </ActionBtnOutline>
+                  </ActionBtnRow>
+                </ActionCard>
+              </>
+            )}
+
+            {/* KH: Đã đồng ý — chờ điều phối KTV */}
+            {isCustomer && ["DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
               <>
                 <Divider />
                 <ActionCard>
                   <ActionInfo>
-                    {["PROPOSED_ROADSIDE", "PROPOSED_TOWING"].includes(data.status as string)
-                      ? "Xưởng đang đề xuất phương án. Đang chờ điều phối kỹ thuật viên."
-                      : data.status === "DISPATCHED"
-                        ? "Kỹ thuật viên đã được phân công. Đang chờ KTV xác nhận."
-                        : "Kỹ thuật viên đang trên đường đến vị trí của bạn."}
+                    {data.status === "DISPATCHED"
+                      ? "Kỹ thuật viên đã được phân công. Đang chờ KTV xác nhận."
+                      : "Kỹ thuật viên đang trên đường đến vị trí của bạn."}
                   </ActionInfo>
                 </ActionCard>
               </>
@@ -1134,4 +1197,45 @@ const RemoveItemBtn = styled.button`
   &:hover {
     background: #fef2f2;
   }
+`;
+
+const ProposalInfoGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  padding: 0.75rem;
+`;
+
+const ProposalInfoRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+`;
+
+const ProposalInfoLabel = styled.span`
+  flex-shrink: 0;
+  width: 110px;
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+  padding-top: 1px;
+`;
+
+const ProposalInfoValue = styled.span<{ $rescue: string }>`
+  flex: 1;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  color: ${({ $rescue }) =>
+    $rescue === "ROADSIDE"
+      ? "#16a34a"
+      : $rescue === "TOWING"
+        ? "#0891b2"
+        : $rescue === "FEE"
+          ? "#d97706"
+          : "#374151"};
 `;

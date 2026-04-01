@@ -1,8 +1,16 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { FaTimes, FaTruck, FaWrench } from "react-icons/fa";
-import { proposeRescueToCustomer, type IRescueRequest } from "@/apis/rescue";
+import { useTranslation } from "react-i18next";
+import { proposeRescueToCustomer, type IRescueRequest, type IRescueSuggestedPart } from "@/apis/rescue";
+import { getServices, type IService } from "@/services/admin/serviceService";
+import { getProducts, type IProduct } from "@/services/admin/productService";
 import { toast } from "react-toastify";
+
+interface SelectedPart {
+  product: IProduct;
+  qty: number;
+}
 
 interface ProposalModalProps {
   rescue: IRescueRequest;
@@ -11,29 +19,98 @@ interface ProposalModalProps {
 }
 
 const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
-  const [proposalType, setProposalType] = useState<"ROADSIDE" | "TOWING" | null>(null);
+  const { t } = useTranslation();
+  const [proposalType, setProposalType] = useState<
+    "ROADSIDE" | "TOWING" | null
+  >(null);
   const [proposalNote, setProposalNote] = useState("");
-  const [proposalFee, setProposalFee] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [services, setServices] = useState<IService[]>([]);
+  const [products, setProducts] = useState<IProduct[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<IService[]>([]);
+  const [selectedParts, setSelectedParts] = useState<SelectedPart[]>([]);
+  const [manualFee, setManualFee] = useState("");
+
+  useEffect(() => {
+    setLoadingServices(true);
+    getServices()
+      .then((data) => setServices(data.filter((s) => s.isActive)))
+      .catch(() => {})
+      .finally(() => setLoadingServices(false));
+
+    setLoadingProducts(true);
+    getProducts()
+      .then((data) => setProducts(data.filter((p) => p.isActive)))
+      .catch(() => {})
+      .finally(() => setLoadingProducts(false));
+  }, []);
+
+  const calculatedFee = useMemo(() => {
+    const serviceFee = selectedServices.reduce((sum, s) => sum + s.price, 0);
+    const partFee = selectedParts.reduce(
+      (sum, p) => sum + p.product.price * p.qty,
+      0,
+    );
+    return serviceFee + partFee;
+  }, [selectedServices, selectedParts]);
+
+  const estimatedFee =
+    calculatedFee > 0
+      ? calculatedFee
+      : manualFee
+        ? Number(manualFee)
+        : undefined;
+
+  const toggleService = (svc: IService) => {
+    setSelectedServices((prev) =>
+      prev.some((s) => s.id === svc.id)
+        ? prev.filter((s) => s.id !== svc.id)
+        : [...prev, svc],
+    );
+  };
+
+  const togglePart = (product: IProduct) => {
+    setSelectedParts((prev) => {
+      if (prev.some((p) => p.product.id === product.id)) {
+        return prev.filter((p) => p.product.id !== product.id);
+      }
+      return [...prev, { product, qty: 1 }];
+    });
+  };
+
+  const updatePartQty = (productId: number, qty: number) => {
+    if (qty < 1) return;
+    setSelectedParts((prev) =>
+      prev.map((p) => (p.product.id === productId ? { ...p, qty } : p)),
+    );
+  };
 
   const handleSubmit = async () => {
     if (!proposalType) return;
     try {
       setSubmitting(true);
+      const suggestedParts: IRescueSuggestedPart[] = selectedParts.map((p) => ({
+        partId: p.product.id,
+        quantity: p.qty,
+      }));
       await proposeRescueToCustomer(rescue.rescueId, {
         rescueType: proposalType,
         proposalNotes: proposalNote.trim() || undefined,
-        estimatedServiceFee: proposalFee ? Number(proposalFee) : undefined,
+        estimatedServiceFee: estimatedFee,
+        suggestedParts: suggestedParts.length > 0 ? suggestedParts : undefined,
       });
       toast.success(
         proposalType === "ROADSIDE"
-          ? "Đã đề xuất sửa tại chỗ — SA tiếp tục điều KTV!"
-          : "Đã đề xuất kéo xe — SA tiếp tục điều xe kéo!",
+          ? t("rescueMgrProposalConfirmRoadside") + " ✓"
+          : t("rescueMgrProposalConfirmTowing") + " ✓",
       );
       onSuccess();
     } catch (error) {
       console.error("Error submitting proposal:", error);
-      toast.error("Gửi đề xuất thất bại!");
+      toast.error(t("rescueMgrQuoteError"));
     } finally {
       setSubmitting(false);
     }
@@ -41,19 +118,17 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
 
   return (
     <ModalOverlay onClick={onClose}>
-      <ModalContent
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: "500px" }}
-      >
+      <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
-          <ModalTitle>Đề xuất phương án cứu hộ</ModalTitle>
+          <ModalTitle>{t("rescueMgrProposalModalTitle")}</ModalTitle>
           <CloseBtn onClick={onClose}>
             <FaTimes />
           </CloseBtn>
         </ModalHeader>
         <ModalBody>
+          {/* Proposal type */}
           <FormGroup>
-            <FormLabel>Phương án xử lý *</FormLabel>
+            <FormLabel>{t("rescueMgrProposalTypeLabel")}</FormLabel>
             <RadioGroup>
               <RadioOption
                 $selected={proposalType === "ROADSIDE"}
@@ -61,7 +136,7 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
                 onClick={() => setProposalType("ROADSIDE")}
               >
                 <FaWrench size={14} />
-                Sửa tại chỗ
+                {t("rescueMgrProposalRoadside")}
               </RadioOption>
               <RadioOption
                 $selected={proposalType === "TOWING"}
@@ -69,39 +144,130 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
                 onClick={() => setProposalType("TOWING")}
               >
                 <FaTruck size={14} />
-                Kéo xe về gara
+                {t("rescueMgrProposalTowing")}
               </RadioOption>
             </RadioGroup>
-            {proposalType && (
-              <FlowHint $type={proposalType}>
-                {proposalType === "ROADSIDE"
-                  ? "→ Luồng: Điều KTV → KTV đến → Chẩn đoán → KH xác nhận → Sửa → Hoàn tất → Hóa đơn"
-                  : "→ Luồng: Điều xe kéo → KH chấp nhận → Xe về xưởng → Hóa đơn"}
-              </FlowHint>
+          </FormGroup>
+
+          {/* Services */}
+          <FormGroup>
+            <FormLabel>{t("rescueMgrProposalServicesLabel")}</FormLabel>
+            {loadingServices ? (
+              <HintText>{t("rescueMgrProposalServicesLoading")}</HintText>
+            ) : services.length === 0 ? (
+              <HintText>{t("rescueMgrProposalServicesEmpty")}</HintText>
+            ) : (
+              <CheckList>
+                {services.map((svc) => {
+                  const checked = selectedServices.some((s) => s.id === svc.id);
+                  return (
+                    <CheckItem
+                      key={svc.id}
+                      $checked={checked}
+                      onClick={() => toggleService(svc)}
+                    >
+                      <CheckBox $checked={checked}>{checked && "✓"}</CheckBox>
+                      <CheckItemInfo>
+                        <CheckItemName>{svc.name}</CheckItemName>
+                        <CheckItemPrice>
+                          {svc.price.toLocaleString()} VND
+                        </CheckItemPrice>
+                      </CheckItemInfo>
+                    </CheckItem>
+                  );
+                })}
+              </CheckList>
             )}
           </FormGroup>
+
+          {/* Parts / Accessories */}
           <FormGroup>
-            <FormLabel>Ghi chú cho khách hàng</FormLabel>
+            <FormLabel>{t("rescueMgrProposalPartsLabel")}</FormLabel>
+            {loadingProducts ? (
+              <HintText>{t("rescueMgrProposalPartsLoading")}</HintText>
+            ) : products.length === 0 ? (
+              <HintText>{t("rescueMgrProposalPartsEmpty")}</HintText>
+            ) : (
+              <CheckList>
+                {products.map((product) => {
+                  const selected = selectedParts.find(
+                    (p) => p.product.id === product.id,
+                  );
+                  return (
+                    <CheckItem
+                      key={product.id}
+                      $checked={!!selected}
+                      onClick={() => togglePart(product)}
+                    >
+                      <CheckBox $checked={!!selected}>
+                        {selected && "✓"}
+                      </CheckBox>
+                      <CheckItemInfo>
+                        <CheckItemName>{product.name}</CheckItemName>
+                        <CheckItemPrice>
+                          {product.price.toLocaleString()} VND
+                        </CheckItemPrice>
+                      </CheckItemInfo>
+                      {selected && (
+                        <QtyControl onClick={(e) => e.stopPropagation()}>
+                          <QtyBtn
+                            onClick={() =>
+                              updatePartQty(product.id, selected.qty - 1)
+                            }
+                            disabled={selected.qty <= 1}
+                          >
+                            −
+                          </QtyBtn>
+                          <QtyValue>{selected.qty}</QtyValue>
+                          <QtyBtn
+                            onClick={() =>
+                              updatePartQty(product.id, selected.qty + 1)
+                            }
+                          >
+                            +
+                          </QtyBtn>
+                        </QtyControl>
+                      )}
+                    </CheckItem>
+                  );
+                })}
+              </CheckList>
+            )}
+          </FormGroup>
+
+          {/* Customer note */}
+          <FormGroup>
+            <FormLabel>{t("rescueMgrCustomerNoteLabel")}</FormLabel>
             <FormTextarea
               value={proposalNote}
               onChange={(e) => setProposalNote(e.target.value)}
               rows={3}
-              placeholder="VD: Kỹ thuật viên sẽ đến trong vòng 30 phút..."
+              placeholder={t("rescueMgrCustomerNotePlaceholder")}
             />
           </FormGroup>
+
+          {/* Estimated fee */}
           <FormGroup>
-            <FormLabel>Phí dịch vụ ước tính (VND)</FormLabel>
-            <FormInput
-              type="number"
-              value={proposalFee}
-              onChange={(e) => setProposalFee(e.target.value)}
-              placeholder="Tuỳ chọn — nhập nếu đã có ước tính"
-            />
+            <FormLabel>{t("rescueMgrProposalEstFeeLabel")}</FormLabel>
+            {calculatedFee > 0 ? (
+              <FeeAutoBox>
+                <FeeAutoAmount>
+                  {calculatedFee.toLocaleString()} VND
+                </FeeAutoAmount>
+              </FeeAutoBox>
+            ) : (
+              <FormInput
+                type="number"
+                value={manualFee}
+                onChange={(e) => setManualFee(e.target.value)}
+                placeholder={t("rescueMgrProposalEstFeeManual")}
+              />
+            )}
           </FormGroup>
         </ModalBody>
         <ModalFooter>
           <ModalCancelBtn onClick={onClose} disabled={submitting}>
-            Hủy
+            {t("rescueMgrClose")}
           </ModalCancelBtn>
           <ModalConfirmBtn
             $type={proposalType}
@@ -109,12 +275,12 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
             disabled={!proposalType || submitting}
           >
             {submitting
-              ? "Đang gửi..."
+              ? t("rescueMgrSending")
               : proposalType === "ROADSIDE"
-                ? "Xác nhận sửa tại chỗ"
+                ? t("rescueMgrProposalConfirmRoadside")
                 : proposalType === "TOWING"
-                  ? "Xác nhận kéo xe"
-                  : "Gửi đề xuất"}
+                  ? t("rescueMgrProposalConfirmTowing")
+                  : t("rescueMgrProposeSolution")}
           </ModalConfirmBtn>
         </ModalFooter>
       </ModalContent>
@@ -139,7 +305,7 @@ const ModalOverlay = styled.div`
 const ModalContent = styled.div`
   background: white;
   border-radius: 16px;
-  max-width: 700px;
+  max-width: 560px;
   width: 100%;
   max-height: 85vh;
   display: flex;
@@ -208,7 +374,11 @@ const ModalConfirmBtn = styled.button<{ $type: "ROADSIDE" | "TOWING" | null }>`
   border: none;
   border-radius: 8px;
   background: ${({ $type }) =>
-    $type === "ROADSIDE" ? "#16a34a" : $type === "TOWING" ? "#0891b2" : "#6b7280"};
+    $type === "ROADSIDE"
+      ? "#16a34a"
+      : $type === "TOWING"
+        ? "#0891b2"
+        : "#6b7280"};
   color: white;
   font-size: 0.875rem;
   font-weight: 600;
@@ -216,7 +386,11 @@ const ModalConfirmBtn = styled.button<{ $type: "ROADSIDE" | "TOWING" | null }>`
 
   &:hover {
     background: ${({ $type }) =>
-      $type === "ROADSIDE" ? "#15803d" : $type === "TOWING" ? "#0e7490" : "#4b5563"};
+      $type === "ROADSIDE"
+        ? "#15803d"
+        : $type === "TOWING"
+          ? "#0e7490"
+          : "#4b5563"};
   }
 
   &:disabled {
@@ -226,7 +400,7 @@ const ModalConfirmBtn = styled.button<{ $type: "ROADSIDE" | "TOWING" | null }>`
 `;
 
 const FormGroup = styled.div`
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 `;
 
 const FormLabel = styled.label`
@@ -283,15 +457,19 @@ const RadioGroup = styled.div`
   gap: 0.75rem;
 `;
 
-const RadioOption = styled.div<{ $selected: boolean; $type: "ROADSIDE" | "TOWING" }>`
+const RadioOption = styled.div<{
+  $selected: boolean;
+  $type: "ROADSIDE" | "TOWING";
+}>`
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   padding: 0.875rem;
-  border: 2px solid ${({ $selected, $type }) =>
-    $selected ? ($type === "ROADSIDE" ? "#16a34a" : "#0891b2") : "#e5e7eb"};
+  border: 2px solid
+    ${({ $selected, $type }) =>
+      $selected ? ($type === "ROADSIDE" ? "#16a34a" : "#0891b2") : "#e5e7eb"};
   border-radius: 10px;
   cursor: pointer;
   background: ${({ $selected, $type }) =>
@@ -303,16 +481,126 @@ const RadioOption = styled.div<{ $selected: boolean; $type: "ROADSIDE" | "TOWING
   transition: all 0.15s;
 
   &:hover {
-    border-color: ${({ $type }) => ($type === "ROADSIDE" ? "#16a34a" : "#0891b2")};
+    border-color: ${({ $type }) =>
+      $type === "ROADSIDE" ? "#16a34a" : "#0891b2"};
   }
 `;
 
-const FlowHint = styled.div<{ $type: "ROADSIDE" | "TOWING" }>`
-  margin-top: 0.625rem;
-  padding: 0.5rem 0.75rem;
+const HintText = styled.p`
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  margin: 0;
+`;
+
+const CheckList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.5rem;
+`;
+
+const CheckItem = styled.div<{ $checked: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
   border-radius: 6px;
+  cursor: pointer;
+  background: ${({ $checked }) => ($checked ? "#f0fdf4" : "transparent")};
+  border: 1px solid ${({ $checked }) => ($checked ? "#86efac" : "transparent")};
+  transition: background 0.12s;
+
+  &:hover {
+    background: ${({ $checked }) => ($checked ? "#dcfce7" : "#f9fafb")};
+  }
+`;
+
+const CheckBox = styled.div<{ $checked: boolean }>`
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid ${({ $checked }) => ($checked ? "#16a34a" : "#d1d5db")};
+  background: ${({ $checked }) => ($checked ? "#16a34a" : "white")};
+  color: white;
+  font-size: 0.6875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 700;
+`;
+
+const CheckItemInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const CheckItemName = styled.div`
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const CheckItemPrice = styled.div`
   font-size: 0.75rem;
-  background: ${({ $type }) => ($type === "ROADSIDE" ? "#f0fdf4" : "#ecfeff")};
-  color: ${({ $type }) => ($type === "ROADSIDE" ? "#15803d" : "#0e7490")};
-  border-left: 3px solid ${({ $type }) => ($type === "ROADSIDE" ? "#16a34a" : "#0891b2")};
+  color: #6b7280;
+`;
+
+const QtyControl = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+`;
+
+const QtyBtn = styled.button`
+  width: 22px;
+  height: 22px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+
+const QtyValue = styled.span`
+  min-width: 20px;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #111827;
+`;
+
+const FeeAutoBox = styled.div`
+  padding: 0.625rem 0.875rem;
+  border-radius: 8px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+`;
+
+const FeeAutoAmount = styled.div`
+  font-size: 1rem;
+  font-weight: 700;
+  color: #15803d;
 `;

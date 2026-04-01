@@ -26,6 +26,8 @@ export interface IRescueRequest {
   serviceAdvisorId: number | null;
   serviceAdvisorName: string | null;
   createdDate: string;
+  proposalNotes?: string;
+  estimatedServiceFee?: number;
   invoice?: IRescueInvoiceData;
 }
 
@@ -67,10 +69,16 @@ export interface IRescueUpdateStatusPayload {
   note?: string;
 }
 
+export interface IRescueSuggestedPart {
+  partId: number;
+  quantity: number;
+}
+
 export interface IRescueProposePayload {
   rescueType: "ROADSIDE" | "TOWING";
   proposalNotes?: string;
   estimatedServiceFee?: number;
+  suggestedParts?: IRescueSuggestedPart[];
 }
 
 export interface IRescueAssignTechPayload {
@@ -177,6 +185,12 @@ export const proposeRescueToCustomer = async (
   payload: IRescueProposePayload,
 ) => {
   const { data } = await AxiosClient.patch(`/api/rescue-requests/${id}/propose`, payload);
+  return data;
+};
+
+// Customer: Accept proposal → DISPATCHED / TOWING_DISPATCHED
+export const acceptProposal = async (id: number) => {
+  const { data } = await AxiosClient.patch(`/api/rescue-requests/${id}/accept-proposal`);
   return data;
 };
 
