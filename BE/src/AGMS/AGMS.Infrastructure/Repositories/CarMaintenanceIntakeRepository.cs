@@ -441,6 +441,7 @@ namespace AGMS.Infrastructure.Repositories
         {
             var maintenance = await _db.CarMaintenances.AsNoTracking().
                 Include(m => m.Car).ThenInclude(c => c.Owner)
+                .Include(m=> m.AssignedTechnician)
                 .Include(m => m.MaintenancePackageUsages).ThenInclude(u => u.Package)
                 .Include(m => m.ServiceDetails).ThenInclude(d => d.Product)
                 .Include(m => m.ServicePartDetails).ThenInclude(d => d.Product)
@@ -452,6 +453,7 @@ namespace AGMS.Infrastructure.Repositories
             var packageUsage = maintenance.MaintenancePackageUsages
                    .OrderByDescending(x => x.UsageID)
                    .FirstOrDefault();
+            var tech=maintenance.AssignedTechnician;
             var carDetails = string.Join("-", new[]
             {
                 maintenance.Car.Brand,
@@ -463,6 +465,10 @@ namespace AGMS.Infrastructure.Repositories
                 MaintenanceId = maintenance.MaintenanceID,
                 MaintenanceDate = maintenance.MaintenanceDate,
                 MaintenanceStatus = maintenance.Status,
+                TechnicianId=tech?.UserID,
+                TechnicianName=tech?.FullName,
+                TechnicianPhone=tech?.Phone,
+                TechnicianEmail=tech?.Email,
                 Customer = new IntakeCustomerDto
                 {
                     UserCode = owner.UserCode,
@@ -475,6 +481,10 @@ namespace AGMS.Infrastructure.Repositories
                 Car = new IntakeCarDto
                 {
                     LicensePlate = maintenance.Car.LicensePlate,
+                    Brand = maintenance.Car.Brand,
+                    Model= maintenance.Car.Model,
+                    Year = maintenance.Car.Year,
+                    Color =maintenance.Car.Color,
                     CarDetails = carDetails,
                     EngineNumber = maintenance.Car.EngineNumber,
                     CurrentOdometer = maintenance.Car.CurrentOdometer

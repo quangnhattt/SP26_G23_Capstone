@@ -6,6 +6,10 @@ public class ServiceOrderIntakeDetailDto
     public DateTime MaintenanceDate { get; set; }
     public string MaintenanceStatus { get; set; } = null!;
 
+    public int? TechnicianId { get; set; }
+    public string? TechnicianName { get; set; }
+    public string? TechnicianPhone { get; set; }
+    public string? TechnicianEmail { get; set; }    
     public IntakeCustomerDto Customer { get; set; } = null!;
     public IntakeCarDto Car { get; set; } = null!;
     public IntakePackageDto? Package { get; set; }
@@ -28,8 +32,13 @@ public class IntakeCustomerDto
 public class IntakeCarDto
 {
     public string LicensePlate { get; set; } = null!;
+    public string? Brand { get; set; }  
+    public string? Model { get; set; }
+    public int? Year { get; set; }
+    public string? Color { get; set; }  
     public string CarDetails { get; set; } = null!;
     public string? EngineNumber { get; set; }
+    public string? ChassisNumber { get; set; }
     public int CurrentOdometer { get; set; }
 }
 
