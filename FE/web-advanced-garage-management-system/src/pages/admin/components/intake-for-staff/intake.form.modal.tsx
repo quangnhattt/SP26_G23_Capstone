@@ -202,54 +202,102 @@ const IntakeFormModal = ({
         await createIntake({
           customer: {
             mode: v.customerMode,
-            customerId: v.customerId,
-            fullName: v.customerFullName,
-            phone: v.customerPhone,
-            email: v.customerEmail,
+            customerId: v.customerId ?? null,
+            fullName: v.customerFullName ?? null,
+            phone: v.customerPhone ?? null,
+            email: v.customerEmail ?? null,
           },
           car: {
             mode: v.carMode,
-            carId: v.carId,
-            licensePlate: v.carLicensePlate,
-            brand: v.carBrand,
-            model: v.carModel,
-            year: v.carYear,
-            currentOdometer: v.carOdometer,
-            color: v.carColor,
-            engineNumber: v.carEngineNumber,
-            chassisNumber: v.carChassisNumber,
+            carId: v.carId ?? null,
+            licensePlate: v.carLicensePlate ?? null,
+            brand: v.carBrand ?? null,
+            model: v.carModel ?? null,
+            year: v.carYear ?? null,
+            currentOdometer: v.carOdometer ?? null,
+            color: v.carColor ?? null,
+            engineNumber: v.carEngineNumber ?? null,
+            chassisNumber: v.carChassisNumber ?? null,
           },
-          maintenance: v.maintenance,
+          maintenance: {
+            maintenanceType: v.maintenance?.maintenanceType ?? null,
+            notes: v.maintenance?.notes ?? null,
+            assignedTechnicianId: v.maintenance?.assignedTechnicianId ?? null,
+            bayId: v.maintenance?.bayId ?? null,
+          },
           packageSelection: { selectedPackageId: v.packageId ?? null },
-          serviceDetails: v.serviceDetails ?? [],
-          partDetails: v.partDetails ?? [],
-          vehicleIntakeConditions: v.vehicleConditions ?? [],
+          serviceDetails: (v.serviceDetails ?? []).map(
+            (s: { productId: number; quantity: number; notes: string }) => ({
+              productId: s.productId,
+              quantity: s.quantity,
+              notes: s.notes,
+            }),
+          ),
+          partDetails: (v.partDetails ?? []).map(
+            (p: { productId: number; quantity: number; notes: string }) => ({
+              productId: p.productId,
+              quantity: p.quantity,
+              notes: p.notes,
+            }),
+          ),
+          vehicleIntakeConditions: (v.vehicleConditions ?? []).map(
+            (c: {
+              frontStatus: string;
+              rearStatus: string;
+              leftStatus: string;
+              rightStatus: string;
+              roofStatus: string;
+              conditionNote: string;
+            }) => ({
+              frontStatus: c.frontStatus,
+              rearStatus: c.rearStatus,
+              leftStatus: c.leftStatus,
+              rightStatus: c.rightStatus,
+              roofStatus: c.roofStatus,
+              conditionNote: c.conditionNote,
+            }),
+          ),
         });
       } else if (intakeId) {
         await updateIntake(intakeId, {
-          maintenance: v.maintenance,
-          customer: [
-            {
-              fullName: v.customerFullName,
-              phone: v.customerPhone,
-              email: v.customerEmail,
-              gender: v.customerGender ?? "",
-              dob: v.customerDob ?? "",
-            },
-          ],
+          maintenance: {
+            maintenanceType: v.maintenance?.maintenanceType ?? null,
+            notes: v.maintenance?.notes ?? null,
+            assignedTechnicianId: v.maintenance?.assignedTechnicianId ?? null,
+            bayId: v.maintenance?.bayId ?? null,
+          },
+          customer: {
+            fullName: v.customerFullName ?? null,
+            phone: v.customerPhone ?? null,
+            email: v.customerEmail ?? null,
+            gender: v.customerGender ?? null,
+            dob: v.customerDob ?? null,
+          },
           car: {
-            licensePlate: v.carLicensePlate,
-            brand: v.carBrand,
-            model: v.carModel,
-            year: v.carYear,
-            color: v.carColor,
-            engineNumber: v.carEngineNumber,
-            chassisNumber: v.carChassisNumber,
-            currentOdometer: v.carOdometer,
+            licensePlate: v.carLicensePlate ?? null,
+            brand: v.carBrand ?? null,
+            model: v.carModel ?? null,
+            year: v.carYear ?? null,
+            color: v.carColor ?? null,
+            engineNumber: v.carEngineNumber ?? null,
+            chassisNumber: v.carChassisNumber ?? null,
+            currentOdometer: v.carOdometer ?? null,
           },
           packageSelection: { selectedPackageId: v.packageId ?? null },
-          serviceDetails: v.serviceDetails ?? [],
-          partDetails: v.partDetails ?? [],
+          serviceDetails: (v.serviceDetails ?? []).map(
+            (s: { productId: number; quantity: number; notes: string }) => ({
+              productId: s.productId,
+              quantity: s.quantity,
+              notes: s.notes,
+            }),
+          ),
+          partDetails: (v.partDetails ?? []).map(
+            (p: { productId: number; quantity: number; notes: string }) => ({
+              productId: p.productId,
+              quantity: p.quantity,
+              notes: p.notes,
+            }),
+          ),
           vehicleCondition: (v.vehicleConditions ?? []).map(
             (c: {
               frontStatus: string;

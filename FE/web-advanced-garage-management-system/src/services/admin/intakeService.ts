@@ -171,9 +171,9 @@ export interface IUpdateIntakePayload {
     fullName: string;
     phone: string;
     email: string;
-    gender: string;
-    dob: string;
-  }[];
+    gender: string | null;
+    dob: string | null;
+  };
   car: {
     licensePlate: string;
     brand: string;
