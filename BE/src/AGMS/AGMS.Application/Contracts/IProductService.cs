@@ -4,7 +4,7 @@ namespace AGMS.Application.Contracts;
 
 public interface IProductService
 {
-    Task<IEnumerable<PartProductListItemDto>> GetPartProductsAsync(CancellationToken ct);
+    Task<PagedResultDto<PartProductListItemDto>> GetPartProductsAsync(PartProductQueryDto query, CancellationToken ct);
     Task<PartProductListItemDto> AddPartProductAsync(CreatePartProductDto request, CancellationToken ct);
     Task<PartProductListItemDto> UpdatePartProductAsync(int id,UpdatePartProductDto request, CancellationToken ct);    
     Task<bool> DeactivePartProductAsync(int id, CancellationToken ct);
