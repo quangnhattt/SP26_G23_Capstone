@@ -69,7 +69,11 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> PayDeposit(int id, [FromBody] PayRescueDepositDto request, CancellationToken ct)
+    public async Task<IActionResult> PayDeposit(
+        int id,
+        [FromBody] PayRescueDepositDto request,
+        CancellationToken ct
+    )
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -409,7 +413,7 @@ public class RescueRequestController : ControllerBase
     /// consentGiven=false → PROPOSED_TOWING (AF-02).
     /// </summary>
     [HttpPatch("{id:int}/customer-consent")]
-    [Authorize(Roles = Roles.Customer + "," + Roles.ServiceAdvisor)]
+    [Authorize(Roles = Roles.Technician)]
     [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -602,13 +606,7 @@ public class RescueRequestController : ControllerBase
         try
         {
             var result = await _rescueService.DispatchTowingAsync(id, userId, request, ct);
-            return Ok(
-                new
-                {
-                    data = result,
-                    message = "Dịch vụ kéo xe đã được điều phối."
-                }
-            );
+            return Ok(new { data = result, message = "Dịch vụ kéo xe đã được điều phối." });
         }
         catch (KeyNotFoundException ex)
         {
