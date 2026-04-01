@@ -27,7 +27,7 @@ import { getProducts, type IProduct } from "@/services/admin/productService";
 import { getPackages, type IPackage } from "@/services/admin/packageService";
 import { getTechnicians, type ITechnician } from "@/apis/technicians";
 import { searchUsers, type IUser } from "@/services/admin/userService";
-import { getCarsByCustomerId, type ICar } from "@/apis/cars";
+import { getCarsByCustomerPhone, type ICar } from "@/apis/cars";
 
 const { TextArea } = Input;
 
@@ -71,20 +71,25 @@ const IntakeFormModal = ({
   const [carsLoading, setCarsLoading] = useState(false);
   const customerMode = Form.useWatch("customerMode", form);
   const carMode = Form.useWatch("carMode", form);
-  const selectedCustomerId = Form.useWatch("customerId", form);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<
+    string | number | undefined
+  >(undefined);
+  const [selectedCustomerPhone, setSelectedCustomerPhone] = useState<
+    string | undefined
+  >(undefined);
 
   useEffect(() => {
-    if (!selectedCustomerId) {
+    if (!selectedCustomerPhone) {
       setCustomerCars([]);
       return;
     }
     setCarsLoading(true);
-    getCarsByCustomerId(selectedCustomerId)
+    getCarsByCustomerPhone(selectedCustomerPhone)
       .then(setCustomerCars)
       .catch(() => {})
       .finally(() => setCarsLoading(false));
     form.setFieldValue("carId", undefined);
-  }, [selectedCustomerId, form]);
+  }, [selectedCustomerPhone, form]);
 
   useEffect(() => {
     getServices()
@@ -121,6 +126,10 @@ const IntakeFormModal = ({
 
     if (mode === "create") {
       form.resetFields();
+      setSelectedCustomerId(undefined);
+      setSelectedCustomerPhone(undefined);
+      setUserSearchValue("");
+      setUsers([]);
       form.setFieldsValue({
         customerMode: "existing",
         carMode: "existing",
@@ -316,7 +325,19 @@ const IntakeFormModal = ({
             },
           }}
         >
-          <Form form={form} layout="vertical" requiredMark={false}>
+          <Form
+            form={form}
+            layout="vertical"
+            requiredMark={false}
+            onValuesChange={(changedValues) => {
+              if ("customerId" in changedValues) {
+                setSelectedCustomerId(changedValues.customerId);
+                if (!changedValues.customerId) {
+                  setSelectedCustomerPhone(undefined);
+                }
+              }
+            }}
+          >
             {/* ── Customer ────────────────────────────────────── */}
             <SectionTitle>{t("intakeDetailCustomer")}</SectionTitle>
             {isCreate && (
@@ -335,10 +356,21 @@ const IntakeFormModal = ({
               >
                 <Select
                   showSearch
+                  allowClear
                   placeholder={t("intakeFormSearchByPhone")}
                   filterOption={false}
                   searchValue={userSearchValue}
                   onSearch={setUserSearchValue}
+                  onSelect={(value) => {
+                    const user = users.find((u) => u.userID === value);
+                    if (user) setSelectedCustomerPhone(user.phone);
+                  }}
+                  onClear={() => {
+                    setUserSearchValue("");
+                    setUsers([]);
+                    setSelectedCustomerId(undefined);
+                    setSelectedCustomerPhone(undefined);
+                  }}
                   loading={userSearchLoading}
                   options={users.map((u) => ({
                     value: u.userID,
@@ -429,6 +461,7 @@ const IntakeFormModal = ({
                 rules={[{ required: true }]}
               >
                 <Select
+                  allowClear
                   loading={carsLoading}
                   disabled={!selectedCustomerId}
                   placeholder={
