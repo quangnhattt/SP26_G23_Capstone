@@ -99,7 +99,9 @@ export interface IIntakeDetail {
   maintenanceId: number;
   maintenanceDate: string;
   maintenanceStatus: string;
-  maintenanceType?: string;
+  maintenanaceType?: string; // API typo: "maintenanace" instead of "maintenance"
+  bayId?: number | null;
+  notes?: string;
   technicianId?: number;
   technicianName?: string;
   technicianPhone?: string;

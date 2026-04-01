@@ -143,10 +143,10 @@ const IntakeFormModal = ({
     if (mode === "update" && detailData) {
       form.setFieldsValue({
         maintenance: {
-          maintenanceType: detailData.maintenanceType ?? undefined,
-          notes: "",
+          maintenanceType: detailData.maintenanaceType ?? undefined,
+          notes: detailData.notes ?? "",
           assignedTechnicianId: detailData.technicianId ?? undefined,
-          bayId: null,
+          bayId: detailData.bayId ?? null,
         },
         customerFullName: detailData.customer.fullName,
         customerPhone: detailData.customer.phone,
