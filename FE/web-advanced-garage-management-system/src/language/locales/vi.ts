@@ -345,7 +345,7 @@ export default {
   searchByNameCode: "Tìm theo tên, mã sản phẩm...",
   allCategories: "Tất cả danh mục",
   productList: "Danh sách sản phẩm",
-  showingProducts: "Hiện thị {{count}} sản phẩm",
+  showingProducts: "Tổng {{total}} sản phẩm",
   loadingData: "Đang tải dữ liệu...",
   loadingProducts: "Đang tải...",
   cannotLoadProducts: "Không thể tải danh sách sản phẩm",

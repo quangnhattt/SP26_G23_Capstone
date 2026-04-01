@@ -345,7 +345,7 @@ export default {
   searchByNameCode: "Search by name, product code...",
   allCategories: "All categories",
   productList: "Product list",
-  showingProducts: "Showing {{count}} products",
+  showingProducts: "Total {{total}} products",
   loadingData: "Loading data...",
   loadingProducts: "Loading...",
   cannotLoadProducts: "Cannot load product list",

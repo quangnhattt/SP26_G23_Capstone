@@ -43,14 +43,16 @@ export interface IProductsResponse {
 export interface IProductsParams {
   name?: string;
   code?: string;
+  page?: number;
+  pageSize?: number;
 }
 
-export const getProducts = async (params?: IProductsParams): Promise<IProduct[]> => {
+export const getProducts = async (params?: IProductsParams): Promise<IProductsResponse> => {
   const { data } = await AxiosClient.get<IProductsResponse>(
     "/api/products/parts",
     { params }
   );
-  return data.items;
+  return data;
 };
 
 export const getProductById = async (id: number): Promise<IProductDetail> => {

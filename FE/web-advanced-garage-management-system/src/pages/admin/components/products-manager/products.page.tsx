@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { HiSearch, HiPlus, HiPencil, HiTrash, HiX } from "react-icons/hi";
 import { useEffect, useState, useRef } from "react";
+import { Pagination } from "antd";
 import {
   getProducts,
   createProduct,
@@ -34,6 +35,9 @@ const ProductsPage = () => {
   const [products, setProducts] = useState<IProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<IProduct | null>(null);
   const [loadingModal, setLoadingModal] = useState(false);
@@ -56,7 +60,7 @@ const ProductsPage = () => {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(undefined, 1);
     fetchUnits();
     fetchCategories();
   }, []);
@@ -79,14 +83,18 @@ const ProductsPage = () => {
     }
   };
 
-  const fetchProducts = async (search?: string) => {
+  const fetchProducts = async (search?: string, page = 1) => {
     try {
       setLoading(true);
-      const params = search
-        ? { name: search, code: search }
-        : undefined;
-      const data = await getProducts(params);
-      setProducts(data);
+      const params = {
+        ...(search ? { name: search, code: search } : {}),
+        page,
+        pageSize,
+      };
+      const res = await getProducts(params);
+      setProducts(res.items);
+      setTotalCount(res.totalCount);
+      setCurrentPage(res.page);
     } catch (err) {
       console.error("Failed to fetch products:", err);
       setError(t("cannotLoadProducts"));
@@ -100,7 +108,7 @@ const ProductsPage = () => {
     setSearchTerm(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchProducts(value.trim() || undefined);
+      fetchProducts(value.trim() || undefined, 1);
     }, 400);
   };
 
@@ -203,7 +211,7 @@ const ProductsPage = () => {
       } else {
         await createProduct(formData);
       }
-      await fetchProducts();
+      await fetchProducts(searchTerm.trim() || undefined, currentPage);
       handleCloseModal();
     } catch (err) {
       console.error("Failed to save product:", err);
@@ -251,7 +259,7 @@ const ProductsPage = () => {
           <TableSubtitle>
             {loading
               ? t("loadingProducts")
-              : t("showingProducts", { count: products.length })}
+              : t("showingProducts", { total: totalCount })}
           </TableSubtitle>
 
           {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -259,6 +267,7 @@ const ProductsPage = () => {
           {loading ? (
             <LoadingMessage>{t("loadingData")}</LoadingMessage>
           ) : (
+            <>
             <TableWrapper>
             <Table>
               <thead>
@@ -335,6 +344,16 @@ const ProductsPage = () => {
               </tbody>
             </Table>
             </TableWrapper>
+            <PaginationWrapper>
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={totalCount}
+                showSizeChanger={false}
+                onChange={(page) => fetchProducts(searchTerm.trim() || undefined, page)}
+              />
+            </PaginationWrapper>
+            </>
           )}
         </TableSection>
       </TableCard>
@@ -1008,4 +1027,10 @@ const LoadingModalContent = styled.div`
   text-align: center;
   color: #6b7590;
   font-size: 1rem;
+`;
+
+const PaginationWrapper = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem 0 0.5rem;
 `;

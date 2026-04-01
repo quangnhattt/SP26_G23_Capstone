@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiPlus, HiClipboardCheck } from "react-icons/hi";
 import { toast } from "react-toastify";
+import { Table, Tag, Select as AntSelect } from "antd";
+import type { TableColumnsType } from "antd";
 import {
   inventoryService,
   type IInventoryTransaction,
@@ -15,7 +17,9 @@ import AuditModal from "./audit.modal";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    value,
+  );
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
@@ -30,6 +34,12 @@ const formatDate = (iso: string) => {
 
 const PAGE_SIZE = 20;
 
+const TRANSACTION_TYPE_MAP: Record<string, { color: string; label: string }> = {
+  ISSUE: { color: "orange", label: "Xuất kho" },
+  GOODS_RECEIPT: { color: "green", label: "Nhập kho" },
+  ADJUSTMENT: { color: "blue", label: "Điều chỉnh" },
+};
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const InventoryManager = () => {
@@ -39,10 +49,11 @@ const InventoryManager = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [products, setProducts] = useState<IProduct[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<number | undefined>(undefined);
+  const [selectedProductId, setSelectedProductId] = useState<
+    number | undefined
+  >(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
   const [auditMessage, setAuditMessage] = useState("");
@@ -50,37 +61,40 @@ const InventoryManager = () => {
   const [auditing, setAuditing] = useState(false);
 
   useEffect(() => {
-    getProducts()
-      .then(setProducts)
+    getProducts({ pageSize: 1000 })
+      .then((res) => setProducts(res.items))
       .catch(() => {});
   }, []);
 
-  const fetchTransactions = useCallback(async (page: number, pid?: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await inventoryService.getInventoryTransactions({
-        PageIndex: page,
-        PageSize: PAGE_SIZE,
-        ...(pid !== undefined ? { ProductId: pid } : {}),
-      });
-      setItems(res.data.items);
-      setTotalPages(res.data.totalPages);
-      setTotalCount(res.data.totalCount);
-    } catch {
-      setError(t("inventoryError"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+  const fetchTransactions = useCallback(
+    async (page: number, pid?: number) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await inventoryService.getInventoryTransactions({
+          PageIndex: page,
+          PageSize: PAGE_SIZE,
+          ...(pid !== undefined ? { ProductId: pid } : {}),
+        });
+        setItems(res.data?.items ?? []);
+        setTotalCount(res.data?.totalCount ?? 0);
+      } catch {
+        setError(t("inventoryError"));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     fetchTransactions(currentPage, selectedProductId);
   }, [currentPage, selectedProductId, fetchTransactions]);
 
-  const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    setSelectedProductId(val === "" ? undefined : Number(val));
+  const handleProductChange = (value: string | undefined) => {
+    setSelectedProductId(
+      value === undefined || value === "" ? undefined : Number(value),
+    );
     setCurrentPage(1);
   };
 
@@ -103,13 +117,84 @@ const InventoryManager = () => {
     fetchTransactions(1, selectedProductId);
   };
 
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1)
-    .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-    .reduce<(number | "...")[]>((acc, p, idx, arr) => {
-      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("...");
-      acc.push(p);
-      return acc;
-    }, []);
+  const columns: TableColumnsType<IInventoryTransaction> = [
+    {
+      title: "STT",
+      key: "index",
+      width: 60,
+      align: "center",
+      render: (_: unknown, __: IInventoryTransaction, index: number) =>
+        (currentPage - 1) * PAGE_SIZE + index + 1,
+    },
+    {
+      title: t("inventoryProductCode"),
+      key: "productCode",
+      width: 150,
+      render: (_: unknown, record: IInventoryTransaction) => record.productCode,
+    },
+    {
+      title: t("inventoryProductName"),
+      key: "productName",
+      width: 220,
+      render: (_: unknown, record: IInventoryTransaction) => record.productName,
+    },
+    {
+      title: t("inventoryTransactionType"),
+      key: "transactionType",
+      width: 130,
+      render: (_: unknown, record: IInventoryTransaction) => {
+        const meta = TRANSACTION_TYPE_MAP[record.transactionType] ?? {
+          color: "default",
+          label: record.transactionType,
+        };
+        return <Tag color={meta.color}>{meta.label}</Tag>;
+      },
+    },
+    {
+      title: t("inventoryQuantity"),
+      key: "quantity",
+      align: "right",
+      width: 100,
+      render: (_: unknown, record: IInventoryTransaction) =>
+        record.quantity?.toLocaleString("vi-VN") ?? "0",
+    },
+    {
+      title: t("inventoryBalance"),
+      key: "balance",
+      align: "right",
+      width: 110,
+      render: (_: unknown, record: IInventoryTransaction) =>
+        record.balance?.toLocaleString("vi-VN") ?? "0",
+    },
+    {
+      title: t("inventoryUnitCost"),
+      key: "unitCost",
+      align: "right",
+      width: 150,
+      render: (_: unknown, record: IInventoryTransaction) =>
+        formatCurrency(record.unitCost ?? 0),
+    },
+    {
+      title: t("inventoryTransactionDate"),
+      key: "transactionDate",
+      width: 160,
+      render: (_: unknown, record: IInventoryTransaction) =>
+        formatDate(record.transactionDate),
+    },
+    {
+      title: t("inventoryNote"),
+      key: "note",
+      render: (_: unknown, record: IInventoryTransaction) => record.note || "—",
+    },
+  ];
+
+  const productOptions = [
+    { value: "", label: t("inventorySelectProduct") },
+    ...products.map((p) => ({
+      value: String(p.id),
+      label: `${p.code} — ${p.name}`,
+    })),
+  ];
 
   return (
     <Container>
@@ -121,16 +206,18 @@ const InventoryManager = () => {
       {error && <ErrorBox>{error}</ErrorBox>}
 
       <Toolbar>
-        <SelectWrapper>
-          <Select value={selectedProductId ?? ""} onChange={handleProductChange}>
-            <option value="">{t("inventorySelectProduct")}</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
-              </option>
-            ))}
-          </Select>
-        </SelectWrapper>
+        <AntSelect
+          style={{ minWidth: 280, maxWidth: 420, flex: 1 }}
+          allowClear
+          placeholder={t("inventorySelectProduct")}
+          options={productOptions}
+          value={
+            selectedProductId !== undefined
+              ? String(selectedProductId)
+              : undefined
+          }
+          onChange={handleProductChange}
+        />
         <AuditBtn onClick={handleAudit} disabled={auditing}>
           <HiClipboardCheck size={16} />
           {auditing ? "Đang kiểm tra..." : "Kiểm tra sai lệch"}
@@ -142,77 +229,22 @@ const InventoryManager = () => {
       </Toolbar>
 
       <TableCard>
-        <TableWrapper>
-          <Table>
-            <Thead>
-              <tr>
-                <Th>STT</Th>
-                <Th>{t("inventoryProductCode")}</Th>
-                <Th>{t("inventoryProductName")}</Th>
-                <Th>{t("inventoryTransactionType")}</Th>
-                <ThRight>{t("inventoryQuantity")}</ThRight>
-                <ThRight>{t("inventoryBalance")}</ThRight>
-                <ThRight>{t("inventoryUnitCost")}</ThRight>
-                <Th>{t("inventoryTransactionDate")}</Th>
-                <Th>{t("inventoryNote")}</Th>
-              </tr>
-            </Thead>
-            <tbody>
-              {loading ? (
-                <EmptyRow>
-                  <EmptyCell colSpan={9}>{t("inventoryLoading")}</EmptyCell>
-                </EmptyRow>
-              ) : items.length === 0 ? (
-                <EmptyRow>
-                  <EmptyCell colSpan={9}>{t("inventoryNoData")}</EmptyCell>
-                </EmptyRow>
-              ) : (
-                items.map((item, index) => (
-                  <Tr key={item.transactionID}>
-                    <TdMuted>{(currentPage - 1) * PAGE_SIZE + index + 1}</TdMuted>
-                    <Td>{item.productCode}</Td>
-                    <Td>{item.productName}</Td>
-                    <Td>
-                      <Badge $type={item.transactionType}>{item.transactionType}</Badge>
-                    </Td>
-                    <TdRight>{item.quantity.toLocaleString("vi-VN")}</TdRight>
-                    <TdRight>{item.balance.toLocaleString("vi-VN")}</TdRight>
-                    <TdRight>{formatCurrency(item.unitCost)}</TdRight>
-                    <Td>{formatDate(item.transactionDate)}</Td>
-                    <TdMuted>{item.note || "—"}</TdMuted>
-                  </Tr>
-                ))
-              )}
-            </tbody>
-          </Table>
-        </TableWrapper>
-
-        <PaginationBar>
-          <span>
-            {t("inventoryTotalInfo", {
-              count: totalCount,
-              current: currentPage,
-              total: totalPages,
-            })}
-          </span>
-          <PageButtons>
-            <PageBtn disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => p - 1)}>
-              {t("inventoryPrev")}
-            </PageBtn>
-            {pageNumbers.map((p, i) =>
-              p === "..." ? (
-                <span key={`ellipsis-${i}`} style={{ padding: "6px 4px" }}>...</span>
-              ) : (
-                <PageBtn key={p} $active={p === currentPage} onClick={() => setCurrentPage(p as number)}>
-                  {p}
-                </PageBtn>
-              )
-            )}
-            <PageBtn disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
-              {t("inventoryNext")}
-            </PageBtn>
-          </PageButtons>
-        </PaginationBar>
+        <Table<IInventoryTransaction>
+          rowKey="transactionID"
+          columns={columns}
+          dataSource={items}
+          loading={loading}
+          scroll={{ x: "max-content" }}
+          pagination={{
+            current: currentPage,
+            pageSize: PAGE_SIZE,
+            total: totalCount,
+            showSizeChanger: false,
+            showTotal: (total, range) =>
+              `${range[0]}–${range[1]} / ${total} giao dịch`,
+            onChange: (page) => setCurrentPage(page),
+          }}
+        />
       </TableCard>
 
       <ImportModal
@@ -267,28 +299,6 @@ const Toolbar = styled.div`
   align-items: center;
 `;
 
-const SelectWrapper = styled.div`
-  min-width: 280px;
-  max-width: 420px;
-  flex: 1;
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 14px;
-  background: #fff;
-  color: #374151;
-  outline: none;
-  cursor: pointer;
-  &:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-`;
-
 const AuditBtn = styled.button`
   display: flex;
   align-items: center;
@@ -302,8 +312,13 @@ const AuditBtn = styled.button`
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  &:hover:not(:disabled) { background: #fffbeb; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:hover:not(:disabled) {
+    background: #fffbeb;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const ImportBtn = styled.button`
@@ -319,7 +334,9 @@ const ImportBtn = styled.button`
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  &:hover { background: #2563eb; }
+  &:hover {
+    background: #2563eb;
+  }
 `;
 
 const TableCard = styled.div`
@@ -327,109 +344,24 @@ const TableCard = styled.div`
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
-`;
+  padding: 0 8px;
 
-const TableWrapper = styled.div`
-  overflow-x: auto;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-`;
-
-const Thead = styled.thead`
-  background: #f3f4f6;
-`;
-
-const Th = styled.th`
-  padding: 12px 16px;
-  text-align: left;
-  font-weight: 600;
-  color: #374151;
-  white-space: nowrap;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const ThRight = styled(Th)`
-  text-align: right;
-`;
-
-const Tr = styled.tr`
-  &:not(:last-child) {
-    border-bottom: 1px solid #f3f4f6;
+  .ant-table {
+    color: #374151;
   }
-  &:hover {
-    background: #f9fafb;
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
   }
-`;
-
-const Td = styled.td`
-  padding: 12px 16px;
-  color: #374151;
-  vertical-align: middle;
-  white-space: nowrap;
-`;
-
-const TdRight = styled(Td)`
-  text-align: right;
-`;
-
-const TdMuted = styled(Td)`
-  color: #9ca3af;
-  font-size: 13px;
-`;
-
-const Badge = styled.span<{ $type: string }>`
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  background: ${({ $type }) =>
-    $type === "ISSUE" ? "#fef3c7" : $type === "RECEIPT" ? "#d1fae5" : "#e0e7ff"};
-  color: ${({ $type }) =>
-    $type === "ISSUE" ? "#92400e" : $type === "RECEIPT" ? "#065f46" : "#3730a3"};
-`;
-
-const EmptyRow = styled.tr``;
-
-const EmptyCell = styled.td`
-  padding: 48px 16px;
-  text-align: center;
-  color: #9ca3af;
-  font-size: 14px;
-`;
-
-const PaginationBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-top: 1px solid #e5e7eb;
-  font-size: 14px;
-  color: #6b7280;
-  flex-wrap: wrap;
-  gap: 8px;
-`;
-
-const PageButtons = styled.div`
-  display: flex;
-  gap: 6px;
-`;
-
-const PageBtn = styled.button<{ $active?: boolean }>`
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid ${({ $active }) => ($active ? "#3b82f6" : "#e5e7eb")};
-  background: ${({ $active }) => ($active ? "#3b82f6" : "#fff")};
-  color: ${({ $active }) => ($active ? "#fff" : "#374151")};
-  font-size: 13px;
-  cursor: pointer;
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+  .ant-pagination {
+    color: #374151;
   }
 `;
 
