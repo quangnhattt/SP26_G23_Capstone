@@ -1,13 +1,16 @@
 /**
  * Extract error message from API error response.
- * Handles various response formats: message, Message, errors[], etc.
+ * Handles various response formats: message, Message, errors[], errors{}, title, etc.
  */
 type ApiErrorData = {
   message?: string;
   Message?: string;
   error?: string;
   Error?: string;
-  errors?: Array<{ message?: string; Message?: string }>;
+  title?: string;
+  errors?:
+    | Array<{ message?: string; Message?: string }>
+    | Record<string, string[]>;
 };
 
 type ApiError = {
@@ -51,6 +54,22 @@ export function getApiErrorMessage(
     const first = data.errors[0];
     const msg = first?.message ?? first?.Message;
     if (typeof msg === "string") return msg;
+  }
+
+  // errors{} object — ASP.NET Core validation format: { "Field": ["msg1"] }
+  if (data.errors && !Array.isArray(data.errors) && typeof data.errors === "object") {
+    const firstKey = Object.keys(data.errors)[0];
+    if (firstKey) {
+      const msgs = (data.errors as Record<string, string[]>)[firstKey];
+      if (Array.isArray(msgs) && msgs.length > 0 && typeof msgs[0] === "string") {
+        return msgs[0];
+      }
+    }
+  }
+
+  // title — ASP.NET Core default problem details
+  if (data.title && typeof data.title === "string") {
+    return data.title;
   }
 
   return fallback;

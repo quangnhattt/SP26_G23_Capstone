@@ -14,12 +14,14 @@ import {
 } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 import styled from "styled-components";
 import {
   createIntake,
   updateIntake,
   type IIntakeDetail,
 } from "@/services/admin/intakeService";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import { getServices, type IService } from "@/services/admin/serviceService";
 import { getProducts, type IProduct } from "@/services/admin/productService";
 import { getPackages, type IPackage } from "@/services/admin/packageService";
@@ -259,11 +261,19 @@ const IntakeFormModal = ({
         });
       }
 
+      toast.success(
+        mode === "create" ? t("intakeCreateSuccess") : t("intakeUpdateSuccess")
+      );
       onSuccess();
       onClose();
     } catch (err: unknown) {
       if (err && typeof err === "object" && "errorFields" in err) return;
-      console.error("Submit error:", err);
+      toast.error(
+        getApiErrorMessage(
+          err,
+          mode === "create" ? t("intakeCreateError") : t("intakeUpdateError")
+        )
+      );
     } finally {
       setSubmitting(false);
     }
