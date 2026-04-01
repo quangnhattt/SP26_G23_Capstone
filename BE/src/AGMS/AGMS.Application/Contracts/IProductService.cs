@@ -10,7 +10,7 @@ public interface IProductService
     Task<bool> DeactivePartProductAsync(int id, CancellationToken ct);
     Task<bool> ActivePartProductAsync(int id, CancellationToken ct);
     //Product Service
-    Task<IEnumerable<ServiceProductListItemDto>> GetServiceProductsAsync(CancellationToken ct);
+    Task<PagedResultDto<ServiceProductListItemDto>> GetServiceProductsAsync(ServiceProductQueryDto query, CancellationToken ct);
     Task<ServiceProductListItemDto> AddServiceProductAsync(CreateServiceProductDto request, CancellationToken ct);
     Task<ServiceProductListItemDto?> UpdateServiceProductAsync(int id, UpdateServiceProductDto request, CancellationToken ct);
 }

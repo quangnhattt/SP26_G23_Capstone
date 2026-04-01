@@ -237,25 +237,44 @@ public class ProductRepository : IProductRepository
     }
 
     // Product Service 
-    public async Task<IEnumerable<ServiceProductListItemDto>> GetServiceProductsAsync(CancellationToken ct)
+    public async Task<PagedResultDto<ServiceProductListItemDto>> GetServiceProductsAsync(ServiceProductQueryDto query,CancellationToken ct)
     {
-        return await _db.Products
+       var q= _db.Products
             .AsNoTracking()
-            .Where(p => p.Type == "SERVICE" || p.Type == "Service")
-            .Select(p => new ServiceProductListItemDto
+            .Where(p=>p.Type=="SERVICE" || p.Type == "Service")
+            .AsQueryable();
+        if(!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var kw=query.Search.Trim();
+            var like=$"%{kw}%";
+            q=q.Where(p=>EF.Functions.Like(p.Name,like) || EF.Functions.Like(p.Code,like));
+        }
+        var total=await q.CountAsync(ct);
+        var page =query.Page <=0 ? 1 : query.Page;
+        var pageSize=query.PageSize <=0 ? 20 : Math.Min(200,query.PageSize);
+        var items=await q.OrderBy(p=>p.ProductID)
+            .Skip((page-1)* pageSize)
+            .Take(pageSize)
+            .Select(p=> new ServiceProductListItemDto
             {
-                Id = p.ProductID,
-                Code = p.Code,
-                Name = p.Name,
-                Price = p.Price,
-                Unit = p.Unit != null ? p.Unit.Name : null,
-                Category = p.Category != null ? p.Category.Name : null,
-                EstimatedDurationHours = p.EstimatedDurationHours,
-                Description = p.Description,
-                Image = p.Image,
-                IsActive = p.IsActive
-            })
-            .ToListAsync(ct);
+                Id=p.ProductID,
+                Code=p.Code,
+                Name=p.Name,
+                Price=p.Price,
+                Unit=p.Unit !=null ? p.Unit.Name : null,
+                Category=p.Category !=null ? p.Category.Name : null,
+                EstimatedDurationHours=p.EstimatedDurationHours,
+                Description=p.Description,  
+                Image=p.Image,
+                IsActive=p.IsActive 
+            }).ToListAsync(ct);
+        return new PagedResultDto<ServiceProductListItemDto>
+        {
+            Items = items,
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
+        };
     }
     public async Task<ServiceProductListItemDto> AddServiceProductAsync(CreateServiceProductDto request, CancellationToken ct)
     {

@@ -1,6 +1,7 @@
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Product;
 using Microsoft.AspNetCore.Mvc;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace AGMS.WebApi.Controllers;
 
@@ -95,10 +96,16 @@ public class ProductController : ControllerBase
     //Product service 
 
     [HttpGet("services")]
-    [ProducesResponseType(typeof(IEnumerable<ServiceProductListItemDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetServiceProducts(CancellationToken ct)
+    [ProducesResponseType(typeof(PagedResultDto<ServiceProductListItemDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetServiceProducts([FromQuery] string? search, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var response = await _productService.GetServiceProductsAsync(ct);
+        var query = new ServiceProductQueryDto
+        {
+            Search = search,
+            Page = page ?? 1,
+            PageSize = pageSize ?? 20
+        };
+        var response = await _productService.GetServiceProductsAsync(query, ct);
         return Ok(response);
     }
     [HttpPost("services")]

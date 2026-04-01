@@ -33,9 +33,9 @@ public class ProductService : IProductService
     {
         return await _productRepository.ActivePartProductAsync(id, ct);
     }
-    public async Task<IEnumerable<ServiceProductListItemDto>> GetServiceProductsAsync(CancellationToken ct)
+    public async Task<PagedResultDto<ServiceProductListItemDto>> GetServiceProductsAsync(ServiceProductQueryDto query, CancellationToken ct)
     {
-        return await _productRepository.GetServiceProductsAsync(ct);
+        return await _productRepository.GetServiceProductsAsync(query, ct);
     }
     public async Task<ServiceProductListItemDto> AddServiceProductAsync(CreateServiceProductDto request, CancellationToken ct)
     {
