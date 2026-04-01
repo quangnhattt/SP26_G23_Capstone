@@ -33,7 +33,7 @@ public class ProductRepository : IProductRepository
                 Category = p.Category != null ? p.Category.Name : null,
                 Warranty = p.WarrantyPeriodMonths,
                 MinStockLevel = p.MinStockLevel,
-                StockQty = p.ProductItems.Count(pi => pi.Status == "IN_STOCK"),
+                StockQty = p.ProductInventory != null ? (int)p.ProductInventory.Quantity : 0,
                 Description = p.Description,
                 Image = p.Image,
                 IsActive = p.IsActive
@@ -42,9 +42,8 @@ public class ProductRepository : IProductRepository
     }
     public async Task<PartProductListItemDto> AddPartProductAsync(CreatePartProductDto request, CancellationToken ct)
     {
-        // Always auto-generate Code
         var now = DateTime.UtcNow;
-        var random = new Random().Next(100, 999); // Random 3 digits
+        var random = new Random().Next(100, 999); 
         var code = $"P{now:ddHHmm}{random:D3}";
         // Validate CategoryID if provided: must be a category of type Part
         if (request.CategoryId.HasValue)
@@ -100,10 +99,12 @@ public class ProductRepository : IProductRepository
         await _db.Entry(product).Reference(p => p.Unit).LoadAsync(ct);
         await _db.Entry(product).Reference(p => p.Category).LoadAsync(ct);
 
-        var stockQty = await _db.ProductItems
+    
+        var stockQty =(int)(await _db.ProductInventories
             .AsNoTracking()
-            .CountAsync(pi => pi.ProductID == product.ProductID && pi.Status == "IN_STOCK", ct);
-
+            .Where(pi => pi.ProductID == product.ProductID)
+            .Select(pi => (decimal?)pi.Quantity)
+            .FirstOrDefaultAsync(ct) ?? 0);
         return new PartProductListItemDto
         {
             Id = product.ProductID,
@@ -126,6 +127,7 @@ public class ProductRepository : IProductRepository
             .Include(p => p.Unit)
             .Include(p => p.Category)
             .Include(p => p.ProductItems)
+            .Include(p=>p.ProductInventory)
             .FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
 
         if (product == null)
@@ -172,7 +174,7 @@ public class ProductRepository : IProductRepository
         product.Image = request.Image;
         product.IsActive = request.IsActive;
         await _db.SaveChangesAsync(ct);
-        var stockQty = product.ProductItems.Count(pi => pi.Status == "IN_STOCK");
+        var stockQty = product.ProductInventory !=null ? (int)product.ProductInventory.Quantity : 0;
         return new PartProductListItemDto
         {
             Id = product.ProductID,
