@@ -40,15 +40,21 @@ export interface IProductsResponse {
   pageSize: number;
 }
 
-export const getProducts = async (): Promise<IProduct[]> => {
+export interface IProductsParams {
+  name?: string;
+  code?: string;
+}
+
+export const getProducts = async (params?: IProductsParams): Promise<IProduct[]> => {
   const { data } = await AxiosClient.get<IProductsResponse>(
-    "/api/products/parts"
+    "/api/products/parts",
+    { params }
   );
   return data.items;
 };
 
-export const getProductById = async (id: number): Promise<IProduct> => {
-  const { data } = await AxiosClient.get<IProduct>(`/api/products/parts/${id}`);
+export const getProductById = async (id: number): Promise<IProductDetail> => {
+  const { data } = await AxiosClient.get<IProductDetail>(`/api/products/parts/${id}`);
   return data;
 };
 
