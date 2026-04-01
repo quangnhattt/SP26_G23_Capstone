@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { HiSearch, HiPlus, HiPencil, HiTrash, HiX } from "react-icons/hi";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   getProducts,
   createProduct,
@@ -8,6 +8,10 @@ import {
   getProductById,
 } from "@/services/admin/productService";
 import type { IProduct } from "@/services/admin/productService";
+import { getUnits } from "@/services/admin/unitService";
+import type { IUnit } from "@/services/admin/unitService";
+import { getCategories } from "@/services/admin/categoryService";
+import type { ICategory } from "@/services/admin/categoryService";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
@@ -46,15 +50,42 @@ const ProductsPage = () => {
     isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [units, setUnits] = useState<IUnit[]>([]);
+  const [categories, setCategories] = useState<ICategory[]>([]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     fetchProducts();
+    fetchUnits();
+    fetchCategories();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchUnits = async () => {
+    try {
+      const data = await getUnits();
+      setUnits(data);
+    } catch (err) {
+      console.error("Failed to fetch units:", err);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error("Failed to fetch categories:", err);
+    }
+  };
+
+  const fetchProducts = async (search?: string) => {
     try {
       setLoading(true);
-      const data = await getProducts();
+      const params = search
+        ? { name: search, code: search }
+        : undefined;
+      const data = await getProducts(params);
       setProducts(data);
     } catch (err) {
       console.error("Failed to fetch products:", err);
@@ -64,14 +95,23 @@ const ProductsPage = () => {
     }
   };
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchProducts(value.trim() || undefined);
+    }, 400);
+  };
+
   const handleOpenCreateModal = () => {
     setEditingProduct(null);
     setFormData({
       code: "",
       name: "",
       price: 0,
-      unitId: 1,
-      categoryId: 1,
+      unitId: 0,
+      categoryId: 0,
       warranty: 0,
       minStockLevel: 0,
       description: "",
@@ -93,8 +133,16 @@ const ProductsPage = () => {
         code: productDetail.code,
         name: productDetail.name,
         price: productDetail.price,
-        unitId: 2,
-        categoryId: 21,
+        unitId:
+          productDetail.unitId ??
+          units.find((u) => u.name === productDetail.unit)?.unitID ??
+          0,
+        categoryId:
+          productDetail.categoryId ??
+          categories.find(
+            (c) => c.name === productDetail.category && c.type === "Part"
+          )?.categoryID ??
+          0,
         warranty: productDetail.warranty,
         minStockLevel: productDetail.minStockLevel,
         description: productDetail.description,
@@ -107,8 +155,11 @@ const ProductsPage = () => {
         code: product.code,
         name: product.name,
         price: product.price,
-        unitId: 2,
-        categoryId: 21,
+        unitId: units.find((u) => u.name === product.unit)?.unitID ?? 0,
+        categoryId:
+          categories.find(
+            (c) => c.name === product.category && c.type === "Part"
+          )?.categoryID ?? 0,
         warranty: product.warranty,
         minStockLevel: product.minStockLevel,
         description: product.description,
@@ -126,16 +177,18 @@ const ProductsPage = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]:
-        type === "number"
-          ? Number(value)
-          : type === "checkbox"
+        type === "checkbox"
           ? (e.target as HTMLInputElement).checked
+          : name === "unitId" || name === "categoryId"
+          ? Number(value)
+          : type === "number"
+          ? Number(value)
           : value,
     }));
   };
@@ -184,7 +237,12 @@ const ProductsPage = () => {
         <TableHeader>
           <SearchBox>
             <HiSearch size={18} />
-            <input type="text" placeholder={t("searchByNameCode")} />
+            <input
+              type="text"
+              placeholder={t("searchByNameCode")}
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
           </SearchBox>
         </TableHeader>
 
@@ -340,26 +398,40 @@ const ProductsPage = () => {
 
                     <FormGroup>
                       <Label>{t("unitID")} *</Label>
-                      <Input
-                        type="number"
+                      <Select
                         name="unitId"
-                        value={formData.unitId}
+                        value={formData.unitId || ""}
                         onChange={handleInputChange}
                         required
-                      />
+                      >
+                        <option value="">{t("selectUnit")}</option>
+                        {units.map((unit) => (
+                          <option key={unit.unitID} value={unit.unitID}>
+                            {unit.name}
+                          </option>
+                        ))}
+                      </Select>
                     </FormGroup>
                   </FormRow>
 
                   <FormRow>
                     <FormGroup>
                       <Label>{t("categoryID")} *</Label>
-                      <Input
-                        type="number"
+                      <Select
                         name="categoryId"
-                        value={formData.categoryId}
+                        value={formData.categoryId || ""}
                         onChange={handleInputChange}
                         required
-                      />
+                      >
+                        <option value="">{t("selectCategory")}</option>
+                        {categories
+                          .filter((c) => c.type === "Part")
+                          .map((cat) => (
+                            <option key={cat.categoryID} value={cat.categoryID}>
+                              {cat.name}
+                            </option>
+                          ))}
+                      </Select>
                     </FormGroup>
 
                     <FormGroup>
@@ -829,6 +901,22 @@ const Input = styled.input`
 
   &::placeholder {
     color: #9ca3bf;
+  }
+`;
+
+const Select = styled.select`
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1a1d2e !important;
+  background: white !important;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 `;
 

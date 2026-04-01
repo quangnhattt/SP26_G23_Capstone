@@ -25,13 +25,15 @@ export interface IServiceRequest {
   isActive: boolean;
 }
 
-export type IServicesResponse = IService[];
+export interface IServicesResponse {
+  items: IService[];
+}
 
-export const getServices = async (): Promise<IServicesResponse> => {
+export const getServices = async (): Promise<IService[]> => {
   const { data } = await AxiosClient.get<IServicesResponse>(
     "/api/products/services"
   );
-  return data;
+  return data.items;
 };
 
 export const createService = async (

@@ -365,6 +365,7 @@ export default {
   unitID: "ID Đơn vị",
   categoryID: "ID Danh mục",
   selectCategory: "Chọn danh mục",
+  selectUnit: "Chọn đơn vị",
 
   // Suppliers Management
   suppliersManagement: "Quản lý nhà cung cấp",

@@ -366,6 +366,7 @@ export default {
   unitID: "Unit ID",
   categoryID: "Category ID",
   selectCategory: "Select category",
+  selectUnit: "Select unit",
 
   // Suppliers Management
   suppliersManagement: "Suppliers Management",
