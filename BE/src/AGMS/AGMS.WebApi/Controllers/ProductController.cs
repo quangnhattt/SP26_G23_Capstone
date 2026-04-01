@@ -16,10 +16,17 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet("parts")]
-    [ProducesResponseType(typeof(IEnumerable<PartProductListItemDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPartProducts(CancellationToken ct)
+    [ProducesResponseType(typeof(PagedResultDto<PartProductListItemDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPartProducts([FromQuery] string? search, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
-        var response = await _productService.GetPartProductsAsync(ct);
+        var query = new PartProductQueryDto
+        {
+            Search = search,
+            Page = page ?? 1,
+            PageSize = pageSize ?? 20
+        };
+
+        var response = await _productService.GetPartProductsAsync(query, ct);
         return Ok(response);
     }
 

@@ -18,12 +18,25 @@ public class ProductRepository : IProductRepository
         _db = db;
     }
 
-    public async Task<IEnumerable<PartProductListItemDto>> GetPartProductsAsync(CancellationToken ct)
+    public async Task<PagedResultDto<PartProductListItemDto>> GetPartProductsAsync(PartProductQueryDto query, CancellationToken ct)
     {
-        return await _db.Products
-            .AsNoTracking()
-            .Where(p => p.Type == "PART")
-            .Select(p => new PartProductListItemDto
+       var q=_db.Products.AsNoTracking().Where(p=>p.Type=="PART")
+            .AsQueryable();
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var kw = query.Search.Trim();
+            var like = $"%{kw}%";
+            q = q.Where(p =>
+                EF.Functions.Like(p.Name, like) ||
+                EF.Functions.Like(p.Code, like));
+        }
+        var total=await q.CountAsync(ct);
+        var page=query.Page <=0 ?1: query.Page; 
+        var pageSize=query.PageSize <=0 ? 20 : Math.Min(200,query.PageSize);    
+        var items=await q.OrderBy(p=>p.ProductID)
+            .Skip((page-1)*pageSize)
+            .Take(pageSize)
+            .Select(p=>new PartProductListItemDto
             {
                 Id = p.ProductID,
                 Code = p.Code,
@@ -33,18 +46,23 @@ public class ProductRepository : IProductRepository
                 Category = p.Category != null ? p.Category.Name : null,
                 Warranty = p.WarrantyPeriodMonths,
                 MinStockLevel = p.MinStockLevel,
-                StockQty = p.ProductItems.Count(pi => pi.Status == "IN_STOCK"),
+                StockQty = p.ProductInventory != null ? (int)p.ProductInventory.Quantity : 0,
                 Description = p.Description,
                 Image = p.Image,
                 IsActive = p.IsActive
-            })
-            .ToListAsync(ct);
+            }).ToListAsync(ct);
+        return new PagedResultDto<PartProductListItemDto>
+        {
+            Items = items,
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize
+        };
     }
     public async Task<PartProductListItemDto> AddPartProductAsync(CreatePartProductDto request, CancellationToken ct)
     {
-        // Always auto-generate Code
         var now = DateTime.UtcNow;
-        var random = new Random().Next(100, 999); // Random 3 digits
+        var random = new Random().Next(100, 999); 
         var code = $"P{now:ddHHmm}{random:D3}";
         // Validate CategoryID if provided: must be a category of type Part
         if (request.CategoryId.HasValue)
@@ -100,10 +118,12 @@ public class ProductRepository : IProductRepository
         await _db.Entry(product).Reference(p => p.Unit).LoadAsync(ct);
         await _db.Entry(product).Reference(p => p.Category).LoadAsync(ct);
 
-        var stockQty = await _db.ProductItems
+    
+        var stockQty =(int)(await _db.ProductInventories
             .AsNoTracking()
-            .CountAsync(pi => pi.ProductID == product.ProductID && pi.Status == "IN_STOCK", ct);
-
+            .Where(pi => pi.ProductID == product.ProductID)
+            .Select(pi => (decimal?)pi.Quantity)
+            .FirstOrDefaultAsync(ct) ?? 0);
         return new PartProductListItemDto
         {
             Id = product.ProductID,
@@ -126,6 +146,7 @@ public class ProductRepository : IProductRepository
             .Include(p => p.Unit)
             .Include(p => p.Category)
             .Include(p => p.ProductItems)
+            .Include(p=>p.ProductInventory)
             .FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
 
         if (product == null)
@@ -172,7 +193,7 @@ public class ProductRepository : IProductRepository
         product.Image = request.Image;
         product.IsActive = request.IsActive;
         await _db.SaveChangesAsync(ct);
-        var stockQty = product.ProductItems.Count(pi => pi.Status == "IN_STOCK");
+        var stockQty = product.ProductInventory !=null ? (int)product.ProductInventory.Quantity : 0;
         return new PartProductListItemDto
         {
             Id = product.ProductID,

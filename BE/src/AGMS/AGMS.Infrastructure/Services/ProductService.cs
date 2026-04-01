@@ -12,9 +12,9 @@ public class ProductService : IProductService
         _productRepository = productRepository;
     }
 
-    public async Task<IEnumerable<PartProductListItemDto>> GetPartProductsAsync(CancellationToken ct)
+    public async Task<PagedResultDto<PartProductListItemDto>> GetPartProductsAsync(PartProductQueryDto query, CancellationToken ct)
     {
-        return await _productRepository.GetPartProductsAsync(ct);
+        return await _productRepository.GetPartProductsAsync(query,ct);
     }
     public async Task<PartProductListItemDto> AddPartProductAsync(CreatePartProductDto request, CancellationToken ct)
     {
