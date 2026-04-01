@@ -29,7 +29,9 @@ const formatDate = (iso: string | null | undefined) => {
 };
 
 const formatCurrency = (val: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    val,
+  );
 
 const statusColor: Record<string, string> = {
   APPROVED: "green",
@@ -46,9 +48,24 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
   const { t } = useTranslation();
 
   const serviceColumns: ColumnsType<IServiceDetail> = [
-    { title: t("intakeDetailCode"), dataIndex: "serviceProductCode", key: "serviceProductCode", width: 130 },
-    { title: t("intakeDetailName"), dataIndex: "serviceProductName", key: "serviceProductName" },
-    { title: t("intakeDetailQty"), dataIndex: "serviceQty", key: "serviceQty", width: 70, align: "right" },
+    {
+      title: t("intakeDetailCode"),
+      dataIndex: "serviceProductCode",
+      key: "serviceProductCode",
+      width: 130,
+    },
+    {
+      title: t("intakeDetailName"),
+      dataIndex: "serviceProductName",
+      key: "serviceProductName",
+    },
+    {
+      title: t("intakeDetailQty"),
+      dataIndex: "serviceQty",
+      key: "serviceQty",
+      width: 70,
+      align: "right",
+    },
     {
       title: t("intakeDetailPrice"),
       dataIndex: "servicePrice",
@@ -64,13 +81,32 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
       width: 110,
       render: (s: string) => <Tag color={statusColor[s] ?? "default"}>{s}</Tag>,
     },
-    { title: t("intakeDetailNotes"), dataIndex: "serviceNotes", key: "serviceNotes" },
+    {
+      title: t("intakeDetailNotes"),
+      dataIndex: "serviceNotes",
+      key: "serviceNotes",
+    },
   ];
 
   const partColumns: ColumnsType<IPartDetail> = [
-    { title: t("intakeDetailCode"), dataIndex: "partProductCode", key: "partProductCode", width: 130 },
-    { title: t("intakeDetailName"), dataIndex: "partProductName", key: "partProductName" },
-    { title: t("intakeDetailQty"), dataIndex: "partQty", key: "partQty", width: 70, align: "right" },
+    {
+      title: t("intakeDetailCode"),
+      dataIndex: "partProductCode",
+      key: "partProductCode",
+      width: 130,
+    },
+    {
+      title: t("intakeDetailName"),
+      dataIndex: "partProductName",
+      key: "partProductName",
+    },
+    {
+      title: t("intakeDetailQty"),
+      dataIndex: "partQty",
+      key: "partQty",
+      width: 70,
+      align: "right",
+    },
     {
       title: t("intakeDetailPrice"),
       dataIndex: "partPrice",
@@ -90,13 +126,48 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
   ];
 
   const conditionColumns: ColumnsType<IVehicleIntakeCondition> = [
-    { title: t("intakeDetailCheckIn"), dataIndex: "checkInTime", key: "checkInTime", width: 160, render: formatDate },
-    { title: t("intakeDetailFront"), dataIndex: "frontStatus", key: "frontStatus", width: 100 },
-    { title: t("intakeDetailRear"), dataIndex: "rearStatus", key: "rearStatus", width: 100 },
-    { title: t("intakeDetailLeft"), dataIndex: "leftStatus", key: "leftStatus", width: 100 },
-    { title: t("intakeDetailRight"), dataIndex: "rightStatus", key: "rightStatus", width: 100 },
-    { title: t("intakeDetailRoof"), dataIndex: "roofStatus", key: "roofStatus", width: 100 },
-    { title: t("intakeDetailConditionNote"), dataIndex: "intakeConditionNote", key: "intakeConditionNote" },
+    {
+      title: t("intakeDetailCheckIn"),
+      dataIndex: "checkInTime",
+      key: "checkInTime",
+      width: 160,
+      render: formatDate,
+    },
+    {
+      title: t("intakeDetailFront"),
+      dataIndex: "frontStatus",
+      key: "frontStatus",
+      width: 100,
+    },
+    {
+      title: t("intakeDetailRear"),
+      dataIndex: "rearStatus",
+      key: "rearStatus",
+      width: 100,
+    },
+    {
+      title: t("intakeDetailLeft"),
+      dataIndex: "leftStatus",
+      key: "leftStatus",
+      width: 100,
+    },
+    {
+      title: t("intakeDetailRight"),
+      dataIndex: "rightStatus",
+      key: "rightStatus",
+      width: 100,
+    },
+    {
+      title: t("intakeDetailRoof"),
+      dataIndex: "roofStatus",
+      key: "roofStatus",
+      width: 100,
+    },
+    {
+      title: t("intakeDetailConditionNote"),
+      dataIndex: "intakeConditionNote",
+      key: "intakeConditionNote",
+    },
   ];
 
   return (
@@ -108,10 +179,20 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
       title={
         <ModalTitle>
           {t("intakeDetailTitle")}
-          {data && <span style={{ color: "#1d4ed8", marginLeft: 8 }}>#{data.maintenanceId}</span>}
+          {data && (
+            <span style={{ color: "#1d4ed8", marginLeft: 8 }}>
+              #{data.maintenanceId}
+            </span>
+          )}
         </ModalTitle>
       }
-      styles={{ body: { maxHeight: "75vh", overflowY: "auto", padding: "1.25rem 1.5rem" } }}
+      styles={{
+        body: {
+          maxHeight: "75vh",
+          overflowY: "auto",
+          padding: "1.25rem 1.5rem",
+        },
+      }}
     >
       {loading || !data ? (
         <SpinWrapper>
@@ -123,43 +204,107 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
           <Section>
             <SectionTitle>{t("intakeDetailBasicInfo")}</SectionTitle>
             <Descriptions bordered size="small" column={2}>
-              <Descriptions.Item label={t("intakeDetailDate")}>{formatDate(data.maintenanceDate)}</Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailDate")}>
+                {formatDate(data.maintenanceDate)}
+              </Descriptions.Item>
               <Descriptions.Item label={t("intakeDetailMaintenanceStatus")}>
-                <Tag color={statusColor[data.maintenanceStatus] ?? "default"}>{data.maintenanceStatus}</Tag>
+                <Tag color={statusColor[data.maintenanceStatus] ?? "default"}>
+                  {data.maintenanceStatus}
+                </Tag>
               </Descriptions.Item>
             </Descriptions>
           </Section>
 
-          {/* Customer */}
+          {/* Customer & Car */}
           <Section>
             <SectionTitle>{t("intakeDetailCustomer")}</SectionTitle>
             <Descriptions bordered size="small" column={2}>
-              <Descriptions.Item label={t("intakeDetailFullName")}>{data.customer.fullName}</Descriptions.Item>
-              <Descriptions.Item label={t("intakeDetailPhone")}>{data.customer.phone}</Descriptions.Item>
-              <Descriptions.Item label={t("intakeDetailEmail")}>{data.customer.email}</Descriptions.Item>
-              <Descriptions.Item label={t("intakeDetailDob")}>{data.customer.dob}</Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailFullName")}>
+                {data.customer.fullName}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailPhone")}>
+                {data.customer.phone}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailEmail")}>
+                {data.customer.email}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailDob")}>
+                {data.customer.dob}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailLicensePlate")}>
+                {data.car.licensePlate}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailCarBrand")}>
+                {data.car.brand ?? "—"}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailCarModel")}>
+                {data.car.model ?? "—"}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailCarYear")}>
+                {data.car.year ?? "—"}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailCarColor")}>
+                {data.car.color ?? "—"}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailCarDetails")}>
+                {data.car.carDetails}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailEngine")}>
+                {data.car.engineNumber}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailChassis")}>
+                {data.car.chassisNumber ?? "—"}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("intakeDetailOdometer")}>
+                {data.car.currentOdometer} km
+              </Descriptions.Item>
             </Descriptions>
           </Section>
 
-          {/* Car */}
-          <Section>
-            <SectionTitle>{t("intakeDetailCar")}</SectionTitle>
-            <Descriptions bordered size="small" column={2}>
-              <Descriptions.Item label={t("intakeDetailLicensePlate")}>{data.car.licensePlate}</Descriptions.Item>
-              <Descriptions.Item label={t("intakeDetailCarDetails")}>{data.car.carDetails}</Descriptions.Item>
-              <Descriptions.Item label={t("intakeDetailEngine")}>{data.car.engineNumber}</Descriptions.Item>
-              <Descriptions.Item label={t("intakeDetailOdometer")}>{data.car.currentOdometer} km</Descriptions.Item>
-            </Descriptions>
-          </Section>
+          {/* Technician */}
+          {(data.technicianName ||
+            data.technicianPhone ||
+            data.technicianEmail) && (
+            <Section>
+              <SectionTitle>{t("intakeDetailTechnician")}</SectionTitle>
+              <Descriptions bordered size="small" column={2}>
+                {data.technicianName && (
+                  <Descriptions.Item label={t("intakeDetailTechnicianName")}>
+                    {data.technicianName}
+                  </Descriptions.Item>
+                )}
+                {data.technicianPhone && (
+                  <Descriptions.Item label={t("intakeDetailTechnicianPhone")}>
+                    {data.technicianPhone}
+                  </Descriptions.Item>
+                )}
+                {data.technicianEmail && (
+                  <Descriptions.Item
+                    label={t("intakeDetailTechnicianEmail")}
+                    span={2}
+                  >
+                    {data.technicianEmail}
+                  </Descriptions.Item>
+                )}
+              </Descriptions>
+            </Section>
+          )}
 
           {/* Package */}
           {data.package && (
             <Section>
               <SectionTitle>{t("intakeDetailPackage")}</SectionTitle>
               <Descriptions bordered size="small" column={2}>
-                <Descriptions.Item label={t("intakeDetailPackageCode")}>{data.package.packageCode}</Descriptions.Item>
-                <Descriptions.Item label={t("intakeDetailPackageName")}>{data.package.packageName}</Descriptions.Item>
-                <Descriptions.Item label={t("intakeDetailPackagePrice")} span={2}>
+                <Descriptions.Item label={t("intakeDetailPackageCode")}>
+                  {data.package.packageCode}
+                </Descriptions.Item>
+                <Descriptions.Item label={t("intakeDetailPackageName")}>
+                  {data.package.packageName}
+                </Descriptions.Item>
+                <Descriptions.Item
+                  label={t("intakeDetailPackagePrice")}
+                  span={2}
+                >
                   {formatCurrency(data.package.packagePrice)}
                 </Descriptions.Item>
               </Descriptions>
@@ -225,9 +370,11 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
 export default IntakeDetailModal;
 
 const ModalTitle = styled.span`
+  display: block;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #010102;
+  color: #111827 !important;
+  justify-content: space-between;
 `;
 
 const SpinWrapper = styled.div`
