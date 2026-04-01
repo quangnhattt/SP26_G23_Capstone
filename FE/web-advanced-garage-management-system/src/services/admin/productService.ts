@@ -33,13 +33,18 @@ export interface IProductRequest {
   isActive: boolean;
 }
 
-export type IProductsResponse = IProduct[];
+export interface IProductsResponse {
+  items: IProduct[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
 
-export const getProducts = async (): Promise<IProductsResponse> => {
+export const getProducts = async (): Promise<IProduct[]> => {
   const { data } = await AxiosClient.get<IProductsResponse>(
     "/api/products/parts"
   );
-  return data;
+  return data.items;
 };
 
 export const getProductById = async (id: number): Promise<IProduct> => {

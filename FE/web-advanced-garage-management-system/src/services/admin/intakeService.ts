@@ -45,8 +45,13 @@ export interface IIntakeCustomer {
 
 export interface IIntakeCar {
   licensePlate: string;
+  brand?: string;
+  model?: string;
+  year?: number;
+  color?: string;
   carDetails: string;
   engineNumber: string;
+  chassisNumber?: string | null;
   currentOdometer: number;
 }
 
@@ -94,8 +99,11 @@ export interface IIntakeDetail {
   maintenanceId: number;
   maintenanceDate: string;
   maintenanceStatus: string;
+  maintenanceType?: string;
   technicianId?: number;
   technicianName?: string;
+  technicianPhone?: string;
+  technicianEmail?: string;
   customer: IIntakeCustomer;
   car: IIntakeCar;
   package: IIntakePackage | null;
