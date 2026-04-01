@@ -43,7 +43,7 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
 
     setLoadingProducts(true);
     getProducts()
-      .then((data) => setProducts(data.filter((p) => p.isActive)))
+      .then((res) => setProducts(res.items.filter((p: IProduct) => p.isActive)))
       .catch(() => {})
       .finally(() => setLoadingProducts(false));
   }, []);

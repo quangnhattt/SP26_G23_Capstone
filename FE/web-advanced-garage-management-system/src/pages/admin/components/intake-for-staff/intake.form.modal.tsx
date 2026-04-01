@@ -96,7 +96,7 @@ const IntakeFormModal = ({
       .then(setServices)
       .catch(() => {});
     getProducts()
-      .then(setProducts)
+      .then((res) => setProducts(res.items))
       .catch(() => {});
     getPackages()
       .then(setPackages)

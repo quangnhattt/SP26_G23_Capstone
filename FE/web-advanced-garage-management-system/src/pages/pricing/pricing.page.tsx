@@ -42,7 +42,7 @@ const PricingPage = () => {
       try {
         setLoading(true);
         const data = await getProducts();
-        setProducts(data);
+        setProducts(data.items);
       } catch {
         setProducts([]);
       } finally {
