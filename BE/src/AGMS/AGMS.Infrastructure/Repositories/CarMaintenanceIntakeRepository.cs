@@ -490,6 +490,7 @@ namespace AGMS.Infrastructure.Repositories
                     Color =maintenance.Car.Color,
                     CarDetails = carDetails,
                     EngineNumber = maintenance.Car.EngineNumber,
+                    ChassisNumber = maintenance.Car.ChassisNumber,
                     CurrentOdometer = maintenance.Car.CurrentOdometer
 
                 },
