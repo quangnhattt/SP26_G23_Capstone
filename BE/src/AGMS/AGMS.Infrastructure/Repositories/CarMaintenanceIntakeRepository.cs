@@ -724,6 +724,8 @@ namespace AGMS.Infrastructure.Repositories
                 }
                 if (customer.Dob.HasValue)
                     owner.DateOfBirth = customer.Dob.Value;
+                if (customer.Gender != null)
+                    owner.Gender = string.IsNullOrWhiteSpace(customer.Gender) ? null : customer.Gender.Trim();
                 if (request.Car != null)
                 {
                     var carUpdate = request.Car;
