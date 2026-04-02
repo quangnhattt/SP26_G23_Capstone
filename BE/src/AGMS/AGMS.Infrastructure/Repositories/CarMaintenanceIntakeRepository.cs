@@ -463,7 +463,7 @@ namespace AGMS.Infrastructure.Repositories
             return new ServiceOrderIntakeDetailDto
             {
                 MaintenanceId = maintenance.MaintenanceID,
-                MaintenanceDate = maintenance.MaintenanceDate,
+                MaintenanceDate = maintenance.CreatedDate,
                 MaintenanceStatus = maintenance.Status,
                 MaintenanaceType=maintenance.MaintenanceType,
                 BayId= maintenance.BayID,
