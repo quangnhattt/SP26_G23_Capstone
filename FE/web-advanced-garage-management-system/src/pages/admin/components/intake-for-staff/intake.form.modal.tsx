@@ -160,7 +160,7 @@ const IntakeFormModal = ({
         customerFullName: detailData.customer.fullName,
         customerPhone: detailData.customer.phone,
         customerEmail: detailData.customer.email,
-        customerGender: detailData.customer.gender ?? undefined,
+        customerGender: detailData.customer.gender?.toLowerCase() ?? undefined,
         customerDob: detailData.customer.dob ?? "",
         carLicensePlate: detailData.car.licensePlate,
         carBrand: detailData.car.brand ?? "",
