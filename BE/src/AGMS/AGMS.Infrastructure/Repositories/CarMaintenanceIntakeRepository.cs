@@ -55,7 +55,7 @@ namespace AGMS.Infrastructure.Repositories
                     MaintenanceId = m.MaintenanceID,
                     CustomerName = m.Car.Owner.FullName,
                     CarInfo = (m.Car.Brand ?? string.Empty) + " - " + (m.Car.LicensePlate ?? string.Empty),
-                    MaintenanceDate = m.MaintenanceDate,
+                    MaintenanceDate = m.CreatedDate,
                     CompletedDate = m.CompletedDate,
                     MaintenanceType = m.MaintenanceType,
                     Status = m.Status,
