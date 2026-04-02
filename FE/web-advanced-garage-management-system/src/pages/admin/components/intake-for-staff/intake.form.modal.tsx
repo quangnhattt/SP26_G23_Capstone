@@ -160,7 +160,7 @@ const IntakeFormModal = ({
         customerFullName: detailData.customer.fullName,
         customerPhone: detailData.customer.phone,
         customerEmail: detailData.customer.email,
-        customerGender: detailData.customer.gender?.toLowerCase() ?? undefined,
+        customerGender: detailData.customer.gender ?? undefined,
         customerDob: detailData.customer.dob ?? "",
         carLicensePlate: detailData.car.licensePlate,
         carBrand: detailData.car.brand ?? "",
@@ -466,8 +466,8 @@ const IntakeFormModal = ({
                         <Select
                           allowClear
                           options={[
-                            { value: "male", label: t("intakeFormMale") },
-                            { value: "female", label: t("intakeFormFemale") },
+                            { value: "Male", label: t("intakeFormMale") },
+                            { value: "Female", label: t("intakeFormFemale") },
                           ]}
                           classNames={{
                             popup: { root: "intake-form-dropdown" },
