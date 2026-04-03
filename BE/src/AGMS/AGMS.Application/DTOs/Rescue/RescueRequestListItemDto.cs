@@ -16,6 +16,7 @@ public class RescueRequestListItemDto
     public DateTime? DepositPaidDate { get; set; }
     public bool IsDepositConfirmed { get; set; }
     public DateTime? DepositConfirmedDate { get; set; }
+    public int? DepositConfirmedById { get; set; }
 
     // --- Thông tin khách hàng ---
     public int CustomerId { get; set; }

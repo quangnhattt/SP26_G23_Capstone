@@ -76,6 +76,7 @@ public class RescueRequestRepository : IRescueRequestRepository
                 DepositPaidDate    = r.DepositPaidDate,
                 IsDepositConfirmed = r.IsDepositConfirmed,
                 DepositConfirmedDate = r.DepositConfirmedDate,
+                DepositConfirmedById = r.DepositConfirmedByID,
                 CustomerId         = r.CustomerID,
                 CustomerName       = r.Customer.FullName,
                 CustomerPhone      = r.Customer.Phone,
