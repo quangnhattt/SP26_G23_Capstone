@@ -14,18 +14,25 @@ import ManagermentAppointment from "@/pages/admin/components/appointment-manager
 import RescueManagement from "@/pages/admin/components/rescue-manager/RescueManagement";
 import InventoryManager from "@/pages/admin/components/inventory-manager/inventory.manager";
 import IntakeManager from "@/pages/admin/components/intake-for-staff/intake.manager";
+import ServiceOrderManager from "@/pages/admin/components/service-order-manager/service.order.manager";
 
 const HomePage = lazy(() => import("@/pages/home/home.page"));
-const ServicesPageHome = lazy(() => import("@/pages/services/services.page.home"));
+const ServicesPageHome = lazy(
+  () => import("@/pages/services/services.page.home"),
+);
 const PricingPage = lazy(() => import("@/pages/pricing/pricing.page"));
 const AboutPage = lazy(() => import("@/pages/about/about.page"));
 const ContactPage = lazy(() => import("@/pages/contact/contact.page"));
 const BookingPage = lazy(() => import("@/pages/booking/booking.page"));
 const RescuePage = lazy(() => import("@/pages/booking/rescue.page"));
-const AppointmentsPage = lazy(() => import("@/pages/appointments/appointments.page"));
+const AppointmentsPage = lazy(
+  () => import("@/pages/appointments/appointments.page"),
+);
 const AdminDashboard = lazy(() => import("@/pages/admin/admin.page"));
 const ProfilePage = lazy(() => import("@/pages/profile/profile.page"));
-const ProductsPage = lazy(() => import("@/pages/admin/components/products-manager/products.page"));
+const ProductsPage = lazy(
+  () => import("@/pages/admin/components/products-manager/products.page"),
+);
 
 const AppRoutesContent = () => {
   const { isInitializing } = useAuth();
@@ -45,18 +52,28 @@ const AppRoutesContent = () => {
           <Route path={ROUTER_PAGE.contact} element={<ContactPage />} />
           <Route path={ROUTER_PAGE.booking} element={<BookingPage />} />
           <Route path={ROUTER_PAGE.rescue} element={<RescuePage />} />
-          <Route path={ROUTER_PAGE.appointments} element={<AppointmentsPage />} />
+          <Route
+            path={ROUTER_PAGE.appointments}
+            element={<AppointmentsPage />}
+          />
           <Route path={ROUTER_PAGE.admin} element={<AdminDashboard />}>
             <Route path="product" element={<ProductsPage />} />
             <Route path="unit-managerment" element={<UnitPage />} />
             <Route path="user-managerment" element={<UserPage />} />
-            <Route path="appoinment-managerment" element={<ManagermentAppointment />} />
+            <Route
+              path="appoinment-managerment"
+              element={<ManagermentAppointment />}
+            />
             <Route path="category" element={<CategoryPage />} />
             <Route path="service" element={<ServicePage />} />
             <Route path="supplier" element={<SupplierPage />} />
             <Route path="rescue-management" element={<RescueManagement />} />
             <Route path="inventory-management" element={<InventoryManager />} />
             <Route path="intake-management" element={<IntakeManager />} />
+            <Route
+              path="service-order-management"
+              element={<ServiceOrderManager />}
+            />
           </Route>
           <Route path={ROUTER_PAGE.profile} element={<ProfilePage />} />
         </Route>
