@@ -49,15 +49,7 @@ const UserPage = () => {
   const getDisplayText = (value: string | null | undefined) =>
     value?.trim() ? value : t("notAvailable");
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const fetchUsers = async () => {
+  async function fetchUsers() {
     try {
       const data = await userService.getUsers();
       setUsers(data);
@@ -66,7 +58,13 @@ const UserPage = () => {
       setError(t("cannotLoadUsers"));
       console.error("Error fetching users:", err);
     }
-  };
+  }
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      void fetchUsers();
+    });
+  }, []);
 
   const handleOpenCreateModal = () => {
     setEditingUser(null);
@@ -357,7 +355,10 @@ const UserPage = () => {
             type="text"
             placeholder={t("searchUsersPlaceholder")}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
           />
         </SearchWrapper>
       </Toolbar>
