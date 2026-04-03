@@ -150,32 +150,6 @@ public class CategoryService : ICategoryService
         };
     }
 
-    public async Task ActivateAsync(int id, CancellationToken ct)
-    {
-        var category = await _categoryRepository.GetByIdAsync(id, ct);
-        if (category == null)
-            throw new KeyNotFoundException($"Category with ID {id} not found.");
-
-        if (!category.IsActive)
-        {
-            category.IsActive = true;
-            await _categoryRepository.UpdateAsync(category, ct);
-        }
-    }
-
-    public async Task DeactivateAsync(int id, CancellationToken ct)
-    {
-        var category = await _categoryRepository.GetByIdAsync(id, ct);
-        if (category == null)
-            throw new KeyNotFoundException($"Category with ID {id} not found.");
-
-        if (category.IsActive)
-        {
-            category.IsActive = false;
-            await _categoryRepository.UpdateAsync(category, ct);
-        }
-    }
-
     public async Task DeleteAsync(int id, CancellationToken ct)
     {
         var exists = await _categoryRepository.ExistsAsync(id, ct);
