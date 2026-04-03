@@ -9,5 +9,7 @@ public interface ICategoryService
     Task<PagedCategoryResponse> GetAllAsync(string? name, string? type, bool? isActive, int? page, int? pageSize, CancellationToken ct);
     Task<IEnumerable<CategoryResponse>> GetByTypeAsync(string type, CancellationToken ct);
     Task<CategoryResponse> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken ct);
+    Task ActivateAsync(int id, CancellationToken ct);
+    Task DeactivateAsync(int id, CancellationToken ct);
     Task DeleteAsync(int id, CancellationToken ct);
 }
