@@ -9,5 +9,6 @@ public interface ICategoryService
     Task<IEnumerable<CategoryResponse>> GetAllAsync(CancellationToken ct);
     Task<IEnumerable<CategoryResponse>> GetByTypeAsync(string type, CancellationToken ct);
     Task<CategoryResponse> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken ct);
+    Task<CategoryResponse> ChangeStatusAsync(int id, bool isActive, CancellationToken ct);
     Task DeleteAsync(int id, CancellationToken ct);
 }

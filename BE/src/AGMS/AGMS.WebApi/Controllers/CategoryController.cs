@@ -1,11 +1,14 @@
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Category;
+using AGMS.Application.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AGMS.WebApi.Controllers;
 
 [ApiController]
 [Route("api/categories")]
+[Authorize(Roles = Roles.Admin)]
 public class CategoryController : ControllerBase
 {
     private readonly ICategoryService _categoryService;
@@ -106,6 +109,22 @@ public class CategoryController : ControllerBase
         {
             await _categoryService.DeleteAsync(id, ct);
             return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpPatch("{id}/status")]
+    [ProducesResponseType(typeof(CategoryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ChangeStatus(int id, [FromBody] UpdateCategoryStatusRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var response = await _categoryService.ChangeStatusAsync(id, request.IsActive, ct);
+            return Ok(response);
         }
         catch (KeyNotFoundException ex)
         {
