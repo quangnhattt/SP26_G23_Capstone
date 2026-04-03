@@ -25,13 +25,9 @@ public class ProductService : IProductService
         return await _productRepository.UpdatePartProductAsync(id, request, ct);
 
     }
-    public async Task<bool> DeactivePartProductAsync(int id,CancellationToken ct)
+    public async Task<bool> ChangePartProductStatusAsync(int id, bool isActive, CancellationToken ct)
     {
-        return await _productRepository.DeactivePartProductAsync(id, ct);
-    }
-    public async Task<bool> ActivePartProductAsync(int id, CancellationToken ct)
-    {
-        return await _productRepository.ActivePartProductAsync(id, ct);
+        return await _productRepository.ChangePartProductStatusAsync(id, isActive, ct);
     }
     public async Task<IEnumerable<ServiceProductListItemDto>> GetServiceProductsAsync(CancellationToken ct)
     {
@@ -44,5 +40,9 @@ public class ProductService : IProductService
     public async Task<ServiceProductListItemDto?> UpdateServiceProductAsync(int id, UpdateServiceProductDto request, CancellationToken ct)
     {
         return await _productRepository.UpdateServiceProductAsync(id, request, ct);
+    }
+    public async Task<bool> ChangeServiceProductStatusAsync(int id, bool isActive, CancellationToken ct)
+    {
+        return await _productRepository.ChangeServiceProductStatusAsync(id, isActive, ct);
     }
 }
