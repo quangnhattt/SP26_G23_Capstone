@@ -85,7 +85,42 @@ public class RescueRequestController : ControllerBase
         try
         {
             var result = await _rescueService.PayDepositAsync(id, userId, request, ct);
-            return Ok(new { data = result, message = "Dong coc thanh cong." });
+            return Ok(new { data = result, message = "Khách hàng đã gửi thông tin đặt cọc, đang chờ SA xác nhận." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    [HttpPatch("{id:int}/deposit/confirm")]
+    [Authorize(Roles = Roles.ServiceAdvisor)]
+    [ProducesResponseType(typeof(RescueDepositResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ConfirmDeposit(
+        int id,
+        CancellationToken ct
+    )
+    {
+        var (userId, err) = ExtractUserId();
+        if (err != null)
+            return err;
+
+        try
+        {
+            var result = await _rescueService.ConfirmDepositAsync(id, userId, ct);
+            return Ok(new { data = result, message = "SA đã xác nhận nhận cọc." });
         }
         catch (KeyNotFoundException ex)
         {
