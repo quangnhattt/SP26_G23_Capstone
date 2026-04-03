@@ -20,7 +20,7 @@ public class CategoryRepository : ICategoryRepository
             .FirstOrDefaultAsync(c => c.CategoryID == id, ct);
     }
 
-    public async Task<(IEnumerable<Category> Categories, int TotalCount)> GetAllAsync(string? name, string? type, int? page, int? pageSize, CancellationToken ct)
+    public async Task<(IEnumerable<Category> Categories, int TotalCount)> GetAllAsync(string? name, string? type, bool? isActive, int? page, int? pageSize, CancellationToken ct)
     {
         var query = _db.Categories.AsNoTracking().AsQueryable();
 
@@ -32,6 +32,11 @@ public class CategoryRepository : ICategoryRepository
         if (!string.IsNullOrWhiteSpace(type))
         {
             query = query.Where(c => c.Type == type);
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(c => c.IsActive == isActive.Value);
         }
 
         int totalCount = await query.CountAsync(ct);

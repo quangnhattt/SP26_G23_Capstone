@@ -33,7 +33,8 @@ public class CategoryService : ICategoryService
             Name = request.Name.Trim(),
             Type = request.Type,
             Description = request.Description?.Trim(),
-            MarkupPercent = request.MarkupPercent
+            MarkupPercent = request.MarkupPercent,
+            IsActive = request.IsActive
         };
 
         await _categoryRepository.AddAsync(category, ct);
@@ -44,7 +45,8 @@ public class CategoryService : ICategoryService
             Name = category.Name,
             Type = category.Type,
             Description = category.Description,
-            MarkupPercent = category.MarkupPercent
+            MarkupPercent = category.MarkupPercent,
+            IsActive = category.IsActive
         };
     }
 
@@ -60,20 +62,22 @@ public class CategoryService : ICategoryService
             Name = category.Name,
             Type = category.Type,
             Description = category.Description,
-            MarkupPercent = category.MarkupPercent
+            MarkupPercent = category.MarkupPercent,
+            IsActive = category.IsActive
         };
     }
 
-    public async Task<PagedCategoryResponse> GetAllAsync(string? name, string? type, int? page, int? pageSize, CancellationToken ct)
+    public async Task<PagedCategoryResponse> GetAllAsync(string? name, string? type, bool? isActive, int? page, int? pageSize, CancellationToken ct)
     {
-        var result = await _categoryRepository.GetAllAsync(name, type, page, pageSize, ct);
+        var result = await _categoryRepository.GetAllAsync(name, type, isActive, page, pageSize, ct);
         var items = result.Categories.Select(c => new CategoryResponse
         {
             CategoryID = c.CategoryID,
             Name = c.Name,
             Type = c.Type,
             Description = c.Description,
-            MarkupPercent = c.MarkupPercent
+            MarkupPercent = c.MarkupPercent,
+            IsActive = c.IsActive
         });
         
         return new PagedCategoryResponse
@@ -100,7 +104,8 @@ public class CategoryService : ICategoryService
             Name = c.Name,
             Type = c.Type,
             Description = c.Description,
-            MarkupPercent = c.MarkupPercent
+            MarkupPercent = c.MarkupPercent,
+            IsActive = c.IsActive
         });
     }
 
@@ -130,6 +135,7 @@ public class CategoryService : ICategoryService
         category.Type = request.Type;
         category.Description = request.Description?.Trim();
         category.MarkupPercent = request.MarkupPercent;
+        category.IsActive = request.IsActive;
 
         await _categoryRepository.UpdateAsync(category, ct);
 
@@ -139,7 +145,8 @@ public class CategoryService : ICategoryService
             Name = category.Name,
             Type = category.Type,
             Description = category.Description,
-            MarkupPercent = category.MarkupPercent
+            MarkupPercent = category.MarkupPercent,
+            IsActive = category.IsActive
         };
     }
 

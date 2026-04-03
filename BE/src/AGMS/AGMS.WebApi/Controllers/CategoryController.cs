@@ -51,14 +51,14 @@ public class CategoryController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(PagedCategoryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetAll([FromQuery] string? name, [FromQuery] string? type, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
+    public async Task<IActionResult> GetAll([FromQuery] string? name, [FromQuery] string? type, [FromQuery] bool? isActive, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken ct)
     {
         if ((page.HasValue && page.Value < 1) || (pageSize.HasValue && pageSize.Value < 1))
         {
             return BadRequest(new { message = "page and pageSize must be greater than 0 if provided." });
         }
         
-        var response = await _categoryService.GetAllAsync(name, type, page, pageSize, ct);
+        var response = await _categoryService.GetAllAsync(name, type, isActive, page, pageSize, ct);
         return Ok(response);
     }
 
