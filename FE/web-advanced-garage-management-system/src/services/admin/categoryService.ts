@@ -15,8 +15,8 @@ export interface ICategoryRequest {
 
 export type ICategoriesResponse = ICategory[];
 
-export const getCategories = async (): Promise<ICategoriesResponse> => {
-  const { data } = await AxiosClient.get<ICategoriesResponse>("/api/categories");
+export const getCategories = async (params?: { type?: string }): Promise<ICategoriesResponse> => {
+  const { data } = await AxiosClient.get<ICategoriesResponse>("/api/categories", { params });
   return data;
 };
 

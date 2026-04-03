@@ -67,7 +67,7 @@ const ProductsPage = () => {
 
   const fetchUnits = async () => {
     try {
-      const data = await getUnits();
+      const data = await getUnits({ type: "PART" });
       setUnits(data);
     } catch (err) {
       console.error("Failed to fetch units:", err);
@@ -76,7 +76,7 @@ const ProductsPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const data = await getCategories();
+      const data = await getCategories({ type: "Service" });
       setCategories(data);
     } catch (err) {
       console.error("Failed to fetch categories:", err);

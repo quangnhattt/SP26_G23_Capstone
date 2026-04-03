@@ -27,8 +27,8 @@ interface IUnitsResponse {
   systemMessage: string | null;
 }
 
-export const getUnits = async (): Promise<IUnit[]> => {
-  const { data } = await AxiosClient.get<IUnitsResponse>("/api/Units");
+export const getUnits = async (params?: { type?: string }): Promise<IUnit[]> => {
+  const { data } = await AxiosClient.get<IUnitsResponse>("/api/Units", { params });
   return data.items;
 };
 
