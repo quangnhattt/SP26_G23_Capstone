@@ -99,29 +99,22 @@ namespace AGMS.Infrastructure.Services
             return (true, "MSG_SUP09: Supplier updated successfully.");
         }
 
-        public async Task<(bool IsSuccess, string Message)> DeactivateSupplierAsync(int id)
+        public async Task<(bool IsSuccess, string Message)> ChangeSupplierStatusAsync(int id, bool isActive)
         {
             var existing = await _supplierRepository.GetByIdAsync(id);
             if (existing == null) return (false, "MSG_SUP08: Supplier not found.");
-            if (!existing.IsActive) return (false, "MSG_SUP10: Supplier is already deactivated.");
+            
+            if (existing.IsActive == isActive) 
+            {
+                var msg = isActive ? "MSG_SUP13: Supplier is already active." : "MSG_SUP10: Supplier is already deactivated.";
+                return (true, msg);
+            }
 
-            //if (await _supplierRepository.HasPendingOrdersAsync(id))
-            //    return (false, "MSG_SUP11: Cannot deactivate supplier with pending orders.");
-
-            existing.IsActive = false;
+            existing.IsActive = isActive;
             await _supplierRepository.UpdateAsync(existing);
-            return (true, "MSG_SUP12: Supplier deactivated successfully.");
-        }
-
-        public async Task<(bool IsSuccess, string Message)> ActivateSupplierAsync(int id)
-        {
-            var existing = await _supplierRepository.GetByIdAsync(id);
-            if (existing == null) return (false, "MSG_SUP08: Supplier not found.");
-            if (existing.IsActive) return (false, "MSG_SUP13: Supplier is already active.");
-
-            existing.IsActive = true;
-            await _supplierRepository.UpdateAsync(existing);
-            return (true, "MSG_SUP14: Supplier activated successfully.");
+            
+            var successMsg = isActive ? "MSG_SUP14: Supplier activated successfully." : "MSG_SUP12: Supplier deactivated successfully.";
+            return (true, successMsg);
         }
     }
 }
