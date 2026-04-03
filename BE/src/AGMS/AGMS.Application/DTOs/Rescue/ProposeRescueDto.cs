@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace AGMS.Application.DTOs.Rescue;
 
@@ -23,6 +23,13 @@ public class ProposeRescueDto
     /// <summary>Phí cứu hộ ước tính — cập nhật vào ServiceFee của rescue request</summary>
     [Range(0, double.MaxValue, ErrorMessage = "Phí cứu hộ phải >= 0.")]
     public decimal? EstimatedServiceFee { get; set; }
+
+    /// <summary>
+    /// Số tiền đặt cọc SA đề xuất cho ca cứu hộ.
+    /// Bắt buộc khi request này có RequiresDeposit = true.
+    /// </summary>
+    [Range(0, double.MaxValue, ErrorMessage = "Số tiền đặt cọc phải >= 0.")]
+    public decimal? DepositAmount { get; set; }
 
     /// <summary>
     /// Danh sách phụ tùng SA dự kiến có thể sử dụng cho phương án đang đề xuất.

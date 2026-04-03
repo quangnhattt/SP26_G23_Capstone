@@ -1,8 +1,7 @@
-using AGMS.Application.Constants;
+﻿using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Rescue;
 using AGMS.Domain.Entities;
-using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 
 namespace AGMS.Infrastructure.Services;
@@ -11,20 +10,14 @@ public class RescueRequestService : IRescueRequestService
 {
     private readonly IRescueRequestRepository _rescueRepo;
     private readonly IUserRepository _userRepo;
-    private readonly decimal _initialDepositAmount;
 
     public RescueRequestService(
         IRescueRequestRepository rescueRepo,
-        IUserRepository userRepo,
-        IConfiguration configuration
+        IUserRepository userRepo
     )
     {
         _rescueRepo = rescueRepo;
         _userRepo = userRepo;
-        // Giữ mức đặt cọc ở dạng cấu hình để có thể thay đổi theo nghiệp vụ mà không cần sửa code.
-        _initialDepositAmount =
-            configuration.GetValue<decimal?>("Rescue:InitialDepositAmount")
-            ?? RescueDepositPolicy.DefaultInitialDepositAmount;
     }
 
     // =========================================================================
@@ -55,9 +48,8 @@ public class RescueRequestService : IRescueRequestService
         if (car.OwnerID != customerId)
             throw new ArgumentException("Xe không thuộc sở hữu của khách hàng này.");
 
-        // Khách có TrustScore = 0 phải đóng cọc trước cho đến khi đã hoàn tất ít nhất một ca cứu hộ.
+        // Khách có TrustScore = 0 phải đóng cọc, nhưng số tiền cụ thể sẽ do SA nhập ở bước propose.
         var requiresDeposit = customer.TrustScore <= 0;
-        var depositAmount = requiresDeposit ? _initialDepositAmount : 0m;
 
         var rescue = new RescueRequest
         {
@@ -73,7 +65,7 @@ public class RescueRequestService : IRescueRequestService
             Status = RescueStatus.Pending,
             ServiceFee = 0,
             RequiresDeposit = requiresDeposit,
-            DepositAmount = depositAmount,
+            DepositAmount = 0m,
             IsDepositPaid = !requiresDeposit,
             CreatedDate = DateTime.UtcNow,
             Phone = request.Phone
@@ -211,6 +203,20 @@ public class RescueRequestService : IRescueRequestService
                 ? RescueStatus.ProposedRoadside
                 : RescueStatus.ProposedTowing;
         var suggestedParts = await BuildSuggestedPartSnapshotsAsync(request.SuggestedParts, ct);
+
+        if (rescue.RequiresDeposit)
+        {
+            if (!request.DepositAmount.HasValue || request.DepositAmount.Value <= 0)
+                throw new ArgumentException(
+                    "Yêu cầu này bắt buộc đặt cọc, SA phải nhập số tiền đặt cọc lớn hơn 0 khi gửi đề xuất."
+                );
+
+            rescue.DepositAmount = decimal.Round(request.DepositAmount.Value, 2);
+        }
+        else
+        {
+            rescue.DepositAmount = 0m;
+        }
 
         rescue.ServiceAdvisorID = saId;
         rescue.RescueType = request.RescueType.ToUpperInvariant();
