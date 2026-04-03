@@ -140,6 +140,11 @@ public class CategoryService : ICategoryService
         };
     }
 
+<<<<<<< Updated upstream
+=======
+
+
+>>>>>>> Stashed changes
     public async Task DeleteAsync(int id, CancellationToken ct)
     {
         var exists = await _categoryRepository.ExistsAsync(id, ct);
