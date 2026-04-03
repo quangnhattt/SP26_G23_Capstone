@@ -20,12 +20,32 @@ public class CategoryRepository : ICategoryRepository
             .FirstOrDefaultAsync(c => c.CategoryID == id, ct);
     }
 
-    public async Task<IEnumerable<Category>> GetAllAsync(CancellationToken ct)
+    public async Task<(IEnumerable<Category> Categories, int TotalCount)> GetAllAsync(string? name, string? type, int? page, int? pageSize, CancellationToken ct)
     {
-        return await _db.Categories
-            .AsNoTracking()
+        var query = _db.Categories.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            query = query.Where(c => c.Name.Contains(name));
+        }
+
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            query = query.Where(c => c.Type == type);
+        }
+
+        int totalCount = await query.CountAsync(ct);
+
+        if (page.HasValue && pageSize.HasValue && page.Value > 0 && pageSize.Value > 0)
+        {
+            query = query.Skip((page.Value - 1) * pageSize.Value).Take(pageSize.Value);
+        }
+
+        var categories = await query
             .OrderBy(c => c.CategoryID)
             .ToListAsync(ct);
+
+        return (categories, totalCount);
     }
 
     public async Task<IEnumerable<Category>> GetByTypeAsync(string type, CancellationToken ct)
