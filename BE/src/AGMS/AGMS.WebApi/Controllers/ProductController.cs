@@ -147,29 +147,4 @@ public class ProductController : ControllerBase
         return Ok(new { success = true, isActive = request.IsActive });
     }
 
-    [HttpPatch("services/{id:int}/deactivate")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeactiveServiceProduct(int id, CancellationToken ct)
-    {
-        var success = await _productService.DeactiveServiceProductAsync(id, ct);
-        if (!success)
-        {
-            return NotFound();
-        }
-        return NoContent();
-    }
-
-    [HttpPatch("services/{id:int}/active")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ActiveServiceProductAsync(int id, CancellationToken ct)
-    {
-        var success = await _productService.ActiveServiceProductAsync(id, ct);
-        if (!success)
-        {
-            return NotFound();
-        }
-        return NoContent();
-    }
-}
+   }

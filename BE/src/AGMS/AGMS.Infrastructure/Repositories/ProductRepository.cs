@@ -431,7 +431,6 @@ public class ProductRepository : IProductRepository
             await _db.SaveChangesAsync(ct);
             return true;
         }
-    }
 
     public async Task<bool> ActiveServiceProductAsync(int id, CancellationToken ct)
     {
