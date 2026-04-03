@@ -1,7 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import styled from "styled-components";
-import { HiSearch, HiPlus, HiPencil, HiTrash, HiX } from "react-icons/hi";
+import styled, { createGlobalStyle } from "styled-components";
+import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
+import {
+  Table as AntTable,
+  Switch,
+  Select as AntSelect,
+  ConfigProvider,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   getCategories,
   createCategory,
@@ -10,11 +17,14 @@ import {
 import type { ICategory } from "@/services/admin/categoryService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import CategoryModal from "./CategoryModal";
 
 interface CategoryFormData {
   name: string;
   type: string;
   description: string;
+  markupPercent: number;
+  isActive: boolean;
 }
 
 const CategoryPage = () => {
@@ -23,14 +33,19 @@ const CategoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ICategory | null>(null);
+  const [editingCategory, setEditingCategory] = useState<ICategory | null>(
+    null,
+  );
   const [formData, setFormData] = useState<CategoryFormData>({
     name: "",
     type: "Service",
     description: "",
+    markupPercent: 0,
+    isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -56,6 +71,8 @@ const CategoryPage = () => {
       name: "",
       type: "Service",
       description: "",
+      markupPercent: 0,
+      isActive: true,
     });
     setIsModalOpen(true);
   };
@@ -66,6 +83,8 @@ const CategoryPage = () => {
       name: category.name,
       type: category.type,
       description: category.description || "",
+      markupPercent: category.markupPercent,
+      isActive: category.isActive,
     });
     setIsModalOpen(true);
   };
@@ -76,12 +95,19 @@ const CategoryPage = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]:
+        type === "checkbox"
+          ? (e.target as HTMLInputElement).checked
+          : type === "number"
+            ? Number(value)
+            : value,
     }));
   };
 
@@ -104,172 +130,161 @@ const CategoryPage = () => {
     }
   };
 
-  const filteredCategories = categories.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCategories = categories.filter((c) => {
+    const matchSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchType = typeFilter === "all" || c.type === typeFilter;
+    return matchSearch && matchType;
+  });
+
+  const columns: ColumnsType<ICategory> = [
+    {
+      title: t("name"),
+      dataIndex: "name",
+      key: "name",
+      render: (name: string) => <CategoryName>{name}</CategoryName>,
+    },
+    {
+      title: t("type"),
+      dataIndex: "type",
+      key: "type",
+      align: "center",
+      render: (type: string) => <TypeBadge>{type}</TypeBadge>,
+    },
+    {
+      title: t("description"),
+      dataIndex: "description",
+      key: "description",
+      render: (desc: string | null) => (
+        <DescriptionText>{desc || "—"}</DescriptionText>
+      ),
+    },
+    {
+      title: t("markupPercent"),
+      dataIndex: "markupPercent",
+      key: "markupPercent",
+      align: "center",
+      render: (val: number) => <span style={{ color: "#1a1d2e" }}>{val}%</span>,
+    },
+    {
+      title: t("isActive"),
+      dataIndex: "isActive",
+      key: "isActive",
+      align: "center",
+      render: (val: boolean) => <Switch checked={val} disabled />,
+    },
+    {
+      title: t("action"),
+      key: "action",
+      align: "center",
+      render: (_: unknown, record: ICategory) => (
+        <ActionButtons>
+          <EditButton onClick={() => handleOpenEditModal(record)} title="Edit">
+            <HiPencil size={18} />
+          </EditButton>
+        </ActionButtons>
+      ),
+    },
+  ];
 
   return (
     <Container>
+      <FilterSelectGlobalStyle />
       <Header>
-        <TitleSection>
+        <div>
           <Title>{t("categoriesManagement")}</Title>
           <Subtitle>{t("categoriesManagementSubtitle")}</Subtitle>
-        </TitleSection>
+        </div>
         <AddButton onClick={handleOpenCreateModal}>
           <HiPlus size={18} />
           {t("createNewCategory")}
         </AddButton>
       </Header>
 
+      {error && <ErrorBox>{error}</ErrorBox>}
+
+      <Toolbar>
+        <SearchWrapper>
+          <HiSearch size={16} color="#9ca3af" />
+          <SearchInput
+            placeholder={t("searchByNameTypeCategory")}
+            value={searchTerm}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setSearchTerm(e.target.value)
+            }
+          />
+        </SearchWrapper>
+        <ConfigProvider
+          theme={{
+            token: { colorText: "#000", colorTextPlaceholder: "#000" },
+            components: {
+              Select: {
+                colorText: "#000",
+                colorTextPlaceholder: "#000",
+                colorBgContainer: "#fff",
+                optionSelectedColor: "#000",
+                colorTextDisabled: "#000",
+                colorTextQuaternary: "#000",
+              },
+            },
+          }}
+        >
+          <FilterSelect
+            className="category-filter-select"
+            popupClassName="category-filter-dropdown"
+            value={typeFilter}
+            onChange={(val: unknown) => setTypeFilter(val as string)}
+            style={{ minWidth: 180 }}
+            options={[
+              {
+                value: "all",
+                label: (
+                  <span style={{ color: "#000" }}>{t("allCategories")}</span>
+                ),
+              },
+              {
+                value: "Service",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("categoryTypeService")}
+                  </span>
+                ),
+              },
+              {
+                value: "Part",
+                label: (
+                  <span style={{ color: "#000" }}>{t("categoryTypePart")}</span>
+                ),
+              },
+            ]}
+          />
+        </ConfigProvider>
+      </Toolbar>
+
       <TableCard>
-        <TableHeader>
-          <SearchBox>
-            <HiSearch size={18} />
-            <input
-              type="text"
-              placeholder={t("searchByNameTypeCategory")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </SearchBox>
-        </TableHeader>
-
-        <TableSection>
-          <TableTitle>{t("categoryList")}</TableTitle>
-          <TableSubtitle>
-            {loading
-              ? t("loadingCategories")
-              : t("showingCategories", { count: filteredCategories.length })}
-          </TableSubtitle>
-
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-
-          {loading ? (
-            <LoadingMessage>{t("loadingData")}</LoadingMessage>
-          ) : (
-            <TableWrapper>
-            <Table>
-              <thead>
-                <tr>
-                  <Th>{t("name")}</Th>
-                  <Th>{t("type")}</Th>
-                  <Th>{t("description")}</Th>
-                  <Th>{t("action")}</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCategories.map((category) => (
-                  <tr key={category.categoryID}>
-                    <Td>
-                      <CategoryInfo>
-                        <CategoryName>{category.name}</CategoryName>
-                      </CategoryInfo>
-                    </Td>
-                    <Td>
-                      <TypeBadge>{category.type}</TypeBadge>
-                    </Td>
-                    <Td>
-                      <DescriptionText>
-                        {category.description || "—"}
-                      </DescriptionText>
-                    </Td>
-                    <Td>
-                      <ActionButtons>
-                        <EditButton
-                          onClick={() => handleOpenEditModal(category)}
-                          title="Edit"
-                        >
-                          <HiPencil size={18} />
-                        </EditButton>
-                        <DeleteButton
-                          onClick={() =>
-                            console.log("Delete category:", category.categoryID)
-                          }
-                          title="Delete"
-                        >
-                          <HiTrash size={18} />
-                        </DeleteButton>
-                      </ActionButtons>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-            </TableWrapper>
-          )}
-        </TableSection>
+        <AntTable
+          columns={columns}
+          dataSource={filteredCategories}
+          rowKey="categoryID"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: false,
+            showTotal: (total, range) =>
+              `${range[0]}–${range[1]} / ${total} ${t("category")}`,
+          }}
+          scroll={{ x: "max-content" }}
+        />
       </TableCard>
 
-      {isModalOpen && (
-        <Modal>
-          <ModalOverlay onClick={handleCloseModal} />
-          <ModalContent>
-            <ModalHeader>
-              <ModalTitle>
-                {editingCategory ? t("updateCategory") : t("createNewCategory")}
-              </ModalTitle>
-              <CloseButton onClick={handleCloseModal}>
-                <HiX size={24} />
-              </CloseButton>
-            </ModalHeader>
-
-            <ModalBody>
-              <Form onSubmit={handleSubmit}>
-                <FormGroup>
-                  <Label>{t("name")} *</Label>
-                  <Input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Sửa chữa máy gầm"
-                    required
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <Label>{t("type")} *</Label>
-                  <Select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="Service">{t("categoryTypeService")}</option>
-                    <option value="Part">{t("categoryTypePart")}</option>
-                  </Select>
-                </FormGroup>
-
-                <FormGroup>
-                  <Label>{t("description")}</Label>
-                  <TextArea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Công kiểm tra, hạ máy, thay phuộc, thay rotuyn.."
-                    rows={3}
-                  />
-                </FormGroup>
-
-                <ModalFooter>
-                  <CancelButton type="button" onClick={handleCloseModal}>
-                    {t("cancel")}
-                  </CancelButton>
-                  <SubmitButton type="submit" disabled={submitting}>
-                    {submitting
-                      ? t("saving")
-                      : editingCategory
-                      ? t("updateCategory")
-                      : t("createCategory")}
-                  </SubmitButton>
-                </ModalFooter>
-              </Form>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
+      <CategoryModal
+        isOpen={isModalOpen}
+        editingCategory={editingCategory}
+        formData={formData}
+        submitting={submitting}
+        onClose={handleCloseModal}
+        onSubmit={handleSubmit}
+        onInputChange={handleInputChange}
+      />
     </Container>
   );
 };
@@ -277,46 +292,41 @@ const CategoryPage = () => {
 export default CategoryPage;
 
 const Container = styled.div`
-  padding: 2rem;
-  background: #f8f9fa;
-  min-height: 100vh;
+  padding: 24px;
+  background: #f9fafb;
+  min-height: 100%;
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-`;
-
-const TitleSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  margin-bottom: 24px;
 `;
 
 const Title = styled.h1`
-  font-size: 1.5rem;
+  font-size: 22px;
   font-weight: 700;
-  color: #1a1d2e;
-  margin: 0;
+  color: #111827;
+  margin: 0 0 4px 0;
 `;
 
 const Subtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7590;
+  font-size: 14px;
+  color: #6b7280;
   margin: 0;
 `;
 
 const AddButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   background: #3b82f6;
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 8px 20px;
   border-radius: 8px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
@@ -326,121 +336,112 @@ const AddButton = styled.button`
   }
 `;
 
-const TableCard = styled.div`
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+const ErrorBox = styled.div`
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 14px;
+  margin-bottom: 16px;
 `;
 
-const TableHeader = styled.div`
+const Toolbar = styled.div`
   display: flex;
-  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
   align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+
+  .category-filter-select .ant-select-selector,
+  .category-filter-select .ant-select-selector .ant-select-selection-item,
+  .category-filter-select
+    .ant-select-selector
+    .ant-select-selection-placeholder,
+  .category-filter-select .ant-select-arrow,
+  .category-filter-select .ant-select-clear {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
 `;
 
-const SearchBox = styled.div`
+const FilterSelectGlobalStyle = createGlobalStyle`
+  .category-filter-dropdown .ant-select-item,
+  .category-filter-dropdown .ant-select-item-option-content,
+  .category-filter-dropdown .ant-select-item-option-selected .ant-select-item-option-content,
+  .category-filter-dropdown .ant-select-item-option-active .ant-select-item-option-content,
+  .category-filter-dropdown .ant-empty-description {
+    color: #000 !important;
+  }
+`;
+
+const FilterSelect = styled(AntSelect)`
+  &&& .ant-select-selector,
+  &&& .ant-select-selector .ant-select-selection-item,
+  &&& .ant-select-selector .ant-select-selection-placeholder,
+  &&& .ant-select-arrow,
+  &&& .ant-select-clear {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
+`;
+
+const SearchWrapper = styled.label`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: #f8f9fa;
-  padding: 0.75rem 1rem;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   flex: 1;
-  max-width: 400px;
-  color: #6b7590;
-
-  input {
-    border: none;
-    background: transparent;
-    outline: none;
-    flex: 1;
-    font-size: 0.875rem;
-    color: #1a1d2e;
-
-    &::placeholder {
-      color: #9ca3bf;
-    }
+  min-width: 220px;
+  max-width: 360px;
+  cursor: text;
+  &:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
   }
 `;
 
-const TableSection = styled.div`
-  padding: 1.5rem;
-`;
-
-const TableTitle = styled.h2`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1a1d2e;
-  margin: 0 0 0.25rem 0;
-`;
-
-const TableSubtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7590;
-  margin: 0 0 1.5rem 0;
-`;
-
-const ErrorMessage = styled.div`
-  background: #fee;
-  color: #c33;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  text-align: center;
-`;
-
-const LoadingMessage = styled.div`
-  padding: 3rem;
-  text-align: center;
-  color: #6b7590;
-  font-size: 1rem;
-`;
-
-const TableWrapper = styled.div`
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  min-width: max-content;
-  border-collapse: collapse;
-`;
-
-const Th = styled.th`
-  text-align: center;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7590;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-
-  &:first-child {
-    text-align: left;
+const SearchInput = styled.input`
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 14px;
+  color: #111827;
+  background: transparent;
+  &::placeholder {
+    color: #9ca3af;
   }
 `;
 
-const Td = styled.td`
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1a1d2e;
-  text-align: center;
+const TableCard = styled.div`
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  padding: 0 8px;
 
-  &:first-child {
-    text-align: left;
+  .ant-table {
+    color: #374151;
   }
-`;
-
-const CategoryInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+  .ant-pagination {
+    color: #374151;
+  }
 `;
 
 const CategoryName = styled.div`
@@ -491,209 +492,5 @@ const EditButton = styled.button`
   &:hover {
     background: #dbeafe;
     color: #2563eb;
-  }
-`;
-
-const DeleteButton = styled.button`
-  background: transparent;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #ef4444;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: #fee2e2;
-    color: #dc2626;
-  }
-`;
-
-const Modal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ModalOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-`;
-
-const ModalContent = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const ModalTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1a1d2e;
-  margin: 0;
-`;
-
-const CloseButton = styled.button`
-  background: transparent;
-  border: none;
-  padding: 0.5rem;
-  cursor: pointer;
-  color: #6b7590;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    color: #1a1d2e;
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 1.5rem;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-`;
-
-const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  &::placeholder {
-    color: #9ca3bf;
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-`;
-
-const TextArea = styled.textarea`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  font-family: inherit;
-  resize: vertical;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  &::placeholder {
-    color: #9ca3bf;
-  }
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const CancelButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: 1px solid #e5e7eb;
-  background: white;
-  color: #374151;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f9fafb;
-  }
-`;
-
-const SubmitButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background: #3b82f6;
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #2563eb;
-  }
-
-  &:disabled {
-    background: #9ca3bf;
-    cursor: not-allowed;
   }
 `;

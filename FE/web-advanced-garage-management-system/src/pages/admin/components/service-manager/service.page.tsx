@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { HiSearch, HiPlus, HiPencil, HiTrash, HiX } from "react-icons/hi";
+import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
 import { useEffect, useState, useCallback } from "react";
+import { Pagination } from "antd";
 import {
   getServices,
   createService,
@@ -12,6 +13,7 @@ import { getCategories } from "@/services/admin/categoryService";
 import type { ICategory } from "@/services/admin/categoryService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import ServiceModal from "./ServiceModal";
 
 interface ServiceFormData {
   code: string;
@@ -46,6 +48,9 @@ const ServicePage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categories, setCategories] = useState<ICategory[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const pageSize = 10;
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -99,7 +104,7 @@ const ServicePage = () => {
     const data = await getCategories();
     setCategories(data);
     const matchedCategory = data.find(
-      (c) => c.name === service.category && c.type === "Service"
+      (c) => c.name === service.category && c.type === "Service",
     );
     setEditingService(service);
     setFormData({
@@ -122,7 +127,9 @@ const ServicePage = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
@@ -131,10 +138,10 @@ const ServicePage = () => {
         type === "number"
           ? Number(value)
           : type === "checkbox"
-          ? (e.target as HTMLInputElement).checked
-          : name === "categoryID"
-          ? Number(value)
-          : value,
+            ? (e.target as HTMLInputElement).checked
+            : name === "categoryID"
+              ? Number(value)
+              : value,
     }));
   };
 
@@ -167,318 +174,181 @@ const ServicePage = () => {
   const filteredServices = services.filter(
     (s) =>
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.code.toLowerCase().includes(searchTerm.toLowerCase())
+      s.code.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  const paginatedServices = filteredServices.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
   );
 
   return (
-  <Container>
-    <Header>
-      <TitleSection>
-        <Title>{t("servicesManagement")}</Title>
-        <Subtitle>{t("servicesManagementSubtitle")}</Subtitle>
-      </TitleSection>
-      <AddButton onClick={handleOpenCreateModal}>
-        <HiPlus size={18} />
-        {t("createNewService")}
-      </AddButton>
-    </Header>
+    <Container>
+      <Header>
+        <div>
+          <Title>{t("servicesManagement")}</Title>
+          <Subtitle>{t("servicesManagementSubtitle")}</Subtitle>
+        </div>
+        <AddButton onClick={handleOpenCreateModal}>
+          <HiPlus size={18} />
+          {t("createNewService")}
+        </AddButton>
+      </Header>
 
-    <TableCard>
-      <TableHeader>
-        <SearchBox>
-          <HiSearch size={18} />
-          <input
+      {error && <ErrorBox>{error}</ErrorBox>}
+
+      <Toolbar>
+        <SearchWrapper>
+          <HiSearch size={16} color="#9ca3af" />
+          <SearchInput
             type="text"
             placeholder={t("searchByNameCodeService")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </SearchBox>
-      </TableHeader>
+        </SearchWrapper>
+      </Toolbar>
 
-      <TableSection>
-        <TableTitle>{t("serviceList")}</TableTitle>
-        <TableSubtitle>
-          {loading
-            ? t("loadingServices")
-            : t("showingServices", { count: filteredServices.length })}
-        </TableSubtitle>
+      <TableCard>
+        <TableSection>
+          <TableTitle>{t("serviceList")}</TableTitle>
+          <TableSubtitle>
+            {loading
+              ? t("loadingServices")
+              : t("showingServices", { count: filteredServices.length })}
+          </TableSubtitle>
 
-        {error && <ErrorMessage>{error}</ErrorMessage>}
+          {loading ? (
+            <LoadingMessage>{t("loadingData")}</LoadingMessage>
+          ) : (
+            <>
+              <TableWrapper>
+                <Table>
+                  <thead>
+                    <tr>
+                      <Th>{t("name")}</Th>
+                      <Th>{t("price")}</Th>
+                      <Th>{t("unit")}</Th>
+                      <Th>{t("category")}</Th>
+                      <Th>{t("estimatedDurationHours")}</Th>
+                      <Th>{t("status")}</Th>
+                      <Th>{t("action")}</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedServices.map((service) => (
+                      <tr key={service.id}>
+                        <Td>
+                          <ServiceInfo>
+                            <div>
+                              <ServiceName>{service.name}</ServiceName>
+                              <ServiceCode>{service.code}</ServiceCode>
+                            </div>
+                          </ServiceInfo>
+                        </Td>
+                        <Td>
+                          <PriceText>{formatPrice(service.price)}</PriceText>
+                        </Td>
+                        <Td>
+                          <UnitBadge>
+                            {service.unit || t("notAvailable")}
+                          </UnitBadge>
+                        </Td>
+                        <Td>
+                          <CategoryBadge $hasData={!!service.category}>
+                            {service.category || t("notAvailable")}
+                          </CategoryBadge>
+                        </Td>
+                        <Td>
+                          {service.estimatedDurationHours}
+                          {t("hoursShort")}
+                        </Td>
+                        <Td>
+                          <StatusBadge $isActive={service.isActive}>
+                            {service.isActive ? t("active") : t("inactive")}
+                          </StatusBadge>
+                        </Td>
+                        <Td>
+                          <ActionButtons>
+                            <EditButton
+                              onClick={() => handleOpenEditModal(service)}
+                              title={t("edit")}
+                            >
+                              <HiPencil size={18} />
+                            </EditButton>
+                          </ActionButtons>
+                        </Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </TableWrapper>
+              <PaginationWrapper>
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={filteredServices.length}
+                  showSizeChanger={false}
+                  onChange={(page: number) => setCurrentPage(page)}
+                />
+              </PaginationWrapper>
+            </>
+          )}
+        </TableSection>
+      </TableCard>
 
-        {loading ? (
-          <LoadingMessage>{t("loadingData")}</LoadingMessage>
-        ) : (
-          <TableWrapper>
-          <Table>
-            <thead>
-              <tr>
-                <Th>{t("name")}</Th>
-                <Th>{t("price")}</Th>
-                <Th>{t("unit")}</Th>
-                <Th>{t("category")}</Th>
-                <Th>{t("estimatedDurationHours")}</Th>
-                <Th>{t("status")}</Th>
-                <Th>{t("action")}</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredServices.map((service) => (
-                <tr key={service.id}>
-                  <Td>
-                    <ServiceInfo>
-                      <div>
-                        <ServiceName>{service.name}</ServiceName>
-                        <ServiceCode>{service.code}</ServiceCode>
-                      </div>
-                    </ServiceInfo>
-                  </Td>
-                  <Td>
-                    <PriceText>{formatPrice(service.price)}</PriceText>
-                  </Td>
-                  <Td>
-                    <UnitBadge>{service.unit || "N/A"}</UnitBadge>
-                  </Td>
-                  <Td>
-                    <CategoryBadge $hasData={!!service.category}>
-                      {service.category || "N/A"}
-                    </CategoryBadge>
-                  </Td>
-                  <Td>{service.estimatedDurationHours}h</Td>
-                  <Td>
-                    <StatusBadge $isActive={service.isActive}>
-                      {service.isActive ? t("active") : t("inactive")}
-                    </StatusBadge>
-                  </Td>
-                  <Td>
-                    <ActionButtons>
-                      <EditButton
-                        onClick={() => handleOpenEditModal(service)}
-                        title="Edit"
-                      >
-                        <HiPencil size={18} />
-                      </EditButton>
-                      <DeleteButton
-                        onClick={() =>
-                          console.log("Delete service:", service.id)
-                        }
-                        title="Delete"
-                      >
-                        <HiTrash size={18} />
-                      </DeleteButton>
-                    </ActionButtons>
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-          </TableWrapper>
-        )}
-      </TableSection>
-    </TableCard>
-
-    {isModalOpen && (
-      <Modal>
-        <ModalOverlay onClick={handleCloseModal} />
-        <ModalContent>
-          <ModalHeader>
-            <ModalTitle>
-              {editingService ? t("updateService") : t("createNewService")}
-            </ModalTitle>
-            <CloseButton onClick={handleCloseModal}>
-              <HiX size={24} />
-            </CloseButton>
-          </ModalHeader>
-
-          <ModalBody>
-              <Form onSubmit={handleSubmit}>
-                <FormRow>
-                  <FormGroup>
-                    <Label>{t("code")} *</Label>
-                    <Input
-                      type="text"
-                      name="code"
-                      value={formData.code}
-                      onChange={handleInputChange}
-                      placeholder="P1161200016"
-                      required
-                    />
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label>{t("name")} *</Label>
-                    <Input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="Test tiền postman"
-                      required
-                    />
-                  </FormGroup>
-                </FormRow>
-
-                <FormRow>
-                  <FormGroup>
-                    <Label>{t("price")} *</Label>
-                    <Input
-                      type="number"
-                      name="price"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      placeholder="9999999"
-                      required
-                    />
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label>{t("unitID")} *</Label>
-                    <Input
-                      type="number"
-                      name="unitId"
-                      value={formData.unitId}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </FormGroup>
-                </FormRow>
-
-                <FormRow>
-                  <FormGroup>
-                    <Label>{t("categoryID")} *</Label>
-                    <Select
-                      name="categoryID"
-                      value={formData.categoryID || ""}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="">{t("selectCategory")}</option>
-                      {categories
-                        .filter((c) => c.type === "Service")
-                        .map((cat) => (
-                          <option key={cat.categoryID} value={cat.categoryID}>
-                            {cat.name}
-                          </option>
-                        ))}
-                    </Select>
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label>{t("estimatedDurationHours")} *</Label>
-                    <Input
-                      type="number"
-                      name="estimatedDurationHours"
-                      value={formData.estimatedDurationHours}
-                      onChange={handleInputChange}
-                      placeholder="0.5"
-                      step="0.1"
-                      min="0"
-                      required
-                    />
-                  </FormGroup>
-                </FormRow>
-
-                <FormRow>
-                  <FormGroup>
-                    <Label>{t("imageURL")}</Label>
-                    <Input
-                      type="text"
-                      name="image"
-                      value={formData.image}
-                      onChange={handleInputChange}
-                      placeholder="string"
-                    />
-                  </FormGroup>
-                </FormRow>
-
-                <FormGroup>
-                  <Label>{t("description")} *</Label>
-                  <TextArea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Test tiền post man cho anh nhất"
-                    rows={3}
-                    required
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <CheckboxLabel>
-                    <input
-                      type="checkbox"
-                      name="isActive"
-                      checked={formData.isActive}
-                      onChange={handleInputChange}
-                    />
-                    <span>{t("active")}</span>
-                  </CheckboxLabel>
-                </FormGroup>
-
-                <ModalFooter>
-                  <CancelButton type="button" onClick={handleCloseModal}>
-                    {t("cancel")}
-                  </CancelButton>
-                  <SubmitButton type="submit" disabled={submitting}>
-                    {submitting
-                      ? t("saving")
-                      : editingService
-                      ? t("updateService")
-                      : t("createService")}
-                  </SubmitButton>
-                </ModalFooter>
-              </Form>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-    )}
-  </Container>
+      <ServiceModal
+        isOpen={isModalOpen}
+        editingService={editingService}
+        formData={formData}
+        categories={categories}
+        submitting={submitting}
+        onClose={handleCloseModal}
+        onSubmit={handleSubmit}
+        onInputChange={handleInputChange}
+      />
+    </Container>
   );
 };
 
 export default ServicePage;
 
 const Container = styled.div`
-  padding: 2rem;
-  background: #f8f9fa;
-  min-height: 100vh;
+  padding: 24px;
+  background: #f9fafb;
+  min-height: 100%;
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-`;
-
-const TitleSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  margin-bottom: 24px;
 `;
 
 const Title = styled.h1`
-  font-size: 1.5rem;
+  font-size: 22px;
   font-weight: 700;
-  color: #1a1d2e;
-  margin: 0;
+  color: #111827;
+  margin: 0 0 4px 0;
 `;
 
 const Subtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7590;
+  font-size: 14px;
+  color: #6b7280;
   margin: 0;
 `;
 
 const AddButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   background: #3b82f6;
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 8px 20px;
   border-radius: 8px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
@@ -488,70 +358,78 @@ const AddButton = styled.button`
   }
 `;
 
+const ErrorBox = styled.div`
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 14px;
+  margin-bottom: 16px;
+`;
+
+const Toolbar = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+`;
+
 const TableCard = styled.div`
-  background: white;
+  background: #fff;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
   overflow: hidden;
 `;
 
-const TableHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const SearchBox = styled.div`
+const SearchWrapper = styled.label`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: #f8f9fa;
-  padding: 0.75rem 1rem;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   flex: 1;
-  max-width: 400px;
-  color: #6b7590;
+  min-width: 220px;
+  max-width: 360px;
+  cursor: text;
 
-  input {
-    border: none;
-    background: transparent;
-    outline: none;
-    flex: 1;
-    font-size: 0.875rem;
-    color: #1a1d2e;
+  &:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  }
+`;
 
-    &::placeholder {
-      color: #9ca3bf;
-    }
+const SearchInput = styled.input`
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  font-size: 14px;
+  color: #111827;
+
+  &::placeholder {
+    color: #9ca3af;
   }
 `;
 
 const TableSection = styled.div`
-  padding: 1.5rem;
+  padding: 20px;
 `;
 
 const TableTitle = styled.h2`
-  font-size: 1.125rem;
+  font-size: 18px;
   font-weight: 600;
-  color: #1a1d2e;
-  margin: 0 0 0.25rem 0;
+  color: #111827;
+  margin: 0 0 4px 0;
 `;
 
 const TableSubtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7590;
-  margin: 0 0 1.5rem 0;
-`;
-
-const ErrorMessage = styled.div`
-  background: #fee;
-  color: #c33;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 16px 0;
 `;
 
 const LoadingMessage = styled.div`
@@ -564,6 +442,12 @@ const LoadingMessage = styled.div`
 const TableWrapper = styled.div`
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+`;
+
+const PaginationWrapper = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 0 0;
 `;
 
 const Table = styled.table`
@@ -676,237 +560,5 @@ const EditButton = styled.button`
   &:hover {
     background: #dbeafe;
     color: #2563eb;
-  }
-`;
-
-const DeleteButton = styled.button`
-  background: transparent;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #ef4444;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: #fee2e2;
-    color: #dc2626;
-  }
-`;
-
-const Modal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ModalOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-`;
-
-const ModalContent = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 800px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const ModalTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1a1d2e;
-  margin: 0;
-`;
-
-const CloseButton = styled.button`
-  background: transparent;
-  border: none;
-  padding: 0.5rem;
-  cursor: pointer;
-  color: #6b7590;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    color: #1a1d2e;
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 1.5rem;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-`;
-
-const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  &::placeholder {
-    color: #9ca3bf;
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-`;
-
-const TextArea = styled.textarea`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  font-family: inherit;
-  resize: vertical;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  &::placeholder {
-    color: #9ca3bf;
-  }
-`;
-
-const CheckboxLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
-
-  span {
-    font-size: 0.875rem;
-    color: #374151;
-  }
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const CancelButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: 1px solid #e5e7eb;
-  background: white;
-  color: #374151;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f9fafb;
-  }
-`;
-
-const SubmitButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background: #3b82f6;
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #2563eb;
-  }
-
-  &:disabled {
-    background: #9ca3bf;
-    cursor: not-allowed;
   }
 `;

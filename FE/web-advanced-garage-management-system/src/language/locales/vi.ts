@@ -1,5 +1,5 @@
 export default {
-  customer: 'Khách hàng',
+  customer: "Khách hàng",
   profile: "Hồ sơ cá nhân",
   logout: "Đăng xuất",
   nameProject: "AutoCare Pro",
@@ -23,7 +23,8 @@ export default {
   passwordPlaceholderRegister: "Tối thiểu 6 ký tự",
   emailRequired: "Email không được để trống",
   passwordRequired: "Mật khẩu không được để trống",
-  footerDescription: "Hệ thống quản lý garage thông minh - Giải pháp toàn diện cho việc chăm sóc xe của bạn.",
+  footerDescription:
+    "Hệ thống quản lý garage thông minh - Giải pháp toàn diện cho việc chăm sóc xe của bạn.",
   support: "Hỗ trợ",
   faq: "Câu hỏi thường gặp",
   warrantyPolicy: "Chính sách bảo hành",
@@ -56,11 +57,13 @@ export default {
   confirmPasswordRequired: "Xác nhận mật khẩu không được để trống",
   passwordMinLength: "Mật khẩu tối thiểu 6 ký tự",
   passwordMismatch: "Mật khẩu xác nhận không khớp",
-  agreeTermsRequired: "Bạn cần đồng ý với Điều khoản dịch vụ và Chính sách bảo mật",
+  agreeTermsRequired:
+    "Bạn cần đồng ý với Điều khoản dịch vụ và Chính sách bảo mật",
   registerSuccess: "Đăng ký tài khoản thành công, vui lòng xác thực mã OTP",
   contactHeroTitle: "Chúng tôi luôn sẵn sàng",
   contactHeroTitleHighlight: "hỗ trợ bạn",
-  contactHeroSubtitle: "Có câu hỏi? Cần tư vấn? Đội ngũ AutoCare Pro luôn sẵn lòng giải đáp mọi thắc mắc của bạn 24/7.",
+  contactHeroSubtitle:
+    "Có câu hỏi? Cần tư vấn? Đội ngũ AutoCare Pro luôn sẵn lòng giải đáp mọi thắc mắc của bạn 24/7.",
   callNow: "Gọi ngay: 1900 1234",
   bookOnline: "Đặt lịch online",
   address: "Địa chỉ",
@@ -75,7 +78,8 @@ export default {
   workingHoursSat: "Thứ 7: 8:00 - 17:00",
   workingHoursSun: "Chủ nhật: 8:00 - 12:00",
   sendMessageTitle: "Gửi tin nhắn cho chúng tôi",
-  sendMessageSubtitle: "Điền thông tin bên dưới, chúng tôi sẽ phản hồi trong vòng 24 giờ",
+  sendMessageSubtitle:
+    "Điền thông tin bên dưới, chúng tôi sẽ phản hồi trong vòng 24 giờ",
   subject: "Tiêu đề",
   subjectPlaceholder: "Nhập tiêu đề tin nhắn",
   requestType: "Loại yêu cầu",
@@ -112,7 +116,8 @@ export default {
   phoneThuDuc: "024 2345 6789",
   phoneQ2: "024 3456 7890",
   aboutHeroTitle: "Đối tác đáng tin cậy cho chiếc xe của bạn",
-  aboutHeroSubtitle: "AutoCare Pro tự hào là trung tâm sửa chữa và bảo dưỡng xe hàng đầu tại TP.Hà Nội với hơn 15 năm kinh nghiệm. Chúng tôi cam kết mang đến dịch vụ chất lượng cao, chuyên nghiệp và đáng tin cậy cho mọi khách hàng.",
+  aboutHeroSubtitle:
+    "AutoCare Pro tự hào là trung tâm sửa chữa và bảo dưỡng xe hàng đầu tại TP.Hà Nội với hơn 15 năm kinh nghiệm. Chúng tôi cam kết mang đến dịch vụ chất lượng cao, chuyên nghiệp và đáng tin cậy cho mọi khách hàng.",
   learnMore: "Tìm hiểu thêm",
   contactNow: "Liên hệ ngay",
   yearsExperience: "Năm kinh nghiệm",
@@ -120,13 +125,16 @@ export default {
   technicians: "Kỹ thuật viên",
   satisfaction: "Hài lòng",
   mission: "Sứ mệnh",
-  missionDesc: "AutoCare Pro cam kết mang đến dịch vụ sửa chữa và bảo dưỡng xe chất lượng cao nhất, đảm bảo an toàn và sự hài lòng cho mọi khách hàng. Chúng tôi không ngừng cải tiến quy trình, đầu tư trang thiết bị hiện đại và đào tạo đội ngũ kỹ thuật viên chuyên nghiệp.",
+  missionDesc:
+    "AutoCare Pro cam kết mang đến dịch vụ sửa chữa và bảo dưỡng xe chất lượng cao nhất, đảm bảo an toàn và sự hài lòng cho mọi khách hàng. Chúng tôi không ngừng cải tiến quy trình, đầu tư trang thiết bị hiện đại và đào tạo đội ngũ kỹ thuật viên chuyên nghiệp.",
   vision: "Tầm nhìn",
-  visionDesc: "Trở thành hệ thống garage hàng đầu Việt Nam, được khách hàng tin tưởng và lựa chọn. Chúng tôi hướng tới việc mở rộng mạng lưới chi nhánh trên toàn quốc, áp dụng công nghệ 4.0 trong quản lý và dịch vụ.",
+  visionDesc:
+    "Trở thành hệ thống garage hàng đầu Việt Nam, được khách hàng tin tưởng và lựa chọn. Chúng tôi hướng tới việc mở rộng mạng lưới chi nhánh trên toàn quốc, áp dụng công nghệ 4.0 trong quản lý và dịch vụ.",
   coreValues: "Giá trị cốt lõi",
   coreValuesSubtitle: "Những nguyên tắc định hướng mọi hoạt động của chúng tôi",
   quality: "Chất lượng",
-  qualityDesc: "Cam kết chất lượng dịch vụ vượt trội, sử dụng phụ tùng chính hãng.",
+  qualityDesc:
+    "Cam kết chất lượng dịch vụ vượt trội, sử dụng phụ tùng chính hãng.",
   dedication: "Tận tâm",
   dedicationDesc: "Phục vụ khách hàng với sự tận tâm và trách nhiệm cao nhất.",
   innovation: "Đổi mới",
@@ -153,7 +161,8 @@ export default {
   technicalDepartmentHead: "Trưởng phòng kỹ thuật",
   serviceExpert: "Chuyên gia về dịch vụ",
   certificationsPartners: "Chứng nhận & Đối tác",
-  certificationsPartnersSubtitle: "Đối tác tin cậy với các hãng xe và nhà cung cấp hàng đầu",
+  certificationsPartnersSubtitle:
+    "Đối tác tin cậy với các hãng xe và nhà cung cấp hàng đầu",
   toyotaAuthorized: "Toyota Authorized Service",
   hondaCertified: "Honda Certified Dealer",
   hyundaiGold: "Hyundai Gold Partner",
@@ -171,11 +180,12 @@ export default {
   heroTitle1: "Chăm sóc xe của bạn",
   heroTitleHighlight1: "chuyên nghiệp",
   heroTitleHighlight2: "minh bạch",
-  heroDescription: "Đặt lịch sửa chữa, theo dõi tiến độ, thanh toán trực tuyến - tất cả trong một nền tảng. Trải nghiệm dịch vụ garage hiện đại với công nghệ quản lý thông minh.",
+  heroDescription:
+    "Đặt lịch sửa chữa, theo dõi tiến độ, thanh toán trực tuyến - tất cả trong một nền tảng. Trải nghiệm dịch vụ garage hiện đại với công nghệ quản lý thông minh.",
   bookAppointmentNow: "Đặt lịch ngay",
   viewCustomerPortal: "Xem Portal Khách hàng",
   accessAdminDashboard: "Truy cập Admin Dashboard",
-  
+
   // Admin Dashboard
   adminDashboard: "Dashboard",
   adminOverview: "TỔNG QUAN",
@@ -231,7 +241,7 @@ export default {
   adminCustomersToday: "Khách hàng hôm nay",
   adminAvgServiceTime: "Thời gian sửa TB",
   adminUpcomingAppointments: "Lịch hẹn ngày mai",
-  
+
   // OTP Verification
   verifyOTP: "Xác thực OTP",
   otpTitle: "Nhập mã xác thực",
@@ -249,7 +259,7 @@ export default {
   otpVerifyFailed: "Xác thực OTP thất bại",
   otpResendSuccess: "Đã gửi lại mã OTP",
   otpResendFailed: "Gửi lại OTP thất bại",
-  
+
   // Profile Page
   editProfile: "Chỉnh sửa hồ sơ",
   securitySettings: "Bảo mật & Cài đặt",
@@ -267,7 +277,7 @@ export default {
   averageRating: "Đánh giá trung bình",
   favoriteTechnicians: "Ký thuật viên yêu thích",
   newMember: "Thành viên mới",
-  
+
   // Add Car Modal
   addNewVehicle: "Thêm xe mới",
   licensePlate: "Biển số xe",
@@ -297,7 +307,7 @@ export default {
   addCarFailed: "Thêm xe thất bại",
   vehicles: "xe",
   loading: "Đang tải...",
-  
+
   // Edit Profile Modal
   addressPlaceholder: "Nhập địa chỉ",
   language: "Ngôn ngữ",
@@ -311,7 +321,7 @@ export default {
   male: "Nam",
   female: "Nữ",
   dateOfBirth: "Ngày sinh",
-  
+
   // Products Management
   productsManagement: "Quản lý sản phẩm",
   productsManagementSubtitle: "Quản lý sản phẩm và phụ tùng",
@@ -333,6 +343,8 @@ export default {
   errorSavingCategory: "Có lỗi xảy ra khi lưu danh mục",
   categoryTypeService: "Dịch vụ",
   categoryTypePart: "Phụ tùng",
+  markupPercent: "Tỷ lệ markup (%)",
+  isActive: "Kích hoạt",
   type: "Loại",
   updateProduct: "Cập nhật sản phẩm",
   serviceList: "Danh sách dịch vụ",
@@ -388,10 +400,10 @@ export default {
   saving: "Đang lưu...",
   createProduct: "Tạo sản phẩm",
   errorSavingProduct: "Có lỗi xảy ra khi lưu sản phẩm",
-  
+
   // Admin Sidebar
   loadingMenu: "Đang tải menu...",
-  
+
   // User Management
   userManagement: "Quản lý người dùng",
   userManagementSubtitle: "Quản lý thông tin người dùng hệ thống",
@@ -423,11 +435,19 @@ export default {
   createUserSuccess: "Tạo người dùng thành công!",
   updateUserSuccess: "Cập nhật người dùng thành công!",
   deleteUserSuccess: "Xóa người dùng thành công!",
+  searchUsersPlaceholder: "Tìm theo tên, mã, username, email, SĐT...",
+  showPassword: "Hiện mật khẩu",
+  hidePassword: "Ẩn mật khẩu",
+  notAvailable: "Không có",
+  edit: "Chỉnh sửa",
+  delete: "Xóa",
+  id: "ID",
+  hoursShort: "h",
   errorOccurred: "Có lỗi xảy ra!",
   errorDeletingUser: "Có lỗi xảy ra khi xóa!",
   confirmDeleteUser: "Bạn có chắc chắn muốn xóa người dùng này?",
   cannotLoadUsers: "Không thể tải danh sách người dùng",
-  
+
   // Forgot Password
   forgotPasswordTitle: "Quên mật khẩu?",
   forgotPasswordSubtitle: "Nhập email của bạn để nhận mã xác thực",
@@ -452,7 +472,7 @@ export default {
   passwordRequireUppercase: "Mật khẩu phải có ít nhất một chữ viết hoa",
   passwordRequireSpecialChar: "Mật khẩu phải có ít nhất một ký tự đặc biệt",
   passwordStrongHint: "Phải hơn 6 ký tự, có chữ viết hoa và ký tự đặc biệt",
-  
+
   // Pricing Section
   pricingTitle: "Dịch vụ sửa chữa & bảo dưỡng",
   pricingDescription: "Lựa chọn gói dịch vụ phù hợp với nhu cầu của bạn",
@@ -489,7 +509,8 @@ export default {
   servicePageBadge: "Dịch vụ chuyên nghiệp",
   servicePageTitle: "Dịch vụ sửa chữa & bảo dưỡng",
   servicePageTitleHighlight: "toàn diện",
-  servicePageDescription: "Đội ngũ kỹ thuật viên giàu kinh nghiệm, trang thiết bị hiện đại, cam kết chất lượng dịch vụ tốt nhất cho xe của bạn.",
+  servicePageDescription:
+    "Đội ngũ kỹ thuật viên giàu kinh nghiệm, trang thiết bị hiện đại, cam kết chất lượng dịch vụ tốt nhất cho xe của bạn.",
   servicePageBookNow: "Đặt lịch ngay",
   servicePageFreeConsult: "Tư vấn miễn phí",
 
@@ -499,12 +520,14 @@ export default {
   serviceStatSupport: "Hỗ trợ cứu hộ",
 
   serviceCategoryTitle: "Danh mục dịch vụ",
-  serviceCategoryDescription: "Từ bảo dưỡng định kỳ đến sửa chữa phức tạp, chúng tôi cung cấp đầy đủ các dịch vụ cho mọi nhu cầu của bạn.",
+  serviceCategoryDescription:
+    "Từ bảo dưỡng định kỳ đến sửa chữa phức tạp, chúng tôi cung cấp đầy đủ các dịch vụ cho mọi nhu cầu của bạn.",
   servicePopular: "Phổ biến",
   serviceBookBtn: "Đặt lịch",
 
   serviceMaintTitle: "Bảo dưỡng định kỳ",
-  serviceMaintDesc: "Dịch vụ bảo dưỡng toàn diện giúp xe luôn trong tình trạng tốt nhất",
+  serviceMaintDesc:
+    "Dịch vụ bảo dưỡng toàn diện giúp xe luôn trong tình trạng tốt nhất",
   serviceMaintItem1: "Thay dầu máy và lọc dầu",
   serviceMaintItem2: "Kiểm tra 20 điểm an toàn",
   serviceMaintItem3: "Thay lọc gió điều hòa",
@@ -579,11 +602,14 @@ export default {
 
   serviceWhyChooseTitle: "Tại sao chọn AutoCare Pro?",
   serviceWhyCertifiedTitle: "Kỹ thuật viên chứng chỉ",
-  serviceWhyCertifiedDesc: "Đội ngũ được đào tạo bài bản, có chứng chỉ từ các hãng xe lớn như Toyota, Honda, Hyundai.",
+  serviceWhyCertifiedDesc:
+    "Đội ngũ được đào tạo bài bản, có chứng chỉ từ các hãng xe lớn như Toyota, Honda, Hyundai.",
   serviceWhyWarrantyTitle: "Bảo hành dài hạn",
-  serviceWhyWarrantyDesc: "Cam kết bảo hành 6-12 tháng cho mọi dịch vụ sửa chữa và phụ tùng thay thế.",
+  serviceWhyWarrantyDesc:
+    "Cam kết bảo hành 6-12 tháng cho mọi dịch vụ sửa chữa và phụ tùng thay thế.",
   serviceWhyPartsTitle: "Phụ tùng chính hãng",
-  serviceWhyPartsDesc: "Sử dụng 100% phụ tùng chính hãng hoặc OEM chất lượng cao, có nguồn gốc rõ ràng.",
+  serviceWhyPartsDesc:
+    "Sử dụng 100% phụ tùng chính hãng hoặc OEM chất lượng cao, có nguồn gốc rõ ràng.",
 
   serviceCTATitle: "Cần tư vấn về dịch vụ?",
   serviceCTADescription: "Liên hệ ngay để được hỗ trợ miễn phí 24/7",
@@ -594,7 +620,8 @@ export default {
   pricingPageBadge: "Minh bạch - Cạnh tranh",
   pricingPageTitle: "Bảng giá dịch vụ",
   pricingPageTitleHighlight: "chi tiết & minh bạch",
-  pricingPageSubtitle: "Cam kết giá cả cạnh tranh, không phát sinh chi phí ẩn. Báo giá rõ ràng trước khi thực hiện.",
+  pricingPageSubtitle:
+    "Cam kết giá cả cạnh tranh, không phát sinh chi phí ẩn. Báo giá rõ ràng trước khi thực hiện.",
   pricingTabMaintenance: "Bảo dưỡng",
   pricingTabRepair: "Sửa chữa",
   pricingTabAC: "Điều hòa",
@@ -602,7 +629,8 @@ export default {
   pricingTabElectrical: "Biến - Điện tử",
   pricingTabBody: "Đồng sơn",
   pricingTableIcon: "Bảng giá",
-  pricingTableSubtitle: "Giá tham khảo, có thể thay đổi tùy theo loại xe và tình trạng thực tế",
+  pricingTableSubtitle:
+    "Giá tham khảo, có thể thay đổi tùy theo loại xe và tình trạng thực tế",
   pricingTableService: "Dịch vụ",
   pricingTablePrice: "Giá tham khảo",
   pricingTableNote: "Ghi chú",
@@ -654,19 +682,25 @@ export default {
   // FAQ Section
   pricingFaqTitle: "Câu hỏi thường gặp",
   pricingFaq1Q: "Giá trên đã bao gồm phụ tùng chưa?",
-  pricingFaq1A: "Giá trên chủ yếu là công dịch vụ. Một số mục đã ghi rõ 'bao gồm phụ tùng'. Đối với các dịch vụ khác, giá phụ tùng sẽ được báo riêng dựa trên loại xe và lựa chọn của bạn (chính hãng/OEM).",
+  pricingFaq1A:
+    "Giá trên chủ yếu là công dịch vụ. Một số mục đã ghi rõ 'bao gồm phụ tùng'. Đối với các dịch vụ khác, giá phụ tùng sẽ được báo riêng dựa trên loại xe và lựa chọn của bạn (chính hãng/OEM).",
   pricingFaq2Q: "Có được báo giá trước khi sửa không?",
-  pricingFaq2A: "Có, chúng tôi luôn cung cấp báo giá chi tiết trước khi tiến hành sửa chữa. Sau khi chẩn đoán, kỹ thuật viên sẽ liệt kê các hạng mục cần sửa kèm giá để bạn phê duyệt.",
+  pricingFaq2A:
+    "Có, chúng tôi luôn cung cấp báo giá chi tiết trước khi tiến hành sửa chữa. Sau khi chẩn đoán, kỹ thuật viên sẽ liệt kê các hạng mục cần sửa kèm giá để bạn phê duyệt.",
   pricingFaq3Q: "Thời gian bảo hành là bao lâu?",
-  pricingFaq3A: "Chúng tôi bảo hành 6 tháng cho dịch vụ bảo dưỡng và 12 tháng cho các dịch vụ sửa chữa. Phụ tùng chính hãng được bảo hành theo chính sách của nhà sản xuất.",
+  pricingFaq3A:
+    "Chúng tôi bảo hành 6 tháng cho dịch vụ bảo dưỡng và 12 tháng cho các dịch vụ sửa chữa. Phụ tùng chính hãng được bảo hành theo chính sách của nhà sản xuất.",
   pricingFaq4Q: "Có hỗ trợ trả góp không?",
-  pricingFaq4A: "Có, chúng tôi hỗ trợ trả góp 0% lãi suất qua các đối tác ngân hàng và ví điện tử cho hóa đơn từ 3 triệu đồng trở lên.",
+  pricingFaq4A:
+    "Có, chúng tôi hỗ trợ trả góp 0% lãi suất qua các đối tác ngân hàng và ví điện tử cho hóa đơn từ 3 triệu đồng trở lên.",
   pricingFaq5Q: "Làm sao để được giảm giá?",
-  pricingFaq5A: "Bạn có thể tích điểm qua mỗi lần sử dụng dịch vụ để nâng hạng thành viên và nhận ưu đãi. Ngoài ra, chúng tôi thường xuyên có chương trình khuyến mãi theo mùa.",
+  pricingFaq5A:
+    "Bạn có thể tích điểm qua mỗi lần sử dụng dịch vụ để nâng hạng thành viên và nhận ưu đãi. Ngoài ra, chúng tôi thường xuyên có chương trình khuyến mãi theo mùa.",
 
   // Pricing Bottom CTA
   pricingBottomTitle: "Cần tư vấn thêm về giá?",
-  pricingBottomSubtitle: "Liên hệ hotline để được báo giá chi tiết theo xe của bạn",
+  pricingBottomSubtitle:
+    "Liên hệ hotline để được báo giá chi tiết theo xe của bạn",
   pricingBottomContact: "Liên hệ tư vấn",
   pricingBottomViewServices: "Xem dịch vụ chi tiết",
 
@@ -678,29 +712,39 @@ export default {
 
   // Home Page - Features Section
   homeFeaturesSectionTitle: "Quản lý xe thông minh",
-  homeFeaturesSectionDesc: "Hệ thống quản lý toàn diện giúp bạn theo dõi mọi hoạt động của xe",
+  homeFeaturesSectionDesc:
+    "Hệ thống quản lý toàn diện giúp bạn theo dõi mọi hoạt động của xe",
   homeFeatureBookingTitle: "Đặt lịch hẹn trực tuyến",
-  homeFeatureBookingDesc: "Đặt lịch hẹn sửa chữa, bảo dưỡng xe một cách dễ dàng qua ứng dụng",
+  homeFeatureBookingDesc:
+    "Đặt lịch hẹn sửa chữa, bảo dưỡng xe một cách dễ dàng qua ứng dụng",
   homeFeatureDiagnosisTitle: "Chẩn đoán từ xa",
-  homeFeatureDiagnosisDesc: "Chẩn đoán tình trạng xe từ xa thông qua hệ thống thông minh",
+  homeFeatureDiagnosisDesc:
+    "Chẩn đoán tình trạng xe từ xa thông qua hệ thống thông minh",
   homeFeatureTrackingTitle: "Theo dõi tiến độ",
-  homeFeatureTrackingDesc: "Theo dõi tiến độ sửa chữa, bảo dưỡng xe theo thời gian thực",
+  homeFeatureTrackingDesc:
+    "Theo dõi tiến độ sửa chữa, bảo dưỡng xe theo thời gian thực",
   homeFeatureSupport247Title: "Hỗ trợ 24/7",
-  homeFeatureSupport247Desc: "Hệ thống hỗ trợ khách hàng 24/7 với đội ngũ kỹ thuật viên chuyên nghiệp",
+  homeFeatureSupport247Desc:
+    "Hệ thống hỗ trợ khách hàng 24/7 với đội ngũ kỹ thuật viên chuyên nghiệp",
   homeFeatureConsultingTitle: "Tư vấn tận tâm",
-  homeFeatureConsultingDesc: "Đội ngũ tư vấn chuyên nghiệp hỗ trợ khách hàng tận tình và chu đáo",
+  homeFeatureConsultingDesc:
+    "Đội ngũ tư vấn chuyên nghiệp hỗ trợ khách hàng tận tình và chu đáo",
   homeFeatureCertTitle: "Chứng thư chất lượng",
-  homeFeatureCertDesc: "Cam kết chất lượng dịch vụ với chứng thư bảo hành rõ ràng, minh bạch",
+  homeFeatureCertDesc:
+    "Cam kết chất lượng dịch vụ với chứng thư bảo hành rõ ràng, minh bạch",
 
   // Home Page - Testimonials Section
   homeTestimonialsTitle: "Khách hàng nói gì về chúng tôi",
-  homeTestimonial1Text: "Dịch vụ tuyệt vời! Nhân viên chuyên nghiệp, tư vấn tận tình. Xe được chăm sóc rất kỹ lưỡng và giá cả hợp lý.",
+  homeTestimonial1Text:
+    "Dịch vụ tuyệt vời! Nhân viên chuyên nghiệp, tư vấn tận tình. Xe được chăm sóc rất kỹ lưỡng và giá cả hợp lý.",
   homeTestimonial1Name: "Anh Minh",
   homeTestimonial1Role: "Khách hàng thân thiết",
-  homeTestimonial2Text: "Hệ thống đặt lịch online rất tiện lợi. Có thể theo dõi tiến độ sửa chữa qua app, rất hiện đại và tiện ích.",
+  homeTestimonial2Text:
+    "Hệ thống đặt lịch online rất tiện lợi. Có thể theo dõi tiến độ sửa chữa qua app, rất hiện đại và tiện ích.",
   homeTestimonial2Name: "Chị Linh",
   homeTestimonial2Role: "Khách hàng mới",
-  homeTestimonial3Text: "Đội ngũ kỹ thuật viên rất giỏi, tư vấn chi tiết về tình trạng xe. Giá cả minh bạch, không phát sinh thêm chi phí.",
+  homeTestimonial3Text:
+    "Đội ngũ kỹ thuật viên rất giỏi, tư vấn chi tiết về tình trạng xe. Giá cả minh bạch, không phát sinh thêm chi phí.",
   homeTestimonial3Name: "Anh Tuấn",
   homeTestimonial3Role: "Khách hàng VIP",
 
@@ -718,13 +762,15 @@ export default {
 
   // Home Page - CTA Section
   homeCTATitle: "Sẵn sàng trải nghiệm dịch vụ chuyên nghiệp?",
-  homeCTADesc: "Đăng ký ngay để nhận ưu đãi giảm 10% cho lần bảo dưỡng đầu tiên. Tham gia cộng đồng hơn 10,000 khách hàng tin tưởng.",
+  homeCTADesc:
+    "Đăng ký ngay để nhận ưu đãi giảm 10% cho lần bảo dưỡng đầu tiên. Tham gia cộng đồng hơn 10,000 khách hàng tin tưởng.",
   homeCTABookNow: "Đặt lịch ngay",
   homeCTAPhone: "1900 123 456",
 
   // Booking Page
   bookingHeaderTitle: "Tạo yêu cầu sửa chữa",
-  bookingHeaderSubtitle: "Điền thông tin để gửi yêu cầu sửa chữa hoặc bảo dưỡng xe",
+  bookingHeaderSubtitle:
+    "Điền thông tin để gửi yêu cầu sửa chữa hoặc bảo dưỡng xe",
   bookingStep1Title: "Chọn xe",
   bookingStep1Desc: "Chọn xe cần sửa chữa",
   bookingStep2Title: "Mô tả vấn đề",
@@ -742,7 +788,8 @@ export default {
   bookingIssueTitleLabel: "Tiêu đề yêu cầu",
   bookingIssueTitlePlaceholder: "VD: Xe phát tiếng kêu lạ khi phanh",
   bookingIssueDescLabel: "Mô tả chi tiết",
-  bookingIssueDescPlaceholder: "Mô tả chi tiết vấn đề xe đang gặp phải, khi nào xảy ra, có gì bất thường...",
+  bookingIssueDescPlaceholder:
+    "Mô tả chi tiết vấn đề xe đang gặp phải, khi nào xảy ra, có gì bất thường...",
   bookingSymptomLabel: "Triệu chứng (chọn nhiều nếu có)",
   bookingSymptomStrangeNoise: "Tiếng kêu lạ",
   bookingSymptomVibration: "Rung lắc khi chạy",
@@ -760,10 +807,12 @@ export default {
   bookingServiceTypeMaintenance: "Bảo dưỡng",
   bookingServiceTypeMaintenanceDesc: "Bảo dưỡng định kỳ",
   bookingSelectService: "Chọn dịch vụ",
-  bookingSelectServiceSubtitle: "Chọn dịch vụ bạn muốn hoặc để trống nếu cần tư vấn từ chuyên gia",
+  bookingSelectServiceSubtitle:
+    "Chọn dịch vụ bạn muốn hoặc để trống nếu cần tư vấn từ chuyên gia",
   bookingMinutes: "phút",
   bookingSelectTechnician: "Chọn kỹ thuật viên (tùy chọn)",
-  bookingTechnicianInfo: "Chọn kỹ thuật viên chuyên sửa chữa hoặc để hệ thống tự động phân công",
+  bookingTechnicianInfo:
+    "Chọn kỹ thuật viên chuyên sửa chữa hoặc để hệ thống tự động phân công",
   bookingAutoAssign: "Tự động phân công",
   bookingAutoAssignDesc: "Hệ thống sẽ chọn KTV phù hợp nhất",
   bookingTechRepair: "Sửa chữa",
@@ -780,10 +829,12 @@ export default {
   bookingSelectedServices: "Dịch vụ đã chọn",
   bookingTotal: "Tổng cộng:",
   bookingTechnician: "Kỹ thuật viên",
-  bookingAutoAssignSummary: "Tự động phân công - Hệ thống sẽ chọn KTV phù hợp nhất",
+  bookingAutoAssignSummary:
+    "Tự động phân công - Hệ thống sẽ chọn KTV phù hợp nhất",
   bookingPreferredTimeSummary: "Thời gian mong muốn",
   bookingNotSpecified: "Không chỉ định",
-  bookingNote: "Lưu ý: Sau khi gửi yêu cầu, chuyên gia của chúng tôi sẽ liên hệ để tư vấn và báo giá chi tiết. Giá cước cũng có thể thay đổi sau khi kiểm tra xe trực tiếp.",
+  bookingNote:
+    "Lưu ý: Sau khi gửi yêu cầu, chuyên gia của chúng tôi sẽ liên hệ để tư vấn và báo giá chi tiết. Giá cước cũng có thể thay đổi sau khi kiểm tra xe trực tiếp.",
   bookingBack: "Quay lại",
   bookingNext: "Tiếp tục",
   bookingSubmit: "Gửi yêu cầu",
@@ -805,13 +856,15 @@ export default {
   rescueStep3Title: "Xác nhận",
   rescueStep3Desc: "Kiểm tra và gửi yêu cầu",
   rescueAddressLabel: "Địa chỉ xe đang gặp nạn",
-  rescueAddressPlaceholder: "Nhập địa chỉ cụ thể nơi xe đang gặp sự cố (VD: Số 10, đường Nguyễn Trãi, Quận 1, TP.HCM)",
+  rescueAddressPlaceholder:
+    "Nhập địa chỉ cụ thể nơi xe đang gặp sự cố (VD: Số 10, đường Nguyễn Trãi, Quận 1, TP.HCM)",
   rescueSelectVehicle: "Chọn xe cần cứu hộ",
   rescueLoadingVehicles: "Đang tải danh sách xe...",
   rescueNoVehicles: "Bạn chưa có xe nào. Vui lòng thêm xe trong trang hồ sơ.",
   rescueDescribeIssue: "Mô tả vấn đề của xe",
   rescueProblemDescLabel: "Mô tả vấn đề",
-  rescueProblemDescPlaceholder: "Mô tả chi tiết tình trạng xe của bạn (VD: Xe bị chết máy, không khởi động được)...",
+  rescueProblemDescPlaceholder:
+    "Mô tả chi tiết tình trạng xe của bạn (VD: Xe bị chết máy, không khởi động được)...",
   rescueImageEvidenceLabel: "Hình ảnh minh chứng",
   rescueImageEvidencePlaceholder: "Dán link hình ảnh minh chứng (nếu có)",
   rescueImageCamera: "Chụp ảnh",
@@ -822,7 +875,8 @@ export default {
   rescueContactPhone: "Số điện thoại liên hệ",
   rescueAddress: "Địa chỉ cứu hộ",
   rescueIssueSummary: "Vấn đề cần xử lý",
-  rescueNote: "Lưu ý: Đội cứu hộ sẽ được điều phối ngay sau khi bạn gửi yêu cầu. Vui lòng giữ điện thoại để nhận cuộc gọi từ đội cứu hộ.",
+  rescueNote:
+    "Lưu ý: Đội cứu hộ sẽ được điều phối ngay sau khi bạn gửi yêu cầu. Vui lòng giữ điện thoại để nhận cuộc gọi từ đội cứu hộ.",
   rescueBack: "Quay lại",
   rescueNext: "Tiếp tục",
   rescueSubmit: "Gửi yêu cầu cứu hộ",
@@ -830,7 +884,8 @@ export default {
   rescueAlertEnterPhone: "Vui lòng nhập số điện thoại liên hệ",
   rescueAlertEnterAddress: "Vui lòng nhập địa chỉ xe đang gặp nạn",
   rescueAlertFillIssue: "Vui lòng điền đầy đủ thông tin vấn đề",
-  rescueAlertNoLocation: "Không thể xác định vị trí. Vui lòng cho phép truy cập vị trí.",
+  rescueAlertNoLocation:
+    "Không thể xác định vị trí. Vui lòng cho phép truy cập vị trí.",
   rescueGetLocation: "Lấy vị trí",
   rescueLatitude: "Vĩ độ",
   rescueLongitude: "Kinh độ",
@@ -889,7 +944,8 @@ export default {
   rescueMgrDepositAmount: "Số tiền đặt cọc",
   rescueMgrRequireDeposit: "Yêu cầu đặt cọc",
   rescueMgrNote: "Ghi chú",
-  rescueMgrNotLoyalNote: "Khách hàng không phải thân thiết — bắt buộc đặt cọc theo quy định.",
+  rescueMgrNotLoyalNote:
+    "Khách hàng không phải thân thiết — bắt buộc đặt cọc theo quy định.",
   rescueMgrDiagnosisInfo: "Kết quả chẩn đoán",
   rescueMgrCanFixOnSite: "Có thể sửa tại chỗ?",
   rescueMgrYesFixOnSite: "Sửa tại chỗ",
@@ -967,13 +1023,16 @@ export default {
   rescueMgrCompleteTowingError: "Xác nhận thất bại!",
   rescueMgrNoTechnicians: "Không có kỹ thuật viên nào trong hệ thống!",
   rescueMgrCannotLoadTechs: "Không thể tải danh sách kỹ thuật viên",
-  rescueMgrAssignSuccessMsg: "Đã gửi thông báo đến {{count}}/{{total}} kỹ thuật viên!",
+  rescueMgrAssignSuccessMsg:
+    "Đã gửi thông báo đến {{count}}/{{total}} kỹ thuật viên!",
   rescueMgrAssignFailedMsg: "Gửi thông báo thất bại. Vui lòng thử lại!",
-  rescueMgrAssignPartialFailMsg: "{{count}} kỹ thuật viên không nhận được thông báo: {{names}}",
+  rescueMgrAssignPartialFailMsg:
+    "{{count}} kỹ thuật viên không nhận được thông báo: {{names}}",
 
   // Rescue Management - Assign modal
   rescueMgrTechSelectedCount: "Đã chọn {{selected}}/{{total}} kỹ thuật viên",
-  rescueMgrTechNoSelection: "Chưa chọn — sẽ gửi đến tất cả {{count}} kỹ thuật viên",
+  rescueMgrTechNoSelection:
+    "Chưa chọn — sẽ gửi đến tất cả {{count}} kỹ thuật viên",
   rescueMgrEstimatedArrivalLabel: "Thời gian dự kiến đến *",
   rescueMgrSending: "Đang gửi...",
   rescueMgrSendToSelected: "Gửi cho {{count}} KTV đã chọn",
@@ -1002,7 +1061,8 @@ export default {
   // Rescue Management - Dispatch Towing modal
   rescueMgrDispatchTowingModalTitle: "Điều phối dịch vụ kéo xe",
   rescueMgrTowingNotesLabel: "Ghi chú kéo xe",
-  rescueMgrTowingNotesPlaceholder: "VD: Xe cần kéo về xưởng tại 456 Điện Biên Phủ, Q.3.",
+  rescueMgrTowingNotesPlaceholder:
+    "VD: Xe cần kéo về xưởng tại 456 Điện Biên Phủ, Q.3.",
   rescueMgrEstimatedArrivalOptional: "Dự kiến đến (tuỳ chọn)",
   rescueMgrTowingFeeLabel: "Phí kéo xe dự kiến (VND, tuỳ chọn)",
   rescueMgrTowingFeePlaceholder: "VD: 500000",
@@ -1011,7 +1071,8 @@ export default {
   // Rescue Management - Complete Towing modal
   rescueMgrCompleteTowingModalTitle: "Xác nhận xe đã về xưởng",
   rescueMgrRepairOrderNotesLabel: "Ghi chú lệnh sửa chữa (tuỳ chọn)",
-  rescueMgrRepairOrderNotesPlaceholder: "VD: Xe đã được kéo về xưởng. Chờ phân công kỹ thuật viên kiểm tra.",
+  rescueMgrRepairOrderNotesPlaceholder:
+    "VD: Xe đã được kéo về xưởng. Chờ phân công kỹ thuật viên kiểm tra.",
   rescueMgrProcessing: "Đang xử lý...",
   rescueMgrConfirmAtGarageBtn: "Xác nhận xe về xưởng",
 
@@ -1021,7 +1082,8 @@ export default {
   rescueMgrProposalRoadside: "Sửa tại chỗ",
   rescueMgrProposalTowing: "Kéo xe về gara",
   rescueMgrCustomerNoteLabel: "Ghi chú cho khách hàng",
-  rescueMgrCustomerNotePlaceholder: "VD: Kỹ thuật viên sẽ đến trong vòng 30 phút...",
+  rescueMgrCustomerNotePlaceholder:
+    "VD: Kỹ thuật viên sẽ đến trong vòng 30 phút...",
   rescueMgrProposalServicesLabel: "Dịch vụ (tuỳ chọn)",
   rescueMgrProposalServicesLoading: "Đang tải dịch vụ...",
   rescueMgrProposalServicesEmpty: "Không tìm thấy dịch vụ nào.",
@@ -1068,7 +1130,8 @@ export default {
 
   // Manager Appointment Page
   mgrAppointmentTitle: "Quản lý yêu cầu sửa chữa",
-  mgrAppointmentSubtitle: "Tiếp nhận, đánh giá và phản hồi yêu cầu từ khách hàng",
+  mgrAppointmentSubtitle:
+    "Tiếp nhận, đánh giá và phản hồi yêu cầu từ khách hàng",
   mgrAppointmentTotal: "Tổng yêu cầu",
   mgrAppointmentPending: "Chờ đánh giá",
   mgrAppointmentCheckedIn: "Đã chẩn đoán",
@@ -1099,6 +1162,8 @@ export default {
   unitSearchPlaceholder: "Tìm theo tên, loại...",
   unitNamePlaceholder: "VD: Cái, Bộ, Lần...",
   unitDescPlaceholder: "Mô tả đơn vị tính",
+  unitTypePart: "Phụ tùng",
+  unitTypeService: "Dịch vụ",
   appointmentsViewDetail: "Xem chi tiết",
   appointmentsCustomerInfo: "Thông tin khách hàng",
   appointmentsRequestInfo: "Thông tin yêu cầu",
@@ -1149,7 +1214,8 @@ export default {
   inventoryLoading: "Đang tải...",
   inventoryNoData: "Không có dữ liệu",
   inventoryError: "Không thể tải dữ liệu giao dịch kho.",
-  inventoryTotalInfo: "Tổng {{count}} giao dịch — Trang {{current}} / {{total}}",
+  inventoryTotalInfo:
+    "Tổng {{count}} giao dịch — Trang {{current}} / {{total}}",
   inventoryPrev: "← Trước",
   intakeTitle: "Quản lý tiếp nhận",
   intakeSearchPlaceholder: "Tìm theo tên khách hàng",
@@ -1337,7 +1403,8 @@ export default {
   additionalItemsSubmitting: "Đang gửi...",
   additionalItemsSubmit: "Gửi đề xuất",
   additionalItemsLoadError: "Không thể tải hàng mục bổ sung.",
-  additionalItemsValidation: "Vui lòng chọn ít nhất 1 mục dịch vụ hoặc phụ tùng.",
+  additionalItemsValidation:
+    "Vui lòng chọn ít nhất 1 mục dịch vụ hoặc phụ tùng.",
   additionalItemsSuccess: "Đề xuất thành công!",
   additionalItemsError: "Đề xuất thất bại. Vui lòng thử lại.",
   // ── Respond Additional Items Modal ─────────────────────────────────────────

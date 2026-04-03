@@ -7,9 +7,9 @@ export interface IUser {
   username: string;
   email: string;
   phone: string;
-  gender: string;
-  dateOfBirth: string;
-  image: string;
+  gender: string | null;
+  dateOfBirth: string | null;
+  image: string | null;
   roleID: number;
   roleName: string;
   isActive: boolean;
@@ -58,7 +58,7 @@ export const createUser = async (user: IUserRequest): Promise<IUser> => {
 
 export const updateUser = async (
   id: number,
-  user: IUserRequest
+  user: IUserRequest,
 ): Promise<IUser> => {
   const { data } = await AxiosClient.put<IUser>(`/api/users/${id}`, user);
   return data;
