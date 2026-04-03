@@ -13,4 +13,6 @@ public interface IProductService
     Task<PagedResultDto<ServiceProductListItemDto>> GetServiceProductsAsync(ServiceProductQueryDto query, CancellationToken ct);
     Task<ServiceProductListItemDto> AddServiceProductAsync(CreateServiceProductDto request, CancellationToken ct);
     Task<ServiceProductListItemDto?> UpdateServiceProductAsync(int id, UpdateServiceProductDto request, CancellationToken ct);
+    Task<bool> DeactiveServiceProductAsync(int id, CancellationToken ct);
+    Task<bool> ActiveServiceProductAsync(int id, CancellationToken ct);
 }
