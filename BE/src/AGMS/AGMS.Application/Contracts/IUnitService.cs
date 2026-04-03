@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,6 +16,7 @@ namespace AGMS.Application
         Task<(bool IsSuccess, string Message, UnitDto? Data)> AddUnitAsync(CreateUnitRequest request);
         Task<(bool IsSuccess, string Message)> UpdateUnitAsync(int id, UpdateUnitRequest request);
         Task<(bool IsSuccess, string Message)> DeleteUnitAsync(int id);
+        Task<(bool IsSuccess, string Message)> ChangeUnitStatusAsync(int id, bool isActive);
 
     }
 }

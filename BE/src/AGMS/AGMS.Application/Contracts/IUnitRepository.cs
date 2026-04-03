@@ -1,4 +1,4 @@
-﻿using AGMS.Application.DTOs.Unit;
+using AGMS.Application.DTOs.Unit;
 using AGMS.Domain.Entities;
 using System.Threading.Tasks;
 
@@ -18,8 +18,9 @@ namespace AGMS.Application.Contracts
         Task<bool> IsUnitNameExistsAsync(string name, int excludeId);
         Task UpdateUnitAsync(Unit unit);
 
-        // 4. Xóa (Mới thêm)
+        // 4. Xóa và Thay đổi trạng thái
         Task<bool> IsUnitInUseAsync(int unitId);
         Task SoftDeleteUnitAsync(int unitId);
+        Task<bool> ChangeUnitStatusAsync(int unitId, bool isActive);
     }
 }
