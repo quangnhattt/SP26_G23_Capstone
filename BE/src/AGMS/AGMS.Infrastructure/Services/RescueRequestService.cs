@@ -1523,6 +1523,7 @@ public class RescueRequestService : IRescueRequestService
                 PartId = part.PartId,
                 PartCode = product.Code,
                 PartName = product.Name,
+                PartType = product.Type,
                 Quantity = part.Quantity,
                 UnitPrice = product.Price,
                 EstimatedLineAmount = product.Price * part.Quantity
@@ -1613,6 +1614,7 @@ public class RescueRequestService : IRescueRequestService
             {
                 part.PartCode ??= product.Code;
                 part.PartName ??= product.Name;
+                part.PartType ??= product.Type;
                 part.UnitPrice ??= product.Price;
             }
 

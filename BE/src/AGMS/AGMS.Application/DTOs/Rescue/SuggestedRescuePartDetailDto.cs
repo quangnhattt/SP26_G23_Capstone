@@ -8,6 +8,7 @@ public class SuggestedRescuePartDetailDto
     public int PartId { get; set; }
     public string? PartCode { get; set; }
     public string? PartName { get; set; }
+    public string? PartType { get; set; }
     public decimal Quantity { get; set; }
     public decimal? UnitPrice { get; set; }
     public decimal? EstimatedLineAmount { get; set; }
