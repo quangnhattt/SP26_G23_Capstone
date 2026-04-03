@@ -9,13 +9,7 @@ import {
   HiClipboardCheck,
   HiDocumentText,
 } from "react-icons/hi";
-import {
-  ConfigProvider,
-  Table,
-  Tag,
-  Select as AntSelect,
-  Tooltip,
-} from "antd";
+import { ConfigProvider, Table, Tag, Select as AntSelect, Tooltip } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   serviceOrderService,
@@ -195,7 +189,8 @@ const ServiceOrderManager = () => {
       width: 140,
       render: (_: unknown, record: IServiceOrder) => (
         <Tag color={TYPE_COLOR[record.maintenanceType] ?? "default"}>
-          {t(`serviceOrderType_${record.maintenanceType}`) || record.maintenanceType}
+          {t(`serviceOrderType_${record.maintenanceType}`) ||
+            record.maintenanceType}
         </Tag>
       ),
     },
@@ -314,6 +309,29 @@ const ServiceOrderManager = () => {
             className="service-order-filter-select"
             popupClassName="service-order-filter-dropdown"
             allowClear
+            placeholder={t("serviceOrderStatusFilter")}
+            style={{ minWidth: 190 }}
+            value={statusFilter}
+            onChange={handleStatusChange}
+            options={[
+              { value: "PENDING", label: t("serviceOrderStatus_PENDING") },
+              {
+                value: "IN_DIAGNOSIS",
+                label: t("serviceOrderStatus_IN_DIAGNOSIS"),
+              },
+              { value: "QUOTED", label: t("serviceOrderStatus_QUOTED") },
+              {
+                value: "IN_PROGRESS",
+                label: t("serviceOrderStatus_IN_PROGRESS"),
+              },
+              { value: "COMPLETED", label: t("serviceOrderStatus_COMPLETED") },
+              { value: "CANCELLED", label: t("serviceOrderStatus_CANCELLED") },
+            ]}
+          />
+          <AntSelect
+            className="service-order-filter-select"
+            popupClassName="service-order-filter-dropdown"
+            allowClear
             placeholder={t("serviceOrderTypeFilter")}
             style={{ minWidth: 190 }}
             value={typeFilter}
@@ -367,7 +385,12 @@ const ServiceOrderManager = () => {
         maintenanceId={respondId}
         onClose={() => setRespondOpen(false)}
         onSuccess={() =>
-          fetchOrders(currentPage, searchTerm || undefined, statusFilter, typeFilter)
+          fetchOrders(
+            currentPage,
+            searchTerm || undefined,
+            statusFilter,
+            typeFilter,
+          )
         }
       />
 
@@ -516,12 +539,13 @@ const ErrorBox = styled.div`
   margin-bottom: 16px;
 `;
 
-const COLOR_MAP: Record<string, { text: string; border: string; bg: string }> = {
-  blue:   { text: "#3b82f6", border: "#93c5fd", bg: "#eff6ff" },
-  orange: { text: "#f97316", border: "#fdba74", bg: "#fff7ed" },
-  green:  { text: "#16a34a", border: "#86efac", bg: "#f0fdf4" },
-  purple: { text: "#7c3aed", border: "#c4b5fd", bg: "#f5f3ff" },
-};
+const COLOR_MAP: Record<string, { text: string; border: string; bg: string }> =
+  {
+    blue: { text: "#3b82f6", border: "#93c5fd", bg: "#eff6ff" },
+    orange: { text: "#f97316", border: "#fdba74", bg: "#fff7ed" },
+    green: { text: "#16a34a", border: "#86efac", bg: "#f0fdf4" },
+    purple: { text: "#7c3aed", border: "#c4b5fd", bg: "#f5f3ff" },
+  };
 
 const ActionBtn = styled.button<{ $color?: string }>`
   display: flex;
@@ -536,7 +560,8 @@ const ActionBtn = styled.button<{ $color?: string }>`
   transition: background 0.15s;
   &:hover {
     background: ${({ $color }) => COLOR_MAP[$color ?? "blue"]?.bg ?? "#eff6ff"};
-    border-color: ${({ $color }) => COLOR_MAP[$color ?? "blue"]?.border ?? "#93c5fd"};
+    border-color: ${({ $color }) =>
+      COLOR_MAP[$color ?? "blue"]?.border ?? "#93c5fd"};
   }
 `;
 
