@@ -101,6 +101,11 @@ public class RescueRequestController : ControllerBase
         }
     }
 
+    // PATCH /api/rescue-requests/{id}/deposit/confirm
+    /// <summary>
+    /// Service Advisor xác nhận đã nhận tiền hoặc chứng từ đặt cọc từ khách hàng.
+    /// Chỉ sau bước này, yêu cầu cần đặt cọc mới được mở khóa để tiếp tục điều phối.
+    /// </summary>
     [HttpPatch("{id:int}/deposit/confirm")]
     [Authorize(Roles = Roles.ServiceAdvisor)]
     [ProducesResponseType(typeof(RescueDepositResultDto), StatusCodes.Status200OK)]
