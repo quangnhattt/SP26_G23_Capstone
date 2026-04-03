@@ -64,10 +64,10 @@ public class CategoryService : ICategoryService
         };
     }
 
-    public async Task<IEnumerable<CategoryResponse>> GetAllAsync(CancellationToken ct)
+    public async Task<PagedCategoryResponse> GetAllAsync(string? name, string? type, int? page, int? pageSize, CancellationToken ct)
     {
-        var categories = await _categoryRepository.GetAllAsync(ct);
-        return categories.Select(c => new CategoryResponse
+        var result = await _categoryRepository.GetAllAsync(name, type, page, pageSize, ct);
+        var items = result.Categories.Select(c => new CategoryResponse
         {
             CategoryID = c.CategoryID,
             Name = c.Name,
@@ -75,6 +75,14 @@ public class CategoryService : ICategoryService
             Description = c.Description,
             MarkupPercent = c.MarkupPercent
         });
+        
+        return new PagedCategoryResponse
+        {
+            Items = items,
+            TotalCount = result.TotalCount,
+            Page = page ?? 1,
+            PageSize = pageSize ?? (result.TotalCount > 0 ? result.TotalCount : 1)
+        };
     }
 
     public async Task<IEnumerable<CategoryResponse>> GetByTypeAsync(string type, CancellationToken ct)
