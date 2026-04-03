@@ -2,7 +2,7 @@ import styled from "styled-components";
 import {
   FaClipboardCheck,
   FaUserCog,
-  FaTruck,
+  FaUserCheck,
   FaMapMarkerAlt,
   FaTools,
   FaWrench,
@@ -15,6 +15,8 @@ import {
 import type { RescueStatus } from "@/apis/rescue";
 
 // ─── On-site repair flow steps ───────────────────────────────
+// Flow: SA đề xuất → KH xác nhận → SA điều KTV (KTV auto-nhận) → KTV đến nơi
+//       → Chẩn đoán → Sửa chữa → Sửa xong (SA/KTV edit phụ) → HĐ → Thanh toán
 const ON_SITE_STEPS: {
   key: string;
   label: string;
@@ -28,15 +30,15 @@ const ON_SITE_STEPS: {
     statuses: ["PENDING"],
   },
   {
+    key: "customer_confirm",
+    label: "KH xác nhận",
+    icon: <FaUserCheck size={14} />,
+    statuses: ["PROPOSED_ROADSIDE"],
+  },
+  {
     key: "assign",
     label: "Điều phối KTV",
     icon: <FaUserCog size={14} />,
-    statuses: ["TOWING_ACCEPTED"],
-  },
-  {
-    key: "accept",
-    label: "KTV nhận job",
-    icon: <FaTruck size={14} />,
     statuses: ["DISPATCHED"],
   },
   {
@@ -101,13 +103,16 @@ function getActiveStepIndex(status: RescueStatus): number {
   for (let i = ON_SITE_STEPS.length - 1; i >= 0; i--) {
     if (ON_SITE_STEPS[i].statuses.includes(status)) return i;
   }
-  // Statuses that fall between steps
+  // Statuses that fall between defined step statuses
+  // Indices: 0=propose,1=customer_confirm,2=assign,3=arrive,4=diagnose,5=repair,6=complete,7=invoice,8=send,9=paid,10=done
   const statusOrder: Record<string, number> = {
     ACCEPTED: 0,
     EVALUATING: 0,
     QUOTE_SENT: 0,
-    PROPOSED_ROADSIDE: 1,
-    PROPOSED_TOWING: 4,
+    REVIEWING: 0,
+    PROPOSED_TOWING: 1,       // towing proposal = customer confirm step
+    PROPOSAL_ACCEPTED: 2,     // customer accepted proposal → SA cần điều phối KTV
+    TOWING_ACCEPTED: 2,       // customer accepted towing → assign/dispatch step
     NEED_TOWING: 4,
     TOWING_CONFIRMED: 4,
   };

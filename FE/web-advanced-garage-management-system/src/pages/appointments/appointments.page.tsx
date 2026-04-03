@@ -18,7 +18,12 @@ import {
   FaTools,
   FaTimes,
 } from "react-icons/fa";
-import { getAppointments, getAppointmentById, type IAppointment, type IAppointmentDetail } from "@/apis/appointments";
+import {
+  getAppointments,
+  getAppointmentById,
+  type IAppointment,
+  type IAppointmentDetail,
+} from "@/apis/appointments";
 import {
   getRescueRequests,
   getRescueCustomerById,
@@ -37,7 +42,10 @@ import RescueDetailModal from "./RescueDetailModal";
 import { rescueStatusConfig } from "./rescueStatusConfig";
 import RescueStepProgress from "@/pages/admin/components/rescue-manager/RescueStepProgress";
 
-const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
+const statusConfig: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
   PENDING: { label: "Chờ xác nhận", color: "#d97706", bg: "#fef3c7" },
   CONFIRMED: { label: "Đã xác nhận", color: "#2563eb", bg: "#dbeafe" },
   CHECKED_IN: { label: "Đã nhận xe", color: "#7c3aed", bg: "#ede9fe" },
@@ -81,7 +89,8 @@ const AppointmentsPage = () => {
   const [detailData, setDetailData] = useState<IAppointmentDetail | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [rescueDetailData, setRescueDetailData] = useState<IRescueRequest | null>(null);
+  const [rescueDetailData, setRescueDetailData] =
+    useState<IRescueRequest | null>(null);
   const [showRescueModal, setShowRescueModal] = useState(false);
   const [loadingRescueDetail, setLoadingRescueDetail] = useState(false);
 
@@ -91,22 +100,31 @@ const AppointmentsPage = () => {
 
   // Customer action states
   const [showConsentModal, setShowConsentModal] = useState(false);
-  const [consentModalRescue, setConsentModalRescue] = useState<IRescueRequest | null>(null);
+  const [consentModalRescue, setConsentModalRescue] =
+    useState<IRescueRequest | null>(null);
   const [consentNotes, setConsentNotes] = useState("");
   const [consenting, setConsenting] = useState(false);
-  const [acceptingTowingId, setAcceptingTowingId] = useState<number | null>(null);
-  const [invoiceModalRescue, setInvoiceModalRescue] = useState<IRescueRequest | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<IRescuePaymentPayload["paymentMethod"]>("TRANSFER");
+  const [acceptingTowingId, setAcceptingTowingId] = useState<number | null>(
+    null,
+  );
+  const [invoiceModalRescue, setInvoiceModalRescue] =
+    useState<IRescueRequest | null>(null);
+  const [paymentMethod, setPaymentMethod] =
+    useState<IRescuePaymentPayload["paymentMethod"]>("TRANSFER");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
 
   // Technician simple action loading
-  const [techActionLoadingId, setTechActionLoadingId] = useState<number | null>(null);
+  const [techActionLoadingId, setTechActionLoadingId] = useState<number | null>(
+    null,
+  );
 
   // Technician accept-job modal
   const [showAcceptJobModal, setShowAcceptJobModal] = useState(false);
-  const [acceptJobRescue, setAcceptJobRescue] = useState<IRescueRequest | null>(null);
+  const [acceptJobRescue, setAcceptJobRescue] = useState<IRescueRequest | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!user) {
@@ -172,14 +190,22 @@ const AppointmentsPage = () => {
       );
     });
 
-  const inProgressCount = appointments.filter((a) => IN_PROGRESS_STATUSES.includes(a.status)).length;
+  const inProgressCount = appointments.filter((a) =>
+    IN_PROGRESS_STATUSES.includes(a.status),
+  ).length;
   const completedCount = appointments.filter((a) => a.status === "DONE").length;
-  const cancelledCount = appointments.filter((a) => a.status === "CANCELLED").length;
+  const cancelledCount = appointments.filter(
+    (a) => a.status === "CANCELLED",
+  ).length;
   const rescueInProgressCount = rescueRequests.filter((r) =>
     IN_PROGRESS_RESCUE_STATUSES.includes(r.status),
   ).length;
-  const rescueCompletedCount = rescueRequests.filter((r) => r.status === "COMPLETED").length;
-  const rescueCancelledCount = rescueRequests.filter((r) => r.status === "CANCELLED").length;
+  const rescueCompletedCount = rescueRequests.filter(
+    (r) => r.status === "COMPLETED",
+  ).length;
+  const rescueCancelledCount = rescueRequests.filter(
+    (r) => r.status === "CANCELLED",
+  ).length;
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
@@ -255,9 +281,12 @@ const AppointmentsPage = () => {
 
   const getServiceTypeLabel = (type: string) => {
     switch (type?.toUpperCase()) {
-      case "REPAIR": return t("bookingServiceTypeRepair");
-      case "MAINTENANCE": return t("bookingServiceTypeMaintenance");
-      default: return type;
+      case "REPAIR":
+        return t("bookingServiceTypeRepair");
+      case "MAINTENANCE":
+        return t("bookingServiceTypeMaintenance");
+      default:
+        return type;
     }
   };
 
@@ -346,7 +375,11 @@ const AppointmentsPage = () => {
         consentGiven,
         consentNotes: consentNotes.trim() || undefined,
       });
-      toast.success(consentGiven ? "Đã xác nhận đồng ý sửa tại chỗ!" : "Đã từ chối sửa tại chỗ!");
+      toast.success(
+        consentGiven
+          ? "Đã xác nhận đồng ý sửa tại chỗ!"
+          : "Đã từ chối sửa tại chỗ!",
+      );
       setShowConsentModal(false);
       setConsentModalRescue(null);
       fetchRescueRequestsRefresh();
@@ -428,7 +461,9 @@ const AppointmentsPage = () => {
             >
               {t("appointmentsAll")}
               <TabCount $active={filterStatus === "all"}>
-                {activeTab === "BOOKING" ? appointments.length : rescueRequests.length}
+                {activeTab === "BOOKING"
+                  ? appointments.length
+                  : rescueRequests.length}
               </TabCount>
             </FilterTab>
             <FilterTab
@@ -437,7 +472,9 @@ const AppointmentsPage = () => {
             >
               {t("appointmentsInProgress")}
               <TabCount $active={filterStatus === "IN_PROGRESS"}>
-                {activeTab === "BOOKING" ? inProgressCount : rescueInProgressCount}
+                {activeTab === "BOOKING"
+                  ? inProgressCount
+                  : rescueInProgressCount}
               </TabCount>
             </FilterTab>
             <FilterTab
@@ -446,7 +483,9 @@ const AppointmentsPage = () => {
             >
               {t("appointmentsCompleted")}
               <TabCount $active={filterStatus === "DONE"}>
-                {activeTab === "BOOKING" ? completedCount : rescueCompletedCount}
+                {activeTab === "BOOKING"
+                  ? completedCount
+                  : rescueCompletedCount}
               </TabCount>
             </FilterTab>
             <FilterTab
@@ -455,7 +494,9 @@ const AppointmentsPage = () => {
             >
               {t("appointmentsCancelled")}
               <TabCount $active={filterStatus === "CANCELLED"}>
-                {activeTab === "BOOKING" ? cancelledCount : rescueCancelledCount}
+                {activeTab === "BOOKING"
+                  ? cancelledCount
+                  : rescueCancelledCount}
               </TabCount>
             </FilterTab>
           </FilterTabs>
@@ -488,85 +529,115 @@ const AppointmentsPage = () => {
             <EmptyState>
               <FaTools size={48} color="#d1d5db" />
               <EmptyTitle>Chưa có yêu cầu cứu hộ</EmptyTitle>
-              <EmptyDesc>Danh sách yêu cầu cứu hộ sẽ hiển thị tại đây.</EmptyDesc>
+              <EmptyDesc>
+                Danh sách yêu cầu cứu hộ sẽ hiển thị tại đây.
+              </EmptyDesc>
             </EmptyState>
           ) : (
             <AppointmentList>
               {activeTab === "BOOKING" &&
                 filteredAppointments.map((appointment) => {
-                const statusInfo = getStatusInfo(appointment.status);
-                const carName = `${appointment.carBrand} ${appointment.carModel}`;
-                return (
-                  <AppointmentCard key={appointment.appointmentId}>
-                    <CardLeft>
-                      <CarIconWrapper>
-                        <FaCar size={22} color="#6b7280" />
-                      </CarIconWrapper>
-                      <CarInfo>
-                        <CarName>{carName}</CarName>
-                        <CarPlate>{appointment.licensePlate}</CarPlate>
-                      </CarInfo>
-                    </CardLeft>
+                  const statusInfo = getStatusInfo(appointment.status);
+                  const carName = `${appointment.carBrand} ${appointment.carModel}`;
+                  return (
+                    <AppointmentCard key={appointment.appointmentId}>
+                      <CardLeft>
+                        <CarIconWrapper>
+                          <FaCar size={22} color="#6b7280" />
+                        </CarIconWrapper>
+                        <CarInfo>
+                          <CarName>{carName}</CarName>
+                          <CarPlate>{appointment.licensePlate}</CarPlate>
+                        </CarInfo>
+                      </CardLeft>
 
-                    <CardRight>
-                      <CardTitleRow>
-                        <CardTitle>{getServiceTypeLabel(appointment.serviceType)}</CardTitle>
-                        <BadgeGroup>
-                          <StatusBadge $color={statusInfo.color} $bg={statusInfo.bg}>
-                            {statusInfo.label}
-                          </StatusBadge>
-                        </BadgeGroup>
-                        <MoreButtonWrapper>
-                          <MoreButton onClick={() => setOpenMenuId(openMenuId === appointment.appointmentId ? null : appointment.appointmentId)}>
-                            <FaEllipsisV size={14} color="#9ca3af" />
-                          </MoreButton>
-                          {openMenuId === appointment.appointmentId && (
-                            <DropdownMenu>
-                              <DropdownItem onClick={() => handleViewDetail(appointment.appointmentId)}>
-                                <FaEye size={14} color="#6b7280" />
-                                {t("appointmentsViewDetail")}
-                              </DropdownItem>
-                            </DropdownMenu>
-                          )}
-                        </MoreButtonWrapper>
-                      </CardTitleRow>
+                      <CardRight>
+                        <CardTitleRow>
+                          <CardTitle>
+                            {getServiceTypeLabel(appointment.serviceType)}
+                          </CardTitle>
+                          <BadgeGroup>
+                            <StatusBadge
+                              $color={statusInfo.color}
+                              $bg={statusInfo.bg}
+                            >
+                              {statusInfo.label}
+                            </StatusBadge>
+                          </BadgeGroup>
+                          <MoreButtonWrapper>
+                            <MoreButton
+                              onClick={() =>
+                                setOpenMenuId(
+                                  openMenuId === appointment.appointmentId
+                                    ? null
+                                    : appointment.appointmentId,
+                                )
+                              }
+                            >
+                              <FaEllipsisV size={14} color="#9ca3af" />
+                            </MoreButton>
+                            {openMenuId === appointment.appointmentId && (
+                              <DropdownMenu>
+                                <DropdownItem
+                                  onClick={() =>
+                                    handleViewDetail(appointment.appointmentId)
+                                  }
+                                >
+                                  <FaEye size={14} color="#6b7280" />
+                                  {t("appointmentsViewDetail")}
+                                </DropdownItem>
+                              </DropdownMenu>
+                            )}
+                          </MoreButtonWrapper>
+                        </CardTitleRow>
 
-                      {appointment.notes && (
-                        <CardDesc>{appointment.notes}</CardDesc>
-                      )}
-
-                      <InfoRow>
-                        <FaUser size={13} color="#9ca3af" />
-                        <InfoText>{appointment.customerFullName}</InfoText>
-                        <FaPhone size={12} color="#9ca3af" style={{ marginLeft: "0.75rem" }} />
-                        <InfoText>{appointment.phone || appointment.customerPhone}</InfoText>
-                      </InfoRow>
-
-                      {appointment.packageName && (
-                        <SymptomRow>
-                          <SymptomTag>{appointment.packageName}</SymptomTag>
-                        </SymptomRow>
-                      )}
-
-                      <CardFooter>
-                        <FooterItem>
-                          <FaFileAlt size={12} />
-                          #appointment-{appointment.appointmentId}
-                        </FooterItem>
-                        <FooterItem>
-                          <FaClock size={12} />
-                          {formatDate(appointment.appointmentDate || appointment.createdDate)}
-                        </FooterItem>
-                        {appointment.packageFinalPrice != null && appointment.packageFinalPrice > 0 && (
-                          <PriceTag>
-                            {t("appointmentsQuote")}: {formatPrice(appointment.packageFinalPrice)}
-                          </PriceTag>
+                        {appointment.notes && (
+                          <CardDesc>{appointment.notes}</CardDesc>
                         )}
-                      </CardFooter>
-                    </CardRight>
-                  </AppointmentCard>
-                );
-              })}
+
+                        <InfoRow>
+                          <FaUser size={13} color="#9ca3af" />
+                          <InfoText>{appointment.customerFullName}</InfoText>
+                          <FaPhone
+                            size={12}
+                            color="#9ca3af"
+                            style={{ marginLeft: "0.75rem" }}
+                          />
+                          <InfoText>
+                            {appointment.phone || appointment.customerPhone}
+                          </InfoText>
+                        </InfoRow>
+
+                        {appointment.packageName && (
+                          <SymptomRow>
+                            <SymptomTag>{appointment.packageName}</SymptomTag>
+                          </SymptomRow>
+                        )}
+
+                        <CardFooter>
+                          <FooterItem>
+                            <FaFileAlt size={12} />
+                            #appointment-{appointment.appointmentId}
+                          </FooterItem>
+                          <FooterItem>
+                            <FaClock size={12} />
+                            {formatDate(
+                              appointment.appointmentDate ||
+                                appointment.createdDate,
+                            )}
+                          </FooterItem>
+                          {appointment.packageFinalPrice != null &&
+                            appointment.packageFinalPrice > 0 && (
+                              <PriceTag>
+                                {t("appointmentsQuote")}:{" "}
+                                {formatPrice(appointment.packageFinalPrice)}
+                              </PriceTag>
+                            )}
+                        </CardFooter>
+                      </CardRight>
+                    </AppointmentCard>
+                  );
+                })}
 
               {activeTab === "RESCUE" &&
                 filteredRescueRequests.map((rescue) => {
@@ -586,9 +657,14 @@ const AppointmentsPage = () => {
 
                       <CardRight>
                         <CardTitleRow>
-                          <CardTitle>{rescue.problemDescription || "Yêu cầu cứu hộ"}</CardTitle>
+                          <CardTitle>
+                            {rescue.problemDescription || "Yêu cầu cứu hộ"}
+                          </CardTitle>
                           <BadgeGroup>
-                            <StatusBadge $color={statusInfo.color} $bg={statusInfo.bg}>
+                            <StatusBadge
+                              $color={statusInfo.color}
+                              $bg={statusInfo.bg}
+                            >
                               {statusInfo.label}
                             </StatusBadge>
                           </BadgeGroup>
@@ -596,7 +672,9 @@ const AppointmentsPage = () => {
                             <MoreButton
                               onClick={() =>
                                 setOpenMenuId(
-                                  openMenuId === rescue.rescueId ? null : rescue.rescueId,
+                                  openMenuId === rescue.rescueId
+                                    ? null
+                                    : rescue.rescueId,
                                 )
                               }
                             >
@@ -604,7 +682,11 @@ const AppointmentsPage = () => {
                             </MoreButton>
                             {openMenuId === rescue.rescueId && (
                               <DropdownMenu>
-                                <DropdownItem onClick={() => handleViewRescueDetail(rescue.rescueId)}>
+                                <DropdownItem
+                                  onClick={() =>
+                                    handleViewRescueDetail(rescue.rescueId)
+                                  }
+                                >
                                   <FaEye size={14} color="#6b7280" />
                                   {t("appointmentsViewDetail")}
                                 </DropdownItem>
@@ -616,7 +698,11 @@ const AppointmentsPage = () => {
                         <InfoRow>
                           <FaUser size={13} color="#9ca3af" />
                           <InfoText>{rescue.customerName}</InfoText>
-                          <FaPhone size={12} color="#9ca3af" style={{ marginLeft: "0.75rem" }} />
+                          <FaPhone
+                            size={12}
+                            color="#9ca3af"
+                            style={{ marginLeft: "0.75rem" }}
+                          />
                           <InfoText>{rescue.customerPhone}</InfoText>
                         </InfoRow>
 
@@ -645,22 +731,44 @@ const AppointmentsPage = () => {
                               onClick={() => handleTechArrive(rescue.rescueId)}
                               disabled={techActionLoadingId === rescue.rescueId}
                             >
-                              {techActionLoadingId === rescue.rescueId ? "Đang xử lý..." : "Xác nhận đã đến nơi"}
+                              {techActionLoadingId === rescue.rescueId
+                                ? "Đang xử lý..."
+                                : "Xác nhận đã đến nơi"}
                             </CustomerActionBtn>
                           </CustomerActionRow>
                         )}
-                        {isTechnician && ["ON_SITE", "DIAGNOSING", "REPAIRING"].includes(rescue.status) && (
-                          <CustomerActionRow>
-                            <CustomerActionBtn
-                              $color="#ea580c"
-                              onClick={() => handleViewRescueDetail(rescue.rescueId)}
-                            >
-                              {rescue.status === "REPAIRING" ? "Báo hoàn tất sửa chữa" : "Chẩn đoán & xử lý"}
-                            </CustomerActionBtn>
-                          </CustomerActionRow>
-                        )}
+                        {isTechnician &&
+                          ["ON_SITE", "DIAGNOSING", "REPAIRING"].includes(
+                            rescue.status,
+                          ) && (
+                            <CustomerActionRow>
+                              <CustomerActionBtn
+                                $color="#ea580c"
+                                onClick={() =>
+                                  handleViewRescueDetail(rescue.rescueId)
+                                }
+                              >
+                                {rescue.status === "REPAIRING"
+                                  ? "Báo hoàn tất sửa chữa"
+                                  : "Chẩn đoán & xử lý"}
+                              </CustomerActionBtn>
+                            </CustomerActionRow>
+                          )}
 
                         {/* ── Customer actions ── */}
+                        {isCustomer &&
+                          ["PROPOSED_ROADSIDE", "PROPOSED_TOWING"].includes(rescue.status) && (
+                            <CustomerActionRow>
+                              <CustomerActionBtn
+                                $color="#2563eb"
+                                onClick={() => handleViewRescueDetail(rescue.rescueId)}
+                              >
+                                {rescue.status === "PROPOSED_ROADSIDE"
+                                  ? "Xem đề xuất sửa tại chỗ & xác nhận"
+                                  : "Xem đề xuất kéo xe & xác nhận"}
+                              </CustomerActionBtn>
+                            </CustomerActionRow>
+                          )}
                         {isCustomer && rescue.status === "DIAGNOSING" && (
                           <CustomerActionRow>
                             <CustomerActionBtn
@@ -671,27 +779,35 @@ const AppointmentsPage = () => {
                             </CustomerActionBtn>
                           </CustomerActionRow>
                         )}
-                        {isCustomer && rescue.status === "TOWING_DISPATCHED" && (
-                          <CustomerActionRow>
-                            <CustomerActionBtn
-                              $color="#0891b2"
-                              onClick={() => handleAcceptTowing(rescue.rescueId)}
-                              disabled={acceptingTowingId === rescue.rescueId}
-                            >
-                              {acceptingTowingId === rescue.rescueId ? "Đang xử lý..." : "Chấp nhận kéo xe"}
-                            </CustomerActionBtn>
-                          </CustomerActionRow>
-                        )}
-                        {isCustomer && ["INVOICE_SENT", "PAYMENT_PENDING"].includes(rescue.status) && (
-                          <CustomerActionRow>
-                            <CustomerActionBtn
-                              $color="#1d4ed8"
-                              onClick={() => openInvoiceModal(rescue)}
-                            >
-                              Xem hoá đơn & thanh toán
-                            </CustomerActionBtn>
-                          </CustomerActionRow>
-                        )}
+                        {isCustomer &&
+                          rescue.status === "TOWING_DISPATCHED" && (
+                            <CustomerActionRow>
+                              <CustomerActionBtn
+                                $color="#0891b2"
+                                onClick={() =>
+                                  handleAcceptTowing(rescue.rescueId)
+                                }
+                                disabled={acceptingTowingId === rescue.rescueId}
+                              >
+                                {acceptingTowingId === rescue.rescueId
+                                  ? "Đang xử lý..."
+                                  : "Chấp nhận kéo xe"}
+                              </CustomerActionBtn>
+                            </CustomerActionRow>
+                          )}
+                        {isCustomer &&
+                          ["INVOICE_SENT", "PAYMENT_PENDING"].includes(
+                            rescue.status,
+                          ) && (
+                            <CustomerActionRow>
+                              <CustomerActionBtn
+                                $color="#1d4ed8"
+                                onClick={() => openInvoiceModal(rescue)}
+                              >
+                                Xem hoá đơn & thanh toán
+                              </CustomerActionBtn>
+                            </CustomerActionRow>
+                          )}
 
                         <CardFooter>
                           <FooterItem>
@@ -702,6 +818,12 @@ const AppointmentsPage = () => {
                             <FaClock size={12} />
                             {formatDate(rescue.createdDate)}
                           </FooterItem>
+                          <ViewDetailBtn
+                            onClick={() => handleViewRescueDetail(rescue.rescueId)}
+                          >
+                            <FaEye size={12} />
+                            Xem chi tiết
+                          </ViewDetailBtn>
                         </CardFooter>
                       </CardRight>
                     </AppointmentCard>
@@ -732,7 +854,10 @@ const AppointmentsPage = () => {
       {/* Customer Consent Modal */}
       {showConsentModal && consentModalRescue && (
         <PaymentOverlay onClick={() => setShowConsentModal(false)}>
-          <PaymentCard onClick={(e) => e.stopPropagation()} style={{ maxWidth: "500px" }}>
+          <PaymentCard
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "500px" }}
+          >
             <PaymentHeader>
               <PaymentTitle>Xác nhận sửa chữa tại chỗ</PaymentTitle>
               <CloseModalBtn onClick={() => setShowConsentModal(false)}>
@@ -743,11 +868,16 @@ const AppointmentsPage = () => {
               <AcceptJobInfo>
                 <AcceptJobRow>
                   <AcceptJobLabel>Xe</AcceptJobLabel>
-                  <AcceptJobValue>{consentModalRescue.brand} {consentModalRescue.model} — {consentModalRescue.licensePlate}</AcceptJobValue>
+                  <AcceptJobValue>
+                    {consentModalRescue.brand} {consentModalRescue.model} —{" "}
+                    {consentModalRescue.licensePlate}
+                  </AcceptJobValue>
                 </AcceptJobRow>
                 <AcceptJobRow>
                   <AcceptJobLabel>Vấn đề</AcceptJobLabel>
-                  <AcceptJobValue>{consentModalRescue.problemDescription}</AcceptJobValue>
+                  <AcceptJobValue>
+                    {consentModalRescue.problemDescription}
+                  </AcceptJobValue>
                 </AcceptJobRow>
               </AcceptJobInfo>
               <div style={{ marginTop: "1rem" }}>
@@ -795,7 +925,10 @@ const AppointmentsPage = () => {
       {/* Invoice + Payment Modal */}
       {invoiceModalRescue && (
         <PaymentOverlay onClick={() => setInvoiceModalRescue(null)}>
-          <PaymentCard onClick={(e) => e.stopPropagation()} style={{ maxWidth: "520px" }}>
+          <PaymentCard
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "520px" }}
+          >
             <PaymentHeader>
               <PaymentTitle>Hoá đơn cứu hộ</PaymentTitle>
               <CloseModalBtn onClick={() => setInvoiceModalRescue(null)}>
@@ -808,13 +941,18 @@ const AppointmentsPage = () => {
                 <AcceptJobRow>
                   <AcceptJobLabel>Xe</AcceptJobLabel>
                   <AcceptJobValue>
-                    {invoiceModalRescue.brand} {invoiceModalRescue.model} — {invoiceModalRescue.licensePlate}
+                    {invoiceModalRescue.brand} {invoiceModalRescue.model} —{" "}
+                    {invoiceModalRescue.licensePlate}
                   </AcceptJobValue>
                 </AcceptJobRow>
                 <AcceptJobRow>
                   <AcceptJobLabel>Loại cứu hộ</AcceptJobLabel>
                   <AcceptJobValue>
-                    {invoiceModalRescue.rescueType === "ROADSIDE" ? "Sửa tại chỗ" : invoiceModalRescue.rescueType === "TOWING" ? "Kéo xe về gara" : "—"}
+                    {invoiceModalRescue.rescueType === "ROADSIDE"
+                      ? "Sửa tại chỗ"
+                      : invoiceModalRescue.rescueType === "TOWING"
+                        ? "Kéo xe về gara"
+                        : "—"}
                   </AcceptJobValue>
                 </AcceptJobRow>
                 {invoiceModalRescue.invoice ? (
@@ -822,33 +960,63 @@ const AppointmentsPage = () => {
                     <AcceptJobRow>
                       <AcceptJobLabel>Phí dịch vụ</AcceptJobLabel>
                       <AcceptJobValue>
-                        {invoiceModalRescue.invoice.rescueServiceFee.toLocaleString("vi-VN")} đ
+                        {invoiceModalRescue.invoice.rescueServiceFee.toLocaleString(
+                          "vi-VN",
+                        )}{" "}
+                        đ
                       </AcceptJobValue>
                     </AcceptJobRow>
                     {invoiceModalRescue.invoice.manualDiscount > 0 && (
                       <AcceptJobRow>
                         <AcceptJobLabel>Giảm giá</AcceptJobLabel>
                         <AcceptJobValue style={{ color: "#16a34a" }}>
-                          − {invoiceModalRescue.invoice.manualDiscount.toLocaleString("vi-VN")} đ
+                          −{" "}
+                          {invoiceModalRescue.invoice.manualDiscount.toLocaleString(
+                            "vi-VN",
+                          )}{" "}
+                          đ
                         </AcceptJobValue>
                       </AcceptJobRow>
                     )}
-                    <AcceptJobRow style={{ borderTop: "1px solid #e5e7eb", paddingTop: "0.5rem", marginTop: "0.25rem" }}>
-                      <AcceptJobLabel style={{ fontWeight: 700, color: "#111827" }}>Tổng thanh toán</AcceptJobLabel>
-                      <AcceptJobValue style={{ fontWeight: 700, fontSize: "1.05rem", color: "#1d4ed8" }}>
-                        {invoiceModalRescue.invoice.total.toLocaleString("vi-VN")} đ
+                    <AcceptJobRow
+                      style={{
+                        borderTop: "1px solid #e5e7eb",
+                        paddingTop: "0.5rem",
+                        marginTop: "0.25rem",
+                      }}
+                    >
+                      <AcceptJobLabel
+                        style={{ fontWeight: 700, color: "#111827" }}
+                      >
+                        Tổng thanh toán
+                      </AcceptJobLabel>
+                      <AcceptJobValue
+                        style={{
+                          fontWeight: 700,
+                          fontSize: "1.05rem",
+                          color: "#1d4ed8",
+                        }}
+                      >
+                        {invoiceModalRescue.invoice.total.toLocaleString(
+                          "vi-VN",
+                        )}{" "}
+                        đ
                       </AcceptJobValue>
                     </AcceptJobRow>
                     {invoiceModalRescue.invoice.notes && (
                       <AcceptJobRow>
                         <AcceptJobLabel>Ghi chú</AcceptJobLabel>
-                        <AcceptJobValue>{invoiceModalRescue.invoice.notes}</AcceptJobValue>
+                        <AcceptJobValue>
+                          {invoiceModalRescue.invoice.notes}
+                        </AcceptJobValue>
                       </AcceptJobRow>
                     )}
                   </>
                 ) : (
                   <AcceptJobRow>
-                    <AcceptJobValue style={{ color: "#6b7280", fontStyle: "italic" }}>
+                    <AcceptJobValue
+                      style={{ color: "#6b7280", fontStyle: "italic" }}
+                    >
                       Chưa có thông tin hoá đơn chi tiết
                     </AcceptJobValue>
                   </AcceptJobRow>
@@ -856,12 +1024,23 @@ const AppointmentsPage = () => {
               </AcceptJobInfo>
 
               {/* ── Payment form ── */}
-              <div style={{ borderTop: "2px dashed #e5e7eb", marginTop: "1.25rem", paddingTop: "1.25rem" }}>
+              <div
+                style={{
+                  borderTop: "2px dashed #e5e7eb",
+                  marginTop: "1.25rem",
+                  paddingTop: "1.25rem",
+                }}
+              >
                 <div style={{ marginBottom: "0.875rem" }}>
                   <FormLabel>Phương thức thanh toán *</FormLabel>
                   <FormSelect
                     value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value as IRescuePaymentPayload["paymentMethod"])}
+                    onChange={(e) =>
+                      setPaymentMethod(
+                        e.target
+                          .value as IRescuePaymentPayload["paymentMethod"],
+                      )
+                    }
                   >
                     <option value="TRANSFER">Chuyển khoản</option>
                     <option value="CASH">Tiền mặt</option>
@@ -914,11 +1093,24 @@ const AppointmentsPage = () => {
 
       {/* Accept Job Modal */}
       {showAcceptJobModal && acceptJobRescue && (
-        <PaymentOverlay onClick={() => { setShowAcceptJobModal(false); setAcceptJobRescue(null); }}>
-          <PaymentCard onClick={(e) => e.stopPropagation()} style={{ maxWidth: "480px" }}>
+        <PaymentOverlay
+          onClick={() => {
+            setShowAcceptJobModal(false);
+            setAcceptJobRescue(null);
+          }}
+        >
+          <PaymentCard
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "480px" }}
+          >
             <PaymentHeader>
               <PaymentTitle>Xác nhận nhận job cứu hộ</PaymentTitle>
-              <CloseModalBtn onClick={() => { setShowAcceptJobModal(false); setAcceptJobRescue(null); }}>
+              <CloseModalBtn
+                onClick={() => {
+                  setShowAcceptJobModal(false);
+                  setAcceptJobRescue(null);
+                }}
+              >
                 <FaTimes size={18} />
               </CloseModalBtn>
             </PaymentHeader>
@@ -926,29 +1118,43 @@ const AppointmentsPage = () => {
               <AcceptJobInfo>
                 <AcceptJobRow>
                   <AcceptJobLabel>Khách hàng</AcceptJobLabel>
-                  <AcceptJobValue>{acceptJobRescue.customerName}</AcceptJobValue>
+                  <AcceptJobValue>
+                    {acceptJobRescue.customerName}
+                  </AcceptJobValue>
                 </AcceptJobRow>
                 <AcceptJobRow>
                   <AcceptJobLabel>Số điện thoại</AcceptJobLabel>
-                  <AcceptJobValue>{acceptJobRescue.customerPhone}</AcceptJobValue>
+                  <AcceptJobValue>
+                    {acceptJobRescue.customerPhone}
+                  </AcceptJobValue>
                 </AcceptJobRow>
                 <AcceptJobRow>
                   <AcceptJobLabel>Xe</AcceptJobLabel>
-                  <AcceptJobValue>{acceptJobRescue.brand} {acceptJobRescue.model} — {acceptJobRescue.licensePlate}</AcceptJobValue>
+                  <AcceptJobValue>
+                    {acceptJobRescue.brand} {acceptJobRescue.model} —{" "}
+                    {acceptJobRescue.licensePlate}
+                  </AcceptJobValue>
                 </AcceptJobRow>
                 <AcceptJobRow>
                   <AcceptJobLabel>Địa chỉ</AcceptJobLabel>
-                  <AcceptJobValue>{acceptJobRescue.currentAddress}</AcceptJobValue>
+                  <AcceptJobValue>
+                    {acceptJobRescue.currentAddress}
+                  </AcceptJobValue>
                 </AcceptJobRow>
                 <AcceptJobRow>
                   <AcceptJobLabel>Vấn đề</AcceptJobLabel>
-                  <AcceptJobValue>{acceptJobRescue.problemDescription}</AcceptJobValue>
+                  <AcceptJobValue>
+                    {acceptJobRescue.problemDescription}
+                  </AcceptJobValue>
                 </AcceptJobRow>
               </AcceptJobInfo>
             </PaymentBody>
             <PaymentFooter>
               <PaymentCancelBtn
-                onClick={() => { setShowAcceptJobModal(false); setAcceptJobRescue(null); }}
+                onClick={() => {
+                  setShowAcceptJobModal(false);
+                  setAcceptJobRescue(null);
+                }}
                 disabled={techActionLoadingId === acceptJobRescue.rescueId}
               >
                 Hủy
@@ -957,7 +1163,9 @@ const AppointmentsPage = () => {
                 onClick={() => handleTechAcceptJob(acceptJobRescue.rescueId)}
                 disabled={techActionLoadingId === acceptJobRescue.rescueId}
               >
-                {techActionLoadingId === acceptJobRescue.rescueId ? "Đang xử lý..." : "Nhận job"}
+                {techActionLoadingId === acceptJobRescue.rescueId
+                  ? "Đang xử lý..."
+                  : "Nhận job"}
               </PaymentConfirmBtn>
             </PaymentFooter>
           </PaymentCard>
@@ -1089,7 +1297,8 @@ const FilterTab = styled.button<{ $active: boolean }>`
   font-weight: ${({ $active }) => ($active ? "600" : "500")};
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: ${({ $active }) => ($active ? "0 1px 3px rgba(0,0,0,0.08)" : "none")};
+  box-shadow: ${({ $active }) =>
+    $active ? "0 1px 3px rgba(0,0,0,0.08)" : "none"};
 
   &:hover {
     color: #111827;
@@ -1442,6 +1651,27 @@ const CustomerActionBtn = styled.button<{ $color: string }>`
   }
 `;
 
+const ViewDetailBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+  }
+`;
+
 const PaymentOverlay = styled.div`
   position: fixed;
   inset: 0;
@@ -1606,5 +1836,3 @@ const AcceptJobValue = styled.span`
   color: #111827;
   line-height: 1.4;
 `;
-
-

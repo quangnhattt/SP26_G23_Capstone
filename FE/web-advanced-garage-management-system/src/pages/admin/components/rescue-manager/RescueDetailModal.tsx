@@ -19,6 +19,7 @@ const rescueStatusConfig: Record<
   REVIEWING:          { label: "Đang xem xét",           color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
   PROPOSED_ROADSIDE:  { label: "Đề xuất sửa tại chỗ",   color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
   PROPOSED_TOWING:    { label: "Đề xuất kéo xe",         color: "#ea580c", bg: "#fff7ed", border: "#fdba74" },
+  PROPOSAL_ACCEPTED:  { label: "KH đã xác nhận",         color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd" },
   DISPATCHED:         { label: "Đã điều KTV",             color: "#0891b2", bg: "#cffafe", border: "#67e8f9" },
   EN_ROUTE:           { label: "KTV đang đến",            color: "#0891b2", bg: "#cffafe", border: "#67e8f9" },
   ON_SITE:            { label: "KTV đã đến nơi",          color: "#0d9488", bg: "#ccfbf1", border: "#5eead4" },

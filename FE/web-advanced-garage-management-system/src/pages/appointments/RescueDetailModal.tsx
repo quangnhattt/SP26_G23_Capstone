@@ -1,14 +1,27 @@
 import { useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
-import { FaTimes, FaUser, FaCar, FaMapMarkerAlt, FaWrench, FaTruck } from "react-icons/fa";
+import {
+  FaTimes,
+  FaUser,
+  FaCar,
+  FaMapMarkerAlt,
+  FaWrench,
+  FaTruck,
+  FaFileAlt,
+  FaMoneyBillWave,
+  FaBoxOpen,
+  FaTools,
+  FaStickyNote,
+  FaCheckCircle,
+  FaTimesCircle,
+} from "react-icons/fa";
 import type { IRescueRequest } from "@/apis/rescue";
 import {
   customerConsent,
   acceptTowing,
   makeRescuePayment,
   cancelRescueRequest,
-  acceptRescueJob,
   arriveRescue,
   startDiagnosis,
   addRepairItems,
@@ -30,7 +43,13 @@ interface Props {
   userRoleID?: number; // 3 = Technician, 4 = Customer
 }
 
-const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Props) => {
+const RescueDetailModal = ({
+  data,
+  loading,
+  onClose,
+  onRefresh,
+  userRoleID,
+}: Props) => {
   const { t, i18n } = useTranslation();
   const isTechnician = userRoleID === 3;
   const isCustomer = userRoleID === 4;
@@ -40,7 +59,8 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
   const [consenting, setConsenting] = useState(false);
   const [consentNotes, setConsentNotes] = useState("");
   const [showPayment, setShowPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<IRescuePaymentPayload["paymentMethod"]>("TRANSFER");
+  const [paymentMethod, setPaymentMethod] =
+    useState<IRescuePaymentPayload["paymentMethod"]>("TRANSFER");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
@@ -133,21 +153,6 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
   };
 
   // ─── Technician handlers ─────────────────────────────────
-  const handleTechAcceptJob = async () => {
-    if (!data) return;
-    setTechLoading(true);
-    try {
-      await acceptRescueJob(data.rescueId);
-      toast.success("Đã nhận job cứu hộ!");
-      onRefresh?.();
-      onClose();
-    } catch {
-      toast.error("Nhận job thất bại!");
-    } finally {
-      setTechLoading(false);
-    }
-  };
-
   const handleTechArrive = async () => {
     if (!data) return;
     setTechLoading(true);
@@ -253,7 +258,11 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
   };
 
   const getStatusInfo = (status: string) =>
-    rescueStatusConfig[status] || { labelKey: "", color: "#6b7280", bg: "#f3f4f6" };
+    rescueStatusConfig[status] || {
+      labelKey: "",
+      color: "#6b7280",
+      bg: "#f3f4f6",
+    };
 
   return (
     <Overlay onClick={onClose}>
@@ -368,18 +377,18 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
 
             {/* ═══ TECHNICIAN actions ═══ */}
 
-            {/* KTV: Nhận job */}
+            {/* KTV: Đã được tự động phân công — không cần nhận thủ công */}
             {isTechnician && data.status === "DISPATCHED" && (
               <>
                 <Divider />
-                <ActionCard $highlight>
-                  <ActionCardTitle>Bạn được phân công job cứu hộ này</ActionCardTitle>
-                  <ActionInfo>Xác nhận nhận việc để bắt đầu di chuyển đến khách hàng.</ActionInfo>
-                  <ActionBtnRow>
-                    <ActionBtn $color="#0891b2" onClick={handleTechAcceptJob} disabled={techLoading}>
-                      {techLoading ? "Đang xử lý..." : "Nhận job"}
-                    </ActionBtn>
-                  </ActionBtnRow>
+                <ActionCard>
+                  <ActionCardTitle>
+                    Bạn đã được phân công job cứu hộ này
+                  </ActionCardTitle>
+                  <ActionInfo>
+                    Hệ thống đã tự động xác nhận. Hãy chuẩn bị di chuyển đến vị
+                    trí khách hàng.
+                  </ActionInfo>
                 </ActionCard>
               </>
             )}
@@ -390,9 +399,16 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                 <Divider />
                 <ActionCard $highlight>
                   <ActionCardTitle>Bạn đang trên đường đến</ActionCardTitle>
-                  <ActionInfo>Khi đã đến vị trí khách hàng, xác nhận để tiếp tục quy trình.</ActionInfo>
+                  <ActionInfo>
+                    Khi đã đến vị trí khách hàng, xác nhận để tiếp tục quy
+                    trình.
+                  </ActionInfo>
                   <ActionBtnRow>
-                    <ActionBtn $color="#0d9488" onClick={handleTechArrive} disabled={techLoading}>
+                    <ActionBtn
+                      $color="#0d9488"
+                      onClick={handleTechArrive}
+                      disabled={techLoading}
+                    >
                       {techLoading ? "Đang xử lý..." : "Xác nhận đã đến nơi"}
                     </ActionBtn>
                   </ActionBtnRow>
@@ -401,44 +417,58 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
             )}
 
             {/* KTV: Chẩn đoán */}
-            {isTechnician && ["ON_SITE", "DIAGNOSING"].includes(data.status as string) && (
-              <>
-                <Divider />
-                <ActionCard $highlight>
-                  <ActionCardTitle>Chẩn đoán lỗi xe</ActionCardTitle>
-                  <ActionInfo>Ghi nhận kết quả chẩn đoán và xác định có thể sửa tại chỗ không.</ActionInfo>
-                  <FormGroup>
-                    <FormLabel>Ghi chú chẩn đoán *</FormLabel>
-                    <FormTextarea
-                      value={diagnosisNotes}
-                      onChange={(e) => setDiagnosisNotes(e.target.value)}
-                      rows={3}
-                      placeholder="Mô tả tình trạng xe..."
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <FormLabel>Có thể sửa tại chỗ? *</FormLabel>
-                    <RadioRow>
-                      <RadioBtn $selected={canRepairOnSite === true} onClick={() => setCanRepairOnSite(true)}>
-                        Sửa tại chỗ
-                      </RadioBtn>
-                      <RadioBtn $selected={canRepairOnSite === false} onClick={() => setCanRepairOnSite(false)}>
-                        Cần kéo xe
-                      </RadioBtn>
-                    </RadioRow>
-                  </FormGroup>
-                  <ActionBtnRow>
-                    <ActionBtn
-                      $color="#ea580c"
-                      onClick={handleTechDiagnosis}
-                      disabled={!diagnosisNotes.trim() || canRepairOnSite === null || techLoading}
-                    >
-                      {techLoading ? "Đang gửi..." : "Gửi chẩn đoán"}
-                    </ActionBtn>
-                  </ActionBtnRow>
-                </ActionCard>
-              </>
-            )}
+            {isTechnician &&
+              ["ON_SITE", "DIAGNOSING"].includes(data.status as string) && (
+                <>
+                  <Divider />
+                  <ActionCard $highlight>
+                    <ActionCardTitle>Chẩn đoán lỗi xe</ActionCardTitle>
+                    <ActionInfo>
+                      Ghi nhận kết quả chẩn đoán và xác định có thể sửa tại chỗ
+                      không.
+                    </ActionInfo>
+                    <FormGroup>
+                      <FormLabel>Ghi chú chẩn đoán *</FormLabel>
+                      <FormTextarea
+                        value={diagnosisNotes}
+                        onChange={(e) => setDiagnosisNotes(e.target.value)}
+                        rows={3}
+                        placeholder="Mô tả tình trạng xe..."
+                      />
+                    </FormGroup>
+                    <FormGroup>
+                      <FormLabel>Có thể sửa tại chỗ? *</FormLabel>
+                      <RadioRow>
+                        <RadioBtn
+                          $selected={canRepairOnSite === true}
+                          onClick={() => setCanRepairOnSite(true)}
+                        >
+                          Sửa tại chỗ
+                        </RadioBtn>
+                        <RadioBtn
+                          $selected={canRepairOnSite === false}
+                          onClick={() => setCanRepairOnSite(false)}
+                        >
+                          Cần kéo xe
+                        </RadioBtn>
+                      </RadioRow>
+                    </FormGroup>
+                    <ActionBtnRow>
+                      <ActionBtn
+                        $color="#ea580c"
+                        onClick={handleTechDiagnosis}
+                        disabled={
+                          !diagnosisNotes.trim() ||
+                          canRepairOnSite === null ||
+                          techLoading
+                        }
+                      >
+                        {techLoading ? "Đang gửi..." : "Gửi chẩn đoán"}
+                      </ActionBtn>
+                    </ActionBtnRow>
+                  </ActionCard>
+                </>
+              )}
 
             {/* KTV: Ghi nhận vật tư + Hoàn tất sửa chữa */}
             {isTechnician && data.status === "REPAIRING" && (
@@ -446,8 +476,12 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                 <Divider />
                 {/* --- Repair items --- */}
                 <ActionCard $highlight>
-                  <ActionCardTitle>Ghi nhận vật tư / dịch vụ sử dụng</ActionCardTitle>
-                  <ActionInfo>Thêm các vật tư và công dịch vụ đã sử dụng.</ActionInfo>
+                  <ActionCardTitle>
+                    Ghi nhận vật tư / dịch vụ sử dụng
+                  </ActionCardTitle>
+                  <ActionInfo>
+                    Thêm các vật tư và công dịch vụ đã sử dụng.
+                  </ActionInfo>
                   {repairItems.map((item, idx) => (
                     <RepairItemRow key={idx}>
                       <RepairItemInputs>
@@ -457,7 +491,10 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                           value={item.productId}
                           onChange={(e) => {
                             const next = [...repairItems];
-                            next[idx] = { ...next[idx], productId: e.target.value };
+                            next[idx] = {
+                              ...next[idx],
+                              productId: e.target.value,
+                            };
                             setRepairItems(next);
                           }}
                           style={{ flex: "0 0 100px" }}
@@ -468,7 +505,10 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                           value={item.quantity}
                           onChange={(e) => {
                             const next = [...repairItems];
-                            next[idx] = { ...next[idx], quantity: e.target.value };
+                            next[idx] = {
+                              ...next[idx],
+                              quantity: e.target.value,
+                            };
                             setRepairItems(next);
                           }}
                           style={{ flex: "0 0 80px" }}
@@ -479,7 +519,10 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                           value={item.unitPrice}
                           onChange={(e) => {
                             const next = [...repairItems];
-                            next[idx] = { ...next[idx], unitPrice: e.target.value };
+                            next[idx] = {
+                              ...next[idx],
+                              unitPrice: e.target.value,
+                            };
                             setRepairItems(next);
                           }}
                           style={{ flex: "1" }}
@@ -497,7 +540,9 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                         {repairItems.length > 1 && (
                           <RemoveItemBtn
                             onClick={() =>
-                              setRepairItems(repairItems.filter((_, i) => i !== idx))
+                              setRepairItems(
+                                repairItems.filter((_, i) => i !== idx),
+                              )
                             }
                           >
                             ✕
@@ -511,7 +556,12 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                       onClick={() =>
                         setRepairItems([
                           ...repairItems,
-                          { productId: "", quantity: "", unitPrice: "", notes: "" },
+                          {
+                            productId: "",
+                            quantity: "",
+                            unitPrice: "",
+                            notes: "",
+                          },
                         ])
                       }
                     >
@@ -531,7 +581,9 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                 {/* --- Complete repair --- */}
                 <ActionCard $highlight>
                   <ActionCardTitle>Hoàn tất sửa chữa</ActionCardTitle>
-                  <ActionInfo>Sửa xong? Ghi chú kết quả và báo hoàn tất để SA tạo hóa đơn.</ActionInfo>
+                  <ActionInfo>
+                    Sửa xong? Ghi chú kết quả và báo hoàn tất để SA tạo hóa đơn.
+                  </ActionInfo>
                   <FormGroup>
                     <FormLabel>Ghi chú hoàn tất</FormLabel>
                     <FormTextarea
@@ -542,7 +594,11 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                     />
                   </FormGroup>
                   <ActionBtnRow>
-                    <ActionBtn $color="#16a34a" onClick={handleTechCompleteRepair} disabled={techLoading}>
+                    <ActionBtn
+                      $color="#16a34a"
+                      onClick={handleTechCompleteRepair}
+                      disabled={techLoading}
+                    >
                       {techLoading ? "Đang gửi..." : "Xác nhận hoàn tất"}
                     </ActionBtn>
                   </ActionBtnRow>
@@ -550,96 +606,344 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
               </>
             )}
 
-            {/* KTV: Các trạng thái chờ (không cần hành động) */}
-            {isTechnician && ["REPAIR_COMPLETE", "TOWING_DISPATCHED", "TOWING_ACCEPTED", "TOWED", "INVOICED", "INVOICE_SENT", "PAYMENT_PENDING"].includes(data.status as string) && (
-              <>
-                <Divider />
-                <ActionCard>
-                  <ActionInfo>Đang chờ xưởng và khách hàng xử lý hóa đơn & thanh toán.</ActionInfo>
-                </ActionCard>
-              </>
-            )}
-
-            {/* ═══ CUSTOMER actions ═══ */}
-
-            {/* KH: Chờ SA xử lý */}
-            {isCustomer && ["PENDING", "REVIEWING"].includes(data.status as string) && (
-              <>
-                <Divider />
-                <ActionCard>
-                  <ActionInfo>Yêu cầu đang được xưởng tiếp nhận và xử lý. Vui lòng chờ phản hồi.</ActionInfo>
-                </ActionCard>
-              </>
-            )}
-
-            {/* KH: SA đề xuất phương án — cần xác nhận */}
-            {isCustomer && ["PROPOSED_ROADSIDE", "PROPOSED_TOWING"].includes(data.status as string) && (
+            {/* KTV: Chỉnh sửa phụ tùng sau khi sửa xong (REPAIR_COMPLETE) */}
+            {isTechnician && data.status === "REPAIR_COMPLETE" && (
               <>
                 <Divider />
                 <ActionCard $highlight>
-                  <ActionCardTitle>{t("rescueProposalCardTitle")}</ActionCardTitle>
-                  <ProposalInfoGrid>
-                    <ProposalInfoRow>
-                      <ProposalInfoLabel>{t("rescueProposalType")}</ProposalInfoLabel>
-                      <ProposalInfoValue $rescue={data.status === "PROPOSED_ROADSIDE" ? "ROADSIDE" : "TOWING"}>
-                        {data.status === "PROPOSED_ROADSIDE" ? (
-                          <><FaWrench size={11} style={{ marginRight: 4 }} />{t("rescueProposalRoadsideLabel")}</>
-                        ) : (
-                          <><FaTruck size={11} style={{ marginRight: 4 }} />{t("rescueProposalTowingLabel")}</>
+                  <ActionCardTitle>
+                    Sửa xong — Điều chỉnh phụ tùng / dịch vụ
+                  </ActionCardTitle>
+                  <ActionInfo>
+                    Bổ sung hoặc chỉnh sửa vật tư & công dịch vụ trước khi SA
+                    tạo hóa đơn.
+                  </ActionInfo>
+                  {repairItems.map((item, idx) => (
+                    <RepairItemRow key={idx}>
+                      <RepairItemInputs>
+                        <FormInput
+                          type="number"
+                          placeholder="Product ID *"
+                          value={item.productId}
+                          onChange={(e) => {
+                            const next = [...repairItems];
+                            next[idx] = {
+                              ...next[idx],
+                              productId: e.target.value,
+                            };
+                            setRepairItems(next);
+                          }}
+                          style={{ flex: "0 0 100px" }}
+                        />
+                        <FormInput
+                          type="number"
+                          placeholder="Số lượng *"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const next = [...repairItems];
+                            next[idx] = {
+                              ...next[idx],
+                              quantity: e.target.value,
+                            };
+                            setRepairItems(next);
+                          }}
+                          style={{ flex: "0 0 80px" }}
+                        />
+                        <FormInput
+                          type="number"
+                          placeholder="Đơn giá *"
+                          value={item.unitPrice}
+                          onChange={(e) => {
+                            const next = [...repairItems];
+                            next[idx] = {
+                              ...next[idx],
+                              unitPrice: e.target.value,
+                            };
+                            setRepairItems(next);
+                          }}
+                          style={{ flex: "1" }}
+                        />
+                        <FormInput
+                          placeholder="Ghi chú"
+                          value={item.notes}
+                          onChange={(e) => {
+                            const next = [...repairItems];
+                            next[idx] = { ...next[idx], notes: e.target.value };
+                            setRepairItems(next);
+                          }}
+                          style={{ flex: "2" }}
+                        />
+                        {repairItems.length > 1 && (
+                          <RemoveItemBtn
+                            onClick={() =>
+                              setRepairItems(
+                                repairItems.filter((_, i) => i !== idx),
+                              )
+                            }
+                          >
+                            ✕
+                          </RemoveItemBtn>
                         )}
-                      </ProposalInfoValue>
-                    </ProposalInfoRow>
-                    {data.estimatedServiceFee != null && data.estimatedServiceFee > 0 && (
-                      <ProposalInfoRow>
-                        <ProposalInfoLabel>{t("rescueProposalFee")}</ProposalInfoLabel>
-                        <ProposalInfoValue $rescue="FEE">
-                          {data.estimatedServiceFee.toLocaleString()} VND
-                        </ProposalInfoValue>
-                      </ProposalInfoRow>
-                    )}
-                    {data.proposalNotes && (
-                      <ProposalInfoRow>
-                        <ProposalInfoLabel>{t("rescueProposalNotes")}</ProposalInfoLabel>
-                        <ProposalInfoValue $rescue="NOTE">{data.proposalNotes}</ProposalInfoValue>
-                      </ProposalInfoRow>
-                    )}
-                  </ProposalInfoGrid>
+                      </RepairItemInputs>
+                    </RepairItemRow>
+                  ))}
                   <ActionBtnRow>
-                    <ActionBtn
-                      $color="#16a34a"
-                      onClick={handleAcceptProposal}
-                      disabled={proposalAccepting}
+                    <ActionBtnOutline
+                      onClick={() =>
+                        setRepairItems([
+                          ...repairItems,
+                          {
+                            productId: "",
+                            quantity: "",
+                            unitPrice: "",
+                            notes: "",
+                          },
+                        ])
+                      }
                     >
-                      {proposalAccepting ? t("rescueMgrProcessing") : t("rescueProposalAccept")}
-                    </ActionBtn>
-                    <ActionBtnOutline onClick={() => setShowCancelForm(true)} disabled={proposalAccepting}>
-                      {t("rescueProposalReject")}
+                      + Thêm dòng
                     </ActionBtnOutline>
+                    <ActionBtn
+                      $color="#2563eb"
+                      onClick={handleAddRepairItems}
+                      disabled={repairItemsSubmitting}
+                    >
+                      {repairItemsSubmitting ? "Đang lưu..." : "Lưu phụ tùng"}
+                    </ActionBtn>
                   </ActionBtnRow>
                 </ActionCard>
-              </>
-            )}
-
-            {/* KH: Đã đồng ý — chờ điều phối KTV */}
-            {isCustomer && ["DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
-              <>
                 <Divider />
                 <ActionCard>
                   <ActionInfo>
-                    {data.status === "DISPATCHED"
-                      ? "Kỹ thuật viên đã được phân công. Đang chờ KTV xác nhận."
-                      : "Kỹ thuật viên đang trên đường đến vị trí của bạn."}
+                    Đang chờ SA tạo và gửi hóa đơn cho khách hàng.
                   </ActionInfo>
                 </ActionCard>
               </>
             )}
+
+            {/* KTV: Các trạng thái chờ (không cần hành động) */}
+            {isTechnician &&
+              [
+                "TOWING_DISPATCHED",
+                "TOWING_ACCEPTED",
+                "TOWED",
+                "INVOICED",
+                "INVOICE_SENT",
+                "PAYMENT_PENDING",
+              ].includes(data.status as string) && (
+                <>
+                  <Divider />
+                  <ActionCard>
+                    <ActionInfo>
+                      Đang chờ xưởng và khách hàng xử lý hóa đơn & thanh toán.
+                    </ActionInfo>
+                  </ActionCard>
+                </>
+              )}
+
+            {/* ═══ CUSTOMER actions ═══ */}
+
+            {/* KH: Chờ SA xử lý */}
+            {isCustomer &&
+              ["PENDING", "REVIEWING"].includes(data.status as string) && (
+                <>
+                  <Divider />
+                  <ActionCard>
+                    <ActionInfo>
+                      Yêu cầu đang được xưởng tiếp nhận và xử lý. Vui lòng chờ
+                      phản hồi.
+                    </ActionInfo>
+                  </ActionCard>
+                </>
+              )}
+
+            {/* KH: SA đề xuất phương án — xem phiếu đề xuất đầy đủ & xác nhận */}
+            {isCustomer &&
+              ["PROPOSED_ROADSIDE", "PROPOSED_TOWING"].includes(
+                data.status as string,
+              ) && (
+                <>
+                  <Divider />
+                  {/* ── Phiếu đề xuất ── */}
+                  <ProposalDocument>
+                    <ProposalDocHeader>
+                      <ProposalDocIcon>
+                        <FaFileAlt size={16} />
+                      </ProposalDocIcon>
+                      <div>
+                        <ProposalDocTitle>
+                          Phiếu đề xuất từ xưởng
+                        </ProposalDocTitle>
+                        <ProposalDocCode>
+                          RESCUE-{data.rescueId}
+                        </ProposalDocCode>
+                      </div>
+                      <ProposalTypeBadge
+                        $isRoadside={data.status === "PROPOSED_ROADSIDE"}
+                      >
+                        {data.status === "PROPOSED_ROADSIDE" ? (
+                          <>
+                            <FaWrench size={11} /> Sửa tại chỗ
+                          </>
+                        ) : (
+                          <>
+                            <FaTruck size={11} /> Kéo về xưởng
+                          </>
+                        )}
+                      </ProposalTypeBadge>
+                    </ProposalDocHeader>
+
+                    <ProposalDocBody>
+                      {/* Phí ước tính */}
+                      {data.estimatedServiceFee != null &&
+                        data.estimatedServiceFee > 0 && (
+                          <ProposalFeeBlock>
+                            <ProposalFeeLabel>
+                              <FaMoneyBillWave size={13} /> Chi phí ước tính
+                            </ProposalFeeLabel>
+                            <ProposalFeeAmount>
+                              {data.estimatedServiceFee.toLocaleString()} VND
+                            </ProposalFeeAmount>
+                            <ProposalFeeNote>
+                              Có thể thay đổi sau khi chẩn đoán thực tế
+                            </ProposalFeeNote>
+                          </ProposalFeeBlock>
+                        )}
+
+                      {/* Ghi chú SA */}
+                      {data.proposalNotes && (
+                        <ProposalSection>
+                          <ProposalSectionTitle>
+                            <FaStickyNote size={12} /> Ghi chú từ xưởng
+                          </ProposalSectionTitle>
+                          <ProposalNoteText>
+                            {data.proposalNotes}
+                          </ProposalNoteText>
+                        </ProposalSection>
+                      )}
+
+                      {/* Dịch vụ dự kiến */}
+                      {data.suggestedServices &&
+                        data.suggestedServices.length > 0 && (
+                          <ProposalSection>
+                            <ProposalSectionTitle>
+                              <FaTools size={12} /> Dịch vụ dự kiến
+                            </ProposalSectionTitle>
+                            <ProposalPartsList>
+                              {data.suggestedServices.map((svc, idx) => (
+                                <ProposalPartItem key={idx}>
+                                  <ProposalPartName>
+                                    {svc.serviceName ||
+                                      `Dịch vụ #${svc.serviceId}`}
+                                  </ProposalPartName>
+                                  {svc.price != null && svc.price > 0 && (
+                                    <ProposalPartMeta>
+                                      {svc.price.toLocaleString()} VND
+                                    </ProposalPartMeta>
+                                  )}
+                                </ProposalPartItem>
+                              ))}
+                            </ProposalPartsList>
+                          </ProposalSection>
+                        )}
+
+                      {/* Phụ tùng dự kiến */}
+                      {data.suggestedParts &&
+                        data.suggestedParts.length > 0 && (
+                          <ProposalSection>
+                            <ProposalSectionTitle>
+                              <FaBoxOpen size={12} /> Phụ tùng dự kiến
+                            </ProposalSectionTitle>
+                            <ProposalPartsList>
+                              {data.suggestedParts.map((part, idx) => (
+                                <ProposalPartItem key={idx}>
+                                  <ProposalPartName>
+                                    {part.partName ||
+                                      `Phụ tùng #${part.partId}`}
+                                  </ProposalPartName>
+                                  <ProposalPartMeta>
+                                    x{part.quantity}
+                                    {part.unitPrice != null &&
+                                      part.unitPrice > 0 && (
+                                        <>
+                                          {" "}
+                                          ·{" "}
+                                          {(
+                                            part.unitPrice * part.quantity
+                                          ).toLocaleString()}{" "}
+                                          VND
+                                        </>
+                                      )}
+                                  </ProposalPartMeta>
+                                </ProposalPartItem>
+                              ))}
+                            </ProposalPartsList>
+                          </ProposalSection>
+                        )}
+
+                      {/* Hướng dẫn */}
+                      <ProposalHintBox
+                        $isRoadside={data.status === "PROPOSED_ROADSIDE"}
+                      >
+                        {data.status === "PROPOSED_ROADSIDE"
+                          ? "Kỹ thuật viên sẽ đến vị trí của bạn để sửa chữa tại chỗ."
+                          : "Xe của bạn sẽ được kéo về xưởng để tiến hành kiểm tra và sửa chữa."}
+                      </ProposalHintBox>
+                    </ProposalDocBody>
+
+                    <ProposalDocFooter>
+                      <ProposalFooterNote>
+                        Vui lòng đọc kỹ trước khi xác nhận.
+                      </ProposalFooterNote>
+                      <ActionBtnRow>
+                        <ActionBtn
+                          $color="#16a34a"
+                          onClick={handleAcceptProposal}
+                          disabled={proposalAccepting}
+                          style={{ gap: "0.375rem" }}
+                        >
+                          <FaCheckCircle size={13} />
+                          {proposalAccepting
+                            ? t("rescueMgrProcessing")
+                            : "Đồng ý xác nhận"}
+                        </ActionBtn>
+                        <ActionBtnOutline
+                          onClick={() => setShowCancelForm(true)}
+                          disabled={proposalAccepting}
+                          style={{ gap: "0.375rem" }}
+                        >
+                          <FaTimesCircle size={13} />
+                          Từ chối
+                        </ActionBtnOutline>
+                      </ActionBtnRow>
+                    </ProposalDocFooter>
+                  </ProposalDocument>
+                </>
+              )}
+
+            {/* KH: Đã đồng ý — KTV đã được phân công tự động */}
+            {isCustomer &&
+              ["DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
+                <>
+                  <Divider />
+                  <ActionCard>
+                    <ActionInfo>
+                      {data.status === "DISPATCHED"
+                        ? "Kỹ thuật viên đã được phân công và đang chuẩn bị di chuyển đến vị trí của bạn."
+                        : "Kỹ thuật viên đang trên đường đến vị trí của bạn."}
+                    </ActionInfo>
+                  </ActionCard>
+                </>
+              )}
 
             {/* KH: KTV đến nơi — chờ chẩn đoán */}
             {isCustomer && data.status === "ON_SITE" && (
               <>
                 <Divider />
                 <ActionCard>
-                  <ActionInfo>Kỹ thuật viên đã đến nơi. Đang tiến hành kiểm tra xe.</ActionInfo>
+                  <ActionInfo>
+                    Kỹ thuật viên đã đến nơi. Đang tiến hành kiểm tra xe.
+                  </ActionInfo>
                 </ActionCard>
               </>
             )}
@@ -649,8 +953,13 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
               <>
                 <Divider />
                 <ActionCard $highlight>
-                  <ActionCardTitle>Kỹ thuật viên đã hoàn tất chẩn đoán</ActionCardTitle>
-                  <ActionInfo>Xem xét kết quả và xác nhận để kỹ thuật viên tiến hành sửa chữa tại chỗ.</ActionInfo>
+                  <ActionCardTitle>
+                    Kỹ thuật viên đã hoàn tất chẩn đoán
+                  </ActionCardTitle>
+                  <ActionInfo>
+                    Xem xét kết quả và xác nhận để kỹ thuật viên tiến hành sửa
+                    chữa tại chỗ.
+                  </ActionInfo>
                   <FormGroup>
                     <FormLabel>Ghi chú xác nhận (tuỳ chọn)</FormLabel>
                     <FormTextarea
@@ -663,13 +972,23 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                   <ActionBtnRow>
                     <ActionBtn
                       $color="#16a34a"
-                      onClick={() => handleConsent({ consentGiven: true, consentNotes: consentNotes.trim() || undefined })}
+                      onClick={() =>
+                        handleConsent({
+                          consentGiven: true,
+                          consentNotes: consentNotes.trim() || undefined,
+                        })
+                      }
                       disabled={consenting}
                     >
                       {consenting ? "Đang xử lý..." : "Đồng ý sửa tại chỗ"}
                     </ActionBtn>
                     <ActionBtnOutline
-                      onClick={() => handleConsent({ consentGiven: false, consentNotes: consentNotes.trim() || undefined })}
+                      onClick={() =>
+                        handleConsent({
+                          consentGiven: false,
+                          consentNotes: consentNotes.trim() || undefined,
+                        })
+                      }
                       disabled={consenting}
                     >
                       Từ chối
@@ -684,7 +1003,9 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
               <>
                 <Divider />
                 <ActionCard>
-                  <ActionInfo>Kỹ thuật viên đang tiến hành sửa chữa tại chỗ.</ActionInfo>
+                  <ActionInfo>
+                    Kỹ thuật viên đang tiến hành sửa chữa tại chỗ.
+                  </ActionInfo>
                 </ActionCard>
               </>
             )}
@@ -694,10 +1015,19 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
               <>
                 <Divider />
                 <ActionCard $highlight>
-                  <ActionCardTitle>Xưởng đề xuất dịch vụ kéo xe</ActionCardTitle>
-                  <ActionInfo>Xưởng đã điều phối xe kéo đến vị trí của bạn. Bạn có đồng ý sử dụng dịch vụ kéo xe không?</ActionInfo>
+                  <ActionCardTitle>
+                    Xưởng đề xuất dịch vụ kéo xe
+                  </ActionCardTitle>
+                  <ActionInfo>
+                    Xưởng đã điều phối xe kéo đến vị trí của bạn. Bạn có đồng ý
+                    sử dụng dịch vụ kéo xe không?
+                  </ActionInfo>
                   <ActionBtnRow>
-                    <ActionBtn $color="#16a34a" onClick={handleAcceptTowing} disabled={consenting}>
+                    <ActionBtn
+                      $color="#16a34a"
+                      onClick={handleAcceptTowing}
+                      disabled={consenting}
+                    >
                       {consenting ? "Đang xử lý..." : "Chấp nhận kéo xe"}
                     </ActionBtn>
                   </ActionBtnRow>
@@ -706,32 +1036,36 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
             )}
 
             {/* KH: Đã chấp nhận kéo / xe về xưởng */}
-            {isCustomer && ["TOWING_ACCEPTED", "TOWED"].includes(data.status as string) && (
-              <>
-                <Divider />
-                <ActionCard>
-                  <ActionInfo>
-                    {data.status === "TOWING_ACCEPTED"
-                      ? "Bạn đã chấp nhận kéo xe. Xe đang được kéo về xưởng."
-                      : "Xe đã được kéo về xưởng. Đang chờ xử lý."}
-                  </ActionInfo>
-                </ActionCard>
-              </>
-            )}
+            {isCustomer &&
+              ["TOWING_ACCEPTED", "TOWED"].includes(data.status as string) && (
+                <>
+                  <Divider />
+                  <ActionCard>
+                    <ActionInfo>
+                      {data.status === "TOWING_ACCEPTED"
+                        ? "Bạn đã chấp nhận kéo xe. Xe đang được kéo về xưởng."
+                        : "Xe đã được kéo về xưởng. Đang chờ xử lý."}
+                    </ActionInfo>
+                  </ActionCard>
+                </>
+              )}
 
             {/* KH: Chờ hóa đơn */}
-            {isCustomer && ["REPAIR_COMPLETE", "INVOICED"].includes(data.status as string) && (
-              <>
-                <Divider />
-                <ActionCard>
-                  <ActionInfo>
-                    {data.status === "REPAIR_COMPLETE"
-                      ? "Sửa chữa đã hoàn tất. Xưởng đang tạo hóa đơn."
-                      : "Hóa đơn đã được tạo. Đang chờ xưởng gửi hóa đơn đến bạn."}
-                  </ActionInfo>
-                </ActionCard>
-              </>
-            )}
+            {isCustomer &&
+              ["REPAIR_COMPLETE", "INVOICED"].includes(
+                data.status as string,
+              ) && (
+                <>
+                  <Divider />
+                  <ActionCard>
+                    <ActionInfo>
+                      {data.status === "REPAIR_COMPLETE"
+                        ? "Sửa chữa đã hoàn tất. Xưởng đang tạo hóa đơn."
+                        : "Hóa đơn đã được tạo. Đang chờ xưởng gửi hóa đơn đến bạn."}
+                    </ActionInfo>
+                  </ActionCard>
+                </>
+              )}
 
             {/* KH: Thanh toán */}
             {isCustomer && data.status === "INVOICE_SENT" && !showPayment && (
@@ -739,9 +1073,15 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                 <Divider />
                 <ActionCard $highlight>
                   <ActionCardTitle>Cần thanh toán</ActionCardTitle>
-                  <ActionInfo>Hóa đơn đã được gửi. Vui lòng xác nhận thanh toán để hoàn tất.</ActionInfo>
+                  <ActionInfo>
+                    Hóa đơn đã được gửi. Vui lòng xác nhận thanh toán để hoàn
+                    tất.
+                  </ActionInfo>
                   <ActionBtnRow>
-                    <ActionBtn $color="#1d4ed8" onClick={() => setShowPayment(true)}>
+                    <ActionBtn
+                      $color="#1d4ed8"
+                      onClick={() => setShowPayment(true)}
+                    >
                       Xác nhận thanh toán
                     </ActionBtn>
                   </ActionBtnRow>
@@ -759,7 +1099,10 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                     <FormSelect
                       value={paymentMethod}
                       onChange={(e) =>
-                        setPaymentMethod(e.target.value as IRescuePaymentPayload["paymentMethod"])
+                        setPaymentMethod(
+                          e.target
+                            .value as IRescuePaymentPayload["paymentMethod"],
+                        )
                       }
                     >
                       <option value="TRANSFER">Chuyển khoản</option>
@@ -795,7 +1138,10 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                     >
                       {paymentSubmitting ? "Đang xử lý..." : "Thanh toán"}
                     </ActionBtn>
-                    <ActionBtnOutline onClick={() => setShowPayment(false)} disabled={paymentSubmitting}>
+                    <ActionBtnOutline
+                      onClick={() => setShowPayment(false)}
+                      disabled={paymentSubmitting}
+                    >
                       Quay lại
                     </ActionBtnOutline>
                   </ActionBtnRow>
@@ -840,7 +1186,12 @@ const RescueDetailModal = ({ data, loading, onClose, onRefresh, userRoleID }: Pr
                     >
                       {cancelling ? "Đang huỷ..." : "Xác nhận huỷ"}
                     </ActionBtn>
-                    <ActionBtnOutline onClick={() => { setShowCancelForm(false); setCancelReason(""); }}>
+                    <ActionBtnOutline
+                      onClick={() => {
+                        setShowCancelForm(false);
+                        setCancelReason("");
+                      }}
+                    >
                       Không huỷ
                     </ActionBtnOutline>
                   </ActionBtnRow>
@@ -1199,43 +1550,171 @@ const RemoveItemBtn = styled.button`
   }
 `;
 
-const ProposalInfoGrid = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  background: white;
-  border: 1px solid #dbeafe;
-  border-radius: 8px;
-  padding: 0.75rem;
+// ─── Phiếu đề xuất styled components ─────────────────────────
+const ProposalDocument = styled.div`
+  border: 1.5px solid #2563eb;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 0.5rem;
 `;
 
-const ProposalInfoRow = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-`;
-
-const ProposalInfoLabel = styled.span`
-  flex-shrink: 0;
-  width: 110px;
-  font-size: 0.8rem;
-  color: #6b7280;
-  font-weight: 500;
-  padding-top: 1px;
-`;
-
-const ProposalInfoValue = styled.span<{ $rescue: string }>`
-  flex: 1;
-  font-size: 0.8rem;
-  font-weight: 600;
+const ProposalDocHeader = styled.div`
   display: flex;
   align-items: center;
-  color: ${({ $rescue }) =>
-    $rescue === "ROADSIDE"
-      ? "#16a34a"
-      : $rescue === "TOWING"
-        ? "#0891b2"
-        : $rescue === "FEE"
-          ? "#d97706"
-          : "#374151"};
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-bottom: 1px solid #bfdbfe;
+`;
+
+const ProposalDocIcon = styled.div`
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
+const ProposalDocTitle = styled.div`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e3a8a;
+`;
+
+const ProposalDocCode = styled.div`
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 1px;
+`;
+
+const ProposalTypeBadge = styled.div<{ $isRoadside: boolean }>`
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: ${({ $isRoadside }) => ($isRoadside ? "#f0fdf4" : "#ecfeff")};
+  color: ${({ $isRoadside }) => ($isRoadside ? "#16a34a" : "#0891b2")};
+  border: 1.5px solid
+    ${({ $isRoadside }) => ($isRoadside ? "#86efac" : "#67e8f9")};
+  white-space: nowrap;
+`;
+
+const ProposalDocBody = styled.div`
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  background: white;
+`;
+
+const ProposalFeeBlock = styled.div`
+  background: #fefce8;
+  border: 1.5px solid #fde68a;
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+`;
+
+const ProposalFeeLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  color: #92400e;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+`;
+
+const ProposalFeeAmount = styled.div`
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: #d97706;
+  letter-spacing: -0.5px;
+`;
+
+const ProposalFeeNote = styled.div`
+  font-size: 0.7rem;
+  color: #a16207;
+  margin-top: 0.25rem;
+`;
+
+const ProposalSection = styled.div``;
+
+const ProposalSectionTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 0.375rem;
+`;
+
+const ProposalNoteText = styled.div`
+  font-size: 0.8125rem;
+  color: #374151;
+  background: #f9fafb;
+  border-left: 3px solid #6b7280;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0 6px 6px 0;
+  line-height: 1.5;
+`;
+
+const ProposalPartsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+`;
+
+const ProposalPartItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 0.375rem 0.625rem;
+`;
+
+const ProposalPartName = styled.span`
+  font-size: 0.8125rem;
+  color: #111827;
+  font-weight: 500;
+`;
+
+const ProposalPartMeta = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
+`;
+
+const ProposalHintBox = styled.div<{ $isRoadside: boolean }>`
+  font-size: 0.8125rem;
+  color: ${({ $isRoadside }) => ($isRoadside ? "#15803d" : "#0e7490")};
+  background: ${({ $isRoadside }) => ($isRoadside ? "#f0fdf4" : "#ecfeff")};
+  border-radius: 8px;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid
+    ${({ $isRoadside }) => ($isRoadside ? "#bbf7d0" : "#a5f3fc")};
+`;
+
+const ProposalDocFooter = styled.div`
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+`;
+
+const ProposalFooterNote = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
 `;

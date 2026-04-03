@@ -10,6 +10,19 @@ export interface IRescueInvoiceData {
   createdAt: string;
 }
 
+export interface IRescueSuggestedPartDetail {
+  partId: number;
+  partName?: string;
+  quantity: number;
+  unitPrice?: number;
+}
+
+export interface IRescueSuggestedServiceDetail {
+  serviceId: number;
+  serviceName?: string;
+  price?: number;
+}
+
 export interface IRescueRequest {
   rescueId: number;
   status: RescueStatus;
@@ -28,6 +41,8 @@ export interface IRescueRequest {
   createdDate: string;
   proposalNotes?: string;
   estimatedServiceFee?: number;
+  suggestedParts?: IRescueSuggestedPartDetail[];
+  suggestedServices?: IRescueSuggestedServiceDetail[];
   invoice?: IRescueInvoiceData;
 }
 
@@ -36,6 +51,7 @@ export type RescueStatus =
   | "REVIEWING"
   | "PROPOSED_ROADSIDE"
   | "PROPOSED_TOWING"
+  | "PROPOSAL_ACCEPTED"
   | "DISPATCHED"
   | "EN_ROUTE"
   | "ON_SITE"
@@ -74,11 +90,16 @@ export interface IRescueSuggestedPart {
   quantity: number;
 }
 
+export interface IRescueSuggestedService {
+  serviceId: number;
+}
+
 export interface IRescueProposePayload {
   rescueType: "ROADSIDE" | "TOWING";
   proposalNotes?: string;
   estimatedServiceFee?: number;
   suggestedParts?: IRescueSuggestedPart[];
+  suggestedServices?: IRescueSuggestedService[];
 }
 
 export interface IRescueAssignTechPayload {

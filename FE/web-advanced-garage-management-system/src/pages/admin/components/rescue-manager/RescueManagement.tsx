@@ -25,14 +25,15 @@ import {
   assignTechnician,
   cancelRescueRequest,
   markSpamRescueRequest,
-  acceptRescueJob,
   arriveRescue,
+  // acceptRescueJob removed: KTV auto-nhận khi SA phân công
   startDiagnosis,
   completeRepair,
   createRescueInvoice,
   sendRescueInvoice,
   dispatchTowing,
   completeTowing,
+  addRepairItems,
   type IRescueRequest,
   type RescueStatus,
 } from "@/apis/rescue";
@@ -105,6 +106,13 @@ const RescueManagement = () => {
   const [showCompleteTowingModal, setShowCompleteTowingModal] = useState(false);
   const [repairOrderNotes, setRepairOrderNotes] = useState("");
   const [completeTowingSubmitting, setCompleteTowingSubmitting] = useState(false);
+
+  // Edit parts modal (chỉnh sửa phụ tùng tại REPAIR_COMPLETE)
+  const [showEditPartsModal, setShowEditPartsModal] = useState(false);
+  const [editPartsItems, setEditPartsItems] = useState([
+    { productId: "", quantity: "", unitPrice: "", notes: "" },
+  ]);
+  const [editPartsSubmitting, setEditPartsSubmitting] = useState(false);
 
   // Proposal modal (Đề xuất)
   const [showProposalModal, setShowProposalModal] = useState(false);
@@ -212,17 +220,6 @@ const RescueManagement = () => {
     setShowAssignModal(false);
     setEstimatedArrival("");
     fetchRescues();
-  };
-
-  const handleAcceptJob = async (id: number) => {
-    try {
-      await acceptRescueJob(id);
-      toast.success(t("rescueMgrAcceptJobSuccess"));
-      fetchRescues();
-    } catch (error) {
-      console.error("Error accepting job:", error);
-      toast.error(t("rescueMgrAcceptJobError"));
-    }
   };
 
   const handleArrive = async (id: number) => {
@@ -340,6 +337,36 @@ const RescueManagement = () => {
       toast.error(t("rescueMgrCompleteTowingError"));
     } finally {
       setCompleteTowingSubmitting(false);
+    }
+  };
+
+  const handleEditParts = async () => {
+    if (!selectedRescue) return;
+    const validItems = editPartsItems.filter(
+      (i) => i.productId.trim() && i.quantity.trim() && i.unitPrice.trim(),
+    );
+    if (validItems.length === 0) {
+      toast.error("Vui lòng nhập ít nhất 1 vật tư/dịch vụ hợp lệ!");
+      return;
+    }
+    setEditPartsSubmitting(true);
+    try {
+      await addRepairItems(selectedRescue.rescueId, {
+        items: validItems.map((i) => ({
+          productId: Number(i.productId),
+          quantity: Number(i.quantity),
+          unitPrice: Number(i.unitPrice),
+          notes: i.notes.trim() || undefined,
+        })),
+      });
+      toast.success("Đã cập nhật phụ tùng/dịch vụ!");
+      setShowEditPartsModal(false);
+      setEditPartsItems([{ productId: "", quantity: "", unitPrice: "", notes: "" }]);
+      fetchRescues();
+    } catch {
+      toast.error("Cập nhật phụ tùng thất bại!");
+    } finally {
+      setEditPartsSubmitting(false);
     }
   };
 
@@ -473,15 +500,10 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ SA: Điều KTV ═══
+      // ═══ SA: Chờ khách hàng xác nhận đề xuất ═══
       case "PROPOSED_ROADSIDE":
         if (isSA) {
-          actions.push({
-            label: t("rescueMgrDispatchTech"),
-            icon: <FaUserCog size={12} />,
-            color: "#0891b2",
-            onClick: () => { setSelectedRescue(rescue); setEstimatedArrival(""); setSelectedTechIds(new Set()); setShowAssignModal(true); },
-          });
+          // Không điều KTV ở bước này — đợi KH xác nhận trước
           actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
         }
         break;
@@ -504,19 +526,20 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ KTV: Nhận & di chuyển ═══
+      // ═══ PROPOSAL_ACCEPTED: KH đã xác nhận → SA điều KTV ═══
+      case "PROPOSAL_ACCEPTED":
+      // ═══ DISPATCHED: KH đã xác nhận → SA điều KTV (KTV auto-nhận) ═══
       case "DISPATCHED":
-        if (isTech) {
-          actions.push({
-            label: t("rescueMgrAcceptJob"),
-            icon: <FaCheck size={12} />,
-            color: "#0891b2",
-            onClick: () => handleAcceptJob(rescue.rescueId),
-          });
-        }
         if (isSA) {
+          actions.push({
+            label: t("rescueMgrDispatchTech"),
+            icon: <FaUserCog size={12} />,
+            color: "#0891b2",
+            onClick: () => { setSelectedRescue(rescue); setEstimatedArrival(""); setSelectedTechIds(new Set()); setShowAssignModal(true); },
+          });
           actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
         }
+        // KTV auto-nhận khi được SA chỉ định — không cần thao tác thủ công
         break;
 
       case "EN_ROUTE":
@@ -564,8 +587,20 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ SA: Tạo hóa đơn (sau sửa tại chỗ) ═══
+      // ═══ SA + KTV: Chỉnh sửa phụ tùng, SA tạo hóa đơn ═══
       case "REPAIR_COMPLETE":
+        if (isSA || isTech) {
+          actions.push({
+            label: "Chỉnh sửa phụ tùng",
+            icon: <FaWrench size={12} />,
+            color: "#2563eb",
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setEditPartsItems([{ productId: "", quantity: "", unitPrice: "", notes: "" }]);
+              setShowEditPartsModal(true);
+            },
+          });
+        }
         if (isSA) {
           actions.push({
             label: t("rescueMgrCreateInvoiceAction"),
@@ -1124,6 +1159,96 @@ const RescueManagement = () => {
               </ModalCancelBtn>
               <ModalConfirmBtn onClick={handleCompleteTowing} disabled={completeTowingSubmitting}>
                 {completeTowingSubmitting ? t("rescueMgrProcessing") : t("rescueMgrConfirmAtGarageBtn")}
+              </ModalConfirmBtn>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {/* ─── Edit Parts Modal (REPAIR_COMPLETE — SA & KTV) ─── */}
+      {showEditPartsModal && selectedRescue && (
+        <ModalOverlay onClick={() => setShowEditPartsModal(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()} style={{ maxWidth: "620px" }}>
+            <ModalHeader>
+              <ModalTitle>Chỉnh sửa phụ tùng / dịch vụ — RESCUE-{selectedRescue.rescueId}</ModalTitle>
+              <CloseBtn onClick={() => setShowEditPartsModal(false)} disabled={editPartsSubmitting}>
+                <FaTimes />
+              </CloseBtn>
+            </ModalHeader>
+            <ModalBody>
+              <p style={{ fontSize: "0.8125rem", color: "#6b7280", marginBottom: "0.75rem" }}>
+                Thêm hoặc điều chỉnh phụ tùng / công dịch vụ trước khi tạo hóa đơn.
+              </p>
+              {editPartsItems.map((item, idx) => (
+                <div key={idx} style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", alignItems: "center" }}>
+                  <FormInput
+                    type="number"
+                    placeholder="Product ID *"
+                    value={item.productId}
+                    onChange={(e) => {
+                      const next = [...editPartsItems];
+                      next[idx] = { ...next[idx], productId: e.target.value };
+                      setEditPartsItems(next);
+                    }}
+                    style={{ flex: "0 0 100px" }}
+                  />
+                  <FormInput
+                    type="number"
+                    placeholder="Số lượng *"
+                    value={item.quantity}
+                    onChange={(e) => {
+                      const next = [...editPartsItems];
+                      next[idx] = { ...next[idx], quantity: e.target.value };
+                      setEditPartsItems(next);
+                    }}
+                    style={{ flex: "0 0 80px" }}
+                  />
+                  <FormInput
+                    type="number"
+                    placeholder="Đơn giá *"
+                    value={item.unitPrice}
+                    onChange={(e) => {
+                      const next = [...editPartsItems];
+                      next[idx] = { ...next[idx], unitPrice: e.target.value };
+                      setEditPartsItems(next);
+                    }}
+                    style={{ flex: "1" }}
+                  />
+                  <FormInput
+                    placeholder="Ghi chú"
+                    value={item.notes}
+                    onChange={(e) => {
+                      const next = [...editPartsItems];
+                      next[idx] = { ...next[idx], notes: e.target.value };
+                      setEditPartsItems(next);
+                    }}
+                    style={{ flex: "2" }}
+                  />
+                  {editPartsItems.length > 1 && (
+                    <ModalCancelBtn
+                      style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", minWidth: "unset" }}
+                      onClick={() => setEditPartsItems(editPartsItems.filter((_, i) => i !== idx))}
+                    >
+                      ✕
+                    </ModalCancelBtn>
+                  )}
+                </div>
+              ))}
+              <ModalCancelBtn
+                style={{ marginTop: "0.25rem", fontSize: "0.8125rem" }}
+                onClick={() =>
+                  setEditPartsItems([...editPartsItems, { productId: "", quantity: "", unitPrice: "", notes: "" }])
+                }
+              >
+                + Thêm dòng
+              </ModalCancelBtn>
+            </ModalBody>
+            <ModalFooter>
+              <ModalCancelBtn onClick={() => setShowEditPartsModal(false)} disabled={editPartsSubmitting}>
+                {t("rescueMgrCancel")}
+              </ModalCancelBtn>
+              <ModalConfirmBtn onClick={handleEditParts} disabled={editPartsSubmitting}>
+                {editPartsSubmitting ? "Đang lưu..." : "Lưu phụ tùng"}
               </ModalConfirmBtn>
             </ModalFooter>
           </ModalContent>
