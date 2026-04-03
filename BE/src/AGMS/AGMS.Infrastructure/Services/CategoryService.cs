@@ -186,4 +186,26 @@ public class CategoryService : ICategoryService
 
         await _categoryRepository.DeleteAsync(id, ct);
     }
+
+    public async Task<CategoryResponse> ChangeStatusAsync(int id, bool isActive, CancellationToken ct)
+    {
+        var category = await _categoryRepository.GetByIdAsync(id, ct);
+        if (category == null)
+        {
+            throw new KeyNotFoundException($"Category with ID {id} not found.");
+        }
+
+        category.IsActive = isActive;
+        await _categoryRepository.UpdateAsync(category, ct);
+
+        return new CategoryResponse
+        {
+            CategoryID = category.CategoryID,
+            Name = category.Name,
+            Type = category.Type,
+            Description = category.Description,
+            MarkupPercent = category.MarkupPercent,
+            IsActive = category.IsActive
+        };
+    }
 }
