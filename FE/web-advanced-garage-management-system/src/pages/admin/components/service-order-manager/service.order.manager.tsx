@@ -118,13 +118,15 @@ const ServiceOrderManager = () => {
     }, 400);
   };
 
-  const handleStatusChange = (value: string | undefined) => {
-    setStatusFilter(value || undefined);
+  const handleStatusChange = (value: unknown) => {
+    const nextValue = typeof value === "string" ? value : undefined;
+    setStatusFilter(nextValue);
     setCurrentPage(1);
   };
 
-  const handleTypeChange = (value: string | undefined) => {
-    setTypeFilter(value || undefined);
+  const handleTypeChange = (value: unknown) => {
+    const nextValue = typeof value === "string" ? value : undefined;
+    setTypeFilter(nextValue);
     setCurrentPage(1);
   };
 
@@ -305,7 +307,7 @@ const ServiceOrderManager = () => {
             },
           }}
         >
-          <AntSelect
+          <FilterSelect
             className="service-order-filter-select"
             popupClassName="service-order-filter-dropdown"
             allowClear
@@ -314,21 +316,57 @@ const ServiceOrderManager = () => {
             value={statusFilter}
             onChange={handleStatusChange}
             options={[
-              { value: "PENDING", label: t("serviceOrderStatus_PENDING") },
+              {
+                value: "PENDING",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderStatus_PENDING")}
+                  </span>
+                ),
+              },
               {
                 value: "IN_DIAGNOSIS",
-                label: t("serviceOrderStatus_IN_DIAGNOSIS"),
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderStatus_IN_DIAGNOSIS")}
+                  </span>
+                ),
               },
-              { value: "QUOTED", label: t("serviceOrderStatus_QUOTED") },
+              {
+                value: "QUOTED",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderStatus_QUOTED")}
+                  </span>
+                ),
+              },
               {
                 value: "IN_PROGRESS",
-                label: t("serviceOrderStatus_IN_PROGRESS"),
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderStatus_IN_PROGRESS")}
+                  </span>
+                ),
               },
-              { value: "COMPLETED", label: t("serviceOrderStatus_COMPLETED") },
-              { value: "CANCELLED", label: t("serviceOrderStatus_CANCELLED") },
+              {
+                value: "COMPLETED",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderStatus_COMPLETED")}
+                  </span>
+                ),
+              },
+              {
+                value: "CANCELLED",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderStatus_CANCELLED")}
+                  </span>
+                ),
+              },
             ]}
           />
-          <AntSelect
+          <FilterSelect
             className="service-order-filter-select"
             popupClassName="service-order-filter-dropdown"
             allowClear
@@ -337,12 +375,30 @@ const ServiceOrderManager = () => {
             value={typeFilter}
             onChange={handleTypeChange}
             options={[
-              { value: "REPAIR", label: t("serviceOrderType_REPAIR") },
+              {
+                value: "REPAIR",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderType_REPAIR")}
+                  </span>
+                ),
+              },
               {
                 value: "MAINTENANCE",
-                label: t("serviceOrderType_MAINTENANCE"),
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderType_MAINTENANCE")}
+                  </span>
+                ),
               },
-              { value: "INSPECTION", label: t("serviceOrderType_INSPECTION") },
+              {
+                value: "INSPECTION",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderType_INSPECTION")}
+                  </span>
+                ),
+              },
             ]}
           />
         </ConfigProvider>
@@ -441,6 +497,9 @@ const Toolbar = styled.div`
   .service-order-filter-select .ant-select-selector .ant-select-selection-item,
   .service-order-filter-select
     .ant-select-selector
+    .ant-select-selection-item-content,
+  .service-order-filter-select
+    .ant-select-selector
     .ant-select-selection-placeholder,
   .service-order-filter-select .ant-select-selection-search-input,
   .service-order-filter-select .ant-select-arrow,
@@ -450,11 +509,51 @@ const Toolbar = styled.div`
     opacity: 1 !important;
   }
 
+  .service-order-filter-select.ant-select-multiple .ant-select-selection-item,
+  .service-order-filter-select.ant-select-multiple
+    .ant-select-selection-item-content,
+  .service-order-filter-select.ant-select-multiple
+    .ant-select-selection-item-remove {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
+
+  .service-order-filter-select.ant-select-multiple .ant-select-selection-item {
+    background: #f3f4f6 !important;
+    border-color: #d1d5db !important;
+  }
+
   .service-order-filter-select.ant-select-disabled .ant-select-selector,
   .service-order-filter-select.ant-select-disabled
     .ant-select-selector
     .ant-select-selection-item,
   .service-order-filter-select.ant-select-disabled
+    .ant-select-selector
+    .ant-select-selection-placeholder {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
+`;
+
+const FilterSelect = styled(AntSelect)`
+  &&& .ant-select-selector,
+  &&& .ant-select-selector .ant-select-selection-item,
+  &&& .ant-select-selector .ant-select-selection-item-content,
+  &&& .ant-select-selector .ant-select-selection-placeholder,
+  &&& .ant-select-selection-search-input,
+  &&& .ant-select-arrow,
+  &&& .ant-select-clear,
+  &&& .ant-select-selection-item-remove {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
+
+  &&&.ant-select-disabled .ant-select-selector,
+  &&&.ant-select-disabled .ant-select-selector .ant-select-selection-item,
+  &&&.ant-select-disabled
     .ant-select-selector
     .ant-select-selection-placeholder {
     color: #000 !important;

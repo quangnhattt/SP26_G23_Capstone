@@ -16,7 +16,9 @@ interface Props {
 }
 
 const formatCurrency = (v: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    v,
+  );
 
 const formatDate = (iso: string | null) => {
   if (!iso) return "—";
@@ -39,8 +41,15 @@ const InvoiceModal = ({ isOpen, maintenanceId, onClose }: Props) => {
   useEffect(() => {
     if (!isOpen || maintenanceId === null) return;
     let cancelled = false;
-    setLoading(true);
-    setInvoice(null);
+
+    // Defer state updates to avoid synchronous setState in effect body.
+    Promise.resolve().then(() => {
+      if (!cancelled) {
+        setLoading(true);
+        setInvoice(null);
+      }
+    });
+
     serviceOrderService
       .createInvoice(maintenanceId)
       .then((data) => {
@@ -55,7 +64,7 @@ const InvoiceModal = ({ isOpen, maintenanceId, onClose }: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [isOpen, maintenanceId]);
+  }, [isOpen, maintenanceId, t]);
 
   if (!isOpen) return null;
 
@@ -65,7 +74,9 @@ const InvoiceModal = ({ isOpen, maintenanceId, onClose }: Props) => {
         <ModalHeader>
           <HeaderLeft>
             <HiDocumentText size={20} color="#3b82f6" />
-            <HeaderTitle>{t("invoiceTitle")} #{maintenanceId}</HeaderTitle>
+            <HeaderTitle>
+              {t("invoiceTitle")} #{maintenanceId}
+            </HeaderTitle>
           </HeaderLeft>
           <CloseBtn onClick={onClose}>
             <HiX size={20} />
@@ -98,9 +109,7 @@ const InvoiceModal = ({ isOpen, maintenanceId, onClose }: Props) => {
                 </InfoItem>
                 <InfoItem>
                   <InfoLabel>{t("invoiceCustomerMembership")}</InfoLabel>
-                  <InfoValue>
-                    {invoice.membershipRankApplied || "—"}
-                  </InfoValue>
+                  <InfoValue>{invoice.membershipRankApplied || "—"}</InfoValue>
                 </InfoItem>
               </InfoGrid>
 
@@ -156,9 +165,15 @@ const InvoiceModal = ({ isOpen, maintenanceId, onClose }: Props) => {
                       <Th style={{ width: 40 }}>{t("invoiceColNo")}</Th>
                       <Th>{t("invoiceColType")}</Th>
                       <Th>{t("invoiceColName")}</Th>
-                      <Th style={{ textAlign: "right" }}>{t("invoiceColQty")}</Th>
-                      <Th style={{ textAlign: "right" }}>{t("invoiceColUnitPrice")}</Th>
-                      <Th style={{ textAlign: "right" }}>{t("invoiceColTotal")}</Th>
+                      <Th style={{ textAlign: "right" }}>
+                        {t("invoiceColQty")}
+                      </Th>
+                      <Th style={{ textAlign: "right" }}>
+                        {t("invoiceColUnitPrice")}
+                      </Th>
+                      <Th style={{ textAlign: "right" }}>
+                        {t("invoiceColTotal")}
+                      </Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -168,9 +183,7 @@ const InvoiceModal = ({ isOpen, maintenanceId, onClose }: Props) => {
                         <Td>{item.sourceType}</Td>
                         <Td>
                           <div>{item.itemName}</div>
-                          {item.notes && (
-                            <NoteText>{item.notes}</NoteText>
-                          )}
+                          {item.notes && <NoteText>{item.notes}</NoteText>}
                         </Td>
                         <TdRight>{item.quantity}</TdRight>
                         <TdRight>{formatCurrency(item.unitPrice)}</TdRight>
@@ -190,7 +203,8 @@ const InvoiceModal = ({ isOpen, maintenanceId, onClose }: Props) => {
                 {invoice.membershipDiscountAmount > 0 && (
                   <SummaryRow>
                     <span>
-                      {t("invoiceMembershipDiscount")} ({invoice.membershipDiscountPercent}%)
+                      {t("invoiceMembershipDiscount")} (
+                      {invoice.membershipDiscountPercent}%)
                     </span>
                     <DiscountValue>
                       -{formatCurrency(invoice.membershipDiscountAmount)}
