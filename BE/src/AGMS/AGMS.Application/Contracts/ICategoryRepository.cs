@@ -5,7 +5,7 @@ namespace AGMS.Application.Contracts;
 public interface ICategoryRepository
 {
     Task<Category?> GetByIdAsync(int id, CancellationToken ct);
-    Task<(IEnumerable<Domain.Entities.Category> Categories, int TotalCount)> GetAllAsync(string? name, string? type, int? page, int? pageSize, CancellationToken ct);
+    Task<(IEnumerable<Domain.Entities.Category> Categories, int TotalCount)> GetAllAsync(string? name, string? type, bool? isActive, int? page, int? pageSize, CancellationToken ct);
     Task<IEnumerable<Category>> GetByTypeAsync(string type, CancellationToken ct);
     Task<Category?> GetByNameAsync(string name, CancellationToken ct);
     Task AddAsync(Category category, CancellationToken ct);

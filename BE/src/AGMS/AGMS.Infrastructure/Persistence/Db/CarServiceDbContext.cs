@@ -206,6 +206,7 @@ public partial class CarServiceDbContext : DbContext
                 .HasDefaultValue(0m);
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Type).HasMaxLength(20);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<InventoryTransaction>(entity =>
