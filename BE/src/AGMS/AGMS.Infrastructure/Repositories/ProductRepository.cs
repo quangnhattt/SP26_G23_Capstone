@@ -429,4 +429,26 @@ public class ProductRepository : IProductRepository
 
             };
         }
+
+    public async Task<bool> DeactiveServiceProductAsync(int id, CancellationToken ct)
+    {
+        var product = await _db.Products.FirstOrDefaultAsync(p => (p.Type == "SERVICE" || p.Type == "Service") && p.ProductID == id, ct);
+        if (product == null) return false;
+        if (!product.IsActive) return true;
+
+        product.IsActive = false;
+        await _db.SaveChangesAsync(ct);
+        return true;
     }
+
+    public async Task<bool> ActiveServiceProductAsync(int id, CancellationToken ct)
+    {
+        var product = await _db.Products.FirstOrDefaultAsync(p => (p.Type == "SERVICE" || p.Type == "Service") && p.ProductID == id, ct);
+        if (product == null) return false;
+        if (product.IsActive) return true;
+
+        product.IsActive = true;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+}

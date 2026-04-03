@@ -45,4 +45,12 @@ public class ProductService : IProductService
     {
         return await _productRepository.UpdateServiceProductAsync(id, request, ct);
     }
+    public async Task<bool> DeactiveServiceProductAsync(int id, CancellationToken ct)
+    {
+        return await _productRepository.DeactiveServiceProductAsync(id, ct);
+    }
+    public async Task<bool> ActiveServiceProductAsync(int id, CancellationToken ct)
+    {
+        return await _productRepository.ActiveServiceProductAsync(id, ct);
+    }
 }

@@ -7,4 +7,5 @@ public class CategoryResponse
     public string Type { get; set; } = null!;
     public string? Description { get; set; }
     public decimal MarkupPercent { get; set; }
+    public bool IsActive { get; set; }
 }

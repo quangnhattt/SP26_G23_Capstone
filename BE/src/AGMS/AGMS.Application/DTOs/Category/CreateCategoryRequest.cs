@@ -14,6 +14,8 @@ public class CreateCategoryRequest
     [MaxLength(255)]
     public string? Description { get; set; }
 
-    [Range(0, 100, ErrorMessage = "MarkupPercent must be between 0 and 1000.")]
+    [Range(0, 100, ErrorMessage = "MarkupPercent must be between 0 and 100.")]
     public decimal MarkupPercent { get; set; } = 0;
+
+    public bool IsActive { get; set; } = true;
 }
