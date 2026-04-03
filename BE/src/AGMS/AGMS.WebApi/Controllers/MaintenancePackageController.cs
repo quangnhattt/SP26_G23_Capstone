@@ -177,31 +177,31 @@ public class MaintenancePackageController : ControllerBase
         }
     }
 
-    [HttpPatch("{packageId:int}/active")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [HttpPatch("{packageId:int}/status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> PatchStatus(int packageId, CancellationToken ct)
+    public async Task<IActionResult> PatchStatus(int packageId, [FromBody] UpdateMaintenancePackageStatusRequest request, CancellationToken ct)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            await _maintenancePackageService.SetActiveStatusAsync(packageId, true, ct);
-            return NoContent();
+            var firstError = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .FirstOrDefault()?.ErrorMessage
+                ?? "Validation failed.";
+            return BadRequest(new { message = firstError });
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-    }
 
-    [HttpPatch("{packageId:int}/inactive")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> PatchInactive(int packageId, CancellationToken ct)
-    {
         try
         {
-            await _maintenancePackageService.SetActiveStatusAsync(packageId, false, ct);
-            return NoContent();
+            var result = await _maintenancePackageService.SetActiveStatusAsync(packageId, request.IsActive, ct);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new { message = result.Message });
+            }
+
+            return Ok(new { message = result.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -246,31 +246,31 @@ public class MaintenancePackageController : ControllerBase
         }
     }
 
-    [HttpPatch("details/{detailId:int}/active")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [HttpPatch("details/{detailId:int}/status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> PatchDetailActive(int detailId, CancellationToken ct)
+    public async Task<IActionResult> PatchDetailStatus(int detailId, [FromBody] UpdateMaintenancePackageStatusRequest request, CancellationToken ct)
     {
-        try
+        if (!ModelState.IsValid)
         {
-            await _maintenancePackageService.SetDetailActiveStatusAsync(detailId, true, ct);
-            return NoContent();
+            var firstError = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .FirstOrDefault()?.ErrorMessage
+                ?? "Validation failed.";
+            return BadRequest(new { message = firstError });
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-    }
 
-    [HttpPatch("details/{detailId:int}/inactive")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> PatchDetailInactive(int detailId, CancellationToken ct)
-    {
         try
         {
-            await _maintenancePackageService.SetDetailActiveStatusAsync(detailId, false, ct);
-            return NoContent();
+            var result = await _maintenancePackageService.SetDetailActiveStatusAsync(detailId, request.IsActive, ct);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new { message = result.Message });
+            }
+
+            return Ok(new { message = result.Message });
         }
         catch (KeyNotFoundException ex)
         {
