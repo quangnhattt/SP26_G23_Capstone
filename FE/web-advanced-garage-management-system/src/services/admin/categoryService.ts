@@ -56,6 +56,17 @@ export const updateCategory = async (
   return data;
 };
 
+export const updateCategoryStatus = async (
+  id: number,
+  isActive: boolean,
+): Promise<ICategory> => {
+  const { data } = await AxiosClient.patch<ICategory>(
+    `/api/categories/${id}/status`,
+    { isActive },
+  );
+  return data;
+};
+
 export const deleteCategory = async (id: number): Promise<void> => {
   await AxiosClient.delete(`/api/categories/${id}`);
 };
@@ -64,5 +75,6 @@ export const categoryService = {
   getCategories,
   createCategory,
   updateCategory,
+  updateCategoryStatus,
   deleteCategory,
 };

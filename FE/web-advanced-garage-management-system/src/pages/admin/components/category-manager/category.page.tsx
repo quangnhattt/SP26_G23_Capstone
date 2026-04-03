@@ -13,6 +13,7 @@ import {
   getCategories,
   createCategory,
   updateCategory,
+  updateCategoryStatus,
 } from "@/services/admin/categoryService";
 import type { ICategory } from "@/services/admin/categoryService";
 import { toast } from "react-toastify";
@@ -46,6 +47,9 @@ const CategoryPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [updatingCategoryId, setUpdatingCategoryId] = useState<number | null>(
+    null,
+  );
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -130,6 +134,22 @@ const CategoryPage = () => {
     }
   };
 
+  const handleToggleCategoryStatus = async (
+    categoryId: number,
+    isActive: boolean,
+  ) => {
+    setUpdatingCategoryId(categoryId);
+    try {
+      await updateCategoryStatus(categoryId, isActive);
+      await fetchCategories();
+    } catch (err) {
+      console.error("Error updating category status:", err);
+      toast.error(getApiErrorMessage(err, t("errorSavingCategory")));
+    } finally {
+      setUpdatingCategoryId(null);
+    }
+  };
+
   const filteredCategories = categories.filter((c) => {
     const matchSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchType = typeFilter === "all" || c.type === typeFilter;
@@ -170,7 +190,15 @@ const CategoryPage = () => {
       dataIndex: "isActive",
       key: "isActive",
       align: "center",
-      render: (val: boolean) => <Switch checked={val} disabled />,
+      render: (val: boolean, record: ICategory) => (
+        <Switch
+          checked={val}
+          loading={updatingCategoryId === record.categoryID}
+          onChange={(checked: boolean) =>
+            handleToggleCategoryStatus(record.categoryID, checked)
+          }
+        />
+      ),
     },
     {
       title: t("action"),
