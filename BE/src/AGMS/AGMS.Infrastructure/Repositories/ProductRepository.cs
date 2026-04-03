@@ -221,28 +221,17 @@ public class ProductRepository : IProductRepository
             IsActive = product.IsActive,
         };
     }
-    public async Task<bool> DeactivePartProductAsync(int id, CancellationToken ct)
+    public async Task<bool> ChangePartProductStatusAsync(int id, bool isActive, CancellationToken ct)
     {
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
         if (product == null) return false;
-        if (!product.IsActive)
+
+        if (product.IsActive == isActive)
         {
             return true;
         }
 
-        product.IsActive = false;
-        await _db.SaveChangesAsync(ct);
-        return true;
-    }
-    public async Task<bool> ActivePartProductAsync(int id, CancellationToken ct)
-    {
-        var product = await _db.Products.FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
-        if (product == null) return false;
-        if (product.IsActive)
-        {
-            return true;
-        }
-        product.IsActive = true;
+        product.IsActive = isActive;
         await _db.SaveChangesAsync(ct);
         return true;
     }
@@ -426,19 +415,22 @@ public class ProductRepository : IProductRepository
                 Description=product.Description,
                 Image=product.Image,    
                 IsActive=product.IsActive,
-
             };
         }
+        public async Task<bool> ChangeServiceProductStatusAsync(int id, bool isActive, CancellationToken ct)
+        {
+            var product = await _db.Products.FirstOrDefaultAsync(p => (p.Type == "SERVICE" || p.Type == "Service") && p.ProductID == id, ct);
+            if (product == null) return false;
 
-    public async Task<bool> DeactiveServiceProductAsync(int id, CancellationToken ct)
-    {
-        var product = await _db.Products.FirstOrDefaultAsync(p => (p.Type == "SERVICE" || p.Type == "Service") && p.ProductID == id, ct);
-        if (product == null) return false;
-        if (!product.IsActive) return true;
+            if (product.IsActive == isActive)
+            {
+                return true;
+            }
 
-        product.IsActive = false;
-        await _db.SaveChangesAsync(ct);
-        return true;
+            product.IsActive = isActive;
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
     }
 
     public async Task<bool> ActiveServiceProductAsync(int id, CancellationToken ct)
