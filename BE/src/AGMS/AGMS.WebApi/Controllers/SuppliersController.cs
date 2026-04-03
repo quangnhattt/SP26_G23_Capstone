@@ -1,4 +1,4 @@
-﻿using AGMS.Application.Constants;
+using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Supplier;
 using Microsoft.AspNetCore.Authorization;
@@ -86,35 +86,18 @@ namespace AGMS.WebApi.Controllers
             }
         }
 
-        // 4. PATCH: /api/suppliers/{id}/deactivate
-        [HttpPatch("{id}/deactivate")]
-        public async Task<IActionResult> DeactivateSupplier(int id)
+        // 4. PATCH: /api/suppliers/{id}/status
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> ChangeSupplierStatus(int id, [FromBody] UpdateSupplierStatusRequest request)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { Message = "MSG_SUP00: Invalid input data", Errors = ModelState });
+            }
+
             try
             {
-                var result = await _supplierService.DeactivateSupplierAsync(id);
-
-                if (!result.IsSuccess)
-                {
-                    if (result.Message.Contains("not found")) return NotFound(new { Message = result.Message });
-                    return BadRequest(new { Message = result.Message });
-                }
-
-                return Ok(new { Message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { Message = "MSG_SYS01: System error", Error = ex.Message });
-            }
-        }
-
-        // 5. PATCH: /api/suppliers/{id}/active
-        [HttpPatch("{id}/active")]
-        public async Task<IActionResult> ActivateSupplier(int id)
-        {
-            try
-            {
-                var result = await _supplierService.ActivateSupplierAsync(id);
+                var result = await _supplierService.ChangeSupplierStatusAsync(id, request.IsActive);
 
                 if (!result.IsSuccess)
                 {
