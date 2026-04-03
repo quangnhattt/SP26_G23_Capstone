@@ -78,7 +78,9 @@ const RescueManagement = () => {
 
   // Assign form
   const [estimatedArrival, setEstimatedArrival] = useState("");
-  const [selectedTechIds, setSelectedTechIds] = useState<Set<number>>(new Set());
+  const [selectedTechIds, setSelectedTechIds] = useState<Set<number>>(
+    new Set(),
+  );
 
   // Start Diagnosis modal
   const [showStartDiagnosisModal, setShowStartDiagnosisModal] = useState(false);
@@ -100,12 +102,14 @@ const RescueManagement = () => {
   const [towingNotes, setTowingNotes] = useState("");
   const [towingEstimatedArrival, setTowingEstimatedArrival] = useState("");
   const [towingServiceFee, setTowingServiceFee] = useState("");
-  const [dispatchTowingSubmitting, setDispatchTowingSubmitting] = useState(false);
+  const [dispatchTowingSubmitting, setDispatchTowingSubmitting] =
+    useState(false);
 
   // Complete towing modal
   const [showCompleteTowingModal, setShowCompleteTowingModal] = useState(false);
   const [repairOrderNotes, setRepairOrderNotes] = useState("");
-  const [completeTowingSubmitting, setCompleteTowingSubmitting] = useState(false);
+  const [completeTowingSubmitting, setCompleteTowingSubmitting] =
+    useState(false);
 
   // Edit parts modal (chỉnh sửa phụ tùng tại REPAIR_COMPLETE)
   const [showEditPartsModal, setShowEditPartsModal] = useState(false);
@@ -118,9 +122,10 @@ const RescueManagement = () => {
   const [showProposalModal, setShowProposalModal] = useState(false);
 
   // Spam / Cancel — nhập lý do trước khi gọi API
-  const [reasonModal, setReasonModal] = useState<
-    null | { type: "spam" | "cancel"; rescue: IRescueRequest }
-  >(null);
+  const [reasonModal, setReasonModal] = useState<null | {
+    type: "spam" | "cancel";
+    rescue: IRescueRequest;
+  }>(null);
   const [reasonInput, setReasonInput] = useState("");
   const [reasonSubmitting, setReasonSubmitting] = useState(false);
 
@@ -153,7 +158,11 @@ const RescueManagement = () => {
     try {
       const data = await getTechnicians();
       setTechnicians(
-        data.map((t) => ({ id: t.technicianId, fullName: t.fullName, phone: t.phone })),
+        data.map((t) => ({
+          id: t.technicianId,
+          fullName: t.fullName,
+          phone: t.phone,
+        })),
       );
     } catch (error) {
       console.error("Error fetching technicians:", error);
@@ -167,7 +176,11 @@ const RescueManagement = () => {
   }, [fetchRescues, fetchTechnicians]);
 
   // ─── Actions ─────────────────────────────────────────────
-  const handleUpdateStatus = async (id: number, status: RescueStatus, note?: string) => {
+  const handleUpdateStatus = async (
+    id: number,
+    status: RescueStatus,
+    note?: string,
+  ) => {
     try {
       await updateRescueStatus(id, { status, note });
       toast.success(t("rescueMgrStatusUpdated"));
@@ -210,12 +223,22 @@ const RescueManagement = () => {
 
     setAssignSubmitting(false);
     if (successCount > 0) {
-      toast.success(t("rescueMgrAssignSuccessMsg", { count: successCount, total: targets.length }));
+      toast.success(
+        t("rescueMgrAssignSuccessMsg", {
+          count: successCount,
+          total: targets.length,
+        }),
+      );
     }
     if (failedNames.length > 0 && successCount === 0) {
       toast.error(t("rescueMgrAssignFailedMsg"));
     } else if (failedNames.length > 0) {
-      toast.warning(t("rescueMgrAssignPartialFailMsg", { count: failedNames.length, names: failedNames.join(", ") }));
+      toast.warning(
+        t("rescueMgrAssignPartialFailMsg", {
+          count: failedNames.length,
+          names: failedNames.join(", "),
+        }),
+      );
     }
     setShowAssignModal(false);
     setEstimatedArrival("");
@@ -305,7 +328,9 @@ const RescueManagement = () => {
       await dispatchTowing(selectedRescue.rescueId, {
         towingNotes: towingNotes.trim() || undefined,
         estimatedArrival: towingEstimatedArrival || undefined,
-        towingServiceFee: towingServiceFee ? Number(towingServiceFee) : undefined,
+        towingServiceFee: towingServiceFee
+          ? Number(towingServiceFee)
+          : undefined,
       });
       toast.success(t("rescueMgrDispatchTowingSuccess"));
       setShowDispatchTowingModal(false);
@@ -361,7 +386,9 @@ const RescueManagement = () => {
       });
       toast.success("Đã cập nhật phụ tùng/dịch vụ!");
       setShowEditPartsModal(false);
-      setEditPartsItems([{ productId: "", quantity: "", unitPrice: "", notes: "" }]);
+      setEditPartsItems([
+        { productId: "", quantity: "", unitPrice: "", notes: "" },
+      ]);
       fetchRescues();
     } catch {
       toast.error("Cập nhật phụ tùng thất bại!");
@@ -411,7 +438,20 @@ const RescueManagement = () => {
   const totalCount = rescues.length;
   const pendingCount = rescues.filter((r) => r.status === "PENDING").length;
   const activeCount = rescues.filter((r) =>
-    ["REVIEWING", "PROPOSED_ROADSIDE", "PROPOSED_TOWING", "DISPATCHED", "EN_ROUTE", "ON_SITE", "DIAGNOSING", "REPAIRING", "REPAIR_COMPLETE", "INVOICED", "INVOICE_SENT", "PAYMENT_PENDING"].includes(r.status),
+    [
+      "REVIEWING",
+      "PROPOSED_ROADSIDE",
+      "PROPOSED_TOWING",
+      "DISPATCHED",
+      "EN_ROUTE",
+      "ON_SITE",
+      "DIAGNOSING",
+      "REPAIRING",
+      "REPAIR_COMPLETE",
+      "INVOICED",
+      "INVOICE_SENT",
+      "PAYMENT_PENDING",
+    ].includes(r.status),
   ).length;
   const towingCount = rescues.filter((r) =>
     ["TOWING_DISPATCHED", "TOWING_ACCEPTED", "TOWED"].includes(r.status),
@@ -427,11 +467,25 @@ const RescueManagement = () => {
     .filter((r) => {
       if (filterStatus === "all") return true;
       if (filterStatus === "ACTIVE")
-        return ["REVIEWING", "PROPOSED_ROADSIDE", "PROPOSED_TOWING", "DISPATCHED", "EN_ROUTE", "ON_SITE", "DIAGNOSING", "REPAIRING", "REPAIR_COMPLETE", "INVOICED", "INVOICE_SENT", "PAYMENT_PENDING"].includes(r.status);
+        return [
+          "REVIEWING",
+          "PROPOSED_ROADSIDE",
+          "PROPOSED_TOWING",
+          "DISPATCHED",
+          "EN_ROUTE",
+          "ON_SITE",
+          "DIAGNOSING",
+          "REPAIRING",
+          "REPAIR_COMPLETE",
+          "INVOICED",
+          "INVOICE_SENT",
+          "PAYMENT_PENDING",
+        ].includes(r.status);
       if (filterStatus === "TOWING")
-        return ["TOWING_DISPATCHED", "TOWING_ACCEPTED", "TOWED"].includes(r.status);
-      if (filterStatus === "DONE")
-        return ["COMPLETED"].includes(r.status);
+        return ["TOWING_DISPATCHED", "TOWING_ACCEPTED", "TOWED"].includes(
+          r.status,
+        );
+      if (filterStatus === "DONE") return ["COMPLETED"].includes(r.status);
       if (filterStatus === "CLOSED")
         return ["CANCELLED", "SPAM"].includes(r.status);
       return r.status === filterStatus;
@@ -466,8 +520,19 @@ const RescueManagement = () => {
 
   const getStatusInfo = (status: string) => {
     const style = rescueStatusStyle[status];
-    if (style) return { label: t(style.labelKey), color: style.color, bg: style.bg, border: style.border };
-    return { label: status, color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" };
+    if (style)
+      return {
+        label: t(style.labelKey),
+        color: style.color,
+        bg: style.bg,
+        border: style.border,
+      };
+    return {
+      label: status,
+      color: "#6b7280",
+      bg: "#f3f4f6",
+      border: "#e5e7eb",
+    };
   };
 
   // ─── Which actions are available per status (SA workflow) ─
@@ -488,7 +553,10 @@ const RescueManagement = () => {
             label: t("rescueMgrProposeSolution"),
             icon: <FaClipboardCheck size={12} />,
             color: "#2563eb",
-            onClick: () => { setSelectedRescue(rescue); setShowProposalModal(true); },
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setShowProposalModal(true);
+            },
           });
           actions.push({
             label: t("rescueMgrMarkSpam"),
@@ -496,7 +564,12 @@ const RescueManagement = () => {
             color: "#6b7280",
             onClick: () => openReasonModal("spam", rescue),
           });
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
@@ -504,7 +577,12 @@ const RescueManagement = () => {
       case "PROPOSED_ROADSIDE":
         if (isSA) {
           // Không điều KTV ở bước này — đợi KH xác nhận trước
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
@@ -522,12 +600,38 @@ const RescueManagement = () => {
               setShowDispatchTowingModal(true);
             },
           });
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
       // ═══ PROPOSAL_ACCEPTED: KH đã xác nhận → SA điều KTV ═══
       case "PROPOSAL_ACCEPTED":
+        if (isSA) {
+          actions.push({
+            label: t("rescueMgrDispatchTech"),
+            icon: <FaUserCog size={12} />,
+            color: "#0891b2",
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setEstimatedArrival("");
+              setSelectedTechIds(new Set());
+              setShowAssignModal(true);
+            },
+          });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
+        }
+        break;
+
       // ═══ DISPATCHED: KH đã xác nhận → SA điều KTV (KTV auto-nhận) ═══
       case "DISPATCHED":
         if (isSA) {
@@ -535,9 +639,19 @@ const RescueManagement = () => {
             label: t("rescueMgrDispatchTech"),
             icon: <FaUserCog size={12} />,
             color: "#0891b2",
-            onClick: () => { setSelectedRescue(rescue); setEstimatedArrival(""); setSelectedTechIds(new Set()); setShowAssignModal(true); },
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setEstimatedArrival("");
+              setSelectedTechIds(new Set());
+              setShowAssignModal(true);
+            },
           });
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         // KTV auto-nhận khi được SA chỉ định — không cần thao tác thủ công
         break;
@@ -552,7 +666,12 @@ const RescueManagement = () => {
           });
         }
         if (isSA) {
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
@@ -564,11 +683,21 @@ const RescueManagement = () => {
             label: t("rescueMgrStartDiagnosisAction"),
             icon: <FaTools size={12} />,
             color: "#ea580c",
-            onClick: () => { setSelectedRescue(rescue); setDiagnosisNotes(""); setCanRepairOnSite(null); setShowStartDiagnosisModal(true); },
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setDiagnosisNotes("");
+              setCanRepairOnSite(null);
+              setShowStartDiagnosisModal(true);
+            },
           });
         }
         if (isSA) {
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
@@ -579,11 +708,20 @@ const RescueManagement = () => {
             label: t("rescueMgrCompleteRepairAction"),
             icon: <FaWrench size={12} />,
             color: "#16a34a",
-            onClick: () => { setSelectedRescue(rescue); setCompletionNotes(""); setShowCompleteRepairModal(true); },
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setCompletionNotes("");
+              setShowCompleteRepairModal(true);
+            },
           });
         }
         if (isSA) {
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
@@ -596,7 +734,9 @@ const RescueManagement = () => {
             color: "#2563eb",
             onClick: () => {
               setSelectedRescue(rescue);
-              setEditPartsItems([{ productId: "", quantity: "", unitPrice: "", notes: "" }]);
+              setEditPartsItems([
+                { productId: "", quantity: "", unitPrice: "", notes: "" },
+              ]);
               setShowEditPartsModal(true);
             },
           });
@@ -606,9 +746,20 @@ const RescueManagement = () => {
             label: t("rescueMgrCreateInvoiceAction"),
             icon: <FaFileInvoiceDollar size={12} />,
             color: "#7c3aed",
-            onClick: () => { setSelectedRescue(rescue); setRescueServiceFee(""); setManualDiscount("0"); setInvoiceNotes(""); setShowInvoiceModal(true); },
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setRescueServiceFee("");
+              setManualDiscount("0");
+              setInvoiceNotes("");
+              setShowInvoiceModal(true);
+            },
           });
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
@@ -616,7 +767,12 @@ const RescueManagement = () => {
       case "TOWING_DISPATCHED":
         // Customer needs to accept-towing; SA only monitors
         if (isSA) {
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
@@ -632,7 +788,12 @@ const RescueManagement = () => {
               setShowCompleteTowingModal(true);
             },
           });
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
@@ -642,25 +803,56 @@ const RescueManagement = () => {
             label: t("rescueMgrCreateInvoiceAction"),
             icon: <FaFileInvoiceDollar size={12} />,
             color: "#7c3aed",
-            onClick: () => { setSelectedRescue(rescue); setRescueServiceFee(""); setManualDiscount("0"); setInvoiceNotes(""); setShowInvoiceModal(true); },
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setRescueServiceFee("");
+              setManualDiscount("0");
+              setInvoiceNotes("");
+              setShowInvoiceModal(true);
+            },
           });
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
       // ═══ SA: Gửi hóa đơn ═══
       case "INVOICED":
         if (isSA) {
-          actions.push({ label: t("rescueMgrSendInvoiceAction"), icon: <FaFileInvoiceDollar size={12} />, color: "#7c3aed", onClick: () => handleSendInvoice(rescue.rescueId) });
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrSendInvoiceAction"),
+            icon: <FaFileInvoiceDollar size={12} />,
+            color: "#7c3aed",
+            onClick: () => handleSendInvoice(rescue.rescueId),
+          });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
 
       case "INVOICE_SENT":
       case "PAYMENT_PENDING":
         if (isSA) {
-          actions.push({ label: t("rescueMgrConfirmPaymentAction"), icon: <FaMoneyBillWave size={12} />, color: "#16a34a", onClick: () => handleUpdateStatus(rescue.rescueId, "COMPLETED") });
-          actions.push({ label: t("rescueMgrCancel"), icon: <FaTimes size={12} />, color: "#dc2626", onClick: () => openReasonModal("cancel", rescue) });
+          actions.push({
+            label: t("rescueMgrConfirmPaymentAction"),
+            icon: <FaMoneyBillWave size={12} />,
+            color: "#16a34a",
+            onClick: () => handleUpdateStatus(rescue.rescueId, "COMPLETED"),
+          });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
         }
         break;
     }
@@ -761,10 +953,7 @@ const RescueManagement = () => {
             const actions = getAvailableActions(item);
 
             return (
-              <RequestCard
-                key={item.rescueId}
-                $borderColor={statusInfo.border}
-              >
+              <RequestCard key={item.rescueId} $borderColor={statusInfo.border}>
                 <CardLeft>
                   <CardTopRow>
                     <RequestCode>RESCUE-{item.rescueId}</RequestCode>
@@ -861,8 +1050,13 @@ const RescueManagement = () => {
               <FormGroup>
                 <FormLabel>
                   {selectedTechIds.size > 0
-                    ? t("rescueMgrTechSelectedCount", { selected: selectedTechIds.size, total: technicians.length })
-                    : t("rescueMgrTechNoSelection", { count: technicians.length })}
+                    ? t("rescueMgrTechSelectedCount", {
+                        selected: selectedTechIds.size,
+                        total: technicians.length,
+                      })
+                    : t("rescueMgrTechNoSelection", {
+                        count: technicians.length,
+                      })}
                 </FormLabel>
                 <TechList>
                   {technicians.map((tech) => {
@@ -907,7 +1101,9 @@ const RescueManagement = () => {
                 {assignSubmitting
                   ? t("rescueMgrSending")
                   : selectedTechIds.size > 0
-                    ? t("rescueMgrSendToSelected", { count: selectedTechIds.size })
+                    ? t("rescueMgrSendToSelected", {
+                        count: selectedTechIds.size,
+                      })
                     : t("rescueMgrSendToAll", { count: technicians.length })}
               </ModalConfirmBtn>
             </ModalFooter>
@@ -1081,10 +1277,16 @@ const RescueManagement = () => {
       {/* ─── Dispatch Towing Modal ─── */}
       {showDispatchTowingModal && selectedRescue && (
         <ModalOverlay onClick={() => setShowDispatchTowingModal(false)}>
-          <ModalContent onClick={(e) => e.stopPropagation()} style={{ maxWidth: "500px" }}>
+          <ModalContent
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "500px" }}
+          >
             <ModalHeader>
               <ModalTitle>{t("rescueMgrDispatchTowingModalTitle")}</ModalTitle>
-              <CloseBtn onClick={() => setShowDispatchTowingModal(false)} disabled={dispatchTowingSubmitting}>
+              <CloseBtn
+                onClick={() => setShowDispatchTowingModal(false)}
+                disabled={dispatchTowingSubmitting}
+              >
                 <FaTimes />
               </CloseBtn>
             </ModalHeader>
@@ -1120,11 +1322,19 @@ const RescueManagement = () => {
               </FormGroup>
             </ModalBody>
             <ModalFooter>
-              <ModalCancelBtn onClick={() => setShowDispatchTowingModal(false)} disabled={dispatchTowingSubmitting}>
+              <ModalCancelBtn
+                onClick={() => setShowDispatchTowingModal(false)}
+                disabled={dispatchTowingSubmitting}
+              >
                 {t("rescueMgrCancel")}
               </ModalCancelBtn>
-              <ModalConfirmBtn onClick={handleDispatchTowing} disabled={dispatchTowingSubmitting}>
-                {dispatchTowingSubmitting ? t("rescueMgrSending") : t("rescueMgrDispatchTowingBtn")}
+              <ModalConfirmBtn
+                onClick={handleDispatchTowing}
+                disabled={dispatchTowingSubmitting}
+              >
+                {dispatchTowingSubmitting
+                  ? t("rescueMgrSending")
+                  : t("rescueMgrDispatchTowingBtn")}
               </ModalConfirmBtn>
             </ModalFooter>
           </ModalContent>
@@ -1134,10 +1344,16 @@ const RescueManagement = () => {
       {/* ─── Complete Towing Modal ─── */}
       {showCompleteTowingModal && selectedRescue && (
         <ModalOverlay onClick={() => setShowCompleteTowingModal(false)}>
-          <ModalContent onClick={(e) => e.stopPropagation()} style={{ maxWidth: "500px" }}>
+          <ModalContent
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "500px" }}
+          >
             <ModalHeader>
               <ModalTitle>{t("rescueMgrCompleteTowingModalTitle")}</ModalTitle>
-              <CloseBtn onClick={() => setShowCompleteTowingModal(false)} disabled={completeTowingSubmitting}>
+              <CloseBtn
+                onClick={() => setShowCompleteTowingModal(false)}
+                disabled={completeTowingSubmitting}
+              >
                 <FaTimes />
               </CloseBtn>
             </ModalHeader>
@@ -1154,11 +1370,19 @@ const RescueManagement = () => {
               </FormGroup>
             </ModalBody>
             <ModalFooter>
-              <ModalCancelBtn onClick={() => setShowCompleteTowingModal(false)} disabled={completeTowingSubmitting}>
+              <ModalCancelBtn
+                onClick={() => setShowCompleteTowingModal(false)}
+                disabled={completeTowingSubmitting}
+              >
                 {t("rescueMgrCancel")}
               </ModalCancelBtn>
-              <ModalConfirmBtn onClick={handleCompleteTowing} disabled={completeTowingSubmitting}>
-                {completeTowingSubmitting ? t("rescueMgrProcessing") : t("rescueMgrConfirmAtGarageBtn")}
+              <ModalConfirmBtn
+                onClick={handleCompleteTowing}
+                disabled={completeTowingSubmitting}
+              >
+                {completeTowingSubmitting
+                  ? t("rescueMgrProcessing")
+                  : t("rescueMgrConfirmAtGarageBtn")}
               </ModalConfirmBtn>
             </ModalFooter>
           </ModalContent>
@@ -1168,19 +1392,42 @@ const RescueManagement = () => {
       {/* ─── Edit Parts Modal (REPAIR_COMPLETE — SA & KTV) ─── */}
       {showEditPartsModal && selectedRescue && (
         <ModalOverlay onClick={() => setShowEditPartsModal(false)}>
-          <ModalContent onClick={(e) => e.stopPropagation()} style={{ maxWidth: "620px" }}>
+          <ModalContent
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "620px" }}
+          >
             <ModalHeader>
-              <ModalTitle>Chỉnh sửa phụ tùng / dịch vụ — RESCUE-{selectedRescue.rescueId}</ModalTitle>
-              <CloseBtn onClick={() => setShowEditPartsModal(false)} disabled={editPartsSubmitting}>
+              <ModalTitle>
+                Chỉnh sửa phụ tùng / dịch vụ — RESCUE-{selectedRescue.rescueId}
+              </ModalTitle>
+              <CloseBtn
+                onClick={() => setShowEditPartsModal(false)}
+                disabled={editPartsSubmitting}
+              >
                 <FaTimes />
               </CloseBtn>
             </ModalHeader>
             <ModalBody>
-              <p style={{ fontSize: "0.8125rem", color: "#6b7280", marginBottom: "0.75rem" }}>
-                Thêm hoặc điều chỉnh phụ tùng / công dịch vụ trước khi tạo hóa đơn.
+              <p
+                style={{
+                  fontSize: "0.8125rem",
+                  color: "#6b7280",
+                  marginBottom: "0.75rem",
+                }}
+              >
+                Thêm hoặc điều chỉnh phụ tùng / công dịch vụ trước khi tạo hóa
+                đơn.
               </p>
               {editPartsItems.map((item, idx) => (
-                <div key={idx} style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", alignItems: "center" }}>
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                    marginBottom: "0.5rem",
+                    alignItems: "center",
+                  }}
+                >
                   <FormInput
                     type="number"
                     placeholder="Product ID *"
@@ -1226,8 +1473,16 @@ const RescueManagement = () => {
                   />
                   {editPartsItems.length > 1 && (
                     <ModalCancelBtn
-                      style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", minWidth: "unset" }}
-                      onClick={() => setEditPartsItems(editPartsItems.filter((_, i) => i !== idx))}
+                      style={{
+                        padding: "0.25rem 0.5rem",
+                        fontSize: "0.75rem",
+                        minWidth: "unset",
+                      }}
+                      onClick={() =>
+                        setEditPartsItems(
+                          editPartsItems.filter((_, i) => i !== idx),
+                        )
+                      }
                     >
                       ✕
                     </ModalCancelBtn>
@@ -1237,17 +1492,26 @@ const RescueManagement = () => {
               <ModalCancelBtn
                 style={{ marginTop: "0.25rem", fontSize: "0.8125rem" }}
                 onClick={() =>
-                  setEditPartsItems([...editPartsItems, { productId: "", quantity: "", unitPrice: "", notes: "" }])
+                  setEditPartsItems([
+                    ...editPartsItems,
+                    { productId: "", quantity: "", unitPrice: "", notes: "" },
+                  ])
                 }
               >
                 + Thêm dòng
               </ModalCancelBtn>
             </ModalBody>
             <ModalFooter>
-              <ModalCancelBtn onClick={() => setShowEditPartsModal(false)} disabled={editPartsSubmitting}>
+              <ModalCancelBtn
+                onClick={() => setShowEditPartsModal(false)}
+                disabled={editPartsSubmitting}
+              >
                 {t("rescueMgrCancel")}
               </ModalCancelBtn>
-              <ModalConfirmBtn onClick={handleEditParts} disabled={editPartsSubmitting}>
+              <ModalConfirmBtn
+                onClick={handleEditParts}
+                disabled={editPartsSubmitting}
+              >
                 {editPartsSubmitting ? "Đang lưu..." : "Lưu phụ tùng"}
               </ModalConfirmBtn>
             </ModalFooter>
@@ -1506,7 +1770,6 @@ const CardTitle = styled.div`
   font-size: 1rem;
   color: #111827;
 `;
-
 
 const CardInfoRow = styled.div`
   display: flex;
