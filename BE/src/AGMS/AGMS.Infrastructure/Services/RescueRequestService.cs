@@ -67,6 +67,7 @@ public class RescueRequestService : IRescueRequestService
             RequiresDeposit = requiresDeposit,
             DepositAmount = 0m,
             IsDepositPaid = !requiresDeposit,
+            IsDepositConfirmed = !requiresDeposit,
             CreatedDate = DateTime.UtcNow,
             Phone = request.Phone
         };
@@ -79,8 +80,7 @@ public class RescueRequestService : IRescueRequestService
         return await MapToDetailAsync(created, ct);
     }
 
-    /// <summary>SA lấy danh sách yêu cầu cứu hộ với bộ lọc (UC-RES-01 Step 3).</summary>
-    // Thanh toán đặt cọc chỉ mở khóa luồng xử lý tiếp theo, không tự động đổi trạng thái rescue.
+    /// <summary>Customer gửi thông tin/chứng từ đặt cọc để chờ SA xác nhận.</summary>
     public async Task<RescueDepositResultDto> PayDepositAsync(
         int rescueId,
         int customerId,
@@ -98,8 +98,11 @@ public class RescueRequestService : IRescueRequestService
         if (!rescue.RequiresDeposit)
             throw new InvalidOperationException("Yêu cầu này không yêu cầu đặt cọc.");
 
+        if (rescue.IsDepositConfirmed)
+            throw new InvalidOperationException("Yêu cầu này đã được SA xác nhận nhận cọc.");
+
         if (rescue.IsDepositPaid)
-            throw new InvalidOperationException("Yêu cầu này đã được đặt cọc.");
+            throw new InvalidOperationException("Khách hàng đã gửi thông tin đặt cọc cho yêu cầu này.");
 
         if (rescue.Status == RescueStatus.Cancelled || rescue.Status == RescueStatus.Completed)
             throw new InvalidOperationException("Không thể đặt cọc cho yêu cầu đã kết thúc.");
@@ -121,9 +124,12 @@ public class RescueRequestService : IRescueRequestService
             );
 
         var now = DateTime.UtcNow;
-        // Lưu chứng từ đặt cọc ngay trên rescue để các bước hóa đơn và kiểm tra workflow dùng chung.
+        // Ghi nhận khách đã gửi chứng từ đặt cọc; bước mở khóa workflow sẽ do SA xác nhận riêng.
         rescue.IsDepositPaid = true;
         rescue.DepositPaidDate = now;
+        rescue.IsDepositConfirmed = false;
+        rescue.DepositConfirmedDate = null;
+        rescue.DepositConfirmedByID = null;
         rescue.DepositPaymentMethod = method;
         rescue.DepositTransactionReference = request.TransactionReference?.Trim();
         await _rescueRepo.UpdateAsync(rescue, ct);
@@ -135,7 +141,69 @@ public class RescueRequestService : IRescueRequestService
             DepositAmount = rescue.DepositAmount,
             IsDepositPaid = true,
             DepositPaidDate = now,
+            IsDepositConfirmed = false,
+            DepositConfirmedDate = null,
+            DepositConfirmedById = null,
             PaymentMethod = method,
+            TransactionReference = rescue.DepositTransactionReference
+        };
+    }
+
+    /// <summary>SA xác nhận đã nhận cọc sau khi khách hàng gửi thông tin thanh toán.</summary>
+    public async Task<RescueDepositResultDto> ConfirmDepositAsync(
+        int rescueId,
+        int saId,
+        CancellationToken ct
+    )
+    {
+        var rescue =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!rescue.RequiresDeposit)
+            throw new InvalidOperationException("Yêu cầu này không yêu cầu đặt cọc.");
+
+        if (!rescue.IsDepositPaid)
+            throw new InvalidOperationException("Khách hàng chưa gửi thông tin đặt cọc.");
+
+        if (rescue.IsDepositConfirmed)
+            throw new InvalidOperationException("Yêu cầu này đã được SA xác nhận nhận cọc.");
+
+        if (rescue.Status == RescueStatus.Cancelled || rescue.Status == RescueStatus.Completed)
+            throw new InvalidOperationException("Không thể xác nhận cọc cho yêu cầu đã kết thúc.");
+
+        if (!RescueStatus.AllowedForDeposit.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                "Chỉ có thể xác nhận cọc khi yêu cầu đang ở bước chờ xử lý sau khi khách hàng đồng ý đề xuất."
+            );
+
+        var sa =
+            await _userRepo.GetByIdAsync(saId, ct)
+            ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
+        if (sa.RoleID != UserRole.ServiceAdvisor)
+            throw new ArgumentException("Chỉ Service Advisor mới có quyền xác nhận nhận cọc.");
+
+        if (rescue.ServiceAdvisorID.HasValue && rescue.ServiceAdvisorID.Value != saId)
+            throw new ArgumentException("Chỉ Service Advisor đang xử lý yêu cầu này mới được xác nhận nhận cọc.");
+
+        var now = DateTime.UtcNow;
+        rescue.ServiceAdvisorID ??= saId;
+        rescue.IsDepositConfirmed = true;
+        rescue.DepositConfirmedDate = now;
+        rescue.DepositConfirmedByID = saId;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        return new RescueDepositResultDto
+        {
+            RescueId = rescue.RescueID,
+            Status = rescue.Status,
+            DepositAmount = rescue.DepositAmount,
+            IsDepositPaid = rescue.IsDepositPaid,
+            DepositPaidDate = rescue.DepositPaidDate,
+            IsDepositConfirmed = true,
+            DepositConfirmedDate = now,
+            DepositConfirmedById = saId,
+            PaymentMethod = rescue.DepositPaymentMethod ?? string.Empty,
             TransactionReference = rescue.DepositTransactionReference
         };
     }
@@ -1465,6 +1533,9 @@ public class RescueRequestService : IRescueRequestService
             DepositAmount = r.DepositAmount,
             IsDepositPaid = r.IsDepositPaid,
             DepositPaidDate = r.DepositPaidDate,
+            IsDepositConfirmed = r.IsDepositConfirmed,
+            DepositConfirmedDate = r.DepositConfirmedDate,
+            DepositConfirmedById = r.DepositConfirmedByID,
             EstimatedArrivalDateTime = r.EstimatedArrivalDateTime,
             CreatedDate = r.CreatedDate,
             CompletedDate = r.CompletedDate,
@@ -1633,7 +1704,7 @@ public class RescueRequestService : IRescueRequestService
 
     private static decimal GetDepositAppliedAmount(RescueRequest rescue, decimal invoiceFinalAmount)
     {
-        if (!rescue.RequiresDeposit || !rescue.IsDepositPaid)
+        if (!rescue.RequiresDeposit || !rescue.IsDepositPaid || !rescue.IsDepositConfirmed)
             return 0m;
 
         // Không áp tiền cọc vượt quá tổng tiền hóa đơn.
@@ -1649,10 +1720,10 @@ public class RescueRequestService : IRescueRequestService
 
     private static void EnsureDepositPaid(RescueRequest rescue)
     {
-        // Mọi rescue yêu cầu đặt cọc đều bị chặn ở đây cho đến khi khách hoàn tất bước thanh toán cọc.
-        if (rescue.RequiresDeposit && !rescue.IsDepositPaid)
+        // Mọi rescue yêu cầu đặt cọc đều bị chặn ở đây cho đến khi khách gửi cọc và SA xác nhận đã nhận cọc.
+        if (rescue.RequiresDeposit && (!rescue.IsDepositPaid || !rescue.IsDepositConfirmed))
             throw new InvalidOperationException(
-                "Khách hàng phải đóng cọc trước khi xử lý yêu cầu cứu hộ."
+                "Khách hàng phải đóng cọc và được SA xác nhận nhận cọc trước khi xử lý yêu cầu cứu hộ."
             );
     }
 }

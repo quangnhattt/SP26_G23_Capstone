@@ -19,6 +19,9 @@ public class RescueRequestDetailDto
     public decimal DepositAmount { get; set; }
     public bool IsDepositPaid { get; set; }
     public DateTime? DepositPaidDate { get; set; }
+    public bool IsDepositConfirmed { get; set; }
+    public DateTime? DepositConfirmedDate { get; set; }
+    public int? DepositConfirmedById { get; set; }
     public DateTime? EstimatedArrivalDateTime { get; set; }
     public DateTime CreatedDate { get; set; }
     public DateTime? CompletedDate { get; set; }

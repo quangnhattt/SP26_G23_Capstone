@@ -74,6 +74,8 @@ public class RescueRequestRepository : IRescueRequestRepository
                 DepositAmount      = r.DepositAmount,
                 IsDepositPaid      = r.IsDepositPaid,
                 DepositPaidDate    = r.DepositPaidDate,
+                IsDepositConfirmed = r.IsDepositConfirmed,
+                DepositConfirmedDate = r.DepositConfirmedDate,
                 CustomerId         = r.CustomerID,
                 CustomerName       = r.Customer.FullName,
                 CustomerPhone      = r.Customer.Phone,
@@ -115,6 +117,9 @@ public class RescueRequestRepository : IRescueRequestRepository
         entity.DepositAmount            = rescue.DepositAmount;
         entity.IsDepositPaid            = rescue.IsDepositPaid;
         entity.DepositPaidDate          = rescue.DepositPaidDate;
+        entity.IsDepositConfirmed       = rescue.IsDepositConfirmed;
+        entity.DepositConfirmedDate     = rescue.DepositConfirmedDate;
+        entity.DepositConfirmedByID     = rescue.DepositConfirmedByID;
         entity.DepositPaymentMethod     = rescue.DepositPaymentMethod;
         entity.DepositTransactionReference = rescue.DepositTransactionReference;
         entity.EstimatedArrivalDateTime = rescue.EstimatedArrivalDateTime;
