@@ -46,6 +46,7 @@ const PackageDetailModal = ({
 
   useEffect(() => {
     if (!isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingOptions(true);
     Promise.all([
       getProducts({ pageSize: 500 }).catch(() => ({ items: [] })),
