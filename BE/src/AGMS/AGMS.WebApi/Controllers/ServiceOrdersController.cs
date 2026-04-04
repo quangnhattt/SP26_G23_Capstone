@@ -28,7 +28,7 @@ public class ServiceOrdersController : ControllerBase
         int? employeeId = null;
         var roleIdClaim = User.FindFirstValue(ClaimTypes.Role);
         
-        if (roleIdClaim == "3")
+        if (roleIdClaim == "3") 
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (int.TryParse(userIdClaim, out var userId))

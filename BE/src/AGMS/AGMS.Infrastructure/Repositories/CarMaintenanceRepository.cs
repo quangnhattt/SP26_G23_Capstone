@@ -76,7 +76,8 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
     {
         var maintenance = await _db.CarMaintenances
             .AsNoTracking()
-            .Include(m => m.Car)
+            .Include(m => m.Car).ThenInclude(c => c.Owner)
+            .Include(m => m.AssignedTechnician)
             .Include(m => m.MaintenancePackageUsages).ThenInclude(mpu => mpu.Package)
             .Include(m => m.ServiceDetails).ThenInclude(sd => sd.Product)
             .Include(m => m.ServicePartDetails).ThenInclude(spd => spd.Product).FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
@@ -122,6 +123,9 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             Status = maintenance.Status,
             CreatedDate = maintenance.CreatedDate,
             MaintenanceDate = maintenance.MaintenanceDate,
+            TechnicianFullName = maintenance.AssignedTechnician?.FullName,
+            TechnicianPhone = maintenance.AssignedTechnician?.Phone,
+            TechnicianEmail = maintenance.AssignedTechnician?.Email,
             LineItems = serviceItems.Concat(partItems).ToList()
         };
     }
