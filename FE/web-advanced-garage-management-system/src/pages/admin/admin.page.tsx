@@ -12,7 +12,7 @@ import {
   HiClipboardCheck,
   HiDocumentText,
   HiBadgeCheck,
-  HiWrench,
+  HiCollection,
 } from "react-icons/hi";
 import { useEffect, useState } from "react";
 import { getMenuAccess } from "@/services/admin/menuService";
@@ -56,7 +56,7 @@ const AdminDashboard = () => {
     if (lowerName.includes("inventory")) return <HiArchive size={18} />;
     if (lowerName.includes("intake")) return <HiClipboardCheck size={18} />;
     if (lowerName.includes("membershipRanks")) return <HiBadgeCheck size={18} />;
-    if (lowerName.includes("maintenancePackage")) return <HiWrench size={18} />;
+    if (lowerName.includes("maintenancePackage")) return <HiCollection size={18} />;
     return <HiCog size={18} />;
   };
 
