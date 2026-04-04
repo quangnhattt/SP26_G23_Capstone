@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.ServiceOrder;
 using Microsoft.AspNetCore.Authorization;
@@ -24,7 +25,19 @@ public class ServiceOrdersController : ControllerBase
     [ProducesResponseType(typeof(ServiceOrderPagedResultDto<ServiceOrderListItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetServiceOrders([FromQuery] ServiceOrderListQueryDto query, CancellationToken ct)
     {
-        var result = await _carMaintenanceService.GetServiceOrdersAsync(query, ct);
+        int? employeeId = null;
+        var roleIdClaim = User.FindFirstValue(ClaimTypes.Role);
+        
+        if (roleIdClaim == "3")
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(userIdClaim, out var userId))
+            {
+                employeeId = userId;
+            }
+        }
+
+        var result = await _carMaintenanceService.GetServiceOrdersAsync(query, employeeId, ct);
         return Ok(result);
     }
     [HttpGet("{id:int}")]

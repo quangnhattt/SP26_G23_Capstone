@@ -15,7 +15,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         _db = db;
     }
 
-    public async Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(ServiceOrderListQueryDto query, CancellationToken ct = default)
+    public async Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(ServiceOrderListQueryDto query, int? employeeId = null, CancellationToken ct = default)
     {
         var page = query.Page <= 0 ? 1 : query.Page;
         var pageSize = query.PageSize <= 0 ? 20 : Math.Min(100, query.PageSize);
@@ -37,6 +37,11 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         {
             var kw = query.CustomerName.Trim();
             q = q.Where(m => m.Car.Owner.FullName.Contains(kw));
+        }
+
+        if (employeeId.HasValue)
+        {
+            q = q.Where(m => m.AssignedTechnicianID == employeeId.Value);
         }
 
         var total = await q.CountAsync(ct);
