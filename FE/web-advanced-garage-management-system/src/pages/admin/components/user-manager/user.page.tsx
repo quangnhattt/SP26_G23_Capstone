@@ -1,9 +1,11 @@
 import styled from "styled-components";
 import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
 import { useEffect, useState } from "react";
-import { Pagination } from "antd";
+import { Table as AntTable, Switch } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   userService,
+  updateUserStatus,
   type IUser,
   type IUserRequest,
 } from "@/services/admin/userService";
@@ -15,6 +17,7 @@ import UserModal from "./UserModal";
 const UserPage = () => {
   const { t } = useTranslation();
   const [users, setUsers] = useState<IUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<IUser | null>(null);
@@ -39,9 +42,7 @@ const UserPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const pageSize = 10;
+  const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
 
   const normalizeText = (value: string | null | undefined) =>
     (value ?? "").toLowerCase();
@@ -51,12 +52,15 @@ const UserPage = () => {
 
   async function fetchUsers() {
     try {
+      setLoading(true);
       const data = await userService.getUsers();
       setUsers(data);
       setError(null);
     } catch (err) {
       setError(t("cannotLoadUsers"));
       console.error("Error fetching users:", err);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -238,15 +242,9 @@ const UserPage = () => {
   };
 
   const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) {
-      return t("notAvailable");
-    }
-
+    if (!dateString) return t("notAvailable");
     const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) {
-      return t("notAvailable");
-    }
-
+    if (Number.isNaN(date.getTime())) return t("notAvailable");
     return date.toLocaleDateString("vi-VN");
   };
 
@@ -278,6 +276,19 @@ const UserPage = () => {
     }
   };
 
+  const handleToggleUserStatus = async (userId: number, isActive: boolean) => {
+    setUpdatingUserId(userId);
+    try {
+      await updateUserStatus(userId, isActive);
+      await fetchUsers();
+    } catch (err) {
+      console.error("Error updating user status:", err);
+      toast.error(t("errorOccurred"));
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
   const filteredUsers = users.filter((user) => {
     const normalized = normalizeText(searchTerm);
     return (
@@ -289,11 +300,6 @@ const UserPage = () => {
     );
   });
 
-  const paginatedUsers = filteredUsers.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
-
   const activeUsers = users.filter((user) => user.isActive);
   const roleStats = users.reduce(
     (acc, user) => {
@@ -303,6 +309,98 @@ const UserPage = () => {
     },
     {} as Record<string, number>,
   );
+
+  const columns: ColumnsType<IUser> = [
+    {
+      title: t("user"),
+      key: "user",
+      render: (_: unknown, record: IUser) => (
+        <CustomerInfo>
+          <div>
+            <CustomerName>{record.fullName}</CustomerName>
+            <CustomerId>{record.userCode}</CustomerId>
+          </div>
+        </CustomerInfo>
+      ),
+    },
+    {
+      title: t("username"),
+      dataIndex: "username",
+      key: "username",
+      align: "center",
+      render: (val: string) => <Username>{getDisplayText(val)}</Username>,
+    },
+    {
+      title: t("contactInfo"),
+      key: "contactInfo",
+      align: "center",
+      render: (_: unknown, record: IUser) => (
+        <ContactInfo>
+          <div>{getDisplayText(record.phone)}</div>
+          <div>{getDisplayText(record.email)}</div>
+        </ContactInfo>
+      ),
+    },
+    {
+      title: t("gender"),
+      dataIndex: "gender",
+      key: "gender",
+      align: "center",
+      render: (val: string) => getGenderLabel(val),
+    },
+    {
+      title: t("dateOfBirth"),
+      dataIndex: "dateOfBirth",
+      key: "dateOfBirth",
+      align: "center",
+      render: (val: string) => formatDate(val),
+    },
+    {
+      title: t("role"),
+      dataIndex: "roleName",
+      key: "roleName",
+      align: "center",
+      render: (val: string) => (
+        <RankBadgeTable color={getRoleColor(val)}>
+          {getRoleLabel(val)}
+        </RankBadgeTable>
+      ),
+    },
+    {
+      title: t("status"),
+      dataIndex: "isActive",
+      key: "isActive",
+      align: "center",
+      render: (isActive: boolean, record: IUser) => (
+        <Switch
+          checked={isActive}
+          loading={updatingUserId === record.userID}
+          onChange={(checked: boolean) =>
+            handleToggleUserStatus(record.userID, checked)
+          }
+        />
+      ),
+    },
+    {
+      title: t("createDate"),
+      dataIndex: "createdDate",
+      key: "createdDate",
+      align: "center",
+      render: (val: string) => formatDate(val),
+    },
+    {
+      title: t("action"),
+      key: "action",
+      align: "center",
+      render: (_: unknown, record: IUser) => (
+        <ActionButtons>
+          <ActionButton onClick={() => handleOpenEditModal(record)}>
+            <HiPencil size={18} />
+          </ActionButton>
+        </ActionButtons>
+      ),
+    },
+  ];
 
   return (
     <Container>
@@ -355,91 +453,25 @@ const UserPage = () => {
             type="text"
             placeholder={t("searchUsersPlaceholder")}
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </SearchWrapper>
       </Toolbar>
 
       <TableCard>
-        <TableSection>
-          <TableTitle>{t("userList")}</TableTitle>
-          <TableSubtitle>
-            {t("showingUsers", { count: filteredUsers.length })}
-          </TableSubtitle>
-
-          <TableWrapper>
-            <Table>
-              <thead>
-                <tr>
-                  <ThLeft>{t("user")}</ThLeft>
-                  <Th>{t("username")}</Th>
-                  <Th>{t("contactInfo")}</Th>
-                  <Th>{t("gender")}</Th>
-                  <Th>{t("dateOfBirth")}</Th>
-                  <Th>{t("role")}</Th>
-                  <Th>{t("status")}</Th>
-                  <Th>{t("createDate")}</Th>
-                  <Th>{t("action")}</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedUsers.map((user) => (
-                  <tr key={user.userID}>
-                    <TdLeft>
-                      <CustomerInfo>
-                        <div>
-                          <CustomerName>{user.fullName}</CustomerName>
-                          <CustomerId>{user.userCode}</CustomerId>
-                        </div>
-                      </CustomerInfo>
-                    </TdLeft>
-                    <Td>
-                      <Username>{getDisplayText(user.username)}</Username>
-                    </Td>
-                    <Td>
-                      <ContactInfo>
-                        <div>{getDisplayText(user.phone)}</div>
-                        <div>{getDisplayText(user.email)}</div>
-                      </ContactInfo>
-                    </Td>
-                    <Td>{getGenderLabel(user.gender)}</Td>
-                    <Td>{formatDate(user.dateOfBirth)}</Td>
-                    <Td>
-                      <RankBadgeTable color={getRoleColor(user.roleName)}>
-                        {getRoleLabel(user.roleName)}
-                      </RankBadgeTable>
-                    </Td>
-                    <Td>
-                      <StatusBadge $isActive={user.isActive}>
-                        {user.isActive ? t("active") : t("inactive")}
-                      </StatusBadge>
-                    </Td>
-                    <Td>{formatDate(user.createdDate)}</Td>
-                    <Td>
-                      <ActionButtons>
-                        <ActionButton onClick={() => handleOpenEditModal(user)}>
-                          <HiPencil size={18} />
-                        </ActionButton>
-                      </ActionButtons>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </TableWrapper>
-          <PaginationWrapper>
-            <Pagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={filteredUsers.length}
-              showSizeChanger={false}
-              onChange={(page: number) => setCurrentPage(page)}
-            />
-          </PaginationWrapper>
-        </TableSection>
+        <AntTable
+          columns={columns}
+          dataSource={filteredUsers}
+          rowKey="userID"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: false,
+            showTotal: (total, range) =>
+              `${range[0]}–${range[1]} / ${total} ${t("user")}`,
+          }}
+          scroll={{ x: "max-content" }}
+        />
       </TableCard>
 
       <UserModal
@@ -489,10 +521,6 @@ const Header = styled.div`
   flex-wrap: wrap;
   gap: 1rem;
 
-  @media (max-width: 1024px) {
-    margin-bottom: 1.5rem;
-  }
-
   @media (max-width: 640px) {
     flex-direction: column;
     align-items: stretch;
@@ -533,11 +561,6 @@ const AddButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
-
-  @media (max-width: 1024px) {
-    padding: 0.625rem 1.25rem;
-    font-size: 0.875rem;
-  }
 
   &:hover {
     background: #2563eb;
@@ -640,6 +663,25 @@ const TableCard = styled.div`
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
+  padding: 0 8px;
+
+  .ant-table {
+    color: #374151;
+  }
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+  .ant-pagination {
+    color: #374151;
+  }
 `;
 
 const SearchWrapper = styled.label`
@@ -653,7 +695,6 @@ const SearchWrapper = styled.label`
   flex: 1;
   max-width: 360px;
   min-width: 220px;
-  min-width: 0;
   cursor: text;
 
   @media (max-width: 1024px) {
@@ -679,130 +720,9 @@ const SearchInput = styled.input`
   }
 `;
 
-const TableSection = styled.div`
-  padding: 1.5rem;
-
-  @media (max-width: 1024px) {
-    padding: 1rem;
-  }
-`;
-
-const TableWrapper = styled.div`
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  width: 100%;
-  min-width: 0;
-
-  &::-webkit-scrollbar {
-    height: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-`;
-
-const TableTitle = styled.h2`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1a1d2e;
-  margin: 0 0 0.25rem 0;
-`;
-
-const TableSubtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7590;
-  margin: 0 0 1.5rem 0;
-`;
-
-const PaginationWrapper = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding: 16px 0 0;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  min-width: 900px;
-  border-collapse: collapse;
-`;
-
-const Th = styled.th`
-  text-align: center;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7590;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap;
-
-  @media (max-width: 1024px) {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.6875rem;
-  }
-`;
-
-const ThLeft = styled.th`
-  text-align: left;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7590;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap;
-
-  @media (max-width: 1024px) {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.6875rem;
-  }
-`;
-
-const Td = styled.td`
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1a1d2e;
-  text-align: center;
-  vertical-align: middle;
-
-  @media (max-width: 1024px) {
-    padding: 0.75rem;
-    font-size: 0.8125rem;
-  }
-`;
-
-const TdLeft = styled.td`
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1a1d2e;
-  text-align: left;
-  vertical-align: middle;
-
-  @media (max-width: 1024px) {
-    padding: 0.75rem;
-    font-size: 0.8125rem;
-  }
-`;
-
 const CustomerInfo = styled.div`
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 0.75rem;
 `;
 
@@ -845,27 +765,8 @@ const RankBadgeTable = styled.span<{ color: string }>`
   font-size: 0.75rem;
   font-weight: 600;
   display: inline-block;
-
-  @media (max-width: 1024px) {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.6875rem;
-  }
 `;
 
-const StatusBadge = styled.span<{ $isActive: boolean }>`
-  background: ${(props) => (props.$isActive ? "#10b981" : "#ef4444")};
-  color: white;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-
-  @media (max-width: 1024px) {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.6875rem;
-  }
-`;
 
 const ActionButtons = styled.div`
   display: flex;

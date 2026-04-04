@@ -2,7 +2,8 @@ import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
 import { useEffect, useState, useCallback } from "react";
-import { Pagination } from "antd";
+import { Table as AntTable } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   getServices,
   createService,
@@ -48,9 +49,6 @@ const ServicePage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categories, setCategories] = useState<ICategory[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const pageSize = 10;
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -177,10 +175,83 @@ const ServicePage = () => {
       s.code.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const paginatedServices = filteredServices.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  const columns: ColumnsType<IService> = [
+    {
+      title: t("name"),
+      key: "name",
+      render: (_: unknown, record: IService) => (
+        <ServiceInfo>
+          <div>
+            <ServiceName>{record.name}</ServiceName>
+            <ServiceCode>{record.code}</ServiceCode>
+          </div>
+        </ServiceInfo>
+      ),
+    },
+    {
+      title: t("price"),
+      dataIndex: "price",
+      key: "price",
+      align: "center",
+      render: (val: number) => <PriceText>{formatPrice(val)}</PriceText>,
+    },
+    {
+      title: t("unit"),
+      dataIndex: "unit",
+      key: "unit",
+      align: "center",
+      render: (val: string) => (
+        <UnitBadge>{val || t("notAvailable")}</UnitBadge>
+      ),
+    },
+    {
+      title: t("category"),
+      dataIndex: "category",
+      key: "category",
+      align: "center",
+      render: (val: string) => (
+        <CategoryBadge>{val || t("notAvailable")}</CategoryBadge>
+      ),
+    },
+    {
+      title: t("estimatedDurationHours"),
+      dataIndex: "estimatedDurationHours",
+      key: "estimatedDurationHours",
+      align: "center",
+      render: (val: number) => (
+        <span style={{ color: "#1a1d2e" }}>
+          {val}
+          {t("hoursShort")}
+        </span>
+      ),
+    },
+    {
+      title: t("status"),
+      dataIndex: "isActive",
+      key: "isActive",
+      align: "center",
+      render: (isActive: boolean) => (
+        <StatusBadge $isActive={isActive}>
+          {isActive ? t("active") : t("inactive")}
+        </StatusBadge>
+      ),
+    },
+    {
+      title: t("action"),
+      key: "action",
+      align: "center",
+      render: (_: unknown, record: IService) => (
+        <ActionButtons>
+          <EditButton
+            onClick={() => handleOpenEditModal(record)}
+            title={t("edit")}
+          >
+            <HiPencil size={18} />
+          </EditButton>
+        </ActionButtons>
+      ),
+    },
+  ];
 
   return (
     <Container>
@@ -210,91 +281,19 @@ const ServicePage = () => {
       </Toolbar>
 
       <TableCard>
-        <TableSection>
-          <TableTitle>{t("serviceList")}</TableTitle>
-          <TableSubtitle>
-            {loading
-              ? t("loadingServices")
-              : t("showingServices", { count: filteredServices.length })}
-          </TableSubtitle>
-
-          {loading ? (
-            <LoadingMessage>{t("loadingData")}</LoadingMessage>
-          ) : (
-            <>
-              <TableWrapper>
-                <Table>
-                  <thead>
-                    <tr>
-                      <Th>{t("name")}</Th>
-                      <Th>{t("price")}</Th>
-                      <Th>{t("unit")}</Th>
-                      <Th>{t("category")}</Th>
-                      <Th>{t("estimatedDurationHours")}</Th>
-                      <Th>{t("status")}</Th>
-                      <Th>{t("action")}</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedServices.map((service) => (
-                      <tr key={service.id}>
-                        <Td>
-                          <ServiceInfo>
-                            <div>
-                              <ServiceName>{service.name}</ServiceName>
-                              <ServiceCode>{service.code}</ServiceCode>
-                            </div>
-                          </ServiceInfo>
-                        </Td>
-                        <Td>
-                          <PriceText>{formatPrice(service.price)}</PriceText>
-                        </Td>
-                        <Td>
-                          <UnitBadge>
-                            {service.unit || t("notAvailable")}
-                          </UnitBadge>
-                        </Td>
-                        <Td>
-                          <CategoryBadge $hasData={!!service.category}>
-                            {service.category || t("notAvailable")}
-                          </CategoryBadge>
-                        </Td>
-                        <Td>
-                          {service.estimatedDurationHours}
-                          {t("hoursShort")}
-                        </Td>
-                        <Td>
-                          <StatusBadge $isActive={service.isActive}>
-                            {service.isActive ? t("active") : t("inactive")}
-                          </StatusBadge>
-                        </Td>
-                        <Td>
-                          <ActionButtons>
-                            <EditButton
-                              onClick={() => handleOpenEditModal(service)}
-                              title={t("edit")}
-                            >
-                              <HiPencil size={18} />
-                            </EditButton>
-                          </ActionButtons>
-                        </Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </TableWrapper>
-              <PaginationWrapper>
-                <Pagination
-                  current={currentPage}
-                  pageSize={pageSize}
-                  total={filteredServices.length}
-                  showSizeChanger={false}
-                  onChange={(page: number) => setCurrentPage(page)}
-                />
-              </PaginationWrapper>
-            </>
-          )}
-        </TableSection>
+        <AntTable
+          columns={columns}
+          dataSource={filteredServices}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: false,
+            showTotal: (total, range) =>
+              `${range[0]}–${range[1]} / ${total} ${t("service")}`,
+          }}
+          scroll={{ x: "max-content" }}
+        />
       </TableCard>
 
       <ServiceModal
@@ -381,6 +380,25 @@ const TableCard = styled.div`
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
+  padding: 0 8px;
+
+  .ant-table {
+    color: #374151;
+  }
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+  .ant-pagination {
+    color: #374151;
+  }
 `;
 
 const SearchWrapper = styled.label`
@@ -412,74 +430,6 @@ const SearchInput = styled.input`
 
   &::placeholder {
     color: #9ca3af;
-  }
-`;
-
-const TableSection = styled.div`
-  padding: 20px;
-`;
-
-const TableTitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 4px 0;
-`;
-
-const TableSubtitle = styled.p`
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0 0 16px 0;
-`;
-
-const LoadingMessage = styled.div`
-  padding: 3rem;
-  text-align: center;
-  color: #6b7590;
-  font-size: 1rem;
-`;
-
-const TableWrapper = styled.div`
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-`;
-
-const PaginationWrapper = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding: 16px 0 0;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  min-width: max-content;
-  border-collapse: collapse;
-`;
-
-const Th = styled.th`
-  text-align: center;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7590;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-
-  &:first-child {
-    text-align: left;
-  }
-`;
-
-const Td = styled.td`
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1a1d2e;
-  text-align: center;
-
-  &:first-child {
-    text-align: left;
   }
 `;
 
@@ -519,7 +469,7 @@ const UnitBadge = styled.span`
   display: inline-block;
 `;
 
-const CategoryBadge = styled.span<{ $hasData: boolean }>`
+const CategoryBadge = styled.span`
   background: #fef3c7;
   color: #b45309;
   padding: 0.375rem 0.75rem;

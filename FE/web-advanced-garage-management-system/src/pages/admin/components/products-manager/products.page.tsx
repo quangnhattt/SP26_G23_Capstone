@@ -1,7 +1,8 @@
 import styled from "styled-components";
 import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
 import { useEffect, useState, useRef } from "react";
-import { Pagination } from "antd";
+import { Table as AntTable } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   getProducts,
   createProduct,
@@ -231,6 +232,93 @@ const ProductsPage = () => {
     }).format(price);
   };
 
+  const columns: ColumnsType<IProduct> = [
+    {
+      title: t("name"),
+      key: "name",
+      render: (_: unknown, record: IProduct) => (
+        <ProductInfo>
+          <div>
+            <ProductName>{record.name}</ProductName>
+            <ProductCode>{record.code}</ProductCode>
+          </div>
+        </ProductInfo>
+      ),
+    },
+    {
+      title: t("price"),
+      dataIndex: "price",
+      key: "price",
+      align: "center",
+      render: (val: number) => <PriceText>{formatPrice(val)}</PriceText>,
+    },
+    {
+      title: t("unit"),
+      dataIndex: "unit",
+      key: "unit",
+      align: "center",
+      render: (val: string) => <UnitBadge>{val || "N/A"}</UnitBadge>,
+    },
+    {
+      title: t("category"),
+      dataIndex: "category",
+      key: "category",
+      align: "center",
+      render: (val: string) => <CategoryBadge>{val || "N/A"}</CategoryBadge>,
+    },
+    {
+      title: t("warranty"),
+      dataIndex: "warranty",
+      key: "warranty",
+      align: "center",
+      render: (val: number) => (
+        <span style={{ color: "#1a1d2e" }}>
+          {val} {t("months")}
+        </span>
+      ),
+    },
+    {
+      title: t("minStock"),
+      dataIndex: "minStockLevel",
+      key: "minStockLevel",
+      align: "center",
+      render: (val: number) => <span style={{ color: "#1a1d2e" }}>{val}</span>,
+    },
+    {
+      title: t("stockQty"),
+      key: "stockQty",
+      align: "center",
+      render: (_: unknown, record: IProduct) => (
+        <StockBadge $isLow={record.stockQty < record.minStockLevel}>
+          {record.stockQty}
+        </StockBadge>
+      ),
+    },
+    {
+      title: t("status"),
+      dataIndex: "isActive",
+      key: "isActive",
+      align: "center",
+      render: (isActive: boolean) => (
+        <StatusBadge $isActive={isActive}>
+          {isActive ? t("active") : t("inactive")}
+        </StatusBadge>
+      ),
+    },
+    {
+      title: t("action"),
+      key: "action",
+      align: "center",
+      render: (_: unknown, record: IProduct) => (
+        <ActionButtons>
+          <EditButton onClick={() => handleOpenEditModal(record)} title="Edit">
+            <HiPencil size={18} />
+          </EditButton>
+        </ActionButtons>
+      ),
+    },
+  ];
+
   return (
     <Container>
       <Header>
@@ -259,100 +347,23 @@ const ProductsPage = () => {
       </Toolbar>
 
       <TableCard>
-        <TableSection>
-          <TableTitle>{t("productList")}</TableTitle>
-          <TableSubtitle>
-            {loading
-              ? t("loadingProducts")
-              : t("showingProducts", { total: totalCount })}
-          </TableSubtitle>
-
-          {loading ? (
-            <LoadingMessage>{t("loadingData")}</LoadingMessage>
-          ) : (
-            <>
-              <TableWrapper>
-                <Table>
-                  <thead>
-                    <tr>
-                      <Th>{t("name")}</Th>
-                      <Th>{t("price")}</Th>
-                      <Th>{t("unit")}</Th>
-                      <Th>{t("category")}</Th>
-                      <Th>{t("warranty")}</Th>
-                      <Th>{t("minStock")}</Th>
-                      <Th>{t("stockQty")}</Th>
-                      <Th>{t("status")}</Th>
-                      <Th>{t("action")}</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.map((product) => (
-                      <tr key={product.id}>
-                        <Td>
-                          <ProductInfo>
-                            <div>
-                              <ProductName>{product.name}</ProductName>
-                              <ProductCode>{product.code}</ProductCode>
-                            </div>
-                          </ProductInfo>
-                        </Td>
-                        <Td>
-                          <PriceText>{formatPrice(product.price)}</PriceText>
-                        </Td>
-                        <Td>
-                          <UnitBadge>{product.unit || "N/A"}</UnitBadge>
-                        </Td>
-                        <Td>
-                          <CategoryBadge $hasData={!!product.category}>
-                            {product.category || "N/A"}
-                          </CategoryBadge>
-                        </Td>
-                        <Td>
-                          {product.warranty} {t("months")}
-                        </Td>
-                        <Td>{product.minStockLevel}</Td>
-                        <Td>
-                          <StockBadge
-                            $isLow={product.stockQty < product.minStockLevel}
-                          >
-                            {product.stockQty}
-                          </StockBadge>
-                        </Td>
-                        <Td>
-                          <StatusBadge $isActive={product.isActive}>
-                            {product.isActive ? t("active") : t("inactive")}
-                          </StatusBadge>
-                        </Td>
-                        <Td>
-                          <ActionButtons>
-                            <EditButton
-                              onClick={() => handleOpenEditModal(product)}
-                              title="Edit"
-                            >
-                              <HiPencil size={18} />
-                            </EditButton>
-                          </ActionButtons>
-                        </Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </TableWrapper>
-              <PaginationWrapper>
-                <Pagination
-                  current={currentPage}
-                  pageSize={pageSize}
-                  total={totalCount}
-                  showSizeChanger={false}
-                  onChange={(page: number) =>
-                    fetchProducts(searchTerm.trim() || undefined, page)
-                  }
-                />
-              </PaginationWrapper>
-            </>
-          )}
-        </TableSection>
+        <AntTable
+          columns={columns}
+          dataSource={products}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: totalCount,
+            showSizeChanger: false,
+            showTotal: (total, range) =>
+              `${range[0]}–${range[1]} / ${total} ${t("product")}`,
+            onChange: (page: number) =>
+              fetchProducts(searchTerm.trim() || undefined, page),
+          }}
+          scroll={{ x: "max-content" }}
+        />
       </TableCard>
 
       <ProductModal
@@ -441,6 +452,25 @@ const TableCard = styled.div`
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
+  padding: 0 8px;
+
+  .ant-table {
+    color: #374151;
+  }
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+  .ant-pagination {
+    color: #374151;
+  }
 `;
 
 const SearchWrapper = styled.label`
@@ -472,68 +502,6 @@ const SearchInput = styled.input`
 
   &::placeholder {
     color: #9ca3af;
-  }
-`;
-
-const TableSection = styled.div`
-  padding: 20px;
-`;
-
-const TableTitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 4px 0;
-`;
-
-const TableSubtitle = styled.p`
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0 0 16px 0;
-`;
-
-const LoadingMessage = styled.div`
-  padding: 3rem;
-  text-align: center;
-  color: #6b7590;
-  font-size: 1rem;
-`;
-
-const TableWrapper = styled.div`
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  min-width: max-content;
-  border-collapse: collapse;
-`;
-
-const Th = styled.th`
-  text-align: center;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7590;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-
-  &:first-child {
-    text-align: left;
-  }
-`;
-
-const Td = styled.td`
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1a1d2e;
-  text-align: center;
-
-  &:first-child {
-    text-align: left;
   }
 `;
 
@@ -573,7 +541,7 @@ const UnitBadge = styled.span`
   display: inline-block;
 `;
 
-const CategoryBadge = styled.span<{ $hasData: boolean }>`
+const CategoryBadge = styled.span`
   background: #fef3c7;
   color: #b45309;
   padding: 0.375rem 0.75rem;
@@ -625,10 +593,4 @@ const EditButton = styled.button`
     background: #dbeafe;
     color: #2563eb;
   }
-`;
-
-const PaginationWrapper = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding: 1rem 0 0.5rem;
 `;
