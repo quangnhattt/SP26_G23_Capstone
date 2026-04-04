@@ -21,6 +21,9 @@ namespace AGMS.Application.DTOs.ServiceOrder
         public string Status { get; set; } = string.Empty;
         public DateTime? CreatedDate { get; set; }
         public DateTime MaintenanceDate { get; set; }
+        public string? TechnicianFullName { get; set; }
+        public string? TechnicianPhone { get; set; }
+        public string? TechnicianEmail { get; set; }
         public List<MaintenanceLineItemDto> LineItems { get; set; } = new();
 
     }
