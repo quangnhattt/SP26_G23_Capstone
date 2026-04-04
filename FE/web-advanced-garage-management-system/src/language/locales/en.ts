@@ -1103,6 +1103,8 @@ export default {
   rescueMgrProposalEstFeeLabel: "Estimated service fee (VND)",
   rescueMgrProposalEstFeeAuto: "Auto-calculated from selected services & parts",
   rescueMgrProposalEstFeeManual: "Enter manually (if no selection above)",
+  rescueMgrDepositAmountLabel: "Deposit amount (50% of estimated fee)",
+  rescueMgrDepositAmountHint: "Please pay a deposit invoice with your first transaction.",
   rescueMgrProposalConfirmRoadside: "Confirm fix on-site",
   rescueMgrProposalConfirmTowing: "Confirm tow to garage",
   rescueMgrProposalQty: "Qty",
@@ -1121,6 +1123,141 @@ export default {
   rescueProposalAcceptError: "Failed to accept proposal. Please try again.",
   rescueProposalWaiting:
     "You have accepted the proposal. Waiting for garage to dispatch.",
+  rescueDepositPaySuccess: "Deposit paid successfully!",
+  rescueDepositPayError: "Deposit payment failed, please try again.",
+  rescueDepositLabel: "Deposit amount",
+  rescueDepositDueLabel: "Deposit amount due",
+  rescueDepositRequiredInfo: "You have accepted the proposal. Please pay the deposit so the garage can dispatch a technician.",
+  rescueDepositTapQR: "Tap to view payment QR code →",
+  rescueAcceptProposalBtn: "Accept proposal",
+  rescueConfirmDepositBtn: "Confirm deposit",
+  rescueDepositQRTitle: "Deposit payment QR code",
+  rescueDepositQRScanHint: "Scan to pay the deposit amount",
+  rescueMgrConfirmDeposit: "Confirm customer deposited",
+  rescueMgrDepositConfirmSuccess: "Customer deposit confirmed!",
+  rescueMgrDepositConfirmError: "Failed to confirm deposit!",
+
+  // Rescue Detail Modal - Technician actions
+  rescueTechAssignedTitle: "You have been assigned to this rescue job",
+  rescueTechAssignedInfo:
+    "The system has automatically confirmed. Please prepare to move to the customer's location.",
+  rescueTechStartDrivingBtn: "Start driving",
+  rescueTechEnRouteTitle: "You are on the way",
+  rescueTechEnRouteInfo:
+    "When you have arrived at the customer's location, confirm to continue the process.",
+  rescueTechConfirmArrivalBtn: "Confirm arrival on site",
+  rescueTechDiagnoseTitle: "Vehicle diagnosis",
+  rescueTechDiagnoseInfo:
+    "Record diagnosis results and determine if on-site repair is possible.",
+  rescueTechDiagnoseNotesLabel: "Diagnosis notes *",
+  rescueTechDiagnoseNotesPlaceholder: "Describe the vehicle condition...",
+  rescueTechCanRepairLabel: "Can repair on-site? *",
+  rescueTechRepairOnSiteOption: "Repair on-site",
+  rescueTechNeedTowingOption: "Need towing",
+  rescueTechSubmitDiagnosisBtn: "Submit diagnosis",
+  rescueTechRepairItemsTitle: "Record materials / services used",
+  rescueTechRepairItemsInfo: "Add materials and service items used.",
+  rescueTechAddRowBtn: "+ Add row",
+  rescueTechSaveMaterialsBtn: "Save materials",
+  rescueTechCompleteRepairTitle: "Complete repair",
+  rescueTechCompleteRepairInfo:
+    "Repair done? Add notes and report completion so SA can create the invoice.",
+  rescueTechCompletionNotesLabel: "Completion notes",
+  rescueTechCompletionNotesPlaceholder:
+    "E.g.: Fuel pump replaced successfully, vehicle started normally.",
+  rescueTechConfirmCompleteBtn: "Confirm completion",
+  rescueTechEditPartsTitle: "Repair complete — Adjust parts / services",
+  rescueTechEditPartsInfo:
+    "Add or edit materials & services before SA creates the invoice.",
+  rescueTechSavePartsBtn: "Save parts",
+  rescueTechWaitingInvoice:
+    "Waiting for SA to create and send invoice to customer.",
+  rescueTechWaitingPayment:
+    "Waiting for garage and customer to process invoice & payment.",
+  rescueTechProcessing: "Processing...",
+  rescueTechSending: "Sending...",
+  rescueTechSaving: "Saving...",
+  // Rescue Detail Modal - Customer info messages
+  rescueCustomerKtvAssigned:
+    "A technician has been assigned and is preparing to move to your location.",
+  rescueCustomerKtvEnRoute:
+    "The technician is on the way to your location.",
+  rescueCustomerKtvOnSite:
+    "The technician has arrived and is assessing your vehicle.",
+  rescueCustomerRepairComplete:
+    "Repair completed. Garage is creating the invoice.",
+  rescueCustomerInvoiced:
+    "Invoice has been created. Waiting for garage to send it to you.",
+  // Rescue Management - extra action labels
+  rescueMgrEditPartsAction: "Edit parts",
+  rescueMgrStartDrivingAction: "Start driving",
+
+  // Rescue Detail Modal - Customer actions (post-dispatch)
+  rescueCustomerDiagnosingTitle: "Technician has completed diagnosis",
+  rescueCustomerDiagnosingInfo:
+    "Review the results and confirm for the technician to proceed with on-site repair.",
+  rescueCustomerConsentNotesLabel: "Confirmation notes (optional)",
+  rescueCustomerConsentNotesPlaceholder:
+    "E.g.: Customer agrees to on-site inspection and repair.",
+  rescueCustomerAgreeRepairBtn: "Agree to on-site repair",
+  rescueCustomerDeclineBtn: "Decline",
+  rescueCustomerRepairingInfo: "The technician is performing the on-site repair.",
+  rescueCustomerTowingTitle: "Garage proposes towing service",
+  rescueCustomerTowingInfo:
+    "Garage has dispatched a tow truck to your location. Do you agree to use the towing service?",
+  rescueCustomerAcceptTowingBtn: "Accept towing",
+  rescueCustomerTowingAcceptedInfo:
+    "You have accepted towing. The vehicle is being towed to the garage.",
+  rescueCustomerTowedInfo: "The vehicle has been towed to the garage. Awaiting processing.",
+  rescueCustomerNeedPaymentTitle: "Payment required",
+  rescueCustomerNeedPaymentInfo:
+    "Invoice has been sent. Please confirm payment to complete.",
+  rescueCustomerConfirmPaymentBtn: "Confirm payment",
+  rescueCustomerPaymentInfoTitle: "Payment information",
+  rescueCustomerPaymentMethodLabel: "Method *",
+  rescueCustomerPaymentMethodTransfer: "Bank transfer",
+  rescueCustomerPaymentMethodCash: "Cash",
+  rescueCustomerPaymentMethodCard: "Card",
+  rescueCustomerPaymentMethodEwallet: "E-wallet",
+  rescueCustomerAmountLabel: "Amount (VND) *",
+  rescueCustomerAmountPlaceholder: "Enter amount",
+  rescueCustomerTransactionRefLabel: "Transaction reference",
+  rescueCustomerTransactionRefPlaceholder: "E.g.: VCB20260228001234",
+  rescueCustomerPayBtn: "Pay",
+  rescueCustomerBackBtn: "Back",
+  rescueCancelTitle: "Cancel rescue request",
+  rescueCancelInfo: "Please enter a reason for cancellation. This action cannot be undone.",
+  rescueCancelReasonLabel: "Cancellation reason *",
+  rescueCancelReasonPlaceholder: "Enter cancellation reason...",
+  rescueCancelConfirmBtn: "Confirm cancellation",
+  rescueCancelKeepBtn: "Keep request",
+  rescueCancelBtn: "Cancel rescue request",
+  rescueCancelProcessing: "Cancelling...",
+  // Toast messages for technician actions in RescueDetailModal
+  rescueTechDiagnosisSuccess: "Diagnosis submitted!",
+  rescueTechDiagnosisError: "Failed to submit diagnosis!",
+  rescueTechCompleteRepairSuccess: "Repair completion reported!",
+  rescueTechCompleteRepairError: "Failed to report completion!",
+  rescueTechRepairItemsSuccess: "Materials / services saved!",
+  rescueTechRepairItemsError: "Failed to save materials!",
+  rescueTechRepairItemsRequired: "Please enter at least 1 valid material/service!",
+  rescueCancelSuccess: "Rescue request cancelled!",
+  rescueCancelError: "Failed to cancel request!",
+  rescueConsentAgreedSuccess: "On-site repair confirmed!",
+  rescueConsentDeclinedSuccess: "On-site repair declined!",
+  rescueConsentError: "Failed to confirm!",
+  rescueTowingAcceptSuccess: "Towing service accepted!",
+  rescueTowingAcceptError: "Failed to confirm towing!",
+  rescuePaymentSuccess: "Payment successful!",
+  rescuePaymentError: "Payment failed!",
+  rescueProposalHintRoadside:
+    "A technician will come to your location to repair on-site.",
+  rescueProposalHintTowing:
+    "Your vehicle will be towed to the garage for inspection and repair.",
+  rescueProposalReadCarefully: "Please read carefully before confirming.",
+  rescueTechNotesPlaceholder: "Notes",
+  rescueTechQtyPlaceholder: "Quantity *",
+  rescueTechUnitPricePlaceholder: "Unit price *",
 
   // Home - Rescue Button
   heroMyAppointments: "My Appointments",

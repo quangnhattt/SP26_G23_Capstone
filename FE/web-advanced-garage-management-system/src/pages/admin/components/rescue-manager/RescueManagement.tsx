@@ -26,7 +26,6 @@ import {
   cancelRescueRequest,
   markSpamRescueRequest,
   arriveRescue,
-  // acceptRescueJob removed: KTV auto-nhận khi SA phân công
   startDiagnosis,
   completeRepair,
   createRescueInvoice,
@@ -34,6 +33,9 @@ import {
   dispatchTowing,
   completeTowing,
   addRepairItems,
+  confirmRescueDeposit,
+  getAvailableTechnicians,
+  type IAvailableTechnician,
   type IRescueRequest,
   type RescueStatus,
 } from "@/apis/rescue";
@@ -75,6 +77,10 @@ const RescueManagement = () => {
 
   // Technicians (users with roleID = 3)
   const [technicians, setTechnicians] = useState<ITechEntry[]>([]);
+
+  // Available technicians for current rescue (from API)
+  const [availableTechs, setAvailableTechs] = useState<IAvailableTechnician[]>([]);
+  const [loadingAvailableTechs, setLoadingAvailableTechs] = useState(false);
 
   // Assign form
   const [estimatedArrival, setEstimatedArrival] = useState("");
@@ -196,7 +202,7 @@ const RescueManagement = () => {
 
   const handleAssignAllTechs = async () => {
     if (!selectedRescue || !estimatedArrival) return;
-    if (technicians.length === 0) {
+    if (availableTechs.length === 0) {
       toast.error(t("rescueMgrNoTechnicians"));
       return;
     }
@@ -204,15 +210,15 @@ const RescueManagement = () => {
     const isoDate = new Date(estimatedArrival).toISOString();
     const targets =
       selectedTechIds.size > 0
-        ? technicians.filter((t) => selectedTechIds.has(t.id))
-        : technicians;
+        ? availableTechs.filter((t) => selectedTechIds.has(t.userId))
+        : availableTechs;
     let successCount = 0;
     const failedNames: string[] = [];
 
     for (const tech of targets) {
       try {
         await assignTechnician(selectedRescue.rescueId, {
-          technicianId: tech.id,
+          technicianId: tech.userId,
           estimatedArrivalDateTime: isoDate,
         });
         successCount++;
@@ -371,7 +377,7 @@ const RescueManagement = () => {
       (i) => i.productId.trim() && i.quantity.trim() && i.unitPrice.trim(),
     );
     if (validItems.length === 0) {
-      toast.error("Vui lòng nhập ít nhất 1 vật tư/dịch vụ hợp lệ!");
+      toast.error(t("rescueTechRepairItemsRequired"));
       return;
     }
     setEditPartsSubmitting(true);
@@ -384,16 +390,43 @@ const RescueManagement = () => {
           notes: i.notes.trim() || undefined,
         })),
       });
-      toast.success("Đã cập nhật phụ tùng/dịch vụ!");
+      toast.success(t("rescueTechRepairItemsSuccess"));
       setShowEditPartsModal(false);
       setEditPartsItems([
         { productId: "", quantity: "", unitPrice: "", notes: "" },
       ]);
       fetchRescues();
     } catch {
-      toast.error("Cập nhật phụ tùng thất bại!");
+      toast.error(t("rescueTechRepairItemsError"));
     } finally {
       setEditPartsSubmitting(false);
+    }
+  };
+
+  const handleConfirmDeposit = async (id: number) => {
+    try {
+      await confirmRescueDeposit(id);
+      toast.success(t("rescueMgrDepositConfirmSuccess"));
+      fetchRescues();
+    } catch {
+      toast.error(t("rescueMgrDepositConfirmError"));
+    }
+  };
+
+  const openAssignModal = async (rescue: IRescueRequest) => {
+    setSelectedRescue(rescue);
+    setEstimatedArrival("");
+    setSelectedTechIds(new Set());
+    setAvailableTechs([]);
+    setShowAssignModal(true);
+    setLoadingAvailableTechs(true);
+    try {
+      const techs = await getAvailableTechnicians(rescue.rescueId);
+      setAvailableTechs(techs);
+    } catch {
+      toast.error(t("rescueMgrCannotLoadTechs"));
+    } finally {
+      setLoadingAvailableTechs(false);
     }
   };
 
@@ -609,20 +642,27 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ PROPOSAL_ACCEPTED: KH đã xác nhận → SA điều KTV ═══
+      // ═══ PROPOSAL_ACCEPTED: KH đã xác nhận → SA xác nhận cọc → điều KTV ═══
       case "PROPOSAL_ACCEPTED":
         if (isSA) {
-          actions.push({
-            label: t("rescueMgrDispatchTech"),
-            icon: <FaUserCog size={12} />,
-            color: "#0891b2",
-            onClick: () => {
-              setSelectedRescue(rescue);
-              setEstimatedArrival("");
-              setSelectedTechIds(new Set());
-              setShowAssignModal(true);
-            },
-          });
+          const needsDeposit = rescue.requiresDeposit === true || (rescue.depositAmount != null && rescue.depositAmount > 0);
+          if (needsDeposit && !rescue.isDepositConfirmed) {
+            // Chưa xác nhận cọc → chỉ hiện nút xác nhận cọc
+            actions.push({
+              label: t("rescueMgrConfirmDeposit"),
+              icon: <FaMoneyBillWave size={12} />,
+              color: "#16a34a",
+              onClick: () => handleConfirmDeposit(rescue.rescueId),
+            });
+          } else {
+            // Đã xác nhận cọc (hoặc không cần cọc) → hiện nút điều KTV
+            actions.push({
+              label: t("rescueMgrDispatchTech"),
+              icon: <FaUserCog size={12} />,
+              color: "#0891b2",
+              onClick: () => openAssignModal(rescue),
+            });
+          }
           actions.push({
             label: t("rescueMgrCancel"),
             icon: <FaTimes size={12} />,
@@ -632,30 +672,8 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ DISPATCHED: KH đã xác nhận → SA điều KTV (KTV auto-nhận) ═══
+      // ═══ DISPATCHED / EN_ROUTE: KTV xác nhận đến nơi ═══
       case "DISPATCHED":
-        if (isSA) {
-          actions.push({
-            label: t("rescueMgrDispatchTech"),
-            icon: <FaUserCog size={12} />,
-            color: "#0891b2",
-            onClick: () => {
-              setSelectedRescue(rescue);
-              setEstimatedArrival("");
-              setSelectedTechIds(new Set());
-              setShowAssignModal(true);
-            },
-          });
-          actions.push({
-            label: t("rescueMgrCancel"),
-            icon: <FaTimes size={12} />,
-            color: "#dc2626",
-            onClick: () => openReasonModal("cancel", rescue),
-          });
-        }
-        // KTV auto-nhận khi được SA chỉ định — không cần thao tác thủ công
-        break;
-
       case "EN_ROUTE":
         if (isTech) {
           actions.push({
@@ -729,7 +747,7 @@ const RescueManagement = () => {
       case "REPAIR_COMPLETE":
         if (isSA || isTech) {
           actions.push({
-            label: "Chỉnh sửa phụ tùng",
+            label: t("rescueMgrEditPartsAction"),
             icon: <FaWrench size={12} />,
             color: "#2563eb",
             onClick: () => {
@@ -1049,33 +1067,41 @@ const RescueManagement = () => {
             <ModalBody>
               <FormGroup>
                 <FormLabel>
-                  {selectedTechIds.size > 0
-                    ? t("rescueMgrTechSelectedCount", {
-                        selected: selectedTechIds.size,
-                        total: technicians.length,
-                      })
-                    : t("rescueMgrTechNoSelection", {
-                        count: technicians.length,
-                      })}
+                  {loadingAvailableTechs
+                    ? t("rescueMgrCannotLoadTechs")
+                    : selectedTechIds.size > 0
+                      ? t("rescueMgrTechSelectedCount", {
+                          selected: selectedTechIds.size,
+                          total: availableTechs.length,
+                        })
+                      : t("rescueMgrTechNoSelection", {
+                          count: availableTechs.length,
+                        })}
                 </FormLabel>
                 <TechList>
-                  {technicians.map((tech) => {
-                    const isSelected = selectedTechIds.has(tech.id);
+                  {availableTechs.map((tech) => {
+                    const isSelected = selectedTechIds.has(tech.userId);
                     return (
                       <TechCard
-                        key={tech.id}
+                        key={tech.userId}
                         $selected={isSelected}
                         onClick={() => {
                           setSelectedTechIds((prev) => {
                             const next = new Set(prev);
-                            if (next.has(tech.id)) next.delete(tech.id);
-                            else next.add(tech.id);
+                            if (next.has(tech.userId)) next.delete(tech.userId);
+                            else next.add(tech.userId);
                             return next;
                           });
                         }}
                       >
                         <TechName>{tech.fullName}</TechName>
                         <TechInfo>{tech.phone}</TechInfo>
+                        {tech.skills && <TechInfo>{tech.skills}</TechInfo>}
+                        {tech.isOnRescueMission && (
+                          <TechInfo style={{ color: "#d97706" }}>
+                            Đang trong nhiệm vụ ({tech.activeJobCount} job)
+                          </TechInfo>
+                        )}
                       </TechCard>
                     );
                   })}
@@ -1441,7 +1467,7 @@ const RescueManagement = () => {
                   />
                   <FormInput
                     type="number"
-                    placeholder="Số lượng *"
+                    placeholder={t("rescueTechQtyPlaceholder")}
                     value={item.quantity}
                     onChange={(e) => {
                       const next = [...editPartsItems];
@@ -1452,7 +1478,7 @@ const RescueManagement = () => {
                   />
                   <FormInput
                     type="number"
-                    placeholder="Đơn giá *"
+                    placeholder={t("rescueTechUnitPricePlaceholder")}
                     value={item.unitPrice}
                     onChange={(e) => {
                       const next = [...editPartsItems];
@@ -1462,7 +1488,7 @@ const RescueManagement = () => {
                     style={{ flex: "1" }}
                   />
                   <FormInput
-                    placeholder="Ghi chú"
+                    placeholder={t("rescueTechNotesPlaceholder")}
                     value={item.notes}
                     onChange={(e) => {
                       const next = [...editPartsItems];
@@ -1512,7 +1538,7 @@ const RescueManagement = () => {
                 onClick={handleEditParts}
                 disabled={editPartsSubmitting}
               >
-                {editPartsSubmitting ? "Đang lưu..." : "Lưu phụ tùng"}
+                {editPartsSubmitting ? t("rescueMgrProcessing") : t("rescueTechSavePartsBtn")}
               </ModalConfirmBtn>
             </ModalFooter>
           </ModalContent>

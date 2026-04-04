@@ -30,7 +30,6 @@ import {
   makeRescuePayment,
   customerConsent,
   acceptTowing,
-  acceptRescueJob,
   arriveRescue,
   type IRescueRequest,
   type IRescuePaymentPayload,
@@ -120,11 +119,6 @@ const AppointmentsPage = () => {
     null,
   );
 
-  // Technician accept-job modal
-  const [showAcceptJobModal, setShowAcceptJobModal] = useState(false);
-  const [acceptJobRescue, setAcceptJobRescue] = useState<IRescueRequest | null>(
-    null,
-  );
 
   useEffect(() => {
     if (!user) {
@@ -297,29 +291,18 @@ const AppointmentsPage = () => {
     } catch (error) {
       console.error("Error fetching rescue requests:", error);
     }
-  };
-
-  // ─── Technician simple actions ─────────────────────────────
-  const handleTechAcceptJob = async (id: number) => {
-    setTechActionLoadingId(id);
-    try {
-      await acceptRescueJob(id);
-      toast.success("Đã nhận job cứu hộ!");
-      setShowAcceptJobModal(false);
-      setAcceptJobRescue(null);
-      fetchRescueRequestsRefresh();
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, "Nhận job thất bại!"));
-    } finally {
-      setTechActionLoadingId(null);
+    // Reload rescue detail nếu modal đang mở
+    if (rescueDetailData) {
+      try {
+        const detail = await getRescueCustomerById(rescueDetailData.rescueId);
+        setRescueDetailData(detail);
+      } catch {
+        // ignore
+      }
     }
   };
 
-  const openAcceptJobModal = (rescue: IRescueRequest) => {
-    setAcceptJobRescue(rescue);
-    setShowAcceptJobModal(true);
-  };
-
+  // ─── Technician simple actions ─────────────────────────────
   const handleTechArrive = async (id: number) => {
     setTechActionLoadingId(id);
     try {
@@ -714,17 +697,8 @@ const AppointmentsPage = () => {
                         <RescueStepProgress status={rescue.status} />
 
                         {/* ── Technician actions ── */}
-                        {isTechnician && rescue.status === "DISPATCHED" && (
-                          <CustomerActionRow>
-                            <CustomerActionBtn
-                              $color="#0891b2"
-                              onClick={() => openAcceptJobModal(rescue)}
-                            >
-                              Nhận job
-                            </CustomerActionBtn>
-                          </CustomerActionRow>
-                        )}
-                        {isTechnician && rescue.status === "EN_ROUTE" && (
+                        {isTechnician &&
+                          ["DISPATCHED", "EN_ROUTE"].includes(rescue.status) && (
                           <CustomerActionRow>
                             <CustomerActionBtn
                               $color="#0d9488"
@@ -1091,86 +1065,6 @@ const AppointmentsPage = () => {
         </PaymentOverlay>
       )}
 
-      {/* Accept Job Modal */}
-      {showAcceptJobModal && acceptJobRescue && (
-        <PaymentOverlay
-          onClick={() => {
-            setShowAcceptJobModal(false);
-            setAcceptJobRescue(null);
-          }}
-        >
-          <PaymentCard
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "480px" }}
-          >
-            <PaymentHeader>
-              <PaymentTitle>Xác nhận nhận job cứu hộ</PaymentTitle>
-              <CloseModalBtn
-                onClick={() => {
-                  setShowAcceptJobModal(false);
-                  setAcceptJobRescue(null);
-                }}
-              >
-                <FaTimes size={18} />
-              </CloseModalBtn>
-            </PaymentHeader>
-            <PaymentBody>
-              <AcceptJobInfo>
-                <AcceptJobRow>
-                  <AcceptJobLabel>Khách hàng</AcceptJobLabel>
-                  <AcceptJobValue>
-                    {acceptJobRescue.customerName}
-                  </AcceptJobValue>
-                </AcceptJobRow>
-                <AcceptJobRow>
-                  <AcceptJobLabel>Số điện thoại</AcceptJobLabel>
-                  <AcceptJobValue>
-                    {acceptJobRescue.customerPhone}
-                  </AcceptJobValue>
-                </AcceptJobRow>
-                <AcceptJobRow>
-                  <AcceptJobLabel>Xe</AcceptJobLabel>
-                  <AcceptJobValue>
-                    {acceptJobRescue.brand} {acceptJobRescue.model} —{" "}
-                    {acceptJobRescue.licensePlate}
-                  </AcceptJobValue>
-                </AcceptJobRow>
-                <AcceptJobRow>
-                  <AcceptJobLabel>Địa chỉ</AcceptJobLabel>
-                  <AcceptJobValue>
-                    {acceptJobRescue.currentAddress}
-                  </AcceptJobValue>
-                </AcceptJobRow>
-                <AcceptJobRow>
-                  <AcceptJobLabel>Vấn đề</AcceptJobLabel>
-                  <AcceptJobValue>
-                    {acceptJobRescue.problemDescription}
-                  </AcceptJobValue>
-                </AcceptJobRow>
-              </AcceptJobInfo>
-            </PaymentBody>
-            <PaymentFooter>
-              <PaymentCancelBtn
-                onClick={() => {
-                  setShowAcceptJobModal(false);
-                  setAcceptJobRescue(null);
-                }}
-                disabled={techActionLoadingId === acceptJobRescue.rescueId}
-              >
-                Hủy
-              </PaymentCancelBtn>
-              <PaymentConfirmBtn
-                onClick={() => handleTechAcceptJob(acceptJobRescue.rescueId)}
-                disabled={techActionLoadingId === acceptJobRescue.rescueId}
-              >
-                {techActionLoadingId === acceptJobRescue.rescueId
-                  ? "Đang xử lý..."
-                  : "Nhận job"}
-              </PaymentConfirmBtn>
-            </PaymentFooter>
-          </PaymentCard>
-        </PaymentOverlay>
-      )}
     </PageWrapper>
   );
 };
