@@ -496,7 +496,7 @@ const MaintenancePackageManager = () => {
         >
           <FilterSelect
             className="pkg-filter-select"
-            popupClassName="pkg-filter-dropdown"
+            classNames={{ popup: { root: "pkg-filter-dropdown" } }}
             value={statusFilter}
             onChange={(val: unknown) => setStatusFilter(val as string)}
             style={{ minWidth: 160 }}
