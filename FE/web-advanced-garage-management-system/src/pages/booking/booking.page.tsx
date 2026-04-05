@@ -19,9 +19,9 @@ import {
 } from "react-icons/fa";
 import type { ICar } from "@/apis/cars/types";
 import { getServices, type IService } from "@/services/admin/serviceService";
-import { getUsers, type IUser } from "@/services/admin/userService";
+import { searchUsers, type IUser } from "@/services/admin/userService";
 import { getTechnicians, type ITechnician } from "@/apis/technicians";
-import { getCars } from "@/apis/cars";
+import { getCars, getCarsByCustomerPhone } from "@/apis/cars";
 import { getSymptoms, type ISymptom } from "@/apis/symptoms";
 import { createRepairRequest } from "@/apis/repairRequests";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
@@ -57,7 +57,8 @@ const BookingPage = () => {
   const [userVehicles, setUserVehicles] = useState<ICar[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
   const [availableServices, setAvailableServices] = useState<IService[]>([]);
-  const [allUsers, setAllUsers] = useState<IUser[]>([]);
+  const [searchedUsers, setSearchedUsers] = useState<IUser[]>([]);
+  const [userSearchLoading, setUserSearchLoading] = useState(false);
   const [phoneSearch, setPhoneSearch] = useState("");
   const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
   const isCustomer = user?.roleID === 4;
@@ -83,6 +84,12 @@ const BookingPage = () => {
     preferredDate: "",
     preferredTime: "",
   });
+
+  useEffect(() => {
+    if (isCustomer && user?.msisdn) {
+      setBookingData((prev) => ({ ...prev, phoneNumber: user.msisdn }));
+    }
+  }, [user, isCustomer]);
 
   useEffect(() => {
     if (!user) {
@@ -111,17 +118,6 @@ const BookingPage = () => {
       }
     };
 
-    const fetchUsers = async () => {
-      if (isCustomer) {
-        return;
-      }
-      try {
-        const users = await getUsers();
-        setAllUsers(users);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      }
-    };
 
     const fetchTechnicians = async () => {
       try {
@@ -143,7 +139,6 @@ const BookingPage = () => {
 
     fetchVehicles();
     fetchServices();
-    fetchUsers();
     fetchTechnicians();
     fetchSymptoms();
   }, [user, navigate, isCustomer]);
@@ -161,10 +156,6 @@ const BookingPage = () => {
     }
     if (currentStep === 2 && (!bookingData.issueTitle || !bookingData.issueDescription)) {
       toast.warn(t("bookingAlertFillIssue"));
-      return;
-    }
-    if (currentStep === 3 && bookingData.selectedServices.length === 0) {
-      toast.warn(t("bookingAlertSelectService"));
       return;
     }
     if (currentStep < 4) {
@@ -239,15 +230,6 @@ const BookingPage = () => {
     }));
   };
 
-  const toggleService = (serviceId: number) => {
-    setBookingData((prev) => ({
-      ...prev,
-      selectedServices: prev.selectedServices.includes(serviceId)
-        ? prev.selectedServices.filter((id) => id !== serviceId)
-        : [...prev.selectedServices, serviceId],
-    }));
-  };
-
   const getTotalPrice = () => {
     return bookingData.selectedServices.reduce((total, serviceId) => {
       const service = availableServices.find((s) => s.id === serviceId);
@@ -255,14 +237,30 @@ const BookingPage = () => {
     }, 0);
   };
 
-  const filteredUsers = phoneSearch.trim().length >= 2
-    ? allUsers.filter((u) => u.phone.includes(phoneSearch.trim()))
-    : [];
+  useEffect(() => {
+    if (isCustomer || !phoneSearch.trim() || phoneSearch.trim().length < 2) {
+      setSearchedUsers([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setUserSearchLoading(true);
+      searchUsers(phoneSearch.trim())
+        .then(setSearchedUsers)
+        .catch(() => {})
+        .finally(() => setUserSearchLoading(false));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [phoneSearch, isCustomer]);
 
   const handleSelectUser = (selectedUser: IUser) => {
-    setBookingData((prev) => ({ ...prev, phoneNumber: selectedUser.phone }));
+    setBookingData((prev) => ({ ...prev, phoneNumber: selectedUser.phone, selectedVehicle: null }));
     setPhoneSearch(selectedUser.phone);
     setShowPhoneDropdown(false);
+    setIsLoadingVehicles(true);
+    getCarsByCustomerPhone(selectedUser.phone)
+      .then(setUserVehicles)
+      .catch(() => {})
+      .finally(() => setIsLoadingVehicles(false));
   };
 
 
@@ -361,17 +359,23 @@ const BookingPage = () => {
                         setTimeout(() => setShowPhoneDropdown(false), 200);
                       }}
                     />
-                    {showPhoneDropdown && filteredUsers.length > 0 && (
+                    {showPhoneDropdown && (userSearchLoading || searchedUsers.length > 0) && (
                       <PhoneDropdown>
-                        {filteredUsers.slice(0, 5).map((u) => (
-                          <PhoneDropdownItem
-                            key={u.userID}
-                            onMouseDown={() => handleSelectUser(u)}
-                          >
-                            <span>{u.phone}</span>
-                            <PhoneDropdownName>{u.fullName}</PhoneDropdownName>
+                        {userSearchLoading ? (
+                          <PhoneDropdownItem as="div" style={{ cursor: "default", color: "#6b7280" }}>
+                            {t("searching")}...
                           </PhoneDropdownItem>
-                        ))}
+                        ) : (
+                          searchedUsers.slice(0, 5).map((u) => (
+                            <PhoneDropdownItem
+                              key={u.userID}
+                              onMouseDown={() => handleSelectUser(u)}
+                            >
+                              <span>{u.phone}</span>
+                              <PhoneDropdownName>{u.fullName}</PhoneDropdownName>
+                            </PhoneDropdownItem>
+                          ))
+                        )}
                       </PhoneDropdown>
                     )}
                   </PhoneSearchWrapper>
@@ -513,32 +517,6 @@ const BookingPage = () => {
 
           {currentStep === 3 && (
             <StepContent>
-              <SectionTitle>{t("bookingSelectService")}</SectionTitle>
-              <SectionSubtitle>
-                {t("bookingSelectServiceSubtitle")}
-              </SectionSubtitle>
-
-              <ServiceList>
-                {availableServices.map((service) => (
-                  <ServiceItem key={service.id}>
-                    <ServiceCheckbox
-                      type="checkbox"
-                      checked={bookingData.selectedServices.includes(service.id)}
-                      onChange={() => toggleService(service.id)}
-                    />
-                    <ServiceDetails>
-                      <ServiceName>{service.name}</ServiceName>
-                      <ServiceTag>{service.category}</ServiceTag>
-                      <ServiceDescription>{service.description}</ServiceDescription>
-                    </ServiceDetails>
-                    <ServicePricing>
-                      <ServicePrice>{service.price.toLocaleString()}đ</ServicePrice>
-                      <ServiceDuration>~{Math.round(service.estimatedDurationHours * 60)} {t("bookingMinutes")}</ServiceDuration>
-                    </ServicePricing>
-                  </ServiceItem>
-                ))}
-              </ServiceList>
-
               <FormGroup>
                 <Label>{t("bookingPreferredTime")} <Required>*</Required></Label>
                 <TimeGrid>
@@ -1153,12 +1131,6 @@ const SectionTitle = styled.h2`
   margin: 0;
 `;
 
-const SectionSubtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-`;
-
 const VehicleGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1432,80 +1404,6 @@ const ServiceTypeName = styled.div`
 `;
 
 const ServiceTypeDesc = styled.div`
-  font-size: 0.75rem;
-  color: #6b7280;
-`;
-
-const ServiceList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const ServiceItem = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: #cbd5e1;
-    background: #f8f9fa;
-  }
-`;
-
-const ServiceCheckbox = styled.input`
-  width: 20px;
-  height: 20px;
-  margin-top: 0.25rem;
-  cursor: pointer;
-  accent-color: #1d4ed8;
-`;
-
-const ServiceDetails = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const ServiceName = styled.div`
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #111827;
-`;
-
-const ServiceTag = styled.span`
-  font-size: 0.75rem;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 0.125rem 0.5rem;
-  border-radius: 4px;
-  width: fit-content;
-`;
-
-const ServiceDescription = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const ServicePricing = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.25rem;
-`;
-
-const ServicePrice = styled.div`
-  font-size: 1rem;
-  font-weight: 700;
-  color: #1d4ed8;
-`;
-
-const ServiceDuration = styled.div`
   font-size: 0.75rem;
   color: #6b7280;
 `;

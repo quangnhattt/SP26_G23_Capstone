@@ -272,7 +272,7 @@ namespace AGMS.Infrastructure.Repositories
         {
             return await _db.Users
                 .AsNoTracking()
-                .AnyAsync(u => u.UserID == userId && u.RoleID == 2 && u.IsActive, ct);
+                .AnyAsync(u => u.UserID == userId && (u.RoleID == 2 || u.RoleID == 1) && u.IsActive, ct);
         }
 
         private static string NormalizeMaintenanceType(string? maintenanceType)
@@ -389,14 +389,14 @@ namespace AGMS.Infrastructure.Repositories
         private async Task<int> ResolveCreatedByUserIdAsync(int createdByUserId, CancellationToken ct)
         {
             if (createdByUserId <= 0)
-                throw new InvalidOperationException("Bạn cần đăng nhập user roleId = 2 để tạo phiếu walk-in.");
+                throw new InvalidOperationException("Bạn cần đăng nhập user roleId = 1 hoặc 2 để tạo phiếu walk-in.");
 
             var isStaffCreator = await _db.Users.AnyAsync(
-                u => u.UserID == createdByUserId && u.RoleID == 2 && u.IsActive,
+                u => u.UserID == createdByUserId && (u.RoleID == 2 || u.RoleID == 1) && u.IsActive,
                 ct);
 
             if (!isStaffCreator)
-                throw new InvalidOperationException("User hiện tại không hợp lệ để tạo phiếu walk-in (yêu cầu roleId = 2).");
+                throw new InvalidOperationException("User hiện tại không hợp lệ để tạo phiếu walk-in (yêu cầu roleId = 1 hoặc 2).");
 
             return createdByUserId;
         }

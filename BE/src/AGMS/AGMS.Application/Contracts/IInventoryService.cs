@@ -20,5 +20,7 @@ namespace AGMS.Application.Contracts
         // Hàm Đối soát
         Task<List<InventoryDiscrepancyDto>> AuditInventoryAsync(CancellationToken ct);
         Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(InventoryTransactionFilterDto filter, CancellationToken ct);
+        Task AdjustStockAsync(int userId, InventoryAdjustmentDto request, CancellationToken ct);
+        Task RebuildInventoryBalancesAsync(CancellationToken ct);
     }
 }

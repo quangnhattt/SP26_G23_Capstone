@@ -138,5 +138,42 @@ namespace AGMS.WebApi.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        // API 6: KIỂM KÊ KHO VÀ ĐIỀU CHỈNH
+        [HttpPost("adjust")]
+        [Authorize(Roles = Roles.Admin)]
+        public async Task<IActionResult> AdjustStock([FromBody] InventoryAdjustmentDto request, CancellationToken ct)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int loggedInUserId))
+                    return Unauthorized(new { message = "Token không hợp lệ." });
+
+                await _inventoryService.AdjustStockAsync(loggedInUserId, request, ct);
+
+                return Ok(new { message = "Kiểm kê vật lý và điều chỉnh kho thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // API 7: ĐỒNG BỘ LẠI TỒN KHO TỪ SỔ CÁI (DÀNH CHO FIX BUG/ADMIN)
+        [HttpPost("rebuild-balances")]
+        [Authorize(Roles = Roles.Admin)]
+        public async Task<IActionResult> RebuildInventoryBalances(CancellationToken ct)
+        {
+            try
+            {
+                await _inventoryService.RebuildInventoryBalancesAsync(ct);
+                return Ok(new { message = "Đồng bộ lại toàn bộ dữ liệu Tồn kho (Snapshot) dựa trên Lịch sử giao dịch (Ledger) thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message, detail = ex.InnerException?.Message });
+            }
+        }
     }
 }
