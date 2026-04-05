@@ -1,4 +1,4 @@
-﻿using AGMS.Application.Contracts;
+using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Unit;
 using AGMS.Domain.Entities;
 using AGMS.Infrastructure.Persistence.Db;
@@ -129,6 +129,18 @@ namespace AGMS.Infrastructure.Repositories
                 unit.IsActive = false; // Xóa mềm
                 await _context.SaveChangesAsync();
             }
+        }
+
+        public async Task<bool> ChangeUnitStatusAsync(int unitId, bool isActive)
+        {
+            var unit = await _context.Units.FindAsync(unitId);
+            if (unit == null) return false;
+
+            if (unit.IsActive == isActive) return true;
+
+            unit.IsActive = isActive;
+            await _context.SaveChangesAsync();
+            return true;
         }
     } 
 } 
