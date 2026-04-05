@@ -1323,6 +1323,7 @@ export default {
   appointmentsRejectionReason: "Rejection reason",
   appointmentsTotalAmount: "Total amount",
   appointmentsFinalAmount: "Final amount",
+  appointmentsSuggestedParts: "Suggested Parts",
   rescueDetailTitle: "Rescue details",
   rescueDetailCode: "Rescue code",
   rescueDetailType: "Rescue type",
