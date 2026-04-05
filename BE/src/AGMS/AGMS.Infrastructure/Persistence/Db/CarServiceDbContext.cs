@@ -101,6 +101,7 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValue("PENDING");
+            entity.Property(e => e.ProposedTime);
 
             entity.HasOne(d => d.Car).WithMany(p => p.Appointments)
                 .HasForeignKey(d => d.CarID)

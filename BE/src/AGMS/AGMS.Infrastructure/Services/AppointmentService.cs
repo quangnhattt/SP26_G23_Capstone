@@ -49,6 +49,7 @@ public class AppointmentService : IAppointmentService
             CreatedDate = appointment.CreatedDate,
             ConfirmedBy = appointment.ConfirmedBy,
             ConfirmedDate = appointment.ConfirmedDate,
+            ProposedTime = appointment.ProposedTime,
             Car = new CarInfoDto
             {
                 CarId = appointment.Car.CarID,
@@ -139,6 +140,18 @@ public class AppointmentService : IAppointmentService
             throw new InvalidOperationException("Lý do từ chối là bắt buộc.");
 
         await _repo.RejectAsync(appointmentId, currentUserId, reason, ct);
+    }
+
+    public async Task ProposeRescheduleAsync(int appointmentId, int currentUserId, DateTime proposedTime, CancellationToken ct)
+    {
+        var roleId = await _repo.GetUserRoleIdAsync(currentUserId, ct);
+        if (roleId != 2) // Role 2 = ServiceAdvisor
+            throw new UnauthorizedAccessException("Chỉ Service Advisor mới có thể đề xuất dời lịch.");
+
+        if (proposedTime <= DateTime.UtcNow)
+            throw new InvalidOperationException("Thời gian đề xuất phải lớn hơn thời gian hiện tại.");
+
+        await _repo.ProposeRescheduleAsync(appointmentId, proposedTime, ct);
     }
 
     public async Task CheckInAsync(int appointmentId, int currentUserId, CancellationToken ct)

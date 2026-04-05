@@ -19,10 +19,9 @@ public class Appointment
     /// </summary>
     public int? AssignedTechnicianID { get; set; }
 
-    /// <summary>
-    /// Appointment classification: REPAIR or MAINTENANCE. DB CHECK: ServiceType IN ('REPAIR','MAINTENANCE').
-    /// </summary>
     public string ServiceType { get; set; } = "REPAIR";
+
+    public DateTime? ProposedTime { get; set; }
 
     public virtual Car Car { get; set; } = null!;
     public virtual ICollection<CarMaintenance> CarMaintenances { get; set; } = new List<CarMaintenance>();

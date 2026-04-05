@@ -49,6 +49,7 @@ public class AppointmentRepository : IAppointmentRepository
                 ServiceType = a.ServiceType,
                 RequestedPackageId = a.RequestedPackageID,
                 Status = a.Status,
+                ProposedTime = a.ProposedTime,
                 Notes = a.Notes,
                 RejectionReason = a.RejectionReason,
                 CreatedBy = a.CreatedBy,
@@ -127,6 +128,21 @@ public class AppointmentRepository : IAppointmentRepository
         appointment.RejectionReason = rejectionReason;
         appointment.ConfirmedBy = rejectedByUserId;
         appointment.ConfirmedDate = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task ProposeRescheduleAsync(int appointmentId, DateTime proposedTime, CancellationToken ct)
+    {
+        var appointment = await _db.Appointments.FirstOrDefaultAsync(a => a.AppointmentID == appointmentId, ct)
+            ?? throw new KeyNotFoundException("Không tìm thấy lịch hẹn.");
+
+        // Chỉ cho phép đề xuất khi đang PENDING hoặc đã RESCHEDULED (đề xuất lại)
+        if (appointment.Status != "PENDING" && appointment.Status != "RESCHEDULED")
+            throw new InvalidOperationException("Chỉ có thể đề xuất lịch mới cho các lịch hẹn đang chờ duyệt.");
+
+        appointment.Status = "RESCHEDULED";
+        appointment.ProposedTime = proposedTime;
 
         await _db.SaveChangesAsync(ct);
     }
