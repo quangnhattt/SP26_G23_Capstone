@@ -55,8 +55,8 @@ const AdminDashboard = () => {
     if (lowerName.includes("rescue")) return <HiShieldExclamation size={18} />;
     if (lowerName.includes("inventory")) return <HiArchive size={18} />;
     if (lowerName.includes("intake")) return <HiClipboardCheck size={18} />;
-    if (lowerName.includes("membershipRanks")) return <HiBadgeCheck size={18} />;
-    if (lowerName.includes("maintenancePackage")) return <HiCollection size={18} />;
+    if (lowerName.includes("membership")) return <HiBadgeCheck size={18} />;
+    if (lowerName.includes("package")) return <HiCollection size={18} />;
     return <HiCog size={18} />;
   };
 
@@ -74,8 +74,8 @@ const AdminDashboard = () => {
     if (lowerName.includes("rescue")) return "/admin/rescue-management";
     if (lowerName.includes("inventory")) return "/admin/inventory-management";
     if (lowerName.includes("intake")) return "/admin/intake-management";
-    if (lowerName.includes("membershipRanks")) return "/admin/membership-ranks-management";
-    if (lowerName.includes("maintenancePackage")) return "/admin/maintenance-package-management";
+    if (lowerName.includes("membership")) return "/admin/membership-ranks-management";
+    if (lowerName.includes("package")) return "/admin/maintenance-package-management";
     return "/admin";
   };
 
