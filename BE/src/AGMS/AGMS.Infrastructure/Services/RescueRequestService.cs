@@ -1,8 +1,8 @@
-﻿using AGMS.Application.Constants;
+﻿using System.Text.Json;
+using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Rescue;
 using AGMS.Domain.Entities;
-using System.Text.Json;
 
 namespace AGMS.Infrastructure.Services;
 
@@ -11,10 +11,7 @@ public class RescueRequestService : IRescueRequestService
     private readonly IRescueRequestRepository _rescueRepo;
     private readonly IUserRepository _userRepo;
 
-    public RescueRequestService(
-        IRescueRequestRepository rescueRepo,
-        IUserRepository userRepo
-    )
+    public RescueRequestService(IRescueRequestRepository rescueRepo, IUserRepository userRepo)
     {
         _rescueRepo = rescueRepo;
         _userRepo = userRepo;
@@ -102,7 +99,9 @@ public class RescueRequestService : IRescueRequestService
             throw new InvalidOperationException("Yêu cầu này đã được SA xác nhận nhận cọc.");
 
         if (rescue.IsDepositPaid)
-            throw new InvalidOperationException("Khách hàng đã gửi thông tin đặt cọc cho yêu cầu này.");
+            throw new InvalidOperationException(
+                "Khách hàng đã gửi thông tin đặt cọc cho yêu cầu này."
+            );
 
         if (rescue.Status == RescueStatus.Cancelled || rescue.Status == RescueStatus.Completed)
             throw new InvalidOperationException("Không thể đặt cọc cho yêu cầu đã kết thúc.");
@@ -184,7 +183,9 @@ public class RescueRequestService : IRescueRequestService
             throw new ArgumentException("Chỉ Service Advisor mới có quyền xác nhận nhận cọc.");
 
         if (rescue.ServiceAdvisorID.HasValue && rescue.ServiceAdvisorID.Value != saId)
-            throw new ArgumentException("Chỉ Service Advisor đang xử lý yêu cầu này mới được xác nhận nhận cọc.");
+            throw new ArgumentException(
+                "Chỉ Service Advisor đang xử lý yêu cầu này mới được xác nhận nhận cọc."
+            );
 
         var now = DateTime.UtcNow;
         rescue.ServiceAdvisorID ??= saId;
@@ -358,7 +359,13 @@ public class RescueRequestService : IRescueRequestService
                 $"Không thể assign kỹ thuật viên. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSAL_ACCEPTED."
             );
 
-        if (!string.Equals(rescue.RescueType, RescueType.Roadside, StringComparison.OrdinalIgnoreCase))
+        if (
+            !string.Equals(
+                rescue.RescueType,
+                RescueType.Roadside,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
             throw new InvalidOperationException(
                 "Yêu cầu này chưa được khách hàng chấp nhận theo phương án sửa tại chỗ."
             );
@@ -386,7 +393,7 @@ public class RescueRequestService : IRescueRequestService
 
         rescue.AssignedTechnicianID = request.TechnicianId;
         rescue.EstimatedArrivalDateTime = request.EstimatedArrivalDateTime;
-        rescue.Status = RescueStatus.Dispatched;
+        rescue.Status = RescueStatus.EnRoute;
         await _rescueRepo.UpdateAsync(rescue, ct);
 
         // Đặt trước kỹ thuật viên (SMC10)
@@ -760,7 +767,9 @@ public class RescueRequestService : IRescueRequestService
                 "Chỉ Service Advisor mới có quyền điều phối dịch vụ kéo xe."
             );
 
-        if (!string.Equals(rescue.RescueType, RescueType.Towing, StringComparison.OrdinalIgnoreCase))
+        if (
+            !string.Equals(rescue.RescueType, RescueType.Towing, StringComparison.OrdinalIgnoreCase)
+        )
             throw new InvalidOperationException(
                 "Yêu cầu này chưa được khách hàng chấp nhận theo phương án kéo xe."
             );
@@ -1513,7 +1522,10 @@ public class RescueRequestService : IRescueRequestService
 
     /// <summary>Ánh xạ entity RescueRequest (đã load navigation props) sang DTO chi tiết.</summary>
 
-    private async Task<RescueRequestDetailDto> MapToDetailAsync(RescueRequest r, CancellationToken ct)
+    private async Task<RescueRequestDetailDto> MapToDetailAsync(
+        RescueRequest r,
+        CancellationToken ct
+    )
     {
         var suggestedParts = await DeserializeSuggestedPartsAsync(r.SuggestedPartsJson, ct);
 
@@ -1595,22 +1607,26 @@ public class RescueRequestService : IRescueRequestService
                     $"San pham ID={part.PartId} khong phai phu tung nen khong the gan vao buoc de xuat."
                 );
 
-            snapshots.Add(new SuggestedRescuePartDetailDto
-            {
-                PartId = part.PartId,
-                PartCode = product.Code,
-                PartName = product.Name,
-                PartType = product.Type,
-                Quantity = part.Quantity,
-                UnitPrice = product.Price,
-                EstimatedLineAmount = product.Price * part.Quantity
-            });
+            snapshots.Add(
+                new SuggestedRescuePartDetailDto
+                {
+                    PartId = part.PartId,
+                    PartCode = product.Code,
+                    PartName = product.Name,
+                    PartType = product.Type,
+                    Quantity = part.Quantity,
+                    UnitPrice = product.Price,
+                    EstimatedLineAmount = product.Price * part.Quantity
+                }
+            );
         }
 
         return snapshots;
     }
 
-    private static string? SerializeSuggestedParts(IReadOnlyCollection<SuggestedRescuePartDetailDto> suggestedParts)
+    private static string? SerializeSuggestedParts(
+        IReadOnlyCollection<SuggestedRescuePartDetailDto> suggestedParts
+    )
     {
         if (suggestedParts.Count == 0)
             return null;
@@ -1628,24 +1644,31 @@ public class RescueRequestService : IRescueRequestService
 
         try
         {
-            var detailedParts = JsonSerializer.Deserialize<List<SuggestedRescuePartDetailDto>>(suggestedPartsJson) ?? [];
+            var detailedParts =
+                JsonSerializer.Deserialize<List<SuggestedRescuePartDetailDto>>(suggestedPartsJson)
+                ?? [];
             return await EnrichSuggestedPartDetailsAsync(detailedParts, ct);
         }
         catch (JsonException)
         {
             try
             {
-                var basicParts = JsonSerializer.Deserialize<List<SuggestedRescuePartDto>>(suggestedPartsJson) ?? [];
+                var basicParts =
+                    JsonSerializer.Deserialize<List<SuggestedRescuePartDto>>(suggestedPartsJson)
+                    ?? [];
                 return await BuildSuggestedPartDetailsFromBasicAsync(basicParts, ct);
             }
             catch (JsonException)
             {
                 try
                 {
-                    var legacyPartIds = JsonSerializer.Deserialize<List<int>>(suggestedPartsJson) ?? [];
+                    var legacyPartIds =
+                        JsonSerializer.Deserialize<List<int>>(suggestedPartsJson) ?? [];
                     var basicParts = legacyPartIds
                         .Distinct()
-                        .Select(partId => new SuggestedRescuePartDto { PartId = partId, Quantity = 1 })
+                        .Select(
+                            partId => new SuggestedRescuePartDto { PartId = partId, Quantity = 1 }
+                        )
                         .ToList();
                     return await BuildSuggestedPartDetailsFromBasicAsync(basicParts, ct);
                 }
@@ -1663,11 +1686,14 @@ public class RescueRequestService : IRescueRequestService
     )
     {
         var parts = basicParts
-            .Select(part => new SuggestedRescuePartDetailDto
-            {
-                PartId = part.PartId,
-                Quantity = part.Quantity
-            })
+            .Select(
+                part =>
+                    new SuggestedRescuePartDetailDto
+                    {
+                        PartId = part.PartId,
+                        Quantity = part.Quantity
+                    }
+            )
             .ToList();
 
         return await EnrichSuggestedPartDetailsAsync(parts, ct);
