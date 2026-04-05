@@ -78,8 +78,8 @@ export type RescueStatus =
 export interface IRescueCreatePayload {
   carId: number;
   phone: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number | null;
+  longitude?: number | null;
   currentAddress: string;
   problemDescription: string;
   imageEvidence: string | null;

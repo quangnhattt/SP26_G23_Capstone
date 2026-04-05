@@ -228,28 +228,12 @@ const RescuePage = () => {
 
     setIsSubmitting(true);
 
-    // If GPS not yet available, try fetching one more time
-    let lat = rescueData.latitude;
-    let lng = rescueData.longitude;
-    if (lat === null || lng === null) {
-      try {
-        const pos = await getCurrentPosition();
-        lat = pos.lat;
-        lng = pos.lng;
-        setRescueData((prev) => ({ ...prev, latitude: lat, longitude: lng }));
-      } catch {
-        setIsSubmitting(false);
-        toast.warn(t("rescueAlertNoLocation"));
-        return;
-      }
-    }
-
     try {
       await createRescueRequest({
         carId: rescueData.selectedVehicle.carId,
         phone: rescueData.phoneNumber,
-        latitude: lat,
-        longitude: lng,
+        latitude: rescueData.latitude,
+        longitude: rescueData.longitude,
         currentAddress: rescueData.address,
         problemDescription: rescueData.problemDescription,
         imageEvidence: rescueData.imageEvidence || null,
