@@ -13,6 +13,8 @@ import {
   HiDocumentText,
   HiBadgeCheck,
   HiCollection,
+  HiMenu,
+  HiX,
 } from "react-icons/hi";
 import { useEffect, useState } from "react";
 import { getMenuAccess } from "@/services/admin/menuService";
@@ -24,6 +26,7 @@ const AdminDashboard = () => {
   const { t } = useTranslation();
   const [menuGroups, setMenuGroups] = useState<IMenuGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,6 +44,18 @@ const AdminDashboard = () => {
 
     fetchMenuAccess();
   }, []);
+
+  useEffect(() => {
+    if (!loading && menuGroups.length > 0 && location.pathname === "/admin") {
+      const firstRoute = getRouteForGroup(menuGroups[0].groupName);
+      navigate(firstRoute, { replace: true });
+    }
+  }, [loading, menuGroups, location.pathname, navigate]);
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   const getIconForGroup = (groupName: string) => {
     const lowerName = groupName.toLowerCase();
@@ -89,34 +104,59 @@ const AdminDashboard = () => {
     navigate(route);
   };
 
+  const sidebarContent = (
+    <>
+      <SidebarHeader>
+        <Logo>
+          <LogoIcon>🚗</LogoIcon>
+          <LogoText>{t("nameProject")}</LogoText>
+        </Logo>
+        <CloseButton onClick={() => setSidebarOpen(false)}>
+          <HiX size={20} />
+        </CloseButton>
+      </SidebarHeader>
+
+      {loading ? (
+        <LoadingSection>
+          <span>{t("loadingMenu")}</span>
+        </LoadingSection>
+      ) : (
+        menuGroups.map((group) => (
+          <SidebarSection key={group.groupID}>
+            <MenuItem
+              $isActive={isActive(group.groupName)}
+              onClick={() => handleMenuClick(group.groupName)}
+            >
+              {getIconForGroup(group.groupName)}
+              <span>{group.groupName}</span>
+            </MenuItem>
+          </SidebarSection>
+        ))
+      )}
+    </>
+  );
+
   return (
     <PageContainer>
-      <Sidebar>
-        <SidebarHeader>
-          <Logo>
-            <LogoIcon>🚗</LogoIcon>
-            <LogoText>{t("nameProject")}</LogoText>
-          </Logo>
-        </SidebarHeader>
+      {/* Mobile top bar */}
+      <MobileTopBar>
+        <HamburgerButton onClick={() => setSidebarOpen(true)}>
+          <HiMenu size={22} />
+        </HamburgerButton>
+        <MobileLogo>
+          <span>🚗</span>
+          <span>{t("nameProject")}</span>
+        </MobileLogo>
+      </MobileTopBar>
 
-        {loading ? (
-          <LoadingSection>
-            <span>{t("loadingMenu")}</span>
-          </LoadingSection>
-        ) : (
-          menuGroups.map((group) => (
-            <SidebarSection key={group.groupID}>
-              <MenuItem
-                $isActive={isActive(group.groupName)}
-                onClick={() => handleMenuClick(group.groupName)}
-              >
-                {getIconForGroup(group.groupName)}
-                <span>{group.groupName}</span>
-              </MenuItem>
-            </SidebarSection>
-          ))
-        )}
-      </Sidebar>
+      {/* Overlay for mobile */}
+      {sidebarOpen && <Overlay onClick={() => setSidebarOpen(false)} />}
+
+      {/* Desktop sidebar (always visible) */}
+      <Sidebar>{sidebarContent}</Sidebar>
+
+      {/* Mobile drawer */}
+      <MobileDrawer $isOpen={sidebarOpen}>{sidebarContent}</MobileDrawer>
 
       <MainContent>
         <Outlet />
@@ -130,6 +170,65 @@ const PageContainer = styled.div`
   display: flex;
   min-height: 100vh;
   background: #f8f9fa;
+
+  @media (max-width: 1024px) {
+    flex-direction: column;
+  }
+`;
+
+const MobileTopBar = styled.header`
+  display: none;
+
+  @media (max-width: 1024px) {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: sticky;
+    top: 0;
+    height: 56px;
+    background: #1a1d2e;
+    padding: 0 1rem;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+  }
+`;
+
+const HamburgerButton = styled.button`
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 6px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+const MobileLogo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+`;
+
+const Overlay = styled.div`
+  display: none;
+
+  @media (max-width: 1024px) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 150;
+  }
 `;
 
 const Sidebar = styled.aside`
@@ -142,6 +241,7 @@ const Sidebar = styled.aside`
   height: 100vh;
   left: 0;
   top: 0;
+  z-index: 50;
 
   &::-webkit-scrollbar {
     width: 4px;
@@ -157,9 +257,42 @@ const Sidebar = styled.aside`
   }
 `;
 
+const MobileDrawer = styled.aside<{ $isOpen: boolean }>`
+  display: none;
+
+  @media (max-width: 1024px) {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    background: #1a1d2e;
+    color: #fff;
+    padding: 1rem 0;
+    overflow-y: auto;
+    z-index: 200;
+    transform: ${({ $isOpen }) => ($isOpen ? "translateX(0)" : "translateX(-100%)")};
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.4);
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+    }
+  }
+`;
+
 const SidebarHeader = styled.div`
   padding: 0 1.5rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 const Logo = styled.div`
@@ -176,6 +309,27 @@ const LogoIcon = styled.div`
 
 const LogoText = styled.span`
   color: #fff;
+`;
+
+const CloseButton = styled.button`
+  display: none;
+  background: transparent;
+  border: none;
+  color: #9ca3bf;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  @media (max-width: 1024px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 `;
 
 const SidebarSection = styled.div`
