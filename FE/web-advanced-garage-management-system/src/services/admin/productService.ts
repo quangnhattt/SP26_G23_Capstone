@@ -85,10 +85,18 @@ export const deleteProduct = async (id: number): Promise<void> => {
   await AxiosClient.delete(`/api/products/parts/${id}`);
 };
 
+export const updateProductStatus = async (
+  id: number,
+  isActive: boolean
+): Promise<void> => {
+  await AxiosClient.patch(`/api/products/${id}/status`, { isActive });
+};
+
 export const productService = {
   getProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
+  updateProductStatus,
 };

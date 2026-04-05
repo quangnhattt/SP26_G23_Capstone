@@ -26,6 +26,9 @@ export interface IInventoryTransactionsResponse {
 
 export interface IInventoryTransactionParams {
   ProductId?: number;
+  FromDate?: string;
+  ToDate?: string;
+  TransactionType?: string;
   PageIndex?: number;
   PageSize?: number;
 }
@@ -53,10 +56,21 @@ export interface IImportInventoryRequest {
   items: IImportItem[];
 }
 
+export interface IAdjustInventoryRequest {
+  productId: number;
+  actualQuantity: number;
+}
+
 export const importInventory = async (
   payload: IImportInventoryRequest
 ): Promise<void> => {
   await AxiosClient.post("/api/Inventory/import", payload);
+};
+
+export const adjustInventory = async (
+  payload: IAdjustInventoryRequest
+): Promise<void> => {
+  await AxiosClient.post("/api/Inventory/adjust", payload);
 };
 
 export interface IAuditDiscrepancy {
@@ -79,8 +93,14 @@ export const getAuditDiscrepancies = async (): Promise<IAuditDiscrepanciesRespon
   return data;
 };
 
+export const rebuildInventoryBalances = async (): Promise<void> => {
+  await AxiosClient.post("/api/Inventory/rebuild-balances");
+};
+
 export const inventoryService = {
   getInventoryTransactions,
   importInventory,
+  adjustInventory,
   getAuditDiscrepancies,
+  rebuildInventoryBalances,
 };

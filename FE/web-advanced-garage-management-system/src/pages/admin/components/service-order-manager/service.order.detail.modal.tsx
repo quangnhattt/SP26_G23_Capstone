@@ -86,6 +86,17 @@ const ServiceOrderDetailModal = ({
     };
   }, [isOpen, maintenanceId, t]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const statusMeta = detail
@@ -173,6 +184,28 @@ const ServiceOrderDetailModal = ({
                   <InfoValue>{formatDate(detail.maintenanceDate)}</InfoValue>
                 </InfoItem>
               </InfoGrid>
+
+              {(detail.technicianFullName ||
+                detail.technicianPhone ||
+                detail.technicianEmail) && (
+                <>
+                  <SectionTitle>{t("serviceOrderDetailTechnicianInfo")}</SectionTitle>
+                  <InfoGrid>
+                    <InfoItem>
+                      <InfoLabel>{t("serviceOrderDetailTechnicianName")}</InfoLabel>
+                      <InfoValue>{detail.technicianFullName || "—"}</InfoValue>
+                    </InfoItem>
+                    <InfoItem>
+                      <InfoLabel>{t("serviceOrderDetailTechnicianPhone")}</InfoLabel>
+                      <InfoValue>{detail.technicianPhone || "—"}</InfoValue>
+                    </InfoItem>
+                    <InfoItem>
+                      <InfoLabel>{t("serviceOrderDetailTechnicianEmail")}</InfoLabel>
+                      <InfoValue>{detail.technicianEmail || "—"}</InfoValue>
+                    </InfoItem>
+                  </InfoGrid>
+                </>
+              )}
 
               {/* Line items */}
               <SectionTitle>{t("serviceOrderDetailLineItems")}</SectionTitle>
@@ -313,7 +346,8 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 24px;
+  padding: 8px;
+  overflow: hidden;
 `;
 
 const Box = styled.div`
@@ -321,9 +355,12 @@ const Box = styled.div`
   border-radius: 14px;
   width: 100%;
   max-width: 880px;
-  max-height: 90vh;
+  height: calc(100dvh - 16px);
+  max-height: calc(100dvh - 16px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 `;
 
@@ -366,12 +403,14 @@ const CloseBtn = styled.button`
 `;
 
 const Body = styled.div`
-  padding: 20px;
+  padding: 14px 16px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 `;
 
 const StatusRow = styled.div`
@@ -381,20 +420,20 @@ const StatusRow = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin: 4px 0 0 0;
-  padding-bottom: 8px;
+  margin: 2px 0 0 0;
+  padding-bottom: 6px;
   border-bottom: 1px solid #f3f4f6;
 `;
 
 const InfoGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 24px;
+  gap: 8px 20px;
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
   }
@@ -403,16 +442,18 @@ const InfoGrid = styled.div`
 const InfoItem = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
 `;
 
 const InfoLabel = styled.span`
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.2;
   color: #9ca3af;
 `;
 
 const InfoValue = styled.span`
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.25;
   font-weight: 500;
   color: #111827;
 `;

@@ -1,13 +1,14 @@
 import styled from "styled-components";
 import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
 import { useEffect, useState, useRef } from "react";
-import { Table as AntTable } from "antd";
+import { Switch, Table as AntTable } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   getProducts,
   createProduct,
   updateProduct,
   getProductById,
+  updateProductStatus,
 } from "@/services/admin/productService";
 import type { IProduct } from "@/services/admin/productService";
 import { getUnits } from "@/services/admin/unitService";
@@ -59,6 +60,7 @@ const ProductsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [units, setUnits] = useState<IUnit[]>([]);
   const [categories, setCategories] = useState<ICategory[]>([]);
+  const [updatingStatusIds, setUpdatingStatusIds] = useState<number[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -232,6 +234,33 @@ const ProductsPage = () => {
     }).format(price);
   };
 
+  const handleToggleProductStatus = async (
+    record: IProduct,
+    nextIsActive: boolean,
+  ) => {
+    if (updatingStatusIds.includes(record.id)) return;
+
+    setUpdatingStatusIds((prev) => [...prev, record.id]);
+    setProducts((prev) =>
+      prev.map((item) =>
+        item.id === record.id ? { ...item, isActive: nextIsActive } : item,
+      ),
+    );
+
+    try {
+      await updateProductStatus(record.id, nextIsActive);
+    } catch (err) {
+      setProducts((prev) =>
+        prev.map((item) =>
+          item.id === record.id ? { ...item, isActive: record.isActive } : item,
+        ),
+      );
+      toast.error(getApiErrorMessage(err, t("errorUpdatingProductStatus")));
+    } finally {
+      setUpdatingStatusIds((prev) => prev.filter((id) => id !== record.id));
+    }
+  };
+
   const columns: ColumnsType<IProduct> = [
     {
       title: t("name"),
@@ -299,10 +328,12 @@ const ProductsPage = () => {
       dataIndex: "isActive",
       key: "isActive",
       align: "center",
-      render: (isActive: boolean) => (
-        <StatusBadge $isActive={isActive}>
-          {isActive ? t("active") : t("inactive")}
-        </StatusBadge>
+      render: (_: boolean, record: IProduct) => (
+        <Switch
+          checked={record.isActive}
+          loading={updatingStatusIds.includes(record.id)}
+          onChange={(checked) => handleToggleProductStatus(record, checked)}
+        />
       ),
     },
     {
@@ -554,16 +585,6 @@ const CategoryBadge = styled.span`
 const StockBadge = styled.span<{ $isLow: boolean }>`
   background: ${(props) => (props.$isLow ? "#fee2e2" : "#dcfce7")};
   color: ${(props) => (props.$isLow ? "#dc2626" : "#16a34a")};
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-`;
-
-const StatusBadge = styled.span<{ $isActive: boolean }>`
-  background: ${(props) => (props.$isActive ? "#dcfce7" : "#f3f4f6")};
-  color: ${(props) => (props.$isActive ? "#16a34a" : "#6b7280")};
   padding: 0.375rem 0.75rem;
   border-radius: 6px;
   font-size: 0.75rem;

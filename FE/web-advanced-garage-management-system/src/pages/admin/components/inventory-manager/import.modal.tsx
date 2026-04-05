@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiPlus, HiTrash, HiX } from "react-icons/hi";
 import { toast } from "react-toastify";
@@ -23,6 +24,7 @@ const EMPTY_ITEM: IImportItem = { productId: 0, quantity: 1, unitPrice: 0, note:
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ImportModal = ({ isOpen, onClose, onSuccess, products }: ImportModalProps) => {
+  const { t } = useTranslation();
   const [suppliers, setSuppliers] = useState<ISupplier[]>([]);
   const [supplierId, setSupplierId] = useState<number | "">("");
   const [importNote, setImportNote] = useState("");
@@ -55,11 +57,11 @@ const ImportModal = ({ isOpen, onClose, onSuccess, products }: ImportModalProps)
 
   const handleSubmit = async () => {
     if (!supplierId) {
-      toast.error("Vui lòng chọn nhà cung cấp");
+      toast.error(t("inventoryImportSupplierRequired"));
       return;
     }
     if (importItems.some((it) => !it.productId || it.quantity <= 0 || it.unitPrice <= 0)) {
-      toast.error("Vui lòng điền đầy đủ thông tin sản phẩm");
+      toast.error(t("inventoryImportItemRequired"));
       return;
     }
     try {
@@ -69,11 +71,11 @@ const ImportModal = ({ isOpen, onClose, onSuccess, products }: ImportModalProps)
         note: importNote,
         items: importItems,
       });
-      toast.success("Nhập kho thành công");
+      toast.success(t("inventoryImportSuccess"));
       onSuccess();
       onClose();
     } catch {
-      toast.error("Nhập kho thất bại, vui lòng thử lại");
+      toast.error(t("inventoryImportError"));
     } finally {
       setSubmitting(false);
     }
@@ -83,19 +85,19 @@ const ImportModal = ({ isOpen, onClose, onSuccess, products }: ImportModalProps)
     <Overlay onClick={onClose}>
       <Box onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
-          <ModalTitle>Nhập kho</ModalTitle>
+          <ModalTitle>{t("inventoryImportTitle")}</ModalTitle>
           <CloseBtn onClick={onClose}><HiX size={20} /></CloseBtn>
         </ModalHeader>
 
         <Body>
           {/* Supplier */}
           <FormGroup>
-            <Label>Nhà cung cấp <Required>*</Required></Label>
+            <Label>{t("inventoryImportSupplier")} <Required>*</Required></Label>
             <Select
               value={supplierId}
               onChange={(e) => setSupplierId(e.target.value === "" ? "" : Number(e.target.value))}
             >
-              <option value="">-- Chọn nhà cung cấp --</option>
+              <option value="">{t("inventoryImportSelectSupplier")}</option>
               {suppliers.map((s) => (
                 <option key={s.supplierID} value={s.supplierID}>
                   {s.name}
@@ -106,10 +108,10 @@ const ImportModal = ({ isOpen, onClose, onSuccess, products }: ImportModalProps)
 
           {/* Note */}
           <FormGroup>
-            <Label>Ghi chú</Label>
+            <Label>{t("inventoryImportNote")}</Label>
             <Input
               type="text"
-              placeholder="Nhập ghi chú..."
+              placeholder={t("inventoryImportNotePlaceholder")}
               value={importNote}
               onChange={(e) => setImportNote(e.target.value)}
             />
@@ -117,19 +119,19 @@ const ImportModal = ({ isOpen, onClose, onSuccess, products }: ImportModalProps)
 
           {/* Items */}
           <ItemsHeader>
-            <Label style={{ margin: 0 }}>Danh sách sản phẩm <Required>*</Required></Label>
+            <Label style={{ margin: 0 }}>{t("inventoryImportItemList")} <Required>*</Required></Label>
             <AddItemBtn onClick={addItem}>
-              <HiPlus size={14} /> Thêm dòng
+              <HiPlus size={14} /> {t("inventoryImportAddRow")}
             </AddItemBtn>
           </ItemsHeader>
 
           <ItemsTable>
             <thead>
               <tr>
-                <ItemTh>Sản phẩm</ItemTh>
-                <ItemTh>Số lượng</ItemTh>
-                <ItemTh>Đơn giá</ItemTh>
-                <ItemTh>Ghi chú</ItemTh>
+                <ItemTh>{t("inventoryImportProduct")}</ItemTh>
+                <ItemTh>{t("inventoryImportQuantity")}</ItemTh>
+                <ItemTh>{t("inventoryImportUnitPrice")}</ItemTh>
+                <ItemTh>{t("inventoryImportNote")}</ItemTh>
                 <ItemTh />
               </tr>
             </thead>
@@ -141,7 +143,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess, products }: ImportModalProps)
                       value={it.productId || ""}
                       onChange={(e) => updateItem(i, "productId", Number(e.target.value))}
                     >
-                      <option value="">-- Chọn SP --</option>
+                      <option value="">{t("inventoryImportSelectProduct")}</option>
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.code} — {p.name}
@@ -168,7 +170,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess, products }: ImportModalProps)
                   <ItemTd>
                     <InputSmall
                       type="text"
-                      placeholder="Ghi chú..."
+                      placeholder={t("inventoryImportItemNotePlaceholder")}
                       value={it.note}
                       onChange={(e) => updateItem(i, "note", e.target.value)}
                     />
@@ -185,9 +187,11 @@ const ImportModal = ({ isOpen, onClose, onSuccess, products }: ImportModalProps)
         </Body>
 
         <Footer>
-          <CancelBtn onClick={onClose}>Hủy</CancelBtn>
+          <CancelBtn onClick={onClose}>{t("inventoryImportCancel")}</CancelBtn>
           <SubmitBtn onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Đang lưu..." : "Xác nhận nhập kho"}
+            {submitting
+              ? t("inventoryImportSubmitting")
+              : t("inventoryImportSubmit")}
           </SubmitBtn>
         </Footer>
       </Box>
