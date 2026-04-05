@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiX, HiTruck } from "react-icons/hi";
-import { Tag } from "antd";
+import { Tag, Table as AntTable } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   serviceOrderService,
   type IServiceOrderDetail,
@@ -84,6 +85,17 @@ const ServiceOrderDetailModal = ({
       cancelled = true;
     };
   }, [isOpen, maintenanceId, t]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -173,85 +185,140 @@ const ServiceOrderDetailModal = ({
                 </InfoItem>
               </InfoGrid>
 
+              {(detail.technicianFullName ||
+                detail.technicianPhone ||
+                detail.technicianEmail) && (
+                <>
+                  <SectionTitle>{t("serviceOrderDetailTechnicianInfo")}</SectionTitle>
+                  <InfoGrid>
+                    <InfoItem>
+                      <InfoLabel>{t("serviceOrderDetailTechnicianName")}</InfoLabel>
+                      <InfoValue>{detail.technicianFullName || "—"}</InfoValue>
+                    </InfoItem>
+                    <InfoItem>
+                      <InfoLabel>{t("serviceOrderDetailTechnicianPhone")}</InfoLabel>
+                      <InfoValue>{detail.technicianPhone || "—"}</InfoValue>
+                    </InfoItem>
+                    <InfoItem>
+                      <InfoLabel>{t("serviceOrderDetailTechnicianEmail")}</InfoLabel>
+                      <InfoValue>{detail.technicianEmail || "—"}</InfoValue>
+                    </InfoItem>
+                  </InfoGrid>
+                </>
+              )}
+
               {/* Line items */}
               <SectionTitle>{t("serviceOrderDetailLineItems")}</SectionTitle>
-              {detail.lineItems && detail.lineItems.length > 0 ? (
-                <TableWrapper>
-                  <LineTable>
-                    <thead>
-                      <tr>
-                        <Th style={{ width: 40 }}>{t("serviceOrderDetailColNo")}</Th>
-                        <Th>{t("serviceOrderDetailItemType")}</Th>
-                        <Th>{t("serviceOrderDetailColCode")}</Th>
-                        <Th>{t("serviceOrderDetailItemName")}</Th>
-                        <Th style={{ textAlign: "right" }}>
-                          {t("serviceOrderDetailItemQty")}
-                        </Th>
-                        <Th style={{ textAlign: "right" }}>
-                          {t("serviceOrderDetailItemUnitPrice")}
-                        </Th>
-                        <Th style={{ textAlign: "right" }}>
-                          {t("serviceOrderDetailItemTotal")}
-                        </Th>
-                        <Th style={{ textAlign: "center" }}>{t("serviceOrderDetailColStatus")}</Th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.lineItems.map((item, idx) => {
-                        const total = item.quantity * item.unitPrice;
-                        return (
-                          <Tr key={idx}>
-                            <TdMuted>{idx + 1}</TdMuted>
-                            <Td>{item.sourceType || "—"}</Td>
-                            <TdMuted style={{ textAlign: "left" }}>
-                              {item.itemCode || "—"}
-                            </TdMuted>
-                            <Td>
-                              <div>{item.itemName || "—"}</div>
-                              {item.notes && <NoteText>{item.notes}</NoteText>}
-                            </Td>
-                            <TdRight>{item.quantity}</TdRight>
-                            <TdRight>{formatCurrency(item.unitPrice)}</TdRight>
-                            <TdRight>{formatCurrency(total)}</TdRight>
-                            <TdCenter>
-                              <Tag color={ITEM_STATUS_COLOR[item.itemStatus] ?? "default"}>
-                                {t(`serviceOrderDetailItemStatus_${item.itemStatus}`) || item.itemStatus}
-                              </Tag>
-                            </TdCenter>
-                          </Tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <TfootTd
-                          colSpan={6}
-                          style={{ textAlign: "right", fontWeight: 600 }}
-                        >
-                          {t("serviceOrderDetailTotal")}
-                        </TfootTd>
-                        <TfootTd
-                          style={{
-                            textAlign: "right",
-                            fontWeight: 700,
-                            color: "#111827",
-                          }}
-                        >
-                          {formatCurrency(
-                            detail.lineItems.reduce(
-                              (sum, i) => sum + i.quantity * i.unitPrice,
-                              0,
-                            ),
-                          )}
-                        </TfootTd>
-                        <TfootTd />
-                      </tr>
-                    </tfoot>
-                  </LineTable>
-                </TableWrapper>
-              ) : (
-                <EmptyItems>{t("serviceOrderDetailNoItems")}</EmptyItems>
-              )}
+              {(() => {
+                type LineItem = (typeof detail.lineItems)[number];
+                const lineItemColumns: ColumnsType<LineItem> = [
+                  {
+                    title: t("serviceOrderDetailColNo"),
+                    key: "no",
+                    align: "center",
+                    width: 50,
+                    render: (_: unknown, __: LineItem, idx: number) => (
+                      <span style={{ color: "#9ca3af", fontSize: 13 }}>{idx + 1}</span>
+                    ),
+                  },
+                  {
+                    title: t("serviceOrderDetailItemType"),
+                    dataIndex: "sourceType",
+                    key: "sourceType",
+                    render: (val: string) => val || "—",
+                  },
+                  {
+                    title: t("serviceOrderDetailColCode"),
+                    dataIndex: "itemCode",
+                    key: "itemCode",
+                    render: (val: string) => (
+                      <span style={{ color: "#9ca3af", fontSize: 13 }}>{val || "—"}</span>
+                    ),
+                  },
+                  {
+                    title: t("serviceOrderDetailItemName"),
+                    dataIndex: "itemName",
+                    key: "itemName",
+                    render: (val: string, record: LineItem) => (
+                      <div>
+                        <div style={{ color: "#374151" }}>{val || "—"}</div>
+                        {record.notes && (
+                          <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
+                            {record.notes}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
+                    title: t("serviceOrderDetailItemQty"),
+                    dataIndex: "quantity",
+                    key: "quantity",
+                    align: "right",
+                  },
+                  {
+                    title: t("serviceOrderDetailItemUnitPrice"),
+                    dataIndex: "unitPrice",
+                    key: "unitPrice",
+                    align: "right",
+                    render: (val: number) => formatCurrency(val),
+                  },
+                  {
+                    title: t("serviceOrderDetailItemTotal"),
+                    key: "total",
+                    align: "right",
+                    render: (_: unknown, record: LineItem) =>
+                      formatCurrency(record.quantity * record.unitPrice),
+                  },
+                  {
+                    title: t("serviceOrderDetailColStatus"),
+                    dataIndex: "itemStatus",
+                    key: "itemStatus",
+                    align: "center",
+                    render: (val: string) => (
+                      <Tag color={ITEM_STATUS_COLOR[val] ?? "default"}>
+                        {t(`serviceOrderDetailItemStatus_${val}`) || val}
+                      </Tag>
+                    ),
+                  },
+                ];
+
+                const approvedTotal = detail.lineItems
+                  .filter((i) => i.itemStatus === "APPROVED")
+                  .reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+
+                const dataWithIndex = detail.lineItems.map((item, idx) => ({
+                  ...item,
+                  _rowKey: idx,
+                }));
+
+                return (
+                  <TableCard>
+                    <AntTable
+                      columns={lineItemColumns}
+                      dataSource={dataWithIndex}
+                      rowKey="_rowKey"
+                      pagination={false}
+                      scroll={{ x: "max-content" }}
+                      summary={() => (
+                        <AntTable.Summary.Row>
+                          <AntTable.Summary.Cell index={0} colSpan={6}>
+                            <span style={{ fontWeight: 600, color: "#374151", float: "right" }}>
+                              {t("serviceOrderDetailTotal")}
+                            </span>
+                          </AntTable.Summary.Cell>
+                          <AntTable.Summary.Cell index={6} align="right">
+                            <span style={{ fontWeight: 700, color: "#111827" }}>
+                              {formatCurrency(approvedTotal)}
+                            </span>
+                          </AntTable.Summary.Cell>
+                          <AntTable.Summary.Cell index={7} />
+                        </AntTable.Summary.Row>
+                      )}
+                    />
+                  </TableCard>
+                );
+              })()}
             </>
           )}
         </Body>
@@ -279,7 +346,8 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 24px;
+  padding: 8px;
+  overflow: hidden;
 `;
 
 const Box = styled.div`
@@ -287,9 +355,12 @@ const Box = styled.div`
   border-radius: 14px;
   width: 100%;
   max-width: 880px;
-  max-height: 90vh;
+  height: calc(100dvh - 16px);
+  max-height: calc(100dvh - 16px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 `;
 
@@ -332,12 +403,14 @@ const CloseBtn = styled.button`
 `;
 
 const Body = styled.div`
-  padding: 20px;
+  padding: 14px 16px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 `;
 
 const StatusRow = styled.div`
@@ -347,20 +420,20 @@ const StatusRow = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin: 4px 0 0 0;
-  padding-bottom: 8px;
+  margin: 2px 0 0 0;
+  padding-bottom: 6px;
   border-bottom: 1px solid #f3f4f6;
 `;
 
 const InfoGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 24px;
+  gap: 8px 20px;
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
   }
@@ -369,72 +442,46 @@ const InfoGrid = styled.div`
 const InfoItem = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
 `;
 
 const InfoLabel = styled.span`
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.2;
   color: #9ca3af;
 `;
 
 const InfoValue = styled.span`
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.25;
   font-weight: 500;
   color: #111827;
 `;
 
-const TableWrapper = styled.div`
-  overflow-x: auto;
+const TableCard = styled.div`
+  background: #fff;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-`;
+  overflow-x: auto;
 
-const LineTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-`;
-
-const Th = styled.th`
-  padding: 10px 14px;
-  text-align: left;
-  font-weight: 600;
-  color: #374151;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap;
-`;
-
-const Tr = styled.tr`
-  &:not(:last-child) {
-    border-bottom: 1px solid #f3f4f6;
+  .ant-table {
+    color: #374151;
   }
-  &:hover {
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+  .ant-table-summary > tr > td {
     background: #f9fafb;
+    border-top: 2px solid #e5e7eb;
   }
-`;
-
-const Td = styled.td`
-  padding: 10px 14px;
-  color: #374151;
-`;
-
-const TdMuted = styled(Td)`
-  color: #9ca3af;
-  font-size: 13px;
-  text-align: center;
-`;
-
-const TdRight = styled(Td)`
-  text-align: right;
-  white-space: nowrap;
-`;
-
-const EmptyItems = styled.div`
-  padding: 24px 0;
-  text-align: center;
-  color: #9ca3af;
-  font-size: 14px;
 `;
 
 const LoadingText = styled.div`
@@ -473,19 +520,3 @@ const CloseTextBtn = styled.button`
   }
 `;
 
-const NoteText = styled.div`
-  font-size: 12px;
-  color: #9ca3af;
-  margin-top: 2px;
-`;
-
-const TdCenter = styled(Td)`
-  text-align: center;
-`;
-
-const TfootTd = styled.td`
-  padding: 10px 14px;
-  color: #374151;
-  border-top: 2px solid #e5e7eb;
-  background: #f9fafb;
-`;

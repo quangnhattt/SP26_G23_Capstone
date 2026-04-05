@@ -1,3 +1,4 @@
+using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Intake;
 using AGMS.Application.DTOs.ServiceOrder;
@@ -28,12 +29,20 @@ namespace AGMS.WebApi.Controllers
             {
                 return Unauthorized(new { message = "Invalid or missing user id claim." });
             }
-            var isStaff = await _intakeService.IsStaffUserAsync(userId, ct);
-            if (!isStaff)
+            var roleClaim = User.FindFirstValue(ClaimTypes.Role);
+            var roleId = 0;
+            if (!string.IsNullOrWhiteSpace(roleClaim))
+            {
+                int.TryParse(roleClaim, out roleId);
+            }
+
+            // Only Admin (1), Service Advisor (2), or Technician (3) can access the intake list.
+            if (roleId != 1 && roleId != 2 && roleId != 3)
             {
                 return Forbid();
             }
-            var result = await _intakeService.GetIntakesAsync(query, ct);
+
+            var result = await _intakeService.GetIntakesAsync(query, userId, roleId, ct);
             return Ok(result);
         }
 

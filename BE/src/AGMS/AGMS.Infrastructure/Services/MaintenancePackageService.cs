@@ -24,6 +24,8 @@ public class MaintenancePackageService : IMaintenancePackageService
             PackageID = p.PackageID,
             PackageCode = p.PackageCode,
             Name = p.Name,
+            KilometerMilestone = p.KilometerMilestone,
+            MonthMilestone = p.MonthMilestone,
             BasePrice = p.BasePrice,
             DiscountPercent = p.DiscountPercent,
             FinalPrice = p.FinalPrice,
@@ -277,22 +279,40 @@ public class MaintenancePackageService : IMaintenancePackageService
         };
     }
 
-    public async Task SetActiveStatusAsync(int packageId, bool isActive, CancellationToken ct = default)
+    public async Task<(bool IsSuccess, string Message)> SetActiveStatusAsync(int packageId, bool isActive, CancellationToken ct = default)
     {
         var package = await _repository.GetByIdAsync(packageId, ct)
             ?? throw new KeyNotFoundException($"Maintenance package with ID {packageId} not found.");
 
+        if (package.IsActive == isActive)
+        {
+            var msg = isActive ? "MSG_MP01: Maintenance package is already active." : "MSG_MP02: Maintenance package is already inactive.";
+            return (true, msg);
+        }
+
         package.IsActive = isActive;
         await _repository.UpdateAsync(package, ct);
+        
+        var successMsg = isActive ? "MSG_MP03: Maintenance package activated successfully." : "MSG_MP04: Maintenance package deactivated successfully.";
+        return (true, successMsg);
     }
 
-    public async Task SetDetailActiveStatusAsync(int detailId, bool isActive, CancellationToken ct = default)
+    public async Task<(bool IsSuccess, string Message)> SetDetailActiveStatusAsync(int detailId, bool isActive, CancellationToken ct = default)
     {
         var detail = await _repository.GetDetailByIdAsync(detailId, ct)
             ?? throw new KeyNotFoundException($"Maintenance package detail with ID {detailId} not found.");
 
+        if (detail.IsRequired == isActive)
+        {
+            var msg = isActive ? "MSG_MP05: Maintenance package detail is already active." : "MSG_MP06: Maintenance package detail is already inactive.";
+            return (true, msg);
+        }
+
         detail.IsRequired = isActive;
         await _repository.UpdateDetailAsync(detail, ct);
+        
+        var successMsg = isActive ? "MSG_MP07: Maintenance package detail activated successfully." : "MSG_MP08: Maintenance package detail deactivated successfully.";
+        return (true, successMsg);
     }
 
     public async Task UpdatePackageDetailAsync(

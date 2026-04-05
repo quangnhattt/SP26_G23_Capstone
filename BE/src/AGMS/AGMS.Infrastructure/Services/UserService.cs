@@ -211,30 +211,17 @@ public class UserService : IUserService
         return users.Select(MapToListItem);
     }
 
-    public async Task DeactivateUserAsync(int userId, CancellationToken ct)
+    public async Task ChangeUserStatusAsync(int userId, bool isActive, CancellationToken ct)
     {
         var user = await _userRepository.GetByIdAsync(userId, ct)
                    ?? throw new KeyNotFoundException($"Không tìm thấy người dùng với ID {userId}.");
 
         if (user.RoleID == 1)
-            throw new InvalidOperationException("Không thể khóa tài khoản Admin.");
+            throw new InvalidOperationException($"Không thể thay đổi trạng thái của tài khoản Admin.");
 
-        if (!user.IsActive) return;
+        if (user.IsActive == isActive) return;
 
-        await _userRepository.SetActiveAsync(userId, false, ct);
-    }
-
-    public async Task ActivateUserAsync(int userId, CancellationToken ct)
-    {
-        var user = await _userRepository.GetByIdAsync(userId, ct)
-                   ?? throw new KeyNotFoundException($"Không tìm thấy người dùng với ID {userId}.");
-
-        if (user.RoleID == 1)
-            throw new InvalidOperationException("Không thể mở khóa tài khoản Admin.");
-
-        if (user.IsActive) return;
-
-        await _userRepository.SetActiveAsync(userId, true, ct);
+        await _userRepository.SetActiveAsync(userId, isActive, ct);
     }
 
     public async Task<UserDetailDto> GetCurrentUserAsync(int userId, CancellationToken ct)

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { HiPlus, HiClipboardCheck } from "react-icons/hi";
+import { HiPlus, HiClipboardCheck, HiAdjustments } from "react-icons/hi";
 import { toast } from "react-toastify";
-import { Table, Tag, Select as AntSelect } from "antd";
+import { Table, Tag } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   inventoryService,
@@ -13,6 +13,7 @@ import {
 import { getProducts, type IProduct } from "@/services/admin/productService";
 import ImportModal from "./import.modal";
 import AuditModal from "./audit.modal";
+import AdjustModal from "./adjust.modal";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -34,10 +35,33 @@ const formatDate = (iso: string) => {
 
 const PAGE_SIZE = 20;
 
-const TRANSACTION_TYPE_MAP: Record<string, { color: string; label: string }> = {
-  ISSUE: { color: "orange", label: "Xuất kho" },
-  GOODS_RECEIPT: { color: "green", label: "Nhập kho" },
-  ADJUSTMENT: { color: "blue", label: "Điều chỉnh" },
+// Global style for Select dropdown (renders outside DOM tree)
+const dropdownGlobalStyle = `
+  .inventory-select-dropdown .ant-select-item {
+    color: #111827 !important;
+  }
+  .inventory-select-dropdown .ant-select-item-option-content {
+    color: #111827 !important;
+  }
+  .inventory-select-dropdown .ant-select-item-option-selected {
+    background-color: #eff6ff !important;
+  }
+`;
+
+if (typeof document !== "undefined") {
+  const styleId = "inventory-dropdown-style";
+  if (!document.getElementById(styleId)) {
+    const tag = document.createElement("style");
+    tag.id = styleId;
+    tag.innerHTML = dropdownGlobalStyle;
+    document.head.appendChild(tag);
+  }
+}
+
+const TRANSACTION_TYPE_COLOR: Record<string, string> = {
+  ISSUE: "orange",
+  GOODS_RECEIPT: "green",
+  ADJUSTMENT: "blue",
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -54,7 +78,10 @@ const InventoryManager = () => {
   const [selectedProductId, setSelectedProductId] = useState<
     number | undefined
   >(undefined);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
   const [auditMessage, setAuditMessage] = useState("");
   const [auditData, setAuditData] = useState<IAuditDiscrepancy[]>([]);
@@ -67,7 +94,7 @@ const InventoryManager = () => {
   }, []);
 
   const fetchTransactions = useCallback(
-    async (page: number, pid?: number) => {
+    async (page: number, pid?: number, from?: string, to?: string) => {
       try {
         setLoading(true);
         setError(null);
@@ -75,6 +102,8 @@ const InventoryManager = () => {
           PageIndex: page,
           PageSize: PAGE_SIZE,
           ...(pid !== undefined ? { ProductId: pid } : {}),
+          ...(from ? { FromDate: from } : {}),
+          ...(to ? { ToDate: to } : {}),
         });
         setItems(res.data?.items ?? []);
         setTotalCount(res.data?.totalCount ?? 0);
@@ -88,13 +117,22 @@ const InventoryManager = () => {
   );
 
   useEffect(() => {
-    fetchTransactions(currentPage, selectedProductId);
-  }, [currentPage, selectedProductId, fetchTransactions]);
+    fetchTransactions(currentPage, selectedProductId, fromDate, toDate);
+  }, [currentPage, selectedProductId, fromDate, toDate, fetchTransactions]);
 
-  const handleProductChange = (value: string | undefined) => {
-    setSelectedProductId(
-      value === undefined || value === "" ? undefined : Number(value),
-    );
+  const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSelectedProductId(value === "" ? undefined : Number(value));
+    setCurrentPage(1);
+  };
+
+  const handleFromDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFromDate(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleToDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setToDate(e.target.value);
     setCurrentPage(1);
   };
 
@@ -104,22 +142,35 @@ const InventoryManager = () => {
       const res = await inventoryService.getAuditDiscrepancies();
       setAuditMessage(res.message);
       setAuditData(res.data);
-      setAuditOpen(true);
-    } catch {
-      toast.error("Không thể kiểm tra sai lệch, vui lòng thử lại");
+      return res;
     } finally {
       setAuditing(false);
     }
   };
 
+  const openAuditModal = async () => {
+    try {
+      await handleAudit();
+      setAuditOpen(true);
+    } catch {
+      toast.error(t("inventoryAuditError"));
+    }
+  };
+
+  const getTransactionTypeLabel = (type: string) => {
+    const key = `inventoryTransactionType_${type}`;
+    const translated = t(key);
+    return translated === key ? type : translated;
+  };
+
   const handleImportSuccess = () => {
     setCurrentPage(1);
-    fetchTransactions(1, selectedProductId);
+    fetchTransactions(1, selectedProductId, fromDate, toDate);
   };
 
   const columns: TableColumnsType<IInventoryTransaction> = [
     {
-      title: "STT",
+      title: t("inventoryIndex"),
       key: "index",
       width: 60,
       align: "center",
@@ -143,11 +194,11 @@ const InventoryManager = () => {
       key: "transactionType",
       width: 130,
       render: (_: unknown, record: IInventoryTransaction) => {
-        const meta = TRANSACTION_TYPE_MAP[record.transactionType] ?? {
-          color: "default",
-          label: record.transactionType,
-        };
-        return <Tag color={meta.color}>{meta.label}</Tag>;
+        return (
+          <Tag color={TRANSACTION_TYPE_COLOR[record.transactionType] ?? "default"}>
+            {getTransactionTypeLabel(record.transactionType)}
+          </Tag>
+        );
       },
     },
     {
@@ -184,17 +235,11 @@ const InventoryManager = () => {
     {
       title: t("inventoryNote"),
       key: "note",
-      render: (_: unknown, record: IInventoryTransaction) => record.note || "—",
+      render: (_: unknown, record: IInventoryTransaction) =>
+        record.note || t("inventoryNoNoteValue"),
     },
   ];
 
-  const productOptions = [
-    { value: "", label: t("inventorySelectProduct") },
-    ...products.map((p) => ({
-      value: String(p.id),
-      label: `${p.code} — ${p.name}`,
-    })),
-  ];
 
   return (
     <Container>
@@ -206,25 +251,45 @@ const InventoryManager = () => {
       {error && <ErrorBox>{error}</ErrorBox>}
 
       <Toolbar>
-        <AntSelect
-          style={{ minWidth: 280, maxWidth: 420, flex: 1 }}
-          allowClear
-          placeholder={t("inventorySelectProduct")}
-          options={productOptions}
-          value={
-            selectedProductId !== undefined
-              ? String(selectedProductId)
-              : undefined
-          }
+        <FilterSelect
+          value={selectedProductId !== undefined ? String(selectedProductId) : ""}
           onChange={handleProductChange}
-        />
-        <AuditBtn onClick={handleAudit} disabled={auditing}>
+        >
+          <option value="">{t("inventorySelectProduct")}</option>
+          {products.map((p) => (
+            <option key={p.id} value={String(p.id)}>
+              {p.code} — {p.name}
+            </option>
+          ))}
+        </FilterSelect>
+        <DateRangeForm>
+          <DateRangeLabel>{t("inventoryFromDate")}</DateRangeLabel>
+          <DateInput
+            type="date"
+            value={fromDate}
+            onChange={handleFromDateChange}
+            max={toDate || undefined}
+          />
+          <DateRangeSeparator>~</DateRangeSeparator>
+          <DateRangeLabel>{t("inventoryToDate")}</DateRangeLabel>
+          <DateInput
+            type="date"
+            value={toDate}
+            onChange={handleToDateChange}
+            min={fromDate || undefined}
+          />
+        </DateRangeForm>
+        <AuditBtn onClick={openAuditModal} disabled={auditing}>
           <HiClipboardCheck size={16} />
-          {auditing ? "Đang kiểm tra..." : "Kiểm tra sai lệch"}
+          {auditing ? t("inventoryAuditChecking") : t("inventoryAuditButton")}
         </AuditBtn>
+        <AdjustBtn onClick={() => setIsAdjustModalOpen(true)}>
+          <HiAdjustments size={16} />
+          {t("inventoryAdjustButton")}
+        </AdjustBtn>
         <ImportBtn onClick={() => setIsModalOpen(true)}>
           <HiPlus size={16} />
-          Nhập kho
+          {t("inventoryImportButton")}
         </ImportBtn>
       </Toolbar>
 
@@ -241,7 +306,11 @@ const InventoryManager = () => {
             total: totalCount,
             showSizeChanger: false,
             showTotal: (total, range) =>
-              `${range[0]}–${range[1]} / ${total} giao dịch`,
+              t("inventoryPaginationTotal", {
+                from: range[0],
+                to: range[1],
+                total,
+              }),
             onChange: (page) => setCurrentPage(page),
           }}
         />
@@ -254,11 +323,20 @@ const InventoryManager = () => {
         products={products}
       />
 
+      <AdjustModal
+        isOpen={isAdjustModalOpen}
+        onClose={() => setIsAdjustModalOpen(false)}
+        onSuccess={handleImportSuccess}
+        products={products}
+        selectedProductId={selectedProductId}
+      />
+
       <AuditModal
         isOpen={auditOpen}
         onClose={() => setAuditOpen(false)}
         message={auditMessage}
         data={auditData}
+        onRebuildSuccess={handleAudit}
       />
     </Container>
   );
@@ -299,6 +377,61 @@ const Toolbar = styled.div`
   align-items: center;
 `;
 
+const FilterSelect = styled.select`
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #374151;
+  background: white;
+  min-width: 280px;
+  max-width: 420px;
+  flex: 1;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: #1d4ed8;
+  }
+`;
+
+const DateRangeForm = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+`;
+
+const DateRangeLabel = styled.span`
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+`;
+
+const DateRangeSeparator = styled.span`
+  font-size: 14px;
+  color: #9ca3af;
+`;
+
+const DateInput = styled.input`
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #374151;
+  background: white;
+  min-width: 150px;
+
+  &:focus {
+    outline: none;
+    border-color: #1d4ed8;
+  }
+`;
+
 const AuditBtn = styled.button`
   display: flex;
   align-items: center;
@@ -318,6 +451,25 @@ const AuditBtn = styled.button`
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+`;
+
+const AdjustBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: #dbeafe;
   }
 `;
 

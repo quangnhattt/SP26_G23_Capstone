@@ -21,6 +21,7 @@ import {
   customerConsent,
   acceptTowing,
   makeRescuePayment,
+  makeRescueDeposit,
   cancelRescueRequest,
   arriveRescue,
   startDiagnosis,
@@ -53,6 +54,10 @@ const RescueDetailModal = ({
   const { t, i18n } = useTranslation();
   const isTechnician = userRoleID === 3;
   const isCustomer = userRoleID === 4;
+
+  // Deposit QR modal
+  const [showDepositQR, setShowDepositQR] = useState(false);
+  const [depositPaying, setDepositPaying] = useState(false);
 
   // Customer states
   const [proposalAccepting, setProposalAccepting] = useState(false);
@@ -90,11 +95,28 @@ const RescueDetailModal = ({
       await acceptProposal(data.rescueId);
       toast.success(t("rescueProposalAcceptSuccess"));
       onRefresh?.();
-      onClose();
     } catch {
       toast.error(t("rescueProposalAcceptError"));
     } finally {
       setProposalAccepting(false);
+    }
+  };
+
+  const handlePayDeposit = async () => {
+    if (!data?.depositAmount) return;
+    setDepositPaying(true);
+    try {
+      await makeRescueDeposit(data.rescueId, {
+        paymentMethod: "TRANSFER",
+        amount: data.depositAmount,
+        transactionReference: `DEP-RES-${data.rescueId}-001`,
+      });
+      toast.success(t("rescueDepositPaySuccess"));
+      onRefresh?.();
+    } catch {
+      toast.error(t("rescueDepositPayError"));
+    } finally {
+      setDepositPaying(false);
     }
   };
 
@@ -105,13 +127,13 @@ const RescueDetailModal = ({
       await customerConsent(data.rescueId, payload);
       toast.success(
         payload.consentGiven
-          ? "Đã xác nhận đồng ý sửa tại chỗ!"
-          : "Đã từ chối sửa tại chỗ!",
+          ? t("rescueConsentAgreedSuccess")
+          : t("rescueConsentDeclinedSuccess"),
       );
       onRefresh?.();
       onClose();
     } catch {
-      toast.error("Xác nhận thất bại!");
+      toast.error(t("rescueConsentError"));
     } finally {
       setConsenting(false);
     }
@@ -122,11 +144,11 @@ const RescueDetailModal = ({
     setConsenting(true);
     try {
       await acceptTowing(data.rescueId);
-      toast.success("Đã xác nhận chấp nhận dịch vụ kéo xe!");
+      toast.success(t("rescueTowingAcceptSuccess"));
       onRefresh?.();
       onClose();
     } catch {
-      toast.error("Xác nhận thất bại!");
+      toast.error(t("rescueTowingAcceptError"));
     } finally {
       setConsenting(false);
     }
@@ -141,12 +163,12 @@ const RescueDetailModal = ({
         amount: Number(paymentAmount),
         transactionReference: paymentRef.trim() || undefined,
       });
-      toast.success("Thanh toán thành công!");
+      toast.success(t("rescuePaymentSuccess"));
       setShowPayment(false);
       onRefresh?.();
       onClose();
     } catch {
-      toast.error("Thanh toán thất bại!");
+      toast.error(t("rescuePaymentError"));
     } finally {
       setPaymentSubmitting(false);
     }
@@ -158,11 +180,11 @@ const RescueDetailModal = ({
     setTechLoading(true);
     try {
       await arriveRescue(data.rescueId);
-      toast.success("Đã xác nhận đến nơi!");
+      toast.success(t("rescueMgrArriveSuccess"));
       onRefresh?.();
       onClose();
     } catch {
-      toast.error("Xác nhận thất bại!");
+      toast.error(t("rescueMgrArriveError"));
     } finally {
       setTechLoading(false);
     }
@@ -176,11 +198,11 @@ const RescueDetailModal = ({
         diagnosisNotes: diagnosisNotes.trim(),
         canRepairOnSite,
       });
-      toast.success("Đã gửi kết quả chẩn đoán!");
+      toast.success(t("rescueTechDiagnosisSuccess"));
       onRefresh?.();
       onClose();
     } catch {
-      toast.error("Gửi chẩn đoán thất bại!");
+      toast.error(t("rescueTechDiagnosisError"));
     } finally {
       setTechLoading(false);
     }
@@ -193,11 +215,11 @@ const RescueDetailModal = ({
       await completeRepair(data.rescueId, {
         completionNotes: completionNotes.trim() || undefined,
       });
-      toast.success("Đã báo hoàn tất sửa chữa!");
+      toast.success(t("rescueTechCompleteRepairSuccess"));
       onRefresh?.();
       onClose();
     } catch {
-      toast.error("Báo hoàn tất thất bại!");
+      toast.error(t("rescueTechCompleteRepairError"));
     } finally {
       setTechLoading(false);
     }
@@ -209,7 +231,7 @@ const RescueDetailModal = ({
       (i) => i.productId.trim() && i.quantity.trim() && i.unitPrice.trim(),
     );
     if (validItems.length === 0) {
-      toast.error("Vui lòng nhập ít nhất 1 vật tư/dịch vụ hợp lệ!");
+      toast.error(t("rescueTechRepairItemsRequired"));
       return;
     }
     setRepairItemsSubmitting(true);
@@ -222,10 +244,10 @@ const RescueDetailModal = ({
           notes: i.notes.trim() || undefined,
         })),
       });
-      toast.success("Đã ghi nhận vật tư/dịch vụ!");
+      toast.success(t("rescueTechRepairItemsSuccess"));
       onRefresh?.();
     } catch {
-      toast.error("Ghi nhận vật tư thất bại!");
+      toast.error(t("rescueTechRepairItemsError"));
     } finally {
       setRepairItemsSubmitting(false);
     }
@@ -236,12 +258,12 @@ const RescueDetailModal = ({
     setCancelling(true);
     try {
       await cancelRescueRequest(data.rescueId, cancelReason.trim());
-      toast.success("Đã huỷ yêu cầu cứu hộ!");
+      toast.success(t("rescueCancelSuccess"));
       setShowCancelForm(false);
       onRefresh?.();
       onClose();
     } catch {
-      toast.error("Huỷ yêu cầu thất bại!");
+      toast.error(t("rescueCancelError"));
     } finally {
       setCancelling(false);
     }
@@ -377,44 +399,36 @@ const RescueDetailModal = ({
 
             {/* ═══ TECHNICIAN actions ═══ */}
 
-            {/* KTV: Đã được tự động phân công — không cần nhận thủ công */}
-            {isTechnician && data.status === "DISPATCHED" && (
-              <>
-                <Divider />
-                <ActionCard>
-                  <ActionCardTitle>
-                    Bạn đã được phân công job cứu hộ này
-                  </ActionCardTitle>
-                  <ActionInfo>
-                    Hệ thống đã tự động xác nhận. Hãy chuẩn bị di chuyển đến vị
-                    trí khách hàng.
-                  </ActionInfo>
-                </ActionCard>
-              </>
-            )}
-
-            {/* KTV: Xác nhận đến nơi */}
-            {isTechnician && data.status === "EN_ROUTE" && (
-              <>
-                <Divider />
-                <ActionCard $highlight>
-                  <ActionCardTitle>Bạn đang trên đường đến</ActionCardTitle>
-                  <ActionInfo>
-                    Khi đã đến vị trí khách hàng, xác nhận để tiếp tục quy
-                    trình.
-                  </ActionInfo>
-                  <ActionBtnRow>
-                    <ActionBtn
-                      $color="#0d9488"
-                      onClick={handleTechArrive}
-                      disabled={techLoading}
-                    >
-                      {techLoading ? "Đang xử lý..." : "Xác nhận đã đến nơi"}
-                    </ActionBtn>
-                  </ActionBtnRow>
-                </ActionCard>
-              </>
-            )}
+            {/* KTV: Đã được phân công / đang trên đường — xác nhận đến nơi */}
+            {isTechnician &&
+              ["DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
+                <>
+                  <Divider />
+                  <ActionCard $highlight>
+                    <ActionCardTitle>
+                      {data.status === "DISPATCHED"
+                        ? t("rescueTechAssignedTitle")
+                        : t("rescueTechEnRouteTitle")}
+                    </ActionCardTitle>
+                    <ActionInfo>
+                      {data.status === "DISPATCHED"
+                        ? t("rescueTechAssignedInfo")
+                        : t("rescueTechEnRouteInfo")}
+                    </ActionInfo>
+                    <ActionBtnRow>
+                      <ActionBtn
+                        $color="#0d9488"
+                        onClick={handleTechArrive}
+                        disabled={techLoading}
+                      >
+                        {techLoading
+                          ? t("rescueTechProcessing")
+                          : t("rescueTechConfirmArrivalBtn")}
+                      </ActionBtn>
+                    </ActionBtnRow>
+                  </ActionCard>
+                </>
+              )}
 
             {/* KTV: Chẩn đoán */}
             {isTechnician &&
@@ -422,34 +436,31 @@ const RescueDetailModal = ({
                 <>
                   <Divider />
                   <ActionCard $highlight>
-                    <ActionCardTitle>Chẩn đoán lỗi xe</ActionCardTitle>
-                    <ActionInfo>
-                      Ghi nhận kết quả chẩn đoán và xác định có thể sửa tại chỗ
-                      không.
-                    </ActionInfo>
+                    <ActionCardTitle>{t("rescueTechDiagnoseTitle")}</ActionCardTitle>
+                    <ActionInfo>{t("rescueTechDiagnoseInfo")}</ActionInfo>
                     <FormGroup>
-                      <FormLabel>Ghi chú chẩn đoán *</FormLabel>
+                      <FormLabel>{t("rescueTechDiagnoseNotesLabel")}</FormLabel>
                       <FormTextarea
                         value={diagnosisNotes}
                         onChange={(e) => setDiagnosisNotes(e.target.value)}
                         rows={3}
-                        placeholder="Mô tả tình trạng xe..."
+                        placeholder={t("rescueTechDiagnoseNotesPlaceholder")}
                       />
                     </FormGroup>
                     <FormGroup>
-                      <FormLabel>Có thể sửa tại chỗ? *</FormLabel>
+                      <FormLabel>{t("rescueTechCanRepairLabel")}</FormLabel>
                       <RadioRow>
                         <RadioBtn
                           $selected={canRepairOnSite === true}
                           onClick={() => setCanRepairOnSite(true)}
                         >
-                          Sửa tại chỗ
+                          {t("rescueTechRepairOnSiteOption")}
                         </RadioBtn>
                         <RadioBtn
                           $selected={canRepairOnSite === false}
                           onClick={() => setCanRepairOnSite(false)}
                         >
-                          Cần kéo xe
+                          {t("rescueTechNeedTowingOption")}
                         </RadioBtn>
                       </RadioRow>
                     </FormGroup>
@@ -463,7 +474,9 @@ const RescueDetailModal = ({
                           techLoading
                         }
                       >
-                        {techLoading ? "Đang gửi..." : "Gửi chẩn đoán"}
+                        {techLoading
+                          ? t("rescueTechSending")
+                          : t("rescueTechSubmitDiagnosisBtn")}
                       </ActionBtn>
                     </ActionBtnRow>
                   </ActionCard>
@@ -476,12 +489,8 @@ const RescueDetailModal = ({
                 <Divider />
                 {/* --- Repair items --- */}
                 <ActionCard $highlight>
-                  <ActionCardTitle>
-                    Ghi nhận vật tư / dịch vụ sử dụng
-                  </ActionCardTitle>
-                  <ActionInfo>
-                    Thêm các vật tư và công dịch vụ đã sử dụng.
-                  </ActionInfo>
+                  <ActionCardTitle>{t("rescueTechRepairItemsTitle")}</ActionCardTitle>
+                  <ActionInfo>{t("rescueTechRepairItemsInfo")}</ActionInfo>
                   {repairItems.map((item, idx) => (
                     <RepairItemRow key={idx}>
                       <RepairItemInputs>
@@ -501,7 +510,7 @@ const RescueDetailModal = ({
                         />
                         <FormInput
                           type="number"
-                          placeholder="Số lượng *"
+                          placeholder={t("rescueTechQtyPlaceholder")}
                           value={item.quantity}
                           onChange={(e) => {
                             const next = [...repairItems];
@@ -515,7 +524,7 @@ const RescueDetailModal = ({
                         />
                         <FormInput
                           type="number"
-                          placeholder="Đơn giá *"
+                          placeholder={t("rescueTechUnitPricePlaceholder")}
                           value={item.unitPrice}
                           onChange={(e) => {
                             const next = [...repairItems];
@@ -528,7 +537,7 @@ const RescueDetailModal = ({
                           style={{ flex: "1" }}
                         />
                         <FormInput
-                          placeholder="Ghi chú"
+                          placeholder={t("rescueTechNotesPlaceholder")}
                           value={item.notes}
                           onChange={(e) => {
                             const next = [...repairItems];
@@ -565,14 +574,16 @@ const RescueDetailModal = ({
                         ])
                       }
                     >
-                      + Thêm dòng
+                      {t("rescueTechAddRowBtn")}
                     </ActionBtnOutline>
                     <ActionBtn
                       $color="#2563eb"
                       onClick={handleAddRepairItems}
                       disabled={repairItemsSubmitting}
                     >
-                      {repairItemsSubmitting ? "Đang lưu..." : "Lưu vật tư"}
+                      {repairItemsSubmitting
+                        ? t("rescueTechSaving")
+                        : t("rescueTechSaveMaterialsBtn")}
                     </ActionBtn>
                   </ActionBtnRow>
                 </ActionCard>
@@ -580,17 +591,15 @@ const RescueDetailModal = ({
                 <Divider />
                 {/* --- Complete repair --- */}
                 <ActionCard $highlight>
-                  <ActionCardTitle>Hoàn tất sửa chữa</ActionCardTitle>
-                  <ActionInfo>
-                    Sửa xong? Ghi chú kết quả và báo hoàn tất để SA tạo hóa đơn.
-                  </ActionInfo>
+                  <ActionCardTitle>{t("rescueTechCompleteRepairTitle")}</ActionCardTitle>
+                  <ActionInfo>{t("rescueTechCompleteRepairInfo")}</ActionInfo>
                   <FormGroup>
-                    <FormLabel>Ghi chú hoàn tất</FormLabel>
+                    <FormLabel>{t("rescueTechCompletionNotesLabel")}</FormLabel>
                     <FormTextarea
                       value={completionNotes}
                       onChange={(e) => setCompletionNotes(e.target.value)}
                       rows={3}
-                      placeholder="VD: Đã thay bơm xăng thành công, xe đã khởi động bình thường."
+                      placeholder={t("rescueTechCompletionNotesPlaceholder")}
                     />
                   </FormGroup>
                   <ActionBtnRow>
@@ -599,7 +608,9 @@ const RescueDetailModal = ({
                       onClick={handleTechCompleteRepair}
                       disabled={techLoading}
                     >
-                      {techLoading ? "Đang gửi..." : "Xác nhận hoàn tất"}
+                      {techLoading
+                        ? t("rescueTechSending")
+                        : t("rescueTechConfirmCompleteBtn")}
                     </ActionBtn>
                   </ActionBtnRow>
                 </ActionCard>
@@ -611,13 +622,8 @@ const RescueDetailModal = ({
               <>
                 <Divider />
                 <ActionCard $highlight>
-                  <ActionCardTitle>
-                    Sửa xong — Điều chỉnh phụ tùng / dịch vụ
-                  </ActionCardTitle>
-                  <ActionInfo>
-                    Bổ sung hoặc chỉnh sửa vật tư & công dịch vụ trước khi SA
-                    tạo hóa đơn.
-                  </ActionInfo>
+                  <ActionCardTitle>{t("rescueTechEditPartsTitle")}</ActionCardTitle>
+                  <ActionInfo>{t("rescueTechEditPartsInfo")}</ActionInfo>
                   {repairItems.map((item, idx) => (
                     <RepairItemRow key={idx}>
                       <RepairItemInputs>
@@ -637,7 +643,7 @@ const RescueDetailModal = ({
                         />
                         <FormInput
                           type="number"
-                          placeholder="Số lượng *"
+                          placeholder={t("rescueTechQtyPlaceholder")}
                           value={item.quantity}
                           onChange={(e) => {
                             const next = [...repairItems];
@@ -651,7 +657,7 @@ const RescueDetailModal = ({
                         />
                         <FormInput
                           type="number"
-                          placeholder="Đơn giá *"
+                          placeholder={t("rescueTechUnitPricePlaceholder")}
                           value={item.unitPrice}
                           onChange={(e) => {
                             const next = [...repairItems];
@@ -664,7 +670,7 @@ const RescueDetailModal = ({
                           style={{ flex: "1" }}
                         />
                         <FormInput
-                          placeholder="Ghi chú"
+                          placeholder={t("rescueTechNotesPlaceholder")}
                           value={item.notes}
                           onChange={(e) => {
                             const next = [...repairItems];
@@ -701,22 +707,22 @@ const RescueDetailModal = ({
                         ])
                       }
                     >
-                      + Thêm dòng
+                      {t("rescueTechAddRowBtn")}
                     </ActionBtnOutline>
                     <ActionBtn
                       $color="#2563eb"
                       onClick={handleAddRepairItems}
                       disabled={repairItemsSubmitting}
                     >
-                      {repairItemsSubmitting ? "Đang lưu..." : "Lưu phụ tùng"}
+                      {repairItemsSubmitting
+                        ? t("rescueTechSaving")
+                        : t("rescueTechSavePartsBtn")}
                     </ActionBtn>
                   </ActionBtnRow>
                 </ActionCard>
                 <Divider />
                 <ActionCard>
-                  <ActionInfo>
-                    Đang chờ SA tạo và gửi hóa đơn cho khách hàng.
-                  </ActionInfo>
+                  <ActionInfo>{t("rescueTechWaitingInvoice")}</ActionInfo>
                 </ActionCard>
               </>
             )}
@@ -734,9 +740,7 @@ const RescueDetailModal = ({
                 <>
                   <Divider />
                   <ActionCard>
-                    <ActionInfo>
-                      Đang chờ xưởng và khách hàng xử lý hóa đơn & thanh toán.
-                    </ActionInfo>
+                    <ActionInfo>{t("rescueTechWaitingPayment")}</ActionInfo>
                   </ActionCard>
                 </>
               )}
@@ -809,6 +813,24 @@ const RescueDetailModal = ({
                             </ProposalFeeNote>
                           </ProposalFeeBlock>
                         )}
+
+                      {/* Tiền đặt cọc */}
+                      {data.depositAmount != null && data.depositAmount > 0 && (
+                        <ProposalDepositBlock onClick={() => setShowDepositQR(true)}>
+                          <ProposalDepositLabel>
+                            <FaMoneyBillWave size={13} /> {t("rescueDepositLabel")}
+                          </ProposalDepositLabel>
+                          <ProposalDepositAmount>
+                            {data.depositAmount.toLocaleString()} VND
+                          </ProposalDepositAmount>
+                          <ProposalDepositNote>
+                            {t("rescueMgrDepositAmountHint")}
+                          </ProposalDepositNote>
+                          <ProposalDepositTapHint>
+                            {t("rescueDepositTapQR")}
+                          </ProposalDepositTapHint>
+                        </ProposalDepositBlock>
+                      )}
 
                       {/* Ghi chú SA */}
                       {data.proposalNotes && (
@@ -886,14 +908,14 @@ const RescueDetailModal = ({
                         $isRoadside={data.status === "PROPOSED_ROADSIDE"}
                       >
                         {data.status === "PROPOSED_ROADSIDE"
-                          ? "Kỹ thuật viên sẽ đến vị trí của bạn để sửa chữa tại chỗ."
-                          : "Xe của bạn sẽ được kéo về xưởng để tiến hành kiểm tra và sửa chữa."}
+                          ? t("rescueProposalHintRoadside")
+                          : t("rescueProposalHintTowing")}
                       </ProposalHintBox>
                     </ProposalDocBody>
 
                     <ProposalDocFooter>
                       <ProposalFooterNote>
-                        Vui lòng đọc kỹ trước khi xác nhận.
+                        {t("rescueProposalReadCarefully")}
                       </ProposalFooterNote>
                       <ActionBtnRow>
                         <ActionBtn
@@ -905,7 +927,7 @@ const RescueDetailModal = ({
                           <FaCheckCircle size={13} />
                           {proposalAccepting
                             ? t("rescueMgrProcessing")
-                            : "Đồng ý xác nhận"}
+                            : t("rescueAcceptProposalBtn")}
                         </ActionBtn>
                         <ActionBtnOutline
                           onClick={() => setShowCancelForm(true)}
@@ -921,6 +943,50 @@ const RescueDetailModal = ({
                 </>
               )}
 
+            {/* KH: Đã đồng ý đề xuất — chờ đóng cọc */}
+            {isCustomer &&
+              data.status === "PROPOSAL_ACCEPTED" &&
+              data.depositAmount != null &&
+              data.depositAmount > 0 &&
+              !data.isDepositPaid && (
+                <>
+                  <Divider />
+                  <ActionCard>
+                    <ActionInfo>
+                      {t("rescueDepositRequiredInfo")}
+                    </ActionInfo>
+                    <ProposalDepositBlock
+                      style={{ marginTop: "0.75rem" }}
+                      onClick={() => setShowDepositQR(true)}
+                    >
+                      <ProposalDepositLabel>
+                        <FaMoneyBillWave size={13} /> {t("rescueDepositDueLabel")}
+                      </ProposalDepositLabel>
+                      <ProposalDepositAmount>
+                        {data.depositAmount.toLocaleString()} VND
+                      </ProposalDepositAmount>
+                      <ProposalDepositNote>
+                        {t("rescueMgrDepositAmountHint")}
+                      </ProposalDepositNote>
+                      <ProposalDepositTapHint>
+                        {t("rescueDepositTapQR")}
+                      </ProposalDepositTapHint>
+                    </ProposalDepositBlock>
+                    <ActionBtnRow style={{ marginTop: "0.75rem", justifyContent: "flex-end" }}>
+                      <ActionBtn
+                        $color="#ea580c"
+                        onClick={handlePayDeposit}
+                        disabled={depositPaying}
+                        style={{ gap: "0.375rem" }}
+                      >
+                        <FaCheckCircle size={13} />
+                        {depositPaying ? t("rescueMgrProcessing") : t("rescueConfirmDepositBtn")}
+                      </ActionBtn>
+                    </ActionBtnRow>
+                  </ActionCard>
+                </>
+              )}
+
             {/* KH: Đã đồng ý — KTV đã được phân công tự động */}
             {isCustomer &&
               ["DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
@@ -929,8 +995,8 @@ const RescueDetailModal = ({
                   <ActionCard>
                     <ActionInfo>
                       {data.status === "DISPATCHED"
-                        ? "Kỹ thuật viên đã được phân công và đang chuẩn bị di chuyển đến vị trí của bạn."
-                        : "Kỹ thuật viên đang trên đường đến vị trí của bạn."}
+                        ? t("rescueCustomerKtvAssigned")
+                        : t("rescueCustomerKtvEnRoute")}
                     </ActionInfo>
                   </ActionCard>
                 </>
@@ -941,9 +1007,7 @@ const RescueDetailModal = ({
               <>
                 <Divider />
                 <ActionCard>
-                  <ActionInfo>
-                    Kỹ thuật viên đã đến nơi. Đang tiến hành kiểm tra xe.
-                  </ActionInfo>
+                  <ActionInfo>{t("rescueCustomerKtvOnSite")}</ActionInfo>
                 </ActionCard>
               </>
             )}
@@ -953,20 +1017,15 @@ const RescueDetailModal = ({
               <>
                 <Divider />
                 <ActionCard $highlight>
-                  <ActionCardTitle>
-                    Kỹ thuật viên đã hoàn tất chẩn đoán
-                  </ActionCardTitle>
-                  <ActionInfo>
-                    Xem xét kết quả và xác nhận để kỹ thuật viên tiến hành sửa
-                    chữa tại chỗ.
-                  </ActionInfo>
+                  <ActionCardTitle>{t("rescueCustomerDiagnosingTitle")}</ActionCardTitle>
+                  <ActionInfo>{t("rescueCustomerDiagnosingInfo")}</ActionInfo>
                   <FormGroup>
-                    <FormLabel>Ghi chú xác nhận (tuỳ chọn)</FormLabel>
+                    <FormLabel>{t("rescueCustomerConsentNotesLabel")}</FormLabel>
                     <FormTextarea
                       value={consentNotes}
                       onChange={(e) => setConsentNotes(e.target.value)}
                       rows={2}
-                      placeholder="VD: Khách hàng đồng ý kiểm tra và sửa chữa tại chỗ."
+                      placeholder={t("rescueCustomerConsentNotesPlaceholder")}
                     />
                   </FormGroup>
                   <ActionBtnRow>
@@ -980,7 +1039,9 @@ const RescueDetailModal = ({
                       }
                       disabled={consenting}
                     >
-                      {consenting ? "Đang xử lý..." : "Đồng ý sửa tại chỗ"}
+                      {consenting
+                        ? t("rescueTechProcessing")
+                        : t("rescueCustomerAgreeRepairBtn")}
                     </ActionBtn>
                     <ActionBtnOutline
                       onClick={() =>
@@ -991,7 +1052,7 @@ const RescueDetailModal = ({
                       }
                       disabled={consenting}
                     >
-                      Từ chối
+                      {t("rescueCustomerDeclineBtn")}
                     </ActionBtnOutline>
                   </ActionBtnRow>
                 </ActionCard>
@@ -1003,9 +1064,7 @@ const RescueDetailModal = ({
               <>
                 <Divider />
                 <ActionCard>
-                  <ActionInfo>
-                    Kỹ thuật viên đang tiến hành sửa chữa tại chỗ.
-                  </ActionInfo>
+                  <ActionInfo>{t("rescueCustomerRepairingInfo")}</ActionInfo>
                 </ActionCard>
               </>
             )}
@@ -1015,20 +1074,17 @@ const RescueDetailModal = ({
               <>
                 <Divider />
                 <ActionCard $highlight>
-                  <ActionCardTitle>
-                    Xưởng đề xuất dịch vụ kéo xe
-                  </ActionCardTitle>
-                  <ActionInfo>
-                    Xưởng đã điều phối xe kéo đến vị trí của bạn. Bạn có đồng ý
-                    sử dụng dịch vụ kéo xe không?
-                  </ActionInfo>
+                  <ActionCardTitle>{t("rescueCustomerTowingTitle")}</ActionCardTitle>
+                  <ActionInfo>{t("rescueCustomerTowingInfo")}</ActionInfo>
                   <ActionBtnRow>
                     <ActionBtn
                       $color="#16a34a"
                       onClick={handleAcceptTowing}
                       disabled={consenting}
                     >
-                      {consenting ? "Đang xử lý..." : "Chấp nhận kéo xe"}
+                      {consenting
+                        ? t("rescueTechProcessing")
+                        : t("rescueCustomerAcceptTowingBtn")}
                     </ActionBtn>
                   </ActionBtnRow>
                 </ActionCard>
@@ -1043,8 +1099,8 @@ const RescueDetailModal = ({
                   <ActionCard>
                     <ActionInfo>
                       {data.status === "TOWING_ACCEPTED"
-                        ? "Bạn đã chấp nhận kéo xe. Xe đang được kéo về xưởng."
-                        : "Xe đã được kéo về xưởng. Đang chờ xử lý."}
+                        ? t("rescueCustomerTowingAcceptedInfo")
+                        : t("rescueCustomerTowedInfo")}
                     </ActionInfo>
                   </ActionCard>
                 </>
@@ -1060,8 +1116,8 @@ const RescueDetailModal = ({
                   <ActionCard>
                     <ActionInfo>
                       {data.status === "REPAIR_COMPLETE"
-                        ? "Sửa chữa đã hoàn tất. Xưởng đang tạo hóa đơn."
-                        : "Hóa đơn đã được tạo. Đang chờ xưởng gửi hóa đơn đến bạn."}
+                        ? t("rescueCustomerRepairComplete")
+                        : t("rescueCustomerInvoiced")}
                     </ActionInfo>
                   </ActionCard>
                 </>
@@ -1072,17 +1128,14 @@ const RescueDetailModal = ({
               <>
                 <Divider />
                 <ActionCard $highlight>
-                  <ActionCardTitle>Cần thanh toán</ActionCardTitle>
-                  <ActionInfo>
-                    Hóa đơn đã được gửi. Vui lòng xác nhận thanh toán để hoàn
-                    tất.
-                  </ActionInfo>
+                  <ActionCardTitle>{t("rescueCustomerNeedPaymentTitle")}</ActionCardTitle>
+                  <ActionInfo>{t("rescueCustomerNeedPaymentInfo")}</ActionInfo>
                   <ActionBtnRow>
                     <ActionBtn
                       $color="#1d4ed8"
                       onClick={() => setShowPayment(true)}
                     >
-                      Xác nhận thanh toán
+                      {t("rescueCustomerConfirmPaymentBtn")}
                     </ActionBtn>
                   </ActionBtnRow>
                 </ActionCard>
@@ -1093,9 +1146,9 @@ const RescueDetailModal = ({
               <>
                 <Divider />
                 <ActionCard $highlight>
-                  <ActionCardTitle>Thông tin thanh toán</ActionCardTitle>
+                  <ActionCardTitle>{t("rescueCustomerPaymentInfoTitle")}</ActionCardTitle>
                   <FormGroup>
-                    <FormLabel>Phương thức *</FormLabel>
+                    <FormLabel>{t("rescueCustomerPaymentMethodLabel")}</FormLabel>
                     <FormSelect
                       value={paymentMethod}
                       onChange={(e) =>
@@ -1105,28 +1158,28 @@ const RescueDetailModal = ({
                         )
                       }
                     >
-                      <option value="TRANSFER">Chuyển khoản</option>
-                      <option value="CASH">Tiền mặt</option>
-                      <option value="CARD">Thẻ</option>
-                      <option value="EWALLET">Ví điện tử</option>
+                      <option value="TRANSFER">{t("rescueCustomerPaymentMethodTransfer")}</option>
+                      <option value="CASH">{t("rescueCustomerPaymentMethodCash")}</option>
+                      <option value="CARD">{t("rescueCustomerPaymentMethodCard")}</option>
+                      <option value="EWALLET">{t("rescueCustomerPaymentMethodEwallet")}</option>
                     </FormSelect>
                   </FormGroup>
                   <FormGroup>
-                    <FormLabel>Số tiền (VND) *</FormLabel>
+                    <FormLabel>{t("rescueCustomerAmountLabel")}</FormLabel>
                     <FormInput
                       type="number"
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
-                      placeholder="Nhập số tiền"
+                      placeholder={t("rescueCustomerAmountPlaceholder")}
                     />
                   </FormGroup>
                   {paymentMethod === "TRANSFER" && (
                     <FormGroup>
-                      <FormLabel>Mã giao dịch</FormLabel>
+                      <FormLabel>{t("rescueCustomerTransactionRefLabel")}</FormLabel>
                       <FormInput
                         value={paymentRef}
                         onChange={(e) => setPaymentRef(e.target.value)}
-                        placeholder="VD: VCB20260228001234"
+                        placeholder={t("rescueCustomerTransactionRefPlaceholder")}
                       />
                     </FormGroup>
                   )}
@@ -1136,13 +1189,15 @@ const RescueDetailModal = ({
                       onClick={handlePayment}
                       disabled={!paymentAmount || paymentSubmitting}
                     >
-                      {paymentSubmitting ? "Đang xử lý..." : "Thanh toán"}
+                      {paymentSubmitting
+                        ? t("rescueTechProcessing")
+                        : t("rescueCustomerPayBtn")}
                     </ActionBtn>
                     <ActionBtnOutline
                       onClick={() => setShowPayment(false)}
                       disabled={paymentSubmitting}
                     >
-                      Quay lại
+                      {t("rescueCustomerBackBtn")}
                     </ActionBtnOutline>
                   </ActionBtnRow>
                 </ActionCard>
@@ -1155,7 +1210,7 @@ const RescueDetailModal = ({
                 <Divider />
                 <CancelSection>
                   <CancelBtn onClick={() => setShowCancelForm(true)}>
-                    Huỷ yêu cầu cứu hộ
+                    {t("rescueCancelBtn")}
                   </CancelBtn>
                 </CancelSection>
               </>
@@ -1165,17 +1220,15 @@ const RescueDetailModal = ({
               <>
                 <Divider />
                 <ActionCard $danger>
-                  <ActionCardTitle>Huỷ yêu cầu cứu hộ</ActionCardTitle>
-                  <ActionInfo>
-                    Vui lòng nhập lý do huỷ. Hành động này không thể hoàn tác.
-                  </ActionInfo>
+                  <ActionCardTitle>{t("rescueCancelTitle")}</ActionCardTitle>
+                  <ActionInfo>{t("rescueCancelInfo")}</ActionInfo>
                   <FormGroup>
-                    <FormLabel>Lý do huỷ *</FormLabel>
+                    <FormLabel>{t("rescueCancelReasonLabel")}</FormLabel>
                     <FormTextarea
                       value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)}
                       rows={3}
-                      placeholder="Nhập lý do huỷ yêu cầu..."
+                      placeholder={t("rescueCancelReasonPlaceholder")}
                     />
                   </FormGroup>
                   <ActionBtnRow>
@@ -1184,7 +1237,9 @@ const RescueDetailModal = ({
                       onClick={handleCancel}
                       disabled={!cancelReason.trim() || cancelling}
                     >
-                      {cancelling ? "Đang huỷ..." : "Xác nhận huỷ"}
+                      {cancelling
+                        ? t("rescueCancelProcessing")
+                        : t("rescueCancelConfirmBtn")}
                     </ActionBtn>
                     <ActionBtnOutline
                       onClick={() => {
@@ -1192,7 +1247,7 @@ const RescueDetailModal = ({
                         setCancelReason("");
                       }}
                     >
-                      Không huỷ
+                      {t("rescueCancelKeepBtn")}
                     </ActionBtnOutline>
                   </ActionBtnRow>
                 </ActionCard>
@@ -1203,6 +1258,33 @@ const RescueDetailModal = ({
           <Loading>{t("errorOccurred")}</Loading>
         )}
       </Card>
+
+      {/* Deposit QR Modal */}
+      {showDepositQR && data?.depositAmount && (
+        <QROverlay onClick={() => setShowDepositQR(false)}>
+          <QRCard onClick={(e) => e.stopPropagation()}>
+            <QRCardHeader>
+              <QRCardTitle>{t("rescueDepositQRTitle")}</QRCardTitle>
+              <CloseBtn onClick={() => setShowDepositQR(false)}>
+                <FaTimes size={16} />
+              </CloseBtn>
+            </QRCardHeader>
+            <QRCardBody>
+              <QRAmount>{data.depositAmount.toLocaleString()} VND</QRAmount>
+              <QRNote>RESCUE-{data.rescueId} · {t("rescueDepositLabel")}</QRNote>
+              <QRImageWrapper>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=RESCUE-${data.rescueId}|DEPOSIT|${data.depositAmount}VND`}
+                  alt={t("rescueDepositQRTitle")}
+                  width={220}
+                  height={220}
+                />
+              </QRImageWrapper>
+              <QRHint>{t("rescueDepositQRScanHint")}</QRHint>
+            </QRCardBody>
+          </QRCard>
+        </QROverlay>
+      )}
     </Overlay>
   );
 };
@@ -1642,6 +1724,113 @@ const ProposalFeeAmount = styled.div`
 const ProposalFeeNote = styled.div`
   font-size: 0.7rem;
   color: #a16207;
+  margin-top: 0.25rem;
+`;
+
+const ProposalDepositBlock = styled.div`
+  background: #fff7ed;
+  border: 1.5px solid #fed7aa;
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+`;
+
+const ProposalDepositLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  color: #c2410c;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+`;
+
+const ProposalDepositAmount = styled.div`
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: #ea580c;
+  letter-spacing: -0.5px;
+`;
+
+const ProposalDepositNote = styled.div`
+  font-size: 0.7rem;
+  color: #9a3412;
+  margin-top: 0.25rem;
+  font-style: italic;
+`;
+
+const ProposalDepositTapHint = styled.div`
+  font-size: 0.7rem;
+  color: #ea580c;
+  font-weight: 600;
+  margin-top: 0.5rem;
+`;
+
+const QROverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+`;
+
+const QRCard = styled.div`
+  background: white;
+  border-radius: 16px;
+  width: 300px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+`;
+
+const QRCardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const QRCardTitle = styled.div`
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111827;
+`;
+
+const QRCardBody = styled.div`
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const QRAmount = styled.div`
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ea580c;
+`;
+
+const QRNote = styled.div`
+  font-size: 0.75rem;
+  color: #6b7280;
+`;
+
+const QRImageWrapper = styled.div`
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.75rem;
+  margin-top: 0.25rem;
+
+  img {
+    display: block;
+  }
+`;
+
+const QRHint = styled.div`
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-align: center;
   margin-top: 0.25rem;
 `;
 

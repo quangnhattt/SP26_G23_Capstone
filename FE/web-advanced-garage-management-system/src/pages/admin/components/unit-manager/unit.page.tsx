@@ -2,11 +2,13 @@ import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
-import { Pagination } from "antd";
+import { Table as AntTable, Switch } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   getUnits,
   createUnit,
   updateUnit,
+  updateUnitStatus,
   type IUnit,
 } from "@/services/admin/unitService";
 import { toast } from "react-toastify";
@@ -35,9 +37,7 @@ const UnitPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const pageSize = 10;
+  const [updatingUnitId, setUpdatingUnitId] = useState<number | null>(null);
 
   const fetchUnits = useCallback(async () => {
     try {
@@ -120,6 +120,19 @@ const UnitPage = () => {
     }
   };
 
+  const handleToggleUnitStatus = async (unitId: number, isActive: boolean) => {
+    setUpdatingUnitId(unitId);
+    try {
+      await updateUnitStatus(unitId, isActive);
+      await fetchUnits();
+    } catch (err) {
+      console.error("Error updating unit status:", err);
+      toast.error(getApiErrorMessage(err, t("unitErrorSaving")));
+    } finally {
+      setUpdatingUnitId(null);
+    }
+  };
+
   const filteredUnits = units.filter(
     (u) =>
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -127,10 +140,70 @@ const UnitPage = () => {
       u.description?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const paginatedUnits = filteredUnits.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  const columns: ColumnsType<IUnit> = [
+    {
+      title: t("id"),
+      dataIndex: "unitID",
+      key: "unitID",
+      align: "center",
+      render: (id: number) => <span style={{ color: "#1a1d2e" }}>{id}</span>,
+    },
+    {
+      title: t("name"),
+      dataIndex: "name",
+      key: "name",
+      render: (name: string) => <UnitName>{name}</UnitName>,
+    },
+    {
+      title: t("type"),
+      dataIndex: "type",
+      key: "type",
+      align: "center",
+      render: (type: string) => (
+        <TypeBadge $type={type}>
+          {type === "SERVICE" ? t("unitTypeService") : t("unitTypePart")}
+        </TypeBadge>
+      ),
+    },
+    {
+      title: t("description"),
+      dataIndex: "description",
+      key: "description",
+      render: (desc: string | null) => (
+        <DescriptionText>{desc || t("notAvailable")}</DescriptionText>
+      ),
+    },
+    {
+      title: t("status"),
+      dataIndex: "isActive",
+      key: "isActive",
+      align: "center",
+      render: (isActive: boolean, record: IUnit) => (
+        <Switch
+          checked={isActive}
+          loading={updatingUnitId === record.unitID}
+          onChange={(checked: boolean) =>
+            handleToggleUnitStatus(record.unitID, checked)
+          }
+        />
+      ),
+    },
+    {
+      title: t("action"),
+      key: "action",
+      align: "center",
+      render: (_: unknown, record: IUnit) => (
+        <ActionButtons>
+          <EditButton
+            onClick={() => handleOpenEditModal(record)}
+            title={t("edit")}
+          >
+            <HiPencil size={18} />
+          </EditButton>
+        </ActionButtons>
+      ),
+    },
+  ];
 
   return (
     <Container>
@@ -160,81 +233,19 @@ const UnitPage = () => {
       </Toolbar>
 
       <TableCard>
-        <TableSection>
-          <TableTitle>{t("unitList")}</TableTitle>
-          <TableSubtitle>
-            {loading
-              ? t("loading")
-              : t("unitShowing", { count: filteredUnits.length })}
-          </TableSubtitle>
-
-          {loading ? (
-            <LoadingMessage>{t("loadingData")}</LoadingMessage>
-          ) : (
-            <>
-              <TableWrapper>
-                <Table>
-                  <thead>
-                    <tr>
-                      <Th>{t("id")}</Th>
-                      <Th>{t("name")}</Th>
-                      <Th>{t("type")}</Th>
-                      <Th>{t("description")}</Th>
-                      <Th>{t("status")}</Th>
-                      <Th>{t("action")}</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedUnits.map((unit) => (
-                      <tr key={unit.unitID}>
-                        <Td>{unit.unitID}</Td>
-                        <Td>
-                          <UnitName>{unit.name}</UnitName>
-                        </Td>
-                        <Td>
-                          <TypeBadge $type={unit.type}>
-                            {unit.type === "SERVICE"
-                              ? t("unitTypeService")
-                              : t("unitTypePart")}
-                          </TypeBadge>
-                        </Td>
-                        <Td>
-                          <DescriptionText>
-                            {unit.description || t("notAvailable")}
-                          </DescriptionText>
-                        </Td>
-                        <Td>
-                          <StatusBadge $active={unit.isActive}>
-                            {unit.isActive ? t("active") : t("inactive")}
-                          </StatusBadge>
-                        </Td>
-                        <Td>
-                          <ActionButtons>
-                            <EditButton
-                              onClick={() => handleOpenEditModal(unit)}
-                              title={t("edit")}
-                            >
-                              <HiPencil size={18} />
-                            </EditButton>
-                          </ActionButtons>
-                        </Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </TableWrapper>
-              <PaginationWrapper>
-                <Pagination
-                  current={currentPage}
-                  pageSize={pageSize}
-                  total={filteredUnits.length}
-                  showSizeChanger={false}
-                  onChange={(page: number) => setCurrentPage(page)}
-                />
-              </PaginationWrapper>
-            </>
-          )}
-        </TableSection>
+        <AntTable
+          columns={columns}
+          dataSource={filteredUnits}
+          rowKey="unitID"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: false,
+            showTotal: (total, range) =>
+              `${range[0]}–${range[1]} / ${total} ${t("unit")}`,
+          }}
+          scroll={{ x: "max-content" }}
+        />
       </TableCard>
 
       <UnitModal
@@ -252,7 +263,6 @@ const UnitPage = () => {
 
 export default UnitPage;
 
-// Styled Components
 const Container = styled.div`
   padding: 24px;
   background: #f9fafb;
@@ -320,6 +330,25 @@ const TableCard = styled.div`
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
+  padding: 0 8px;
+
+  .ant-table {
+    color: #374151;
+  }
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+  .ant-pagination {
+    color: #374151;
+  }
 `;
 
 const SearchWrapper = styled.label`
@@ -354,70 +383,6 @@ const SearchInput = styled.input`
   }
 `;
 
-const TableSection = styled.div`
-  padding: 20px;
-`;
-
-const TableTitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 4px 0;
-`;
-
-const TableSubtitle = styled.p`
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0 0 16px 0;
-`;
-
-const LoadingMessage = styled.div`
-  padding: 3rem;
-  text-align: center;
-  color: #6b7590;
-`;
-
-const TableWrapper = styled.div`
-  overflow-x: auto;
-`;
-
-const PaginationWrapper = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding: 16px 0 0;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  min-width: max-content;
-  border-collapse: collapse;
-`;
-
-const Th = styled.th`
-  text-align: center;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7590;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-  &:first-child {
-    text-align: left;
-  }
-`;
-
-const Td = styled.td`
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1a1d2e;
-  text-align: center;
-  &:first-child {
-    text-align: left;
-  }
-`;
-
 const UnitName = styled.div`
   font-weight: 600;
   color: #1a1d2e;
@@ -433,15 +398,6 @@ const TypeBadge = styled.span<{ $type: string }>`
   display: inline-block;
 `;
 
-const StatusBadge = styled.span<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? "#dcfce7" : "#fee2e2")};
-  color: ${({ $active }) => ($active ? "#16a34a" : "#dc2626")};
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-`;
 
 const DescriptionText = styled.div`
   max-width: 300px;

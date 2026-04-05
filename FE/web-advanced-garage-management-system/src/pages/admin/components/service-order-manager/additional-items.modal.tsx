@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiX, HiPlus, HiTrash } from "react-icons/hi";
-import { Tag, Select, Spin } from "antd";
+import { ConfigProvider, Tag, Select, Spin } from "antd";
 import {
   serviceOrderService,
   type IAdditionalItemsResponse,
@@ -29,6 +29,42 @@ const ITEM_STATUS_COLOR: Record<string, string> = {
 
 type Row = { productId: number | null; quantity: number; notes: string };
 const emptyRow = (): Row => ({ productId: null, quantity: 1, notes: "" });
+
+const dropdownGlobalStyle = `
+  .additional-items-dropdown .ant-select-item {
+    color: #111827 !important;
+  }
+  .additional-items-dropdown .ant-select-item-option-content {
+    color: #111827 !important;
+  }
+  .additional-items-dropdown .ant-select-item-option-selected {
+    background-color: #eff6ff !important;
+  }
+`;
+
+if (typeof document !== "undefined") {
+  const styleId = "additional-items-dropdown-style";
+  if (!document.getElementById(styleId)) {
+    const tag = document.createElement("style");
+    tag.id = styleId;
+    tag.innerHTML = dropdownGlobalStyle;
+    document.head.appendChild(tag);
+  }
+}
+
+const selectTheme = {
+  token: { colorText: "#111827", colorTextPlaceholder: "#6b7280" },
+  components: {
+    Select: {
+      colorText: "#111827",
+      colorTextPlaceholder: "#6b7280",
+      colorBgContainer: "#fff",
+      optionSelectedColor: "#111827",
+      colorTextDisabled: "#111827",
+      colorTextQuaternary: "#6b7280",
+    },
+  },
+};
 
 const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props) => {
   const { t } = useTranslation();
@@ -196,24 +232,27 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
                   </SectionLabel>
                   {serviceRows.map((row, idx) => (
                     <FormRow key={idx}>
-                      <Select
-                        showSearch
-                        placeholder={t("additionalItemsSelectService")}
-                        style={{ flex: 1, minWidth: 0 }}
-                        value={row.productId ?? undefined}
-                        onChange={(val) =>
-                          updateRow(setServiceRows, idx, { productId: val })
-                        }
-                        filterOption={(input, opt) =>
-                          (opt?.label as string ?? "")
-                            .toLowerCase()
-                            .includes(input.toLowerCase())
-                        }
-                        options={serviceOptions.map((s) => ({
-                          value: s.id,
-                          label: `[${s.code}] ${s.name}`,
-                        }))}
-                      />
+                      <ConfigProvider theme={selectTheme}>
+                        <Select
+                          showSearch
+                          placeholder={t("additionalItemsSelectService")}
+                          style={{ flex: 1, minWidth: 0 }}
+                          popupClassName="additional-items-dropdown"
+                          value={row.productId ?? undefined}
+                          onChange={(val) =>
+                            updateRow(setServiceRows, idx, { productId: val })
+                          }
+                          filterOption={(input, opt) =>
+                            (opt?.label as string ?? "")
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
+                          }
+                          options={serviceOptions.map((s) => ({
+                            value: s.id,
+                            label: `[${s.code}] ${s.name}`,
+                          }))}
+                        />
+                      </ConfigProvider>
                       <QtyInput
                         type="number"
                         placeholder={t("additionalItemsQtyPlaceholder")}
@@ -257,24 +296,27 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
                   </SectionLabel>
                   {partRows.map((row, idx) => (
                     <FormRow key={idx}>
-                      <Select
-                        showSearch
-                        placeholder={t("additionalItemsSelectPart")}
-                        style={{ flex: 1, minWidth: 0 }}
-                        value={row.productId ?? undefined}
-                        onChange={(val) =>
-                          updateRow(setPartRows, idx, { productId: val })
-                        }
-                        filterOption={(input, opt) =>
-                          (opt?.label as string ?? "")
-                            .toLowerCase()
-                            .includes(input.toLowerCase())
-                        }
-                        options={partOptions.map((p) => ({
-                          value: p.id,
-                          label: `[${p.code}] ${p.name}`,
-                        }))}
-                      />
+                      <ConfigProvider theme={selectTheme}>
+                        <Select
+                          showSearch
+                          placeholder={t("additionalItemsSelectPart")}
+                          style={{ flex: 1, minWidth: 0 }}
+                          popupClassName="additional-items-dropdown"
+                          value={row.productId ?? undefined}
+                          onChange={(val) =>
+                            updateRow(setPartRows, idx, { productId: val })
+                          }
+                          filterOption={(input, opt) =>
+                            (opt?.label as string ?? "")
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
+                          }
+                          options={partOptions.map((p) => ({
+                            value: p.id,
+                            label: `[${p.code}] ${p.name}`,
+                          }))}
+                        />
+                      </ConfigProvider>
                       <QtyInput
                         type="number"
                         placeholder={t("additionalItemsQtyPlaceholder")}

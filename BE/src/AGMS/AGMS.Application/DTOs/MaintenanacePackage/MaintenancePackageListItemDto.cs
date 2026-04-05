@@ -12,6 +12,8 @@ namespace AGMS.Application.DTOs.MaintenanacePackage
         public string PackageCode { get; set; } = null!;
         public string Name { get; set; } = null!;
         public decimal BasePrice { get; set; }
+        public int? KilometerMilestone { get; set; }
+        public int? MonthMilestone { get; set; }
         public decimal DiscountPercent { get; set; }
         public decimal? FinalPrice { get; set; }
         public bool IsActive { get; set; }

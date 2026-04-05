@@ -12,9 +12,9 @@ public class CarMaintenanceService : ICarMaintenanceService
         _repository = repository;
     }
 
-    public async Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersAsync(ServiceOrderListQueryDto query, CancellationToken ct = default)
+    public async Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersAsync(ServiceOrderListQueryDto query, int? employeeId = null, CancellationToken ct = default)
     {
-        return await _repository.GetServiceOrdersForStaffAsync(query, ct);
+        return await _repository.GetServiceOrdersForStaffAsync(query, employeeId, ct);
     }
     public async Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId, CancellationToken ct = default)
     {

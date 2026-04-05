@@ -1,6 +1,8 @@
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
-import { FaCar, FaUser, FaWrench, FaTimes, FaCalendarAlt } from "react-icons/fa";
+import { FaCar, FaUser, FaWrench, FaTimes, FaCalendarAlt, FaBoxOpen } from "react-icons/fa";
+import { Table as AntTable } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import type { IAppointmentDetail } from "@/apis/appointments";
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -42,6 +44,48 @@ const AppointmentDetailModal = ({ data, loading, onClose }: Props) => {
       default: return type;
     }
   };
+
+  type SuggestedPart = NonNullable<IAppointmentDetail["suggestedParts"]>[number];
+
+  const suggestedPartsColumns: ColumnsType<SuggestedPart> = [
+    {
+      title: "#",
+      key: "index",
+      align: "center",
+      width: 48,
+      render: (_: unknown, __: SuggestedPart, index: number) => index + 1,
+    },
+    {
+      title: t("partCode"),
+      dataIndex: "code",
+      key: "code",
+      render: (code: string) => <code style={{ fontSize: "0.8rem", color: "#374151" }}>{code}</code>,
+    },
+    {
+      title: t("partName"),
+      dataIndex: "name",
+      key: "name",
+      render: (name: string) => <span style={{ fontWeight: 600, color: "#1a1d2e" }}>{name}</span>,
+    },
+    {
+      title: t("price"),
+      dataIndex: "price",
+      key: "price",
+      align: "right",
+      render: (price: number) => (
+        <span style={{ color: "#1d4ed8", fontWeight: 600 }}>{formatPrice(price)}</span>
+      ),
+    },
+    {
+      title: t("score"),
+      dataIndex: "score",
+      key: "score",
+      align: "center",
+      render: (score: number) => (
+        <ScoreBadge>{score.toFixed(2)}</ScoreBadge>
+      ),
+    },
+  ];
 
   return (
     <Overlay onClick={onClose}>
@@ -188,6 +232,26 @@ const AppointmentDetailModal = ({ data, loading, onClose }: Props) => {
                 </Section>
               </>
             )}
+
+            {/* Suggested Parts */}
+            {data.suggestedParts && data.suggestedParts.length > 0 && (
+              <>
+                <Divider />
+                <Section>
+                  <SectionTitle><FaBoxOpen size={16} />{t("suggestedParts")}</SectionTitle>
+                  <TableCard>
+                    <AntTable
+                      columns={suggestedPartsColumns}
+                      dataSource={data.suggestedParts}
+                      rowKey="productId"
+                      pagination={false}
+                      size="small"
+                      scroll={{ x: "max-content" }}
+                    />
+                  </TableCard>
+                </Section>
+              </>
+            )}
           </Body>
         ) : null}
       </Card>
@@ -213,7 +277,7 @@ const Card = styled.div`
   background: white;
   border-radius: 12px;
   width: 100%;
-  max-width: 680px;
+  max-width: 820px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
@@ -342,4 +406,37 @@ const Tag = styled.span`
   border: 1px solid #e5e7eb;
   padding: 0.2rem 0.625rem;
   border-radius: 6px;
+`;
+
+const TableCard = styled.div`
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+
+  .ant-table {
+    color: #374151;
+  }
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+    font-size: 0.8rem;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+`;
+
+const ScoreBadge = styled.span`
+  background: #e0e7ff;
+  color: #4338ca;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
 `;

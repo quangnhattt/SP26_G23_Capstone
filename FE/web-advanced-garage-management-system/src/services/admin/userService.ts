@@ -68,10 +68,18 @@ export const deleteUser = async (id: number): Promise<void> => {
   await AxiosClient.delete(`/api/users/${id}`);
 };
 
+export const updateUserStatus = async (
+  id: number,
+  isActive: boolean,
+): Promise<void> => {
+  await AxiosClient.patch(`/api/users/${id}/status`, { isActive });
+};
+
 export const userService = {
   getUsers,
   getUserById,
   createUser,
   updateUser,
   deleteUser,
+  updateUserStatus,
 };

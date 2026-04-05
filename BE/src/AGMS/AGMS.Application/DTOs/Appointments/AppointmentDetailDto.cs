@@ -11,6 +11,7 @@ public class AppointmentDetailDto
     public string ServiceType { get; set; } = null!;
     public int? RequestedPackageId { get; set; }
     public string Status { get; set; } = null!;
+    public DateTime? ProposedTime { get; set; }
     public string? Notes { get; set; }
     public string? RejectionReason { get; set; }
     public int CreatedBy { get; set; }

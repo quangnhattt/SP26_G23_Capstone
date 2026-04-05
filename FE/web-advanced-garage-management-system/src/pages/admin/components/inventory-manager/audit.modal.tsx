@@ -1,6 +1,12 @@
+import { useState } from "react";
 import styled from "styled-components";
 import { HiX, HiExclamation, HiCheckCircle } from "react-icons/hi";
-import { type IAuditDiscrepancy } from "@/services/admin/inventoryService";
+import { toast } from "react-toastify";
+import {
+  inventoryService,
+  type IAuditDiscrepancy,
+} from "@/services/admin/inventoryService";
+import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -9,14 +15,38 @@ interface AuditModalProps {
   onClose: () => void;
   message: string;
   data: IAuditDiscrepancy[];
+  onRebuildSuccess: () => Promise<unknown>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const AuditModal = ({ isOpen, onClose, message, data }: AuditModalProps) => {
+const AuditModal = ({
+  isOpen,
+  onClose,
+  message,
+  data,
+  onRebuildSuccess,
+}: AuditModalProps) => {
+  const [rebuilding, setRebuilding] = useState(false);
+
   if (!isOpen) return null;
 
   const hasDiscrepancies = data.length > 0;
+
+  const handleRebuildBalances = async () => {
+    try {
+      setRebuilding(true);
+      await inventoryService.rebuildInventoryBalances();
+      await onRebuildSuccess();
+      toast.success("Đồng bộ số lượng thành công");
+    } catch (error) {
+      toast.error(
+        getApiErrorMessage(error, "Không thể đồng bộ số lượng, vui lòng thử lại"),
+      );
+    } finally {
+      setRebuilding(false);
+    }
+  };
 
   return (
     <Overlay onClick={onClose}>
@@ -77,6 +107,9 @@ const AuditModal = ({ isOpen, onClose, message, data }: AuditModalProps) => {
         </Body>
 
         <Footer>
+          <RebuildBtn onClick={handleRebuildBalances} disabled={rebuilding}>
+            {rebuilding ? "Đang đồng bộ..." : "Đồng bộ lại"}
+          </RebuildBtn>
           <CloseTextBtn onClick={onClose}>Đóng</CloseTextBtn>
         </Footer>
       </Box>
@@ -240,6 +273,26 @@ const Footer = styled.div`
   border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
+`;
+
+const RebuildBtn = styled.button`
+  padding: 8px 20px;
+  border: none;
+  background: #2563eb;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: #1d4ed8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 const CloseTextBtn = styled.button`

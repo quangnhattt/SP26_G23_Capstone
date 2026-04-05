@@ -19,7 +19,7 @@ namespace AGMS.Infrastructure.Repositories
             _passwordHasher = passwordHasher;
         }
 
-        public async Task<PagedResultDto<IntakeListItemDto>> GetIntakesAsync(IntakeListQueryDto query, CancellationToken ct = default)
+        public async Task<PagedResultDto<IntakeListItemDto>> GetIntakesAsync(IntakeListQueryDto query, int currentUserId, int currentRoleId, CancellationToken ct = default)
         {
             var page = query.Page <= 0 ? 1 : query.Page;
             var pageSize = query.PageSize <= 0 ? 20 : Math.Min(100, query.PageSize);
@@ -31,6 +31,11 @@ namespace AGMS.Infrastructure.Repositories
                 .Include(m => m.AssignedTechnician)
                 .Where(m => m.Status == "WAITING")
                 .AsQueryable();
+
+            if (currentRoleId == 3) // Roles.Technician
+            {
+                q = q.Where(m => m.AssignedTechnicianID == currentUserId);
+            }
 
             if (!string.IsNullOrWhiteSpace(query.MaintenanceType))
             {
@@ -272,7 +277,7 @@ namespace AGMS.Infrastructure.Repositories
         {
             return await _db.Users
                 .AsNoTracking()
-                .AnyAsync(u => u.UserID == userId && u.RoleID == 2 && u.IsActive, ct);
+                .AnyAsync(u => u.UserID == userId && (u.RoleID == 2 || u.RoleID == 1 || u.RoleID == 3) && u.IsActive, ct);
         }
 
         private static string NormalizeMaintenanceType(string? maintenanceType)
@@ -389,14 +394,14 @@ namespace AGMS.Infrastructure.Repositories
         private async Task<int> ResolveCreatedByUserIdAsync(int createdByUserId, CancellationToken ct)
         {
             if (createdByUserId <= 0)
-                throw new InvalidOperationException("Bạn cần đăng nhập user roleId = 2 để tạo phiếu walk-in.");
+                throw new InvalidOperationException("Bạn cần đăng nhập user roleId = 1 hoặc 2 để tạo phiếu walk-in.");
 
             var isStaffCreator = await _db.Users.AnyAsync(
-                u => u.UserID == createdByUserId && u.RoleID == 2 && u.IsActive,
+                u => u.UserID == createdByUserId && (u.RoleID == 2 || u.RoleID == 1) && u.IsActive,
                 ct);
 
             if (!isStaffCreator)
-                throw new InvalidOperationException("User hiện tại không hợp lệ để tạo phiếu walk-in (yêu cầu roleId = 2).");
+                throw new InvalidOperationException("User hiện tại không hợp lệ để tạo phiếu walk-in (yêu cầu roleId = 1 hoặc 2).");
 
             return createdByUserId;
         }

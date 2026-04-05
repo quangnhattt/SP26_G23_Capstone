@@ -4,13 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using AGMS.Application.DTOs.ServiceOrder;
 
 namespace AGMS.Application.Contracts
 {
     public interface ICarMaintenanceRepository
     {
-        Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(ServiceOrderListQueryDto query, CancellationToken ct = default);
+        Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(ServiceOrderListQueryDto query, int? employeeId = null, CancellationToken ct = default);
         Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId,CancellationToken ct=default);
         Task ProposeAdditionalItemsAsync(int maintenanceId,ProposeAdditionalItemsRequest request,CancellationToken ct=default);
         Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, CancellationToken ct = default);

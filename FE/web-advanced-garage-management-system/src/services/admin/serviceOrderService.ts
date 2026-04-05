@@ -58,6 +58,9 @@ export interface IServiceOrderDetail {
   status: string;
   createdDate: string;
   maintenanceDate: string;
+  technicianFullName?: string | null;
+  technicianPhone?: string | null;
+  technicianEmail?: string | null;
   lineItems: ILineItem[];
 }
 

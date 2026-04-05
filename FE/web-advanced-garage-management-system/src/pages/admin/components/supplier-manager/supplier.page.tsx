@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiPlus, HiPencil, HiSearch } from "react-icons/hi";
-import { Pagination } from "antd";
+import { Table as AntTable, Switch } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   getSuppliers,
   createSupplier,
   updateSupplier,
+  updateSupplierStatus,
   type ISupplier,
   type ISupplierCreateRequest,
   type ISupplierUpdateRequest,
@@ -43,9 +45,9 @@ const SupplierPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const pageSize = 10;
+  const [updatingSupplierId, setUpdatingSupplierId] = useState<number | null>(
+    null,
+  );
 
   const fetchSuppliers = useCallback(async () => {
     try {
@@ -141,6 +143,22 @@ const SupplierPage = () => {
     }
   };
 
+  const handleToggleSupplierStatus = async (
+    supplierId: number,
+    isActive: boolean,
+  ) => {
+    setUpdatingSupplierId(supplierId);
+    try {
+      await updateSupplierStatus(supplierId, isActive);
+      await fetchSuppliers();
+    } catch (err) {
+      console.error("Error updating supplier status:", err);
+      toast.error(getApiErrorMessage(err, t("errorSavingSupplier")));
+    } finally {
+      setUpdatingSupplierId(null);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "N/A";
     try {
@@ -162,10 +180,81 @@ const SupplierPage = () => {
       (s.phone && s.phone.includes(searchTerm)),
   );
 
-  const paginatedSuppliers = filteredSuppliers.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  const columns: ColumnsType<ISupplier> = [
+    {
+      title: t("name"),
+      dataIndex: "name",
+      key: "name",
+      render: (name: string) => <SupplierName>{name}</SupplierName>,
+    },
+    {
+      title: t("address"),
+      dataIndex: "address",
+      key: "address",
+      render: (val: string) => (
+        <TextEllipsis title={val}>{val || t("notAvailable")}</TextEllipsis>
+      ),
+    },
+    {
+      title: t("phone"),
+      dataIndex: "phone",
+      key: "phone",
+      align: "center",
+      render: (val: string) => val || t("notAvailable"),
+    },
+    {
+      title: t("email"),
+      dataIndex: "email",
+      key: "email",
+      align: "center",
+      render: (val: string) => val || t("notAvailable"),
+    },
+    {
+      title: t("description"),
+      dataIndex: "description",
+      key: "description",
+      render: (val: string) => (
+        <TextEllipsis title={val}>{val || t("notAvailable")}</TextEllipsis>
+      ),
+    },
+    {
+      title: t("status"),
+      dataIndex: "isActive",
+      key: "isActive",
+      align: "center",
+      render: (isActive: boolean, record: ISupplier) => (
+        <Switch
+          checked={isActive}
+          loading={updatingSupplierId === record.supplierID}
+          onChange={(checked: boolean) =>
+            handleToggleSupplierStatus(record.supplierID, checked)
+          }
+        />
+      ),
+    },
+    {
+      title: t("createDate"),
+      dataIndex: "createdDate",
+      key: "createdDate",
+      align: "center",
+      render: (val: string) => formatDate(val),
+    },
+    {
+      title: t("action"),
+      key: "action",
+      align: "center",
+      render: (_: unknown, record: ISupplier) => (
+        <ActionButtons>
+          <EditButton
+            onClick={() => handleOpenEditModal(record)}
+            title={t("edit")}
+          >
+            <HiPencil size={18} />
+          </EditButton>
+        </ActionButtons>
+      ),
+    },
+  ];
 
   return (
     <Container>
@@ -195,83 +284,19 @@ const SupplierPage = () => {
       </Toolbar>
 
       <TableCard>
-        <TableSection>
-          <TableTitle>{t("supplierList")}</TableTitle>
-          <TableSubtitle>
-            {loading
-              ? t("loadingSuppliers")
-              : t("showingSuppliers", { count: filteredSuppliers.length })}
-          </TableSubtitle>
-
-          {loading ? (
-            <LoadingMessage>{t("loadingData")}</LoadingMessage>
-          ) : (
-            <>
-              <TableWrapper>
-                <Table>
-                  <thead>
-                    <tr>
-                      <Th>{t("name")}</Th>
-                      <Th>{t("address")}</Th>
-                      <Th>{t("phone")}</Th>
-                      <Th>{t("email")}</Th>
-                      <Th>{t("description")}</Th>
-                      <Th>{t("status")}</Th>
-                      <Th>{t("createDate")}</Th>
-                      <Th>{t("action")}</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedSuppliers.map((supplier) => (
-                      <tr key={supplier.supplierID}>
-                        <Td>
-                          <SupplierName>{supplier.name}</SupplierName>
-                        </Td>
-                        <Td>
-                          <TextEllipsis title={supplier.address}>
-                            {supplier.address || t("notAvailable")}
-                          </TextEllipsis>
-                        </Td>
-                        <Td>{supplier.phone || t("notAvailable")}</Td>
-                        <Td>{supplier.email || t("notAvailable")}</Td>
-                        <Td>
-                          <TextEllipsis title={supplier.description}>
-                            {supplier.description || t("notAvailable")}
-                          </TextEllipsis>
-                        </Td>
-                        <Td>
-                          <StatusBadge $isActive={supplier.isActive}>
-                            {supplier.isActive ? t("active") : t("inactive")}
-                          </StatusBadge>
-                        </Td>
-                        <Td>{formatDate(supplier.createdDate)}</Td>
-                        <Td>
-                          <ActionButtons>
-                            <EditButton
-                              onClick={() => handleOpenEditModal(supplier)}
-                              title={t("edit")}
-                            >
-                              <HiPencil size={18} />
-                            </EditButton>
-                          </ActionButtons>
-                        </Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </TableWrapper>
-              <PaginationWrapper>
-                <Pagination
-                  current={currentPage}
-                  pageSize={pageSize}
-                  total={filteredSuppliers.length}
-                  showSizeChanger={false}
-                  onChange={(page: number) => setCurrentPage(page)}
-                />
-              </PaginationWrapper>
-            </>
-          )}
-        </TableSection>
+        <AntTable
+          columns={columns}
+          dataSource={filteredSuppliers}
+          rowKey="supplierID"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: false,
+            showTotal: (total, range) =>
+              `${range[0]}–${range[1]} / ${total} ${t("supplier")}`,
+          }}
+          scroll={{ x: "max-content" }}
+        />
       </TableCard>
 
       <SupplierModal
@@ -357,6 +382,25 @@ const TableCard = styled.div`
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
+  padding: 0 8px;
+
+  .ant-table {
+    color: #374151;
+  }
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+  .ant-pagination {
+    color: #374151;
+  }
 `;
 
 const SearchWrapper = styled.label`
@@ -391,74 +435,6 @@ const SearchInput = styled.input`
   }
 `;
 
-const TableSection = styled.div`
-  padding: 20px;
-`;
-
-const TableTitle = styled.h2`
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 4px 0;
-`;
-
-const TableSubtitle = styled.p`
-  font-size: 14px;
-  color: #6b7280;
-  margin: 0 0 16px 0;
-`;
-
-const LoadingMessage = styled.div`
-  padding: 3rem;
-  text-align: center;
-  color: #6b7590;
-  font-size: 1rem;
-`;
-
-const TableWrapper = styled.div`
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-`;
-
-const PaginationWrapper = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  padding: 16px 0 0;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  min-width: max-content;
-  border-collapse: collapse;
-`;
-
-const Th = styled.th`
-  text-align: center;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7590;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-
-  &:first-child {
-    text-align: left;
-  }
-`;
-
-const Td = styled.td`
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1a1d2e;
-  text-align: center;
-
-  &:first-child {
-    text-align: left;
-  }
-`;
-
 const SupplierName = styled.div`
   font-weight: 600;
   color: #1a1d2e;
@@ -474,16 +450,6 @@ const TextEllipsis = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-const StatusBadge = styled.span<{ $isActive: boolean }>`
-  background: ${(props) => (props.$isActive ? "#dcfce7" : "#f3f4f6")};
-  color: ${(props) => (props.$isActive ? "#16a34a" : "#6b7280")};
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
 `;
 
 const ActionButtons = styled.div`
