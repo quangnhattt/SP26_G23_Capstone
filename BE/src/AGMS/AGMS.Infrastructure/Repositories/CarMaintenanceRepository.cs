@@ -441,6 +441,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             maintenance.Status = "IN_PROGRESS";
             await _db.SaveChangesAsync(ct);
         }
+    }
     private static decimal CalculateAdditionalItemUnitPrice(Product product)
     {
         var averageCost = product.ProductInventory?.AverageCost;

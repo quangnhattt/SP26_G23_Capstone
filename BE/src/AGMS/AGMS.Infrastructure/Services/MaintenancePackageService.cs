@@ -24,6 +24,8 @@ public class MaintenancePackageService : IMaintenancePackageService
             PackageID = p.PackageID,
             PackageCode = p.PackageCode,
             Name = p.Name,
+            KilometerMilestone = p.KilometerMilestone,
+            MonthMilestone = p.MonthMilestone,
             BasePrice = p.BasePrice,
             DiscountPercent = p.DiscountPercent,
             FinalPrice = p.FinalPrice,
