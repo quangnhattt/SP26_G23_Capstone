@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiPlus, HiClipboardCheck } from "react-icons/hi";
 import { toast } from "react-toastify";
-import { Table, Tag, Select as AntSelect } from "antd";
+import { Table, Tag } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   inventoryService,
@@ -33,6 +33,29 @@ const formatDate = (iso: string) => {
 };
 
 const PAGE_SIZE = 20;
+
+// Global style for Select dropdown (renders outside DOM tree)
+const dropdownGlobalStyle = `
+  .inventory-select-dropdown .ant-select-item {
+    color: #111827 !important;
+  }
+  .inventory-select-dropdown .ant-select-item-option-content {
+    color: #111827 !important;
+  }
+  .inventory-select-dropdown .ant-select-item-option-selected {
+    background-color: #eff6ff !important;
+  }
+`;
+
+if (typeof document !== "undefined") {
+  const styleId = "inventory-dropdown-style";
+  if (!document.getElementById(styleId)) {
+    const tag = document.createElement("style");
+    tag.id = styleId;
+    tag.innerHTML = dropdownGlobalStyle;
+    document.head.appendChild(tag);
+  }
+}
 
 const TRANSACTION_TYPE_MAP: Record<string, { color: string; label: string }> = {
   ISSUE: { color: "orange", label: "Xuất kho" },
@@ -91,10 +114,9 @@ const InventoryManager = () => {
     fetchTransactions(currentPage, selectedProductId);
   }, [currentPage, selectedProductId, fetchTransactions]);
 
-  const handleProductChange = (value: string | undefined) => {
-    setSelectedProductId(
-      value === undefined || value === "" ? undefined : Number(value),
-    );
+  const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSelectedProductId(value === "" ? undefined : Number(value));
     setCurrentPage(1);
   };
 
@@ -188,13 +210,6 @@ const InventoryManager = () => {
     },
   ];
 
-  const productOptions = [
-    { value: "", label: t("inventorySelectProduct") },
-    ...products.map((p) => ({
-      value: String(p.id),
-      label: `${p.code} — ${p.name}`,
-    })),
-  ];
 
   return (
     <Container>
@@ -206,18 +221,17 @@ const InventoryManager = () => {
       {error && <ErrorBox>{error}</ErrorBox>}
 
       <Toolbar>
-        <AntSelect
-          style={{ minWidth: 280, maxWidth: 420, flex: 1 }}
-          allowClear
-          placeholder={t("inventorySelectProduct")}
-          options={productOptions}
-          value={
-            selectedProductId !== undefined
-              ? String(selectedProductId)
-              : undefined
-          }
+        <FilterSelect
+          value={selectedProductId !== undefined ? String(selectedProductId) : ""}
           onChange={handleProductChange}
-        />
+        >
+          <option value="">{t("inventorySelectProduct")}</option>
+          {products.map((p) => (
+            <option key={p.id} value={String(p.id)}>
+              {p.code} — {p.name}
+            </option>
+          ))}
+        </FilterSelect>
         <AuditBtn onClick={handleAudit} disabled={auditing}>
           <HiClipboardCheck size={16} />
           {auditing ? "Đang kiểm tra..." : "Kiểm tra sai lệch"}
@@ -297,6 +311,24 @@ const Toolbar = styled.div`
   margin-bottom: 20px;
   flex-wrap: wrap;
   align-items: center;
+`;
+
+const FilterSelect = styled.select`
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #374151;
+  background: white;
+  min-width: 280px;
+  max-width: 420px;
+  flex: 1;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: #1d4ed8;
+  }
 `;
 
 const AuditBtn = styled.button`
