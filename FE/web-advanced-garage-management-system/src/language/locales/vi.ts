@@ -1109,6 +1109,7 @@ export default {
   appointmentsRejectionReason: "Lý do từ chối",
   appointmentsTotalAmount: "Tổng tiền",
   appointmentsFinalAmount: "Thành tiền",
+  appointmentsSuggestedParts: "Linh kiện gợi ý",
   rescueDetailTitle: "Chi tiết cứu hộ",
   rescueDetailCode: "Mã cứu hộ",
   rescueDetailType: "Loại cứu hộ",

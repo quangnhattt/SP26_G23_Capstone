@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
-import { FaCar, FaUser, FaWrench, FaTimes, FaCalendarAlt } from "react-icons/fa";
+import { FaCar, FaUser, FaWrench, FaTimes, FaCalendarAlt, FaBoxOpen } from "react-icons/fa";
 import type { IAppointmentDetail } from "@/apis/appointments";
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -188,6 +188,27 @@ const AppointmentDetailModal = ({ data, loading, onClose }: Props) => {
                 </Section>
               </>
             )}
+
+            {/* Suggested Parts */}
+            {data.suggestedParts && data.suggestedParts.length > 0 && (
+              <>
+                <Divider />
+                <Section>
+                  <SectionTitle>
+                    <FaBoxOpen size={16} />
+                    {t("appointmentsSuggestedParts")}
+                  </SectionTitle>
+                  <PartsList>
+                    {data.suggestedParts.map((part, i) => (
+                      <PartItem key={i}>
+                        <PartIndex>{i + 1}</PartIndex>
+                        <PartName>{part}</PartName>
+                      </PartItem>
+                    ))}
+                  </PartsList>
+                </Section>
+              </>
+            )}
           </Body>
         ) : null}
       </Card>
@@ -342,4 +363,45 @@ const Tag = styled.span`
   border: 1px solid #e5e7eb;
   padding: 0.2rem 0.625rem;
   border-radius: 6px;
+`;
+
+const PartsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const PartItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #e0f2fe;
+  }
+`;
+
+const PartIndex = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 50%;
+  background: #0ea5e9;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+`;
+
+const PartName = styled.span`
+  font-size: 0.875rem;
+  color: #0c4a6e;
+  font-weight: 500;
 `;
