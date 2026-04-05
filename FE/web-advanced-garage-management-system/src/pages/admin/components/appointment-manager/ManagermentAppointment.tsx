@@ -90,7 +90,7 @@ const ManagermentAppointment = () => {
 
   const handleRejectConfirm = async () => {
     if (!selectedAppointmentId) return;
-    
+
     try {
       setIsSubmitting(true);
       await rejectAppointment(selectedAppointmentId, rejectionReason.trim() || undefined);
