@@ -12,6 +12,8 @@ import {
 import type { IService } from "@/services/admin/serviceService";
 import { getCategories } from "@/services/admin/categoryService";
 import type { ICategory } from "@/services/admin/categoryService";
+import { getUnits } from "@/services/admin/unitService";
+import type { IUnit } from "@/services/admin/unitService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import ServiceModal from "./ServiceModal";
@@ -49,6 +51,7 @@ const ServicePage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categories, setCategories] = useState<ICategory[]>([]);
+  const [units, setUnits] = useState<IUnit[]>([]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -56,6 +59,15 @@ const ServicePage = () => {
       setCategories(data);
     } catch (err) {
       console.error("Failed to fetch categories:", err);
+    }
+  }, []);
+
+  const fetchUnits = useCallback(async () => {
+    try {
+      const data = await getUnits();
+      setUnits(data);
+    } catch (err) {
+      console.error("Failed to fetch units:", err);
     }
   }, []);
 
@@ -80,6 +92,10 @@ const ServicePage = () => {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  useEffect(() => {
+    fetchUnits();
+  }, [fetchUnits]);
 
   const handleOpenCreateModal = async () => {
     setEditingService(null);
@@ -301,6 +317,7 @@ const ServicePage = () => {
         editingService={editingService}
         formData={formData}
         categories={categories}
+        units={units}
         submitting={submitting}
         onClose={handleCloseModal}
         onSubmit={handleSubmit}
