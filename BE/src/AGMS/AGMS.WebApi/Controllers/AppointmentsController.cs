@@ -213,6 +213,36 @@ public class AppointmentsController : ControllerBase
         }
     }
 
+    [HttpPost("{id:int}/respond-reschedule")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RespondReschedule(int id, [FromBody] RespondRescheduleRequest request, CancellationToken ct)
+    {
+        var (userId, error) = ExtractUserId();
+        if (error != null) return error;
+
+        try
+        {
+            await _appointmentService.RespondRescheduleAsync(id, userId, request.Accept, request.Notes, ct);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     // === Scheduling: Khung giờ đặt lịch ===
 
     /// <summary>

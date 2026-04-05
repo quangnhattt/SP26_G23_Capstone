@@ -12,5 +12,6 @@ public interface IAppointmentService
     Task ApproveAsync(int appointmentId, int currentUserId, CancellationToken ct);
     Task RejectAsync(int appointmentId, int rejectBuildUserId, string rejectionReason, CancellationToken ct);
     Task ProposeRescheduleAsync(int appointmentId, int currentUserId, DateTime proposedTime, CancellationToken ct);
+    Task RespondRescheduleAsync(int appointmentId, int currentUserId, bool accept, string? notes, CancellationToken ct);
     Task CheckInAsync(int appointmentId, int currentUserId, CancellationToken ct);
 }

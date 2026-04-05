@@ -154,6 +154,16 @@ public class AppointmentService : IAppointmentService
         await _repo.ProposeRescheduleAsync(appointmentId, proposedTime, ct);
     }
 
+    public async Task RespondRescheduleAsync(int appointmentId, int currentUserId, bool accept, string? notes, CancellationToken ct)
+    {
+        // Kiểm tra quyền: Chỉ chủ xe (CreatedBy hoặc Owner) mới được phản hồi
+        var appointment = await _repo.GetByIdAsync(appointmentId, currentUserId, ct);
+        if (appointment == null)
+            throw new UnauthorizedAccessException("Bạn không có quyền phản hồi lịch hẹn này.");
+
+        await _repo.RespondRescheduleAsync(appointmentId, accept, notes, ct);
+    }
+
     public async Task CheckInAsync(int appointmentId, int currentUserId, CancellationToken ct)
     {
         var roleId = await _repo.GetUserRoleIdAsync(currentUserId, ct);

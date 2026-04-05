@@ -147,6 +147,38 @@ public class AppointmentRepository : IAppointmentRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task RespondRescheduleAsync(int appointmentId, bool accept, string? notes, CancellationToken ct)
+    {
+        var appointment = await _db.Appointments
+            .FirstOrDefaultAsync(a => a.AppointmentID == appointmentId, ct)
+            ?? throw new KeyNotFoundException("Không tìm thấy lịch hẹn.");
+
+        if (appointment.Status != "RESCHEDULED")
+            throw new InvalidOperationException("Lịch hẹn này không ở trạng thái cần phản hồi đề xuất.");
+
+        if (accept)
+        {
+            if (!appointment.ProposedTime.HasValue)
+                throw new InvalidOperationException("Không tìm thấy thời gian đề xuất.");
+
+            appointment.Status = "CONFIRMED";
+            appointment.AppointmentDate = appointment.ProposedTime.Value;
+            appointment.ConfirmedDate = DateTime.UtcNow;
+            appointment.ProposedTime = null;
+            if (!string.IsNullOrWhiteSpace(notes))
+            {
+                appointment.Notes = (appointment.Notes ?? "") + "\nKH đồng ý: " + notes;
+            }
+        }
+        else
+        {
+            appointment.Status = "CANCELLED";
+            appointment.RejectionReason = "Khách từ chối đề xuất: " + notes;
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task CheckInAsync(int appointmentId, int checkedInByUserId, CancellationToken ct)
     {
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
