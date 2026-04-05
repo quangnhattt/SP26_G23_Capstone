@@ -68,7 +68,13 @@ export interface IAppointmentDetail {
     status: string;
   } | null;
   symptoms: string[];
-  suggestedParts: string[];
+  suggestedParts: {
+    productId: number;
+    code: string;
+    name: string;
+    price: number;
+    score: number;
+  }[];
 }
 
 export const getAppointments = async (): Promise<IAppointment[]> => {

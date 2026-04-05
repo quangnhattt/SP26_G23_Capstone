@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import type { ICategory } from "@/services/admin/categoryService";
 import type { IService } from "@/services/admin/serviceService";
+import type { IUnit } from "@/services/admin/unitService";
 
 interface ServiceModalFormData {
   code: string;
@@ -21,6 +22,7 @@ interface ServiceModalProps {
   editingService: IService | null;
   formData: ServiceModalFormData;
   categories: ICategory[];
+  units: IUnit[];
   submitting: boolean;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -36,6 +38,7 @@ const ServiceModal = ({
   editingService,
   formData,
   categories,
+  units,
   submitting,
   onClose,
   onSubmit,
@@ -103,13 +106,21 @@ const ServiceModal = ({
 
               <FormGroup>
                 <Label>{t("unitID")} *</Label>
-                <Input
-                  type="number"
+                <Select
                   name="unitId"
-                  value={formData.unitId}
+                  value={formData.unitId || ""}
                   onChange={onInputChange}
                   required
-                />
+                >
+                  <option value="">{t("selectUnit")}</option>
+                  {units
+                    .filter((unit) => unit.type === "SERVICE")
+                    .map((unit) => (
+                      <option key={unit.unitID} value={unit.unitID}>
+                        {unit.name}
+                      </option>
+                    ))}
+                </Select>
               </FormGroup>
             </FormRow>
 
