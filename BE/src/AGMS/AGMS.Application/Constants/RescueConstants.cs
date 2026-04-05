@@ -13,9 +13,8 @@ public static class RescueStatus
     public const string Dispatched = "DISPATCHED"; // bỏ
     public const string EnRoute = "EN_ROUTE"; // Trạng thái đơn sau khi SA gán 1 technician vào 1 đơn cứu hộ
     public const string OnSite = "ON_SITE"; // Trạng thái đơn sau khi Tech tới hiện trường
-    public const string Diagnosing = "DIAGNOSING";
-    public const string Diagnosed = "DIAGNOSED"; // Trạng thái đơn sau khi tech chuẩn đoán xong
-    public const string Repairing = "REPAIRING"; //Trạng thái đơn khi tech bắt đầu sửa chữa
+    public const string Diagnosing = "DIAGNOSING"; // Trạng thái đơn sau khi tech chuẩn đoán
+    public const string Repairing = "REPAIRING"; //Trạng thái đơn khi tech ghi nhận vật tư vàbắt đầu sửa chữa
     public const string RepairComplete = "REPAIR_COMPLETE"; // Trạng thái đơn khi tech sửa chữa xong
     public const string TowingDispatched = "TOWING_DISPATCHED"; // / Trạng thái đơn khi SA điều xe kéo
     public const string TowingAccepted = "TOWING_ACCEPTED"; // Trạng thái đơn khi Cus đồng ý với phương án kéo xe
