@@ -69,12 +69,12 @@ public class ProductController : ControllerBase
         }
     }
 
-    [HttpPatch("parts/{id:int}/status")]
+    [HttpPatch("{id:int}/status")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ChangePartProductStatus(int id, [FromBody] UpdateProductStatusDto request, CancellationToken ct)
+    public async Task<IActionResult> ChangeProductStatus(int id, [FromBody] UpdateProductStatusDto request, CancellationToken ct)
     {
-        var success = await _productService.ChangePartProductStatusAsync(id, request.IsActive, ct);
+        var success = await _productService.ChangeProductStatusAsync(id, request.IsActive, ct);
         if (!success)
         {
             return NotFound();
@@ -134,17 +134,6 @@ public class ProductController : ControllerBase
         }
     }
 
-    [HttpPatch("services/{id:int}/status")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ChangeServiceProductStatus(int id, [FromBody] UpdateProductStatusDto request, CancellationToken ct)
-    {
-        var success = await _productService.ChangeServiceProductStatusAsync(id, request.IsActive, ct);
-        if (!success)
-        {
-            return NotFound();
-        }
-        return Ok(new { success = true, isActive = request.IsActive });
-    }
+
 
    }
