@@ -62,5 +62,15 @@ namespace AGMS.Infrastructure.Services
             // Ủy quyền gọi thẳng xuống Repository để lấy data
             return await _inventoryRepo.GetTransactionHistoryAsync(filter, ct);
         }
+
+        public async Task AdjustStockAsync(int userId, InventoryAdjustmentDto request, CancellationToken ct)
+        {
+            await _inventoryRepo.AdjustStockAsync(userId, request, ct);
+        }
+
+        public async Task RebuildInventoryBalancesAsync(CancellationToken ct)
+        {
+            await _inventoryRepo.RebuildInventoryBalancesAsync(ct);
+        }
     }
 }

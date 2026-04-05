@@ -23,5 +23,7 @@ namespace AGMS.Application.Contracts
             CancellationToken ct);
         Task ProcessStockIssueAsync(int transferOrderId, int approvedByUserId, CancellationToken ct);
         Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(InventoryTransactionFilterDto filter, CancellationToken ct);
+        Task AdjustStockAsync(int userId, InventoryAdjustmentDto request, CancellationToken ct);
+        Task RebuildInventoryBalancesAsync(CancellationToken ct);
     }
 }

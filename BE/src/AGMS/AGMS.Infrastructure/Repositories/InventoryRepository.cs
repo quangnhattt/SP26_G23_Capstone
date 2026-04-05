@@ -289,7 +289,7 @@ public class InventoryRepository : IInventoryRepository
                 inventory.Quantity -= quantityChange;
                 unitCostToRecord = currentMac; // Sổ cái lưu giá xuất = Giá MAC hiện hành
             }
-            else if (transactionType == "ADJUST" || transactionType == "WRITE_OFF")
+            else if (transactionType == "ADJUST" || transactionType == "ADJUST_IN" || transactionType == "ADJUST_OUT" || transactionType == "WRITE_OFF")
             {
                 // quantityChange có thể là số âm (mất mát) hoặc dương (nhập dư)
                 inventory.Quantity += quantityChange;
@@ -342,9 +342,8 @@ public class InventoryRepository : IInventoryRepository
                 LedgerQuantity = _db.InventoryTransactions
                     .Where(t => t.ProductID == inv.ProductID)
                     .Sum(t =>
-                        (t.TransactionType == "GOODS_RECEIPT" || t.TransactionType == "IN" || t.TransactionType == "RETURN") ? t.Quantity :
-                        (t.TransactionType == "ISSUE" || t.TransactionType == "OUT" || t.TransactionType == "WRITE_OFF") ? -t.Quantity :
-                        // Xử lý riêng cho ADJUST nếu bạn cấu hình loại phiếu ADJUST ghi số dương/âm tùy ý
+                        (t.TransactionType == "GOODS_RECEIPT" || t.TransactionType == "IN" || t.TransactionType == "RETURN" || t.TransactionType == "ADJUST_IN") ? t.Quantity :
+                        (t.TransactionType == "ISSUE" || t.TransactionType == "OUT" || t.TransactionType == "WRITE_OFF" || t.TransactionType == "ADJUST_OUT") ? -t.Quantity :
                         t.TransactionType == "ADJUST" ? t.Quantity : 0)
             })
             .Where(x => x.SnapshotQuantity != x.LedgerQuantity) // Chỉ lấy ra những mã hàng bị lệch (nếu có)
@@ -492,5 +491,118 @@ public class InventoryRepository : IInventoryRepository
             CurrentPage = filter.PageIndex,
             Items = items
         };
+    }
+
+    public async Task AdjustStockAsync(int userId, InventoryAdjustmentDto request, CancellationToken ct)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            if (request.ActualQuantity < 0)
+                throw new InvalidOperationException("Lỗi: Số lượng đếm thực tế (ActualQuantity) không thể là số âm.");
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
+            string fullName = user?.FullName ?? $"user {userId}";
+
+            var inventory = await _db.ProductInventories
+                .FirstOrDefaultAsync(i => i.ProductID == request.ProductId, ct);
+
+            if (inventory == null)
+                throw new KeyNotFoundException($"Product with ID {request.ProductId} not found in inventory.");
+
+            decimal currentQty = inventory.Quantity;
+            decimal quantityChange = request.ActualQuantity - currentQty;
+
+            if (quantityChange == 0)
+                throw new InvalidOperationException("Số lượng đếm thực tế bằng với số lượng hệ thống. Không có điều chỉnh nào được thực hiện.");
+
+            // 1. Tạo TransferOrder để lấy ReferenceID (tránh lỗi khóa ngoại FK ReferenceID)
+            string note = $"Kiểm kê vật lý bởi {fullName}. Điều chỉnh biên độ: {(quantityChange > 0 ? "+" : "")}{quantityChange}";
+
+            var transferOrder = new TransferOrder
+            {
+                Type = "ADJUST",
+                Status = "APPROVED",
+                Note = note,
+                DocumentDate = DateTime.UtcNow,
+                CreatedDate = DateTime.UtcNow,
+                CreateBy = userId
+            };
+            _db.TransferOrders.Add(transferOrder);
+            await _db.SaveChangesAsync(ct); // Insert để lấy ID
+
+            // 2. Lưu chi tiết phiếu (giúp minh bạch hơn)
+            _db.TransferOrderDetails.Add(new TransferOrderDetail
+            {
+                TransferOrderID = transferOrder.TransferOrderID,
+                ProductID = request.ProductId,
+                Quantity = Math.Abs(quantityChange), // Chi tiết phiếu lưu số lượng tuyệt đối
+                UnitPrice = inventory.AverageCost, // Lấy giá xuất bằng giá vốn bình quân (MAC)
+                Notes = note
+            });
+
+            // 3. Cập nhật Tồn kho
+            inventory.Quantity += quantityChange;
+            inventory.LastUpdated = DateTime.UtcNow;
+            _db.ProductInventories.Update(inventory);
+
+            // 4. Ghi Sổ cái (Ledger - InventoryTransaction)
+            string transactionType = quantityChange > 0 ? "ADJUST_IN" : "ADJUST_OUT";
+            var transaction = new InventoryTransaction
+            {
+                ProductID = request.ProductId,
+                ReferenceID = transferOrder.TransferOrderID, // Khóa ngoại chĩa vào Phiếu vừa lập
+                TransactionType = transactionType,
+                Quantity = Math.Abs(quantityChange),
+                Balance = inventory.Quantity,
+                UnitCost = inventory.AverageCost, // CỰC KỲ QUAN TRỌNG: Lấy giá trị MAC không đổi!
+                TransactionDate = DateTime.UtcNow,
+                Note = note
+            };
+            _db.InventoryTransactions.Add(transaction);
+
+            // 5. Chốt!
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
+    }
+
+    public async Task RebuildInventoryBalancesAsync(CancellationToken ct)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            var inventories = await _db.ProductInventories.ToListAsync(ct);
+
+            foreach (var inv in inventories)
+            {
+                var ledgerSum = await _db.InventoryTransactions
+                    .Where(t => t.ProductID == inv.ProductID)
+                    .SumAsync(t =>
+                        (t.TransactionType == "GOODS_RECEIPT" || t.TransactionType == "IN" || t.TransactionType == "RETURN" || t.TransactionType == "ADJUST_IN") ? t.Quantity :
+                        (t.TransactionType == "ISSUE" || t.TransactionType == "OUT" || t.TransactionType == "WRITE_OFF" || t.TransactionType == "ADJUST_OUT") ? -t.Quantity :
+                        t.TransactionType == "ADJUST" ? t.Quantity : 0, ct);
+
+                if (inv.Quantity != ledgerSum)
+                {
+                    inv.Quantity = ledgerSum;
+                    inv.LastUpdated = DateTime.UtcNow;
+                    _db.ProductInventories.Update(inv);
+                }
+            }
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
     }
 }
