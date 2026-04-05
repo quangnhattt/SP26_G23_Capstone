@@ -23,6 +23,9 @@ public class RescueRequest
     public decimal DepositAmount { get; set; }
     public bool IsDepositPaid { get; set; }
     public DateTime? DepositPaidDate { get; set; }
+    public bool IsDepositConfirmed { get; set; }
+    public DateTime? DepositConfirmedDate { get; set; }
+    public int? DepositConfirmedByID { get; set; }
     public string? DepositPaymentMethod { get; set; }
     public string? DepositTransactionReference { get; set; }
     public int? RescueRating { get; set; }

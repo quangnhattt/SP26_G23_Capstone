@@ -11,6 +11,7 @@ import {
   FaPaperPlane,
   FaMoneyBillWave,
   FaFlag,
+  FaHandHoldingUsd,
 } from "react-icons/fa";
 import type { RescueStatus } from "@/apis/rescue";
 
@@ -33,19 +34,25 @@ const ON_SITE_STEPS: {
     key: "customer_confirm",
     label: "KH xác nhận",
     icon: <FaUserCheck size={14} />,
-    statuses: ["PROPOSED_ROADSIDE"],
+    statuses: ["PROPOSED_ROADSIDE", "PROPOSED_TOWING"],
+  },
+  {
+    key: "deposit",
+    label: "KH đặt cọc",
+    icon: <FaHandHoldingUsd size={14} />,
+    statuses: ["PROPOSAL_ACCEPTED"],
   },
   {
     key: "assign",
     label: "Điều phối KTV",
     icon: <FaUserCog size={14} />,
-    statuses: ["DISPATCHED"],
+    statuses: [],
   },
   {
     key: "arrive",
     label: "Đến nơi",
     icon: <FaMapMarkerAlt size={14} />,
-    statuses: ["EN_ROUTE"],
+    statuses: ["DISPATCHED", "EN_ROUTE"],
   },
   {
     key: "diagnose",
@@ -104,17 +111,15 @@ function getActiveStepIndex(status: RescueStatus): number {
     if (ON_SITE_STEPS[i].statuses.includes(status)) return i;
   }
   // Statuses that fall between defined step statuses
-  // Indices: 0=propose,1=customer_confirm,2=assign,3=arrive,4=diagnose,5=repair,6=complete,7=invoice,8=send,9=paid,10=done
+  // Indices: 0=propose,1=customer_confirm,2=deposit,3=assign(auto-done),4=arrive,5=diagnose,6=repair,7=complete,8=invoice,9=send,10=paid,11=done
   const statusOrder: Record<string, number> = {
     ACCEPTED: 0,
     EVALUATING: 0,
     QUOTE_SENT: 0,
-    REVIEWING: 0,
-    PROPOSED_TOWING: 1,       // towing proposal = customer confirm step
-    PROPOSAL_ACCEPTED: 2,     // customer accepted proposal → SA cần điều phối KTV
-    TOWING_ACCEPTED: 2,       // customer accepted towing → assign/dispatch step
-    NEED_TOWING: 4,
-    TOWING_CONFIRMED: 4,
+    REVIEWING: 1,             // SA đang xem xét → KH xác nhận step
+    TOWING_ACCEPTED: 2,       // customer accepted towing → deposit step
+    NEED_TOWING: 5,
+    TOWING_CONFIRMED: 5,
   };
   return statusOrder[status] ?? -1;
 }

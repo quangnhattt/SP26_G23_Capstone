@@ -1,4 +1,4 @@
-﻿using AGMS.Application;
+using AGMS.Application;
 using AGMS.Application.Contracts; // Gọi Interface Service và Interface Repository
 using AGMS.Application.DTOs.Unit;
 using System.Threading.Tasks;
@@ -105,6 +105,17 @@ namespace AGMS.Infrastructure.Services
 
             // 4. Thành công (Step 6)
             return (true, "MSG_UNIT07: Unit deleted successfully");
+        }
+
+        public async Task<(bool IsSuccess, string Message)> ChangeUnitStatusAsync(int id, bool isActive)
+        {
+            var success = await _unitRepository.ChangeUnitStatusAsync(id, isActive);
+            if (!success)
+            {
+                return (false, "Unit not found");
+            }
+
+            return (true, "MSG_UNIT09: Unit status updated successfully");
         }
     }
 }

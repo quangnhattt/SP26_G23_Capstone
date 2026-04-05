@@ -23,7 +23,8 @@ export default {
   passwordPlaceholderRegister: "Minimum 6 characters",
   emailRequired: "Email is required",
   passwordRequired: "Password is required",
-  footerDescription: "Smart garage management system - Comprehensive solution for your vehicle care.",
+  footerDescription:
+    "Smart garage management system - Comprehensive solution for your vehicle care.",
   support: "Support",
   faq: "FAQ",
   warrantyPolicy: "Warranty Policy",
@@ -56,11 +57,13 @@ export default {
   confirmPasswordRequired: "Confirm password is required",
   passwordMinLength: "Password must be at least 6 characters",
   passwordMismatch: "Passwords do not match",
-  agreeTermsRequired: "You must agree to the Terms of Service and Privacy Policy",
+  agreeTermsRequired:
+    "You must agree to the Terms of Service and Privacy Policy",
   registerSuccess: "Registration successful! Please verify OTP code.",
   contactHeroTitle: "We are always ready to",
   contactHeroTitleHighlight: "support you",
-  contactHeroSubtitle: "Have questions? Need advice? AutoCare Pro's team is always happy to answer all your questions 24/7.",
+  contactHeroSubtitle:
+    "Have questions? Need advice? AutoCare Pro's team is always happy to answer all your questions 24/7.",
   callNow: "Call now: 1900 1234",
   bookOnline: "Book online",
   address: "Address",
@@ -75,7 +78,8 @@ export default {
   workingHoursSat: "Sat: 8:00 - 17:00",
   workingHoursSun: "Sun: 8:00 - 12:00",
   sendMessageTitle: "Send us a message",
-  sendMessageSubtitle: "Fill in the information below, we will respond within 24 hours",
+  sendMessageSubtitle:
+    "Fill in the information below, we will respond within 24 hours",
   subject: "Subject",
   subjectPlaceholder: "Enter message subject",
   requestType: "Request type",
@@ -112,7 +116,8 @@ export default {
   phoneThuDuc: "024 2345 6789",
   phoneQ2: "024 3456 7890",
   aboutHeroTitle: "Reliable partner for your car",
-  aboutHeroSubtitle: "AutoCare Pro is proud to be a leading car repair and maintenance center in Hanoi with over 15 years of experience. We are committed to providing high-quality, professional and reliable services for every customer.",
+  aboutHeroSubtitle:
+    "AutoCare Pro is proud to be a leading car repair and maintenance center in Hanoi with over 15 years of experience. We are committed to providing high-quality, professional and reliable services for every customer.",
   learnMore: "Learn more",
   contactNow: "Contact now",
   yearsExperience: "Years of experience",
@@ -120,15 +125,18 @@ export default {
   technicians: "Technicians",
   satisfaction: "Satisfaction",
   mission: "Mission",
-  missionDesc: "AutoCare Pro is committed to providing the highest quality car repair and maintenance services, ensuring safety and satisfaction for every customer. We continuously improve processes, invest in modern equipment and train professional technicians.",
+  missionDesc:
+    "AutoCare Pro is committed to providing the highest quality car repair and maintenance services, ensuring safety and satisfaction for every customer. We continuously improve processes, invest in modern equipment and train professional technicians.",
   vision: "Vision",
-  visionDesc: "To become Vietnam's leading garage system, trusted and chosen by customers. We aim to expand our branch network nationwide, applying Industry 4.0 technology in management and services.",
+  visionDesc:
+    "To become Vietnam's leading garage system, trusted and chosen by customers. We aim to expand our branch network nationwide, applying Industry 4.0 technology in management and services.",
   coreValues: "Core values",
   coreValuesSubtitle: "The principles that guide all our activities",
   quality: "Quality",
   qualityDesc: "Commitment to superior service quality, using genuine parts.",
   dedication: "Dedication",
-  dedicationDesc: "Serving customers with the highest dedication and responsibility.",
+  dedicationDesc:
+    "Serving customers with the highest dedication and responsibility.",
   innovation: "Innovation",
   innovationDesc: "Continuously innovating technology and service processes.",
   professionalism: "Professionalism",
@@ -153,7 +161,8 @@ export default {
   technicalDepartmentHead: "Technical Department Head",
   serviceExpert: "Service Expert",
   certificationsPartners: "Certifications & Partners",
-  certificationsPartnersSubtitle: "Trusted partners with leading car brands and suppliers",
+  certificationsPartnersSubtitle:
+    "Trusted partners with leading car brands and suppliers",
   toyotaAuthorized: "Toyota Authorized Service",
   hondaCertified: "Honda Certified Dealer",
   hyundaiGold: "Hyundai Gold Partner",
@@ -171,11 +180,12 @@ export default {
   heroTitle1: "Taking care of your car",
   heroTitleHighlight1: "professionally",
   heroTitleHighlight2: "transparently",
-  heroDescription: "Schedule repairs, track progress, pay online - all in one platform. Experience modern garage service with smart management technology.",
+  heroDescription:
+    "Schedule repairs, track progress, pay online - all in one platform. Experience modern garage service with smart management technology.",
   bookAppointmentNow: "Book now",
   viewCustomerPortal: "View Customer Portal",
   accessAdminDashboard: "Access Admin Dashboard",
-  
+
   // Admin Dashboard
   adminDashboard: "Dashboard",
   adminOverview: "OVERVIEW",
@@ -231,7 +241,7 @@ export default {
   adminCustomersToday: "Customers today",
   adminAvgServiceTime: "Avg service time",
   adminUpcomingAppointments: "Upcoming appointments",
-  
+
   // OTP Verification
   verifyOTP: "Verify OTP",
   otpTitle: "Enter verification code",
@@ -249,7 +259,7 @@ export default {
   otpVerifyFailed: "OTP verification failed",
   otpResendSuccess: "OTP code has been resent",
   otpResendFailed: "Failed to resend OTP",
-  
+
   // Profile Page
   editProfile: "Edit profile",
   securitySettings: "Security & Settings",
@@ -267,7 +277,7 @@ export default {
   averageRating: "Average rating",
   favoriteTechnicians: "Favorite technicians",
   newMember: "New member",
-  
+
   // Add Car Modal
   addNewVehicle: "Add new vehicle",
   licensePlate: "License plate",
@@ -297,7 +307,7 @@ export default {
   addCarFailed: "Failed to add vehicle",
   vehicles: "vehicles",
   loading: "Loading...",
-  
+
   // Edit Profile Modal
   addressPlaceholder: "Enter address",
   language: "Language",
@@ -311,7 +321,7 @@ export default {
   male: "Male",
   female: "Female",
   dateOfBirth: "Date of birth",
-  
+
   // Products Management
   productsManagement: "Products Management",
   productsManagementSubtitle: "Manage products and parts",
@@ -333,6 +343,8 @@ export default {
   errorSavingCategory: "Error occurred while saving category",
   categoryTypeService: "Service",
   categoryTypePart: "Part",
+  markupPercent: "Markup (%)",
+  isActive: "Active",
   type: "Type",
   updateProduct: "Update Product",
   serviceList: "Service list",
@@ -389,10 +401,10 @@ export default {
   saving: "Saving...",
   createProduct: "Create Product",
   errorSavingProduct: "Error occurred while saving product",
-  
+
   // Admin Sidebar
   loadingMenu: "Loading menu...",
-  
+
   // User Management
   userManagement: "User Management",
   userManagementSubtitle: "Manage system user information",
@@ -424,11 +436,19 @@ export default {
   createUserSuccess: "User created successfully!",
   updateUserSuccess: "User updated successfully!",
   deleteUserSuccess: "User deleted successfully!",
+  searchUsersPlaceholder: "Search by name, code, username, email, phone...",
+  showPassword: "Show password",
+  hidePassword: "Hide password",
+  notAvailable: "N/A",
+  edit: "Edit",
+  delete: "Delete",
+  id: "ID",
+  hoursShort: "h",
   errorOccurred: "An error occurred!",
   errorDeletingUser: "Error occurred while deleting!",
   confirmDeleteUser: "Are you sure you want to delete this user?",
   cannotLoadUsers: "Cannot load user list",
-  
+
   // Forgot Password
   forgotPasswordTitle: "Forgot password?",
   forgotPasswordSubtitle: "Enter your email to receive verification code",
@@ -450,10 +470,13 @@ export default {
   confirmNewPasswordRequired: "Confirm password is required",
   newPasswordMismatch: "Passwords do not match",
   passwordMinLengthStrong: "Password must be more than 6 characters",
-  passwordRequireUppercase: "Password must contain at least one uppercase letter",
-  passwordRequireSpecialChar: "Password must contain at least one special character",
-  passwordStrongHint: "Must be more than 6 characters, include uppercase and special character",
-  
+  passwordRequireUppercase:
+    "Password must contain at least one uppercase letter",
+  passwordRequireSpecialChar:
+    "Password must contain at least one special character",
+  passwordStrongHint:
+    "Must be more than 6 characters, include uppercase and special character",
+
   // Pricing Section
   pricingTitle: "Repair & Maintenance Services",
   pricingDescription: "Choose the service package that suits your needs",
@@ -490,7 +513,8 @@ export default {
   servicePageBadge: "Professional Services",
   servicePageTitle: "Repair & Maintenance",
   servicePageTitleHighlight: "Services",
-  servicePageDescription: "Experienced technicians, modern equipment, committed to the best service quality for your vehicle.",
+  servicePageDescription:
+    "Experienced technicians, modern equipment, committed to the best service quality for your vehicle.",
   servicePageBookNow: "Book Now",
   servicePageFreeConsult: "Free Consultation",
 
@@ -500,12 +524,14 @@ export default {
   serviceStatSupport: "Roadside Assistance",
 
   serviceCategoryTitle: "Service Categories",
-  serviceCategoryDescription: "From routine maintenance to complex repairs, we provide a full range of services for all your needs.",
+  serviceCategoryDescription:
+    "From routine maintenance to complex repairs, we provide a full range of services for all your needs.",
   servicePopular: "Popular",
   serviceBookBtn: "Book",
 
   serviceMaintTitle: "Periodic Maintenance",
-  serviceMaintDesc: "Comprehensive maintenance service to keep your car in top condition",
+  serviceMaintDesc:
+    "Comprehensive maintenance service to keep your car in top condition",
   serviceMaintItem1: "Oil and filter change",
   serviceMaintItem2: "20-point safety inspection",
   serviceMaintItem3: "AC filter replacement",
@@ -533,7 +559,8 @@ export default {
   serviceElecPrice: "From 300,000đ",
 
   serviceACTitle: "AC - Cooling System",
-  serviceACDesc: "Maintenance and repair of automotive air conditioning systems",
+  serviceACDesc:
+    "Maintenance and repair of automotive air conditioning systems",
   serviceACItem1: "AC gas recharge",
   serviceACItem2: "Evaporator cleaning",
   serviceACItem3: "AC filter replacement",
@@ -580,11 +607,14 @@ export default {
 
   serviceWhyChooseTitle: "Why Choose AutoCare Pro?",
   serviceWhyCertifiedTitle: "Certified Technicians",
-  serviceWhyCertifiedDesc: "Well-trained team with certifications from major brands like Toyota, Honda, Hyundai.",
+  serviceWhyCertifiedDesc:
+    "Well-trained team with certifications from major brands like Toyota, Honda, Hyundai.",
   serviceWhyWarrantyTitle: "Long-term Warranty",
-  serviceWhyWarrantyDesc: "6-12 month warranty commitment for all repair services and replacement parts.",
+  serviceWhyWarrantyDesc:
+    "6-12 month warranty commitment for all repair services and replacement parts.",
   serviceWhyPartsTitle: "Genuine Parts",
-  serviceWhyPartsDesc: "100% genuine or high-quality OEM parts with clear origin traceability.",
+  serviceWhyPartsDesc:
+    "100% genuine or high-quality OEM parts with clear origin traceability.",
 
   serviceCTATitle: "Need service advice?",
   serviceCTADescription: "Contact us for free 24/7 support",
@@ -595,7 +625,8 @@ export default {
   pricingPageBadge: "Transparent - Competitive",
   pricingPageTitle: "Detailed & transparent",
   pricingPageTitleHighlight: "service pricing",
-  pricingPageSubtitle: "We commit to competitive prices, no hidden costs. Clear pricing before service.",
+  pricingPageSubtitle:
+    "We commit to competitive prices, no hidden costs. Clear pricing before service.",
   pricingTabMaintenance: "Maintenance",
   pricingTabRepair: "Repair",
   pricingTabAC: "Air Conditioning",
@@ -603,7 +634,8 @@ export default {
   pricingTabElectrical: "Electrical - Electronics",
   pricingTabBody: "Body & Paint",
   pricingTableIcon: "Price List",
-  pricingTableSubtitle: "Reference prices, may vary by vehicle type and actual condition",
+  pricingTableSubtitle:
+    "Reference prices, may vary by vehicle type and actual condition",
   pricingTableService: "Service",
   pricingTablePrice: "Reference Price",
   pricingTableNote: "Note",
@@ -613,7 +645,8 @@ export default {
 
   // Membership Section
   membershipTitle: "Membership Program",
-  membershipSubtitle: "Earn points and rank up to receive many attractive offers",
+  membershipSubtitle:
+    "Earn points and rank up to receive many attractive offers",
   membershipFree: "Free",
   membershipMember: "Member",
   membershipMemberDesc: "For new customers",
@@ -655,19 +688,25 @@ export default {
   // FAQ Section
   pricingFaqTitle: "Frequently Asked Questions",
   pricingFaq1Q: "Does the price include spare parts?",
-  pricingFaq1A: "The listed prices are mainly labor costs. Some items are marked as 'including parts'. For other services, parts are charged separately based on your vehicle type and choice (genuine/OEM).",
+  pricingFaq1A:
+    "The listed prices are mainly labor costs. Some items are marked as 'including parts'. For other services, parts are charged separately based on your vehicle type and choice (genuine/OEM).",
   pricingFaq2Q: "Can I get a quote before repair?",
-  pricingFaq2A: "Yes, we always provide a detailed quote before proceeding with repairs. After diagnosis, our technician will list all repair items with prices for your approval.",
+  pricingFaq2A:
+    "Yes, we always provide a detailed quote before proceeding with repairs. After diagnosis, our technician will list all repair items with prices for your approval.",
   pricingFaq3Q: "How long is the warranty period?",
-  pricingFaq3A: "We offer a 6-month warranty for maintenance services and a 12-month warranty for repair services. Genuine parts are warranted according to the manufacturer's policy.",
+  pricingFaq3A:
+    "We offer a 6-month warranty for maintenance services and a 12-month warranty for repair services. Genuine parts are warranted according to the manufacturer's policy.",
   pricingFaq4Q: "Do you offer installment payment?",
-  pricingFaq4A: "Yes, we offer 0% interest installment plans through our partner banks and e-wallets for invoices of 3 million VND or more.",
+  pricingFaq4A:
+    "Yes, we offer 0% interest installment plans through our partner banks and e-wallets for invoices of 3 million VND or more.",
   pricingFaq5Q: "How can I get a discount?",
-  pricingFaq5A: "You can earn points with each service visit to upgrade your membership tier and receive exclusive benefits. Additionally, we regularly run seasonal promotions.",
+  pricingFaq5A:
+    "You can earn points with each service visit to upgrade your membership tier and receive exclusive benefits. Additionally, we regularly run seasonal promotions.",
 
   // Pricing Bottom CTA
   pricingBottomTitle: "Need more pricing advice?",
-  pricingBottomSubtitle: "Contact our hotline for a detailed quote based on your vehicle",
+  pricingBottomSubtitle:
+    "Contact our hotline for a detailed quote based on your vehicle",
   pricingBottomContact: "Contact for consultation",
   pricingBottomViewServices: "View service details",
 
@@ -679,29 +718,38 @@ export default {
 
   // Home Page - Features Section
   homeFeaturesSectionTitle: "Smart Vehicle Management",
-  homeFeaturesSectionDesc: "Comprehensive management system to track all your vehicle activities",
+  homeFeaturesSectionDesc:
+    "Comprehensive management system to track all your vehicle activities",
   homeFeatureBookingTitle: "Online Appointment Booking",
-  homeFeatureBookingDesc: "Easily book repair and maintenance appointments through the app",
+  homeFeatureBookingDesc:
+    "Easily book repair and maintenance appointments through the app",
   homeFeatureDiagnosisTitle: "Remote Diagnosis",
-  homeFeatureDiagnosisDesc: "Remotely diagnose vehicle condition through smart system",
+  homeFeatureDiagnosisDesc:
+    "Remotely diagnose vehicle condition through smart system",
   homeFeatureTrackingTitle: "Track Progress",
   homeFeatureTrackingDesc: "Track repair and maintenance progress in real-time",
   homeFeatureSupport247Title: "24/7 Support",
-  homeFeatureSupport247Desc: "24/7 customer support system with professional technicians",
+  homeFeatureSupport247Desc:
+    "24/7 customer support system with professional technicians",
   homeFeatureConsultingTitle: "Dedicated Consulting",
-  homeFeatureConsultingDesc: "Professional consulting team supports customers with dedication and care",
+  homeFeatureConsultingDesc:
+    "Professional consulting team supports customers with dedication and care",
   homeFeatureCertTitle: "Quality Certification",
-  homeFeatureCertDesc: "Service quality commitment with clear and transparent warranty certificates",
+  homeFeatureCertDesc:
+    "Service quality commitment with clear and transparent warranty certificates",
 
   // Home Page - Testimonials Section
   homeTestimonialsTitle: "What our customers say",
-  homeTestimonial1Text: "Excellent service! Professional staff, dedicated consultation. The car was meticulously cared for and the price was reasonable.",
+  homeTestimonial1Text:
+    "Excellent service! Professional staff, dedicated consultation. The car was meticulously cared for and the price was reasonable.",
   homeTestimonial1Name: "Mr. Minh",
   homeTestimonial1Role: "Loyal customer",
-  homeTestimonial2Text: "The online booking system is very convenient. Being able to track repair progress through the app is very modern and useful.",
+  homeTestimonial2Text:
+    "The online booking system is very convenient. Being able to track repair progress through the app is very modern and useful.",
   homeTestimonial2Name: "Ms. Linh",
   homeTestimonial2Role: "New customer",
-  homeTestimonial3Text: "The technical team is very skilled, providing detailed advice about the car's condition. Transparent pricing, no additional costs.",
+  homeTestimonial3Text:
+    "The technical team is very skilled, providing detailed advice about the car's condition. Transparent pricing, no additional costs.",
   homeTestimonial3Name: "Mr. Tuan",
   homeTestimonial3Role: "VIP customer",
 
@@ -719,13 +767,15 @@ export default {
 
   // Home Page - CTA Section
   homeCTATitle: "Ready for professional service?",
-  homeCTADesc: "Sign up now to get 10% off your first maintenance. Join a community of over 10,000 trusted customers.",
+  homeCTADesc:
+    "Sign up now to get 10% off your first maintenance. Join a community of over 10,000 trusted customers.",
   homeCTABookNow: "Book now",
   homeCTAPhone: "1900 123 456",
 
   // Booking Page
   bookingHeaderTitle: "Create repair request",
-  bookingHeaderSubtitle: "Fill in information to submit a repair or maintenance request",
+  bookingHeaderSubtitle:
+    "Fill in information to submit a repair or maintenance request",
   bookingStep1Title: "Select vehicle",
   bookingStep1Desc: "Choose the vehicle to repair",
   bookingStep2Title: "Describe issue",
@@ -738,12 +788,14 @@ export default {
   bookingPhonePlaceholder: "Enter phone number",
   bookingSelectVehicle: "Select vehicle to repair",
   bookingLoadingVehicles: "Loading vehicle list...",
-  bookingNoVehicles: "You don't have any vehicles. Please add a vehicle in the profile page.",
+  bookingNoVehicles:
+    "You don't have any vehicles. Please add a vehicle in the profile page.",
   bookingDescribeIssue: "Describe vehicle issue",
   bookingIssueTitleLabel: "Request title",
   bookingIssueTitlePlaceholder: "E.g: Car makes strange noise when braking",
   bookingIssueDescLabel: "Detailed description",
-  bookingIssueDescPlaceholder: "Describe in detail the issue the vehicle is experiencing, when it occurs, any abnormalities...",
+  bookingIssueDescPlaceholder:
+    "Describe in detail the issue the vehicle is experiencing, when it occurs, any abnormalities...",
   bookingSymptomLabel: "Symptoms (select multiple if applicable)",
   bookingSymptomStrangeNoise: "Strange noise",
   bookingSymptomVibration: "Vibration while driving",
@@ -761,10 +813,12 @@ export default {
   bookingServiceTypeMaintenance: "Maintenance",
   bookingServiceTypeMaintenanceDesc: "Periodic maintenance",
   bookingSelectService: "Select service",
-  bookingSelectServiceSubtitle: "Choose services you want or leave empty for expert consultation",
+  bookingSelectServiceSubtitle:
+    "Choose services you want or leave empty for expert consultation",
   bookingMinutes: "min",
   bookingSelectTechnician: "Select technician (optional)",
-  bookingTechnicianInfo: "Choose a repair technician or let the system auto-assign",
+  bookingTechnicianInfo:
+    "Choose a repair technician or let the system auto-assign",
   bookingAutoAssign: "Auto-assign",
   bookingAutoAssignDesc: "System will choose the most suitable technician",
   bookingTechRepair: "Repair",
@@ -781,10 +835,12 @@ export default {
   bookingSelectedServices: "Selected services",
   bookingTotal: "Total:",
   bookingTechnician: "Technician",
-  bookingAutoAssignSummary: "Auto-assign - System will choose the most suitable technician",
+  bookingAutoAssignSummary:
+    "Auto-assign - System will choose the most suitable technician",
   bookingPreferredTimeSummary: "Preferred time",
   bookingNotSpecified: "Not specified",
-  bookingNote: "Note: After submitting the request, our experts will contact you for consultation and detailed quotation. Prices may also change after direct vehicle inspection.",
+  bookingNote:
+    "Note: After submitting the request, our experts will contact you for consultation and detailed quotation. Prices may also change after direct vehicle inspection.",
   bookingBack: "Back",
   bookingNext: "Continue",
   bookingSubmit: "Submit request",
@@ -797,7 +853,8 @@ export default {
 
   // Rescue Page
   rescueHeaderTitle: "Rescue request",
-  rescueHeaderSubtitle: "Fill in information to submit an emergency rescue request",
+  rescueHeaderSubtitle:
+    "Fill in information to submit an emergency rescue request",
   rescueBadge: "Rescue",
   rescueStep1Title: "Vehicle info & location",
   rescueStep1Desc: "Select vehicle and enter address",
@@ -806,13 +863,16 @@ export default {
   rescueStep3Title: "Confirm",
   rescueStep3Desc: "Review and submit request",
   rescueAddressLabel: "Address where vehicle is stranded",
-  rescueAddressPlaceholder: "Enter the exact address where the vehicle is in trouble (E.g: 10 Nguyen Trai Street, District 1, HCMC)",
+  rescueAddressPlaceholder:
+    "Enter the exact address where the vehicle is in trouble (E.g: 10 Nguyen Trai Street, District 1, HCMC)",
   rescueSelectVehicle: "Select vehicle for rescue",
   rescueLoadingVehicles: "Loading vehicle list...",
-  rescueNoVehicles: "You don't have any vehicles. Please add a vehicle in the profile page.",
+  rescueNoVehicles:
+    "You don't have any vehicles. Please add a vehicle in the profile page.",
   rescueDescribeIssue: "Describe vehicle issue",
   rescueProblemDescLabel: "Problem description",
-  rescueProblemDescPlaceholder: "Describe in detail your vehicle's condition (E.g: Car won't start, engine dead)...",
+  rescueProblemDescPlaceholder:
+    "Describe in detail your vehicle's condition (E.g: Car won't start, engine dead)...",
   rescueImageEvidenceLabel: "Image evidence",
   rescueImageEvidencePlaceholder: "Paste image evidence URL (if any)",
   rescueImageCamera: "Take photo",
@@ -823,15 +883,18 @@ export default {
   rescueContactPhone: "Contact phone number",
   rescueAddress: "Rescue address",
   rescueIssueSummary: "Issue to resolve",
-  rescueNote: "Note: The rescue team will be dispatched immediately after you submit the request. Please keep your phone available to receive calls from the rescue team.",
+  rescueNote:
+    "Note: The rescue team will be dispatched immediately after you submit the request. Please keep your phone available to receive calls from the rescue team.",
   rescueBack: "Back",
   rescueNext: "Continue",
   rescueSubmit: "Submit rescue request",
   rescueAlertSelectVehicle: "Please select a vehicle for rescue",
   rescueAlertEnterPhone: "Please enter a contact phone number",
-  rescueAlertEnterAddress: "Please enter the address where the vehicle is stranded",
+  rescueAlertEnterAddress:
+    "Please enter the address where the vehicle is stranded",
   rescueAlertFillIssue: "Please fill in complete issue information",
-  rescueAlertNoLocation: "Unable to determine location. Please allow location access.",
+  rescueAlertNoLocation:
+    "Unable to determine location. Please allow location access.",
   rescueGetLocation: "Get location",
   rescueLatitude: "Latitude",
   rescueLongitude: "Longitude",
@@ -890,13 +953,15 @@ export default {
   rescueMgrDepositAmount: "Deposit amount",
   rescueMgrRequireDeposit: "Require deposit",
   rescueMgrNote: "Note",
-  rescueMgrNotLoyalNote: "Customer is not a loyal member — deposit is required per policy.",
+  rescueMgrNotLoyalNote:
+    "Customer is not a loyal member — deposit is required per policy.",
   rescueMgrDiagnosisInfo: "Diagnosis Result",
   rescueMgrCanFixOnSite: "Can fix on-site?",
   rescueMgrYesFixOnSite: "Fix on-site",
   rescueMgrNoNeedTow: "Need towing",
   rescueMgrDiagnosisNote: "Diagnosis note",
-  rescueMgrDiagnosisPlaceholder: "Describe vehicle condition after diagnosis...",
+  rescueMgrDiagnosisPlaceholder:
+    "Describe vehicle condition after diagnosis...",
   rescueMgrSaveDiagnosis: "Save diagnosis",
   rescueMgrTotalCost: "Total cost",
   rescueMgrClose: "Close",
@@ -968,13 +1033,16 @@ export default {
   rescueMgrCompleteTowingError: "Failed to confirm vehicle arrival!",
   rescueMgrNoTechnicians: "No technicians found in the system!",
   rescueMgrCannotLoadTechs: "Cannot load technician list",
-  rescueMgrAssignSuccessMsg: "Notification sent to {{count}}/{{total}} technicians!",
+  rescueMgrAssignSuccessMsg:
+    "Notification sent to {{count}}/{{total}} technicians!",
   rescueMgrAssignFailedMsg: "Failed to send notification. Please try again!",
-  rescueMgrAssignPartialFailMsg: "{{count}} technician(s) did not receive notification: {{names}}",
+  rescueMgrAssignPartialFailMsg:
+    "{{count}} technician(s) did not receive notification: {{names}}",
 
   // Rescue Management - Assign modal
   rescueMgrTechSelectedCount: "Selected {{selected}}/{{total}} technicians",
-  rescueMgrTechNoSelection: "None selected — will send to all {{count}} technicians",
+  rescueMgrTechNoSelection:
+    "None selected — will send to all {{count}} technicians",
   rescueMgrEstimatedArrivalLabel: "Estimated arrival time *",
   rescueMgrSending: "Sending...",
   rescueMgrSendToSelected: "Send to {{count}} selected technician(s)",
@@ -1003,7 +1071,8 @@ export default {
   // Rescue Management - Dispatch Towing modal
   rescueMgrDispatchTowingModalTitle: "Dispatch Towing Service",
   rescueMgrTowingNotesLabel: "Towing notes",
-  rescueMgrTowingNotesPlaceholder: "E.g: Vehicle to be towed to garage at 456 Dien Bien Phu.",
+  rescueMgrTowingNotesPlaceholder:
+    "E.g: Vehicle to be towed to garage at 456 Dien Bien Phu.",
   rescueMgrEstimatedArrivalOptional: "Estimated arrival (optional)",
   rescueMgrTowingFeeLabel: "Estimated towing fee (VND, optional)",
   rescueMgrTowingFeePlaceholder: "E.g: 500000",
@@ -1012,7 +1081,8 @@ export default {
   // Rescue Management - Complete Towing modal
   rescueMgrCompleteTowingModalTitle: "Confirm Vehicle at Garage",
   rescueMgrRepairOrderNotesLabel: "Repair order notes (optional)",
-  rescueMgrRepairOrderNotesPlaceholder: "E.g: Vehicle has been towed to garage. Awaiting technician assignment.",
+  rescueMgrRepairOrderNotesPlaceholder:
+    "E.g: Vehicle has been towed to garage. Awaiting technician assignment.",
   rescueMgrProcessing: "Processing...",
   rescueMgrConfirmAtGarageBtn: "Confirm vehicle at garage",
 
@@ -1022,7 +1092,8 @@ export default {
   rescueMgrProposalRoadside: "Fix on-site",
   rescueMgrProposalTowing: "Tow to garage",
   rescueMgrCustomerNoteLabel: "Note for customer",
-  rescueMgrCustomerNotePlaceholder: "E.g: Technician will arrive within 30 minutes...",
+  rescueMgrCustomerNotePlaceholder:
+    "E.g: Technician will arrive within 30 minutes...",
   rescueMgrProposalServicesLabel: "Services (optional)",
   rescueMgrProposalServicesLoading: "Loading services...",
   rescueMgrProposalServicesEmpty: "No active services found.",
@@ -1032,6 +1103,8 @@ export default {
   rescueMgrProposalEstFeeLabel: "Estimated service fee (VND)",
   rescueMgrProposalEstFeeAuto: "Auto-calculated from selected services & parts",
   rescueMgrProposalEstFeeManual: "Enter manually (if no selection above)",
+  rescueMgrDepositAmountLabel: "Deposit amount (50% of estimated fee)",
+  rescueMgrDepositAmountHint: "Please pay a deposit invoice with your first transaction.",
   rescueMgrProposalConfirmRoadside: "Confirm fix on-site",
   rescueMgrProposalConfirmTowing: "Confirm tow to garage",
   rescueMgrProposalQty: "Qty",
@@ -1045,9 +1118,146 @@ export default {
   rescueProposalTowingLabel: "Tow to garage",
   rescueProposalAccept: "Accept proposal",
   rescueProposalReject: "Decline",
-  rescueProposalAcceptSuccess: "Proposal accepted! Garage will dispatch shortly.",
+  rescueProposalAcceptSuccess:
+    "Proposal accepted! Garage will dispatch shortly.",
   rescueProposalAcceptError: "Failed to accept proposal. Please try again.",
-  rescueProposalWaiting: "You have accepted the proposal. Waiting for garage to dispatch.",
+  rescueProposalWaiting:
+    "You have accepted the proposal. Waiting for garage to dispatch.",
+  rescueDepositPaySuccess: "Deposit paid successfully!",
+  rescueDepositPayError: "Deposit payment failed, please try again.",
+  rescueDepositLabel: "Deposit amount",
+  rescueDepositDueLabel: "Deposit amount due",
+  rescueDepositRequiredInfo: "You have accepted the proposal. Please pay the deposit so the garage can dispatch a technician.",
+  rescueDepositTapQR: "Tap to view payment QR code →",
+  rescueAcceptProposalBtn: "Accept proposal",
+  rescueConfirmDepositBtn: "Confirm deposit",
+  rescueDepositQRTitle: "Deposit payment QR code",
+  rescueDepositQRScanHint: "Scan to pay the deposit amount",
+  rescueMgrConfirmDeposit: "Confirm customer deposited",
+  rescueMgrDepositConfirmSuccess: "Customer deposit confirmed!",
+  rescueMgrDepositConfirmError: "Failed to confirm deposit!",
+
+  // Rescue Detail Modal - Technician actions
+  rescueTechAssignedTitle: "You have been assigned to this rescue job",
+  rescueTechAssignedInfo:
+    "The system has automatically confirmed. Please prepare to move to the customer's location.",
+  rescueTechStartDrivingBtn: "Start driving",
+  rescueTechEnRouteTitle: "You are on the way",
+  rescueTechEnRouteInfo:
+    "When you have arrived at the customer's location, confirm to continue the process.",
+  rescueTechConfirmArrivalBtn: "Confirm arrival on site",
+  rescueTechDiagnoseTitle: "Vehicle diagnosis",
+  rescueTechDiagnoseInfo:
+    "Record diagnosis results and determine if on-site repair is possible.",
+  rescueTechDiagnoseNotesLabel: "Diagnosis notes *",
+  rescueTechDiagnoseNotesPlaceholder: "Describe the vehicle condition...",
+  rescueTechCanRepairLabel: "Can repair on-site? *",
+  rescueTechRepairOnSiteOption: "Repair on-site",
+  rescueTechNeedTowingOption: "Need towing",
+  rescueTechSubmitDiagnosisBtn: "Submit diagnosis",
+  rescueTechRepairItemsTitle: "Record materials / services used",
+  rescueTechRepairItemsInfo: "Add materials and service items used.",
+  rescueTechAddRowBtn: "+ Add row",
+  rescueTechSaveMaterialsBtn: "Save materials",
+  rescueTechCompleteRepairTitle: "Complete repair",
+  rescueTechCompleteRepairInfo:
+    "Repair done? Add notes and report completion so SA can create the invoice.",
+  rescueTechCompletionNotesLabel: "Completion notes",
+  rescueTechCompletionNotesPlaceholder:
+    "E.g.: Fuel pump replaced successfully, vehicle started normally.",
+  rescueTechConfirmCompleteBtn: "Confirm completion",
+  rescueTechEditPartsTitle: "Repair complete — Adjust parts / services",
+  rescueTechEditPartsInfo:
+    "Add or edit materials & services before SA creates the invoice.",
+  rescueTechSavePartsBtn: "Save parts",
+  rescueTechWaitingInvoice:
+    "Waiting for SA to create and send invoice to customer.",
+  rescueTechWaitingPayment:
+    "Waiting for garage and customer to process invoice & payment.",
+  rescueTechProcessing: "Processing...",
+  rescueTechSending: "Sending...",
+  rescueTechSaving: "Saving...",
+  // Rescue Detail Modal - Customer info messages
+  rescueCustomerKtvAssigned:
+    "A technician has been assigned and is preparing to move to your location.",
+  rescueCustomerKtvEnRoute:
+    "The technician is on the way to your location.",
+  rescueCustomerKtvOnSite:
+    "The technician has arrived and is assessing your vehicle.",
+  rescueCustomerRepairComplete:
+    "Repair completed. Garage is creating the invoice.",
+  rescueCustomerInvoiced:
+    "Invoice has been created. Waiting for garage to send it to you.",
+  // Rescue Management - extra action labels
+  rescueMgrEditPartsAction: "Edit parts",
+  rescueMgrStartDrivingAction: "Start driving",
+
+  // Rescue Detail Modal - Customer actions (post-dispatch)
+  rescueCustomerDiagnosingTitle: "Technician has completed diagnosis",
+  rescueCustomerDiagnosingInfo:
+    "Review the results and confirm for the technician to proceed with on-site repair.",
+  rescueCustomerConsentNotesLabel: "Confirmation notes (optional)",
+  rescueCustomerConsentNotesPlaceholder:
+    "E.g.: Customer agrees to on-site inspection and repair.",
+  rescueCustomerAgreeRepairBtn: "Agree to on-site repair",
+  rescueCustomerDeclineBtn: "Decline",
+  rescueCustomerRepairingInfo: "The technician is performing the on-site repair.",
+  rescueCustomerTowingTitle: "Garage proposes towing service",
+  rescueCustomerTowingInfo:
+    "Garage has dispatched a tow truck to your location. Do you agree to use the towing service?",
+  rescueCustomerAcceptTowingBtn: "Accept towing",
+  rescueCustomerTowingAcceptedInfo:
+    "You have accepted towing. The vehicle is being towed to the garage.",
+  rescueCustomerTowedInfo: "The vehicle has been towed to the garage. Awaiting processing.",
+  rescueCustomerNeedPaymentTitle: "Payment required",
+  rescueCustomerNeedPaymentInfo:
+    "Invoice has been sent. Please confirm payment to complete.",
+  rescueCustomerConfirmPaymentBtn: "Confirm payment",
+  rescueCustomerPaymentInfoTitle: "Payment information",
+  rescueCustomerPaymentMethodLabel: "Method *",
+  rescueCustomerPaymentMethodTransfer: "Bank transfer",
+  rescueCustomerPaymentMethodCash: "Cash",
+  rescueCustomerPaymentMethodCard: "Card",
+  rescueCustomerPaymentMethodEwallet: "E-wallet",
+  rescueCustomerAmountLabel: "Amount (VND) *",
+  rescueCustomerAmountPlaceholder: "Enter amount",
+  rescueCustomerTransactionRefLabel: "Transaction reference",
+  rescueCustomerTransactionRefPlaceholder: "E.g.: VCB20260228001234",
+  rescueCustomerPayBtn: "Pay",
+  rescueCustomerBackBtn: "Back",
+  rescueCancelTitle: "Cancel rescue request",
+  rescueCancelInfo: "Please enter a reason for cancellation. This action cannot be undone.",
+  rescueCancelReasonLabel: "Cancellation reason *",
+  rescueCancelReasonPlaceholder: "Enter cancellation reason...",
+  rescueCancelConfirmBtn: "Confirm cancellation",
+  rescueCancelKeepBtn: "Keep request",
+  rescueCancelBtn: "Cancel rescue request",
+  rescueCancelProcessing: "Cancelling...",
+  // Toast messages for technician actions in RescueDetailModal
+  rescueTechDiagnosisSuccess: "Diagnosis submitted!",
+  rescueTechDiagnosisError: "Failed to submit diagnosis!",
+  rescueTechCompleteRepairSuccess: "Repair completion reported!",
+  rescueTechCompleteRepairError: "Failed to report completion!",
+  rescueTechRepairItemsSuccess: "Materials / services saved!",
+  rescueTechRepairItemsError: "Failed to save materials!",
+  rescueTechRepairItemsRequired: "Please enter at least 1 valid material/service!",
+  rescueCancelSuccess: "Rescue request cancelled!",
+  rescueCancelError: "Failed to cancel request!",
+  rescueConsentAgreedSuccess: "On-site repair confirmed!",
+  rescueConsentDeclinedSuccess: "On-site repair declined!",
+  rescueConsentError: "Failed to confirm!",
+  rescueTowingAcceptSuccess: "Towing service accepted!",
+  rescueTowingAcceptError: "Failed to confirm towing!",
+  rescuePaymentSuccess: "Payment successful!",
+  rescuePaymentError: "Payment failed!",
+  rescueProposalHintRoadside:
+    "A technician will come to your location to repair on-site.",
+  rescueProposalHintTowing:
+    "Your vehicle will be towed to the garage for inspection and repair.",
+  rescueProposalReadCarefully: "Please read carefully before confirming.",
+  rescueTechNotesPlaceholder: "Notes",
+  rescueTechQtyPlaceholder: "Quantity *",
+  rescueTechUnitPricePlaceholder: "Unit price *",
 
   // Home - Rescue Button
   heroMyAppointments: "My Appointments",
@@ -1062,7 +1272,8 @@ export default {
   appointmentsCompleted: "Completed",
   appointmentsSearch: "Search...",
   appointmentsEmpty: "No requests yet",
-  appointmentsEmptyDesc: "Create a repair or maintenance request to get started",
+  appointmentsEmptyDesc:
+    "Create a repair or maintenance request to get started",
   appointmentsCreated: "Created",
   appointmentsQuote: "Quote",
   appointmentsCancelled: "Cancelled",
@@ -1100,6 +1311,8 @@ export default {
   unitSearchPlaceholder: "Search by name, type...",
   unitNamePlaceholder: "E.g: Piece, Set, Time...",
   unitDescPlaceholder: "Unit description",
+  unitTypePart: "Part",
+  unitTypeService: "Service",
   appointmentsViewDetail: "View detail",
   appointmentsCustomerInfo: "Customer information",
   appointmentsRequestInfo: "Request information",
@@ -1151,7 +1364,8 @@ export default {
   inventoryLoading: "Loading...",
   inventoryNoData: "No data",
   inventoryError: "Cannot load transaction data.",
-  inventoryTotalInfo: "Total {{count}} transactions — Page {{current}} / {{total}}",
+  inventoryTotalInfo:
+    "Total {{count}} transactions — Page {{current}} / {{total}}",
   inventoryPrev: "← Prev",
   inventoryNext: "Next →",
   intakeTitle: "Intake Management",
@@ -1250,4 +1464,184 @@ export default {
   intakeDetailTechnicianName: "Technician Name",
   intakeDetailTechnicianPhone: "Technician Phone",
   intakeDetailTechnicianEmail: "Technician Email",
+  // ── Service Order Manager ──────────────────────────────────────────────────
+  serviceOrderTitle: "Service Order Management",
+  serviceOrderSubtitle: "All service orders in the system",
+  serviceOrderSearchPlaceholder: "Search by customer, vehicle...",
+  serviceOrderStatusFilter: "Status",
+  serviceOrderTypeFilter: "Service Type",
+  serviceOrderAction: "Action",
+  serviceOrderView: "View Detail",
+  serviceOrderError: "Unable to load service orders, please try again.",
+  serviceOrderUnit: "orders",
+  serviceOrderStatus_PENDING: "Pending",
+  serviceOrderStatus_IN_PROGRESS: "In Progress",
+  serviceOrderStatus_COMPLETED: "Completed",
+  serviceOrderStatus_CANCELLED: "Cancelled",
+  serviceOrderType_REPAIR: "Repair",
+  serviceOrderType_MAINTENANCE: "Maintenance",
+  serviceOrderType_INSPECTION: "Inspection",
+  // ── Service Order Detail Modal ─────────────────────────────────────────────
+  serviceOrderDetailTitle: "Service Order Detail",
+  serviceOrderDetailLoading: "Loading...",
+  serviceOrderDetailError: "Unable to load service order detail.",
+  serviceOrderDetailVehicleInfo: "Vehicle Info",
+  serviceOrderDetailBrand: "Brand",
+  serviceOrderDetailModel: "Model",
+  serviceOrderDetailColor: "Color",
+  serviceOrderDetailLicensePlate: "License Plate",
+  serviceOrderDetailEngine: "Engine No.",
+  serviceOrderDetailChassis: "Chassis No.",
+  serviceOrderDetailOdometer: "Odometer",
+  serviceOrderDetailCreatedDate: "Created Date",
+  serviceOrderDetailMaintenanceDate: "Maintenance Date",
+  serviceOrderDetailLineItems: "Service Line Items",
+  serviceOrderDetailItemType: "Type",
+  serviceOrderDetailItemName: "Name",
+  serviceOrderDetailItemQty: "Qty",
+  serviceOrderDetailItemUnitPrice: "Unit Price",
+  serviceOrderDetailItemTotal: "Total",
+  serviceOrderDetailNoItems: "No service items found.",
+  serviceOrderDetailClose: "Close",
+  serviceOrderDetailColNo: "#",
+  serviceOrderDetailColCode: "Code",
+  serviceOrderDetailColStatus: "Status",
+  serviceOrderDetailTotal: "Total",
+  serviceOrderDetailItemStatus_APPROVED: "Approved",
+  serviceOrderDetailItemStatus_PENDING: "Pending Review",
+  serviceOrderDetailItemStatus_REJECTED: "Rejected",
+  // ── Service Order Manager – extra status/column/tooltip keys ──────────────
+  serviceOrderStatus_IN_DIAGNOSIS: "In Diagnosis",
+  serviceOrderStatus_QUOTED: "Awaiting Approval",
+  serviceOrderColNo: "#",
+  serviceOrderColOrderId: "Order ID",
+  serviceOrderColCustomer: "Customer",
+  serviceOrderColVehicle: "Vehicle Info",
+  serviceOrderColTechnician: "Technician",
+  serviceOrderColServiceType: "Service Type",
+  serviceOrderColStatus: "Status",
+  serviceOrderColReceiveDate: "Received Date",
+  serviceOrderColCompletedDate: "Completed Date",
+  serviceOrderTooltipView: "View Detail",
+  serviceOrderTooltipAdditional: "Additional Items",
+  serviceOrderTooltipApprove: "Approve Additional",
+  serviceOrderTooltipInvoice: "View Invoice",
+  // ── Additional Items Modal ─────────────────────────────────────────────────
+  additionalItemsTitle: "Additional Items",
+  additionalItemsExistingLabel: "Current Proposals",
+  additionalItemsColNo: "#",
+  additionalItemsColType: "Type",
+  additionalItemsColCode: "Code",
+  additionalItemsColName: "Item Name",
+  additionalItemsColQty: "Qty",
+  additionalItemsColUnitPrice: "Unit Price",
+  additionalItemsColStatus: "Status",
+  additionalItemsTypeService: "Service",
+  additionalItemsTypePart: "Part",
+  additionalItemsStatus_APPROVED: "Approved",
+  additionalItemsStatus_PENDING: "Pending Review",
+  additionalItemsStatus_REJECTED: "Rejected",
+  additionalItemsEmpty: "No additional items yet.",
+  additionalItemsNewServicesLabel: "Propose New Services",
+  additionalItemsSelectService: "Select service...",
+  additionalItemsNewPartsLabel: "Propose New Parts",
+  additionalItemsSelectPart: "Select part...",
+  additionalItemsQtyPlaceholder: "Qty",
+  additionalItemsNotePlaceholder: "Note",
+  additionalItemsAddRow: "Add Row",
+  additionalItemsClose: "Close",
+  additionalItemsSubmitting: "Submitting...",
+  additionalItemsSubmit: "Submit Proposal",
+  additionalItemsLoadError: "Failed to load additional items.",
+  additionalItemsValidation: "Please select at least 1 service or part.",
+  additionalItemsSuccess: "Proposal submitted successfully!",
+  additionalItemsError: "Failed to submit proposal. Please try again.",
+  // ── Respond Additional Items Modal ─────────────────────────────────────────
+  respondAdditionalTitle: "Approve Additional Items",
+  respondAdditionalEmpty: "No items pending approval.",
+  respondAdditionalApproveAll: "Approve All",
+  respondAdditionalRejectAll: "Reject All",
+  respondAdditionalTypeService: "Service",
+  respondAdditionalTypePart: "Part",
+  respondAdditionalQtyLabel: "Qty:",
+  respondAdditionalUnitLabel: "/ unit",
+  respondAdditionalApprove: "Approve",
+  respondAdditionalReject: "Reject",
+  respondAdditionalPendingNote: "{{count}} item(s) undecided",
+  respondAdditionalCancel: "Cancel",
+  respondAdditionalSubmitting: "Submitting...",
+  respondAdditionalConfirm: "Confirm",
+  respondAdditionalLoadError: "Failed to load items.",
+  respondAdditionalSuccess: "Response submitted successfully!",
+  respondAdditionalError: "Failed to submit response. Please try again.",
+  // ── Invoice Modal ──────────────────────────────────────────────────────────
+  invoiceTitle: "Invoice",
+  invoiceCustomerInfo: "Customer Info",
+  invoiceCustomerFullName: "Full Name",
+  invoiceCustomerPhone: "Phone",
+  invoiceCustomerEmail: "Email",
+  invoiceCustomerMembership: "Membership Tier",
+  invoiceVehicleInfo: "Vehicle Info",
+  invoiceVehicleBrandModel: "Brand / Model",
+  invoiceVehiclePlate: "License Plate",
+  invoiceVehicleColor: "Color",
+  invoiceVehicleReceiveDate: "Received Date",
+  invoicePackages: "Applied Service Packages",
+  invoiceLineItems: "Service / Part Details",
+  invoiceColNo: "#",
+  invoiceColType: "Type",
+  invoiceColName: "Name",
+  invoiceColQty: "Qty",
+  invoiceColUnitPrice: "Unit Price",
+  invoiceColTotal: "Total",
+  invoiceTotalService: "Service Total",
+  invoiceMembershipDiscount: "Membership Discount",
+  invoiceFinalAmount: "Final Amount",
+  invoiceClose: "Close",
+  invoiceLoadError: "Failed to load invoice.",
+  membershipRanksManagement: "Membership Ranks Management",
+  membershipRanksManagementSubtitle: "Manage customer membership ranks and discount policies",
+  createNewMembershipRank: "Create New Rank",
+  updateMembershipRank: "Update Rank",
+  createMembershipRank: "Create Rank",
+  cannotLoadMembershipRanks: "Cannot load membership rank list",
+  errorSavingMembershipRank: "Error occurred while saving membership rank",
+  searchByRankName: "Search by rank name...",
+  membershipRank: "rank",
+  rankName: "Rank Name",
+  minSpending: "Min Spending (đ)",
+  discountPercent: "Discount (%)",
+  membershipRankDescriptionPlaceholder: "Enter rank description...",
+
+  // Maintenance Package Management
+  maintenancePackageManagement: "Maintenance Package Management",
+  maintenancePackageManagementSubtitle: "Manage maintenance packages and included items",
+  createNewMaintenancePackage: "Create New Package",
+  updateMaintenancePackage: "Update Package",
+  createMaintenancePackage: "Create Package",
+  cannotLoadMaintenancePackages: "Cannot load maintenance package list",
+  errorSavingMaintenancePackage: "Error occurred while saving maintenance package",
+  searchByNameCodePackage: "Search by name, package code...",
+  maintenancePackage: "package",
+  packageCode: "Package Code",
+  kilometerMilestone: "Kilometer Milestone",
+  monthMilestone: "Month Milestone",
+  basePrice: "Base Price (đ)",
+  finalPrice: "Final Price (đ)",
+  applicableBrands: "Applicable Brands",
+  applicableBrandsPlaceholder: "Honda, Toyota, ...",
+  displayOrder: "Display Order",
+  packageProducts: "Package Items",
+  addPackageDetail: "Add Item",
+  updatePackageDetail: "Update Item",
+  errorSavingPackageDetail: "Error occurred while saving package item",
+  errorLoadingPackageProducts: "Error loading package items",
+  quantity: "Quantity",
+  isRequired: "Required",
+  notes: "Notes",
+  noProductsInPackage: "No items in this package yet",
+  selectProduct: "Select service / part",
+  allStatuses: "All Statuses",
+  yes: "Yes",
+  no: "No",
 };

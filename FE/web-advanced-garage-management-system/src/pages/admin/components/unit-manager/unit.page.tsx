@@ -1,10 +1,19 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { HiSearch, HiPlus, HiPencil, HiX } from "react-icons/hi";
-import { getUnits, createUnit, updateUnit, type IUnit } from "@/services/admin/unitService";
+import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
+import { Table as AntTable, Switch } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import {
+  getUnits,
+  createUnit,
+  updateUnit,
+  updateUnitStatus,
+  type IUnit,
+} from "@/services/admin/unitService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import UnitModal from "./UnitModal";
 
 interface UnitFormData {
   name: string;
@@ -28,6 +37,7 @@ const UnitPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [updatingUnitId, setUpdatingUnitId] = useState<number | null>(null);
 
   const fetchUnits = useCallback(async () => {
     try {
@@ -49,7 +59,7 @@ const UnitPage = () => {
 
   const handleOpenCreateModal = () => {
     setEditingUnit(null);
-    setFormData({ name: "", type: "part", description: "", isActive: true });
+    setFormData({ name: "", type: "PART", description: "", isActive: true });
     setIsModalOpen(true);
   };
 
@@ -70,12 +80,15 @@ const UnitPage = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+      [name]:
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -107,325 +120,267 @@ const UnitPage = () => {
     }
   };
 
+  const handleToggleUnitStatus = async (unitId: number, isActive: boolean) => {
+    setUpdatingUnitId(unitId);
+    try {
+      await updateUnitStatus(unitId, isActive);
+      await fetchUnits();
+    } catch (err) {
+      console.error("Error updating unit status:", err);
+      toast.error(getApiErrorMessage(err, t("unitErrorSaving")));
+    } finally {
+      setUpdatingUnitId(null);
+    }
+  };
+
   const filteredUnits = units.filter(
     (u) =>
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      u.description?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  const columns: ColumnsType<IUnit> = [
+    {
+      title: t("id"),
+      dataIndex: "unitID",
+      key: "unitID",
+      align: "center",
+      render: (id: number) => <span style={{ color: "#1a1d2e" }}>{id}</span>,
+    },
+    {
+      title: t("name"),
+      dataIndex: "name",
+      key: "name",
+      render: (name: string) => <UnitName>{name}</UnitName>,
+    },
+    {
+      title: t("type"),
+      dataIndex: "type",
+      key: "type",
+      align: "center",
+      render: (type: string) => (
+        <TypeBadge $type={type}>
+          {type === "SERVICE" ? t("unitTypeService") : t("unitTypePart")}
+        </TypeBadge>
+      ),
+    },
+    {
+      title: t("description"),
+      dataIndex: "description",
+      key: "description",
+      render: (desc: string | null) => (
+        <DescriptionText>{desc || t("notAvailable")}</DescriptionText>
+      ),
+    },
+    {
+      title: t("status"),
+      dataIndex: "isActive",
+      key: "isActive",
+      align: "center",
+      render: (isActive: boolean, record: IUnit) => (
+        <Switch
+          checked={isActive}
+          loading={updatingUnitId === record.unitID}
+          onChange={(checked: boolean) =>
+            handleToggleUnitStatus(record.unitID, checked)
+          }
+        />
+      ),
+    },
+    {
+      title: t("action"),
+      key: "action",
+      align: "center",
+      render: (_: unknown, record: IUnit) => (
+        <ActionButtons>
+          <EditButton
+            onClick={() => handleOpenEditModal(record)}
+            title={t("edit")}
+          >
+            <HiPencil size={18} />
+          </EditButton>
+        </ActionButtons>
+      ),
+    },
+  ];
 
   return (
     <Container>
       <Header>
-        <TitleSection>
+        <div>
           <Title>{t("unitManagement")}</Title>
           <Subtitle>{t("unitManagementSubtitle")}</Subtitle>
-        </TitleSection>
+        </div>
         <AddButton onClick={handleOpenCreateModal}>
           <HiPlus size={18} />
           {t("unitCreateNew")}
         </AddButton>
       </Header>
 
+      {error && <ErrorBox>{error}</ErrorBox>}
+
+      <Toolbar>
+        <SearchWrapper>
+          <HiSearch size={16} color="#9ca3af" />
+          <SearchInput
+            type="text"
+            placeholder={t("unitSearchPlaceholder")}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </SearchWrapper>
+      </Toolbar>
+
       <TableCard>
-        <TableHeader>
-          <SearchBox>
-            <HiSearch size={18} />
-            <input
-              type="text"
-              placeholder={t("unitSearchPlaceholder")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </SearchBox>
-        </TableHeader>
-
-        <TableSection>
-          <TableTitle>{t("unitList")}</TableTitle>
-          <TableSubtitle>
-            {loading ? t("loading") : t("unitShowing", { count: filteredUnits.length })}
-          </TableSubtitle>
-
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-
-          {loading ? (
-            <LoadingMessage>{t("loadingData")}</LoadingMessage>
-          ) : (
-            <TableWrapper>
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>ID</Th>
-                    <Th>{t("name")}</Th>
-                    <Th>{t("type")}</Th>
-                    <Th>{t("description")}</Th>
-                    <Th>{t("status")}</Th>
-                    <Th>{t("action")}</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUnits.map((unit) => (
-                    <tr key={unit.unitID}>
-                      <Td>{unit.unitID}</Td>
-                      <Td>
-                        <UnitName>{unit.name}</UnitName>
-                      </Td>
-                      <Td>
-                        <TypeBadge $type={unit.type}>{unit.type}</TypeBadge>
-                      </Td>
-                      <Td>
-                        <DescriptionText>{unit.description || "—"}</DescriptionText>
-                      </Td>
-                      <Td>
-                        <StatusBadge $active={unit.isActive}>
-                          {unit.isActive ? t("active") : t("inactive")}
-                        </StatusBadge>
-                      </Td>
-                      <Td>
-                        <ActionButtons>
-                          <EditButton onClick={() => handleOpenEditModal(unit)}>
-                            <HiPencil size={18} />
-                          </EditButton>
-                        </ActionButtons>
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </TableWrapper>
-          )}
-        </TableSection>
+        <AntTable
+          columns={columns}
+          dataSource={filteredUnits}
+          rowKey="unitID"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: false,
+            showTotal: (total, range) =>
+              `${range[0]}–${range[1]} / ${total} ${t("unit")}`,
+          }}
+          scroll={{ x: "max-content" }}
+        />
       </TableCard>
 
-      {isModalOpen && (
-        <Modal>
-          <ModalOverlay onClick={handleCloseModal} />
-          <ModalContent>
-            <ModalHeader>
-              <ModalTitle>
-                {editingUnit ? t("unitUpdate") : t("unitCreateNew")}
-              </ModalTitle>
-              <CloseButton onClick={handleCloseModal}>
-                <HiX size={24} />
-              </CloseButton>
-            </ModalHeader>
-
-            <ModalBody>
-              <Form onSubmit={handleSubmit}>
-                <FormGroup>
-                  <Label>{t("name")} *</Label>
-                  <Input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder={t("unitNamePlaceholder")}
-                    required
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <Label>{t("type")} *</Label>
-                  <Select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="part">Part</option>
-                    <option value="service">Service</option>
-                  </Select>
-                </FormGroup>
-
-                <FormGroup>
-                  <Label>{t("description")}</Label>
-                  <TextArea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder={t("unitDescPlaceholder")}
-                    rows={3}
-                  />
-                </FormGroup>
-
-                {editingUnit && (
-                  <FormGroup>
-                    <CheckboxRow>
-                      <input
-                        type="checkbox"
-                        name="isActive"
-                        checked={formData.isActive}
-                        onChange={handleInputChange}
-                      />
-                      <Label style={{ margin: 0 }}>{t("active")}</Label>
-                    </CheckboxRow>
-                  </FormGroup>
-                )}
-
-                <ModalFooter>
-                  <CancelButton type="button" onClick={handleCloseModal}>
-                    {t("cancel")}
-                  </CancelButton>
-                  <SubmitButton type="submit" disabled={submitting}>
-                    {submitting ? t("saving") : editingUnit ? t("unitUpdate") : t("create")}
-                  </SubmitButton>
-                </ModalFooter>
-              </Form>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
+      <UnitModal
+        isOpen={isModalOpen}
+        editingUnit={editingUnit}
+        formData={formData}
+        submitting={submitting}
+        onClose={handleCloseModal}
+        onSubmit={handleSubmit}
+        onInputChange={handleInputChange}
+      />
     </Container>
   );
 };
 
 export default UnitPage;
 
-// Styled Components
 const Container = styled.div`
-  padding: 2rem;
-  background: #f8f9fa;
-  min-height: 100vh;
+  padding: 24px;
+  background: #f9fafb;
+  min-height: 100%;
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-`;
-
-const TitleSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  margin-bottom: 24px;
 `;
 
 const Title = styled.h1`
-  font-size: 1.5rem;
+  font-size: 22px;
   font-weight: 700;
-  color: #1a1d2e;
-  margin: 0;
+  color: #111827;
+  margin: 0 0 4px 0;
 `;
 
 const Subtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7590;
+  font-size: 14px;
+  color: #6b7280;
   margin: 0;
 `;
 
 const AddButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   background: #3b82f6;
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 8px 20px;
   border-radius: 8px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
-  &:hover { background: #2563eb; }
-`;
-
-const TableCard = styled.div`
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-`;
-
-const TableHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const SearchBox = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: #f8f9fa;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  flex: 1;
-  max-width: 400px;
-  color: #6b7590;
-  input {
-    border: none;
-    background: transparent;
-    outline: none;
-    flex: 1;
-    font-size: 0.875rem;
-    color: #1a1d2e;
-    &::placeholder { color: #9ca3bf; }
+  &:hover {
+    background: #2563eb;
   }
 `;
 
-const TableSection = styled.div`
-  padding: 1.5rem;
-`;
-
-const TableTitle = styled.h2`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1a1d2e;
-  margin: 0 0 0.25rem 0;
-`;
-
-const TableSubtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7590;
-  margin: 0 0 1.5rem 0;
-`;
-
-const ErrorMessage = styled.div`
-  background: #fee;
-  color: #c33;
-  padding: 1rem;
+const ErrorBox = styled.div`
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
   border-radius: 8px;
-  margin-bottom: 1rem;
-  text-align: center;
+  color: #991b1b;
+  font-size: 14px;
+  margin-bottom: 16px;
 `;
 
-const LoadingMessage = styled.div`
-  padding: 3rem;
-  text-align: center;
-  color: #6b7590;
+const Toolbar = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
 `;
 
-const TableWrapper = styled.div`
-  overflow-x: auto;
+const TableCard = styled.div`
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  padding: 0 8px;
+
+  .ant-table {
+    color: #374151;
+  }
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+  .ant-pagination {
+    color: #374151;
+  }
 `;
 
-const Table = styled.table`
-  width: 100%;
-  min-width: max-content;
-  border-collapse: collapse;
+const SearchWrapper = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  flex: 1;
+  min-width: 220px;
+  max-width: 360px;
+  cursor: text;
+
+  &:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  }
 `;
 
-const Th = styled.th`
-  text-align: center;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7590;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-  &:first-child { text-align: left; }
-`;
+const SearchInput = styled.input`
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  font-size: 14px;
+  color: #111827;
 
-const Td = styled.td`
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1a1d2e;
-  text-align: center;
-  &:first-child { text-align: left; }
+  &::placeholder {
+    color: #9ca3af;
+  }
 `;
 
 const UnitName = styled.div`
@@ -443,15 +398,6 @@ const TypeBadge = styled.span<{ $type: string }>`
   display: inline-block;
 `;
 
-const StatusBadge = styled.span<{ $active: boolean }>`
-  background: ${({ $active }) => ($active ? "#dcfce7" : "#fee2e2")};
-  color: ${({ $active }) => ($active ? "#16a34a" : "#dc2626")};
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-`;
 
 const DescriptionText = styled.div`
   max-width: 300px;
@@ -478,163 +424,8 @@ const EditButton = styled.button`
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
-  &:hover { background: #dbeafe; color: #2563eb; }
-`;
-
-const Modal = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ModalOverlay = styled.div`
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-`;
-
-const ModalContent = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const ModalTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1a1d2e;
-  margin: 0;
-`;
-
-const CloseButton = styled.button`
-  background: transparent;
-  border: none;
-  padding: 0.5rem;
-  cursor: pointer;
-  color: #6b7590;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  &:hover { color: #1a1d2e; }
-`;
-
-const ModalBody = styled.div`
-  padding: 1.5rem;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-`;
-
-const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  &:hover {
+    background: #dbeafe;
+    color: #2563eb;
   }
-  &::placeholder { color: #9ca3bf; }
-`;
-
-const Select = styled.select`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-`;
-
-const TextArea = styled.textarea`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  font-family: inherit;
-  resize: vertical;
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-  &::placeholder { color: #9ca3bf; }
-`;
-
-const CheckboxRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const CancelButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: 1px solid #e5e7eb;
-  background: white;
-  color: #374151;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  &:hover { background: #f9fafb; }
-`;
-
-const SubmitButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background: #3b82f6;
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  &:hover { background: #2563eb; }
-  &:disabled { background: #9ca3bf; cursor: not-allowed; }
 `;

@@ -41,6 +41,11 @@ export interface IRescueRequest {
   createdDate: string;
   proposalNotes?: string;
   estimatedServiceFee?: number;
+  depositAmount?: number;
+  requiresDeposit?: boolean;
+  isDepositPaid?: boolean;
+  depositPaidDate?: string | null;
+  isDepositConfirmed?: boolean;
   suggestedParts?: IRescueSuggestedPartDetail[];
   suggestedServices?: IRescueSuggestedServiceDetail[];
   invoice?: IRescueInvoiceData;
@@ -98,6 +103,7 @@ export interface IRescueProposePayload {
   rescueType: "ROADSIDE" | "TOWING";
   proposalNotes?: string;
   estimatedServiceFee?: number;
+  depositAmount?: number;
   suggestedParts?: IRescueSuggestedPart[];
   suggestedServices?: IRescueSuggestedService[];
 }
@@ -215,6 +221,21 @@ export const acceptProposal = async (id: number) => {
   return data;
 };
 
+export interface IAvailableTechnician {
+  userId: number;
+  fullName: string;
+  phone: string;
+  skills: string;
+  isOnRescueMission: boolean;
+  activeJobCount: number;
+}
+
+// SA: Get available technicians for a rescue request
+export const getAvailableTechnicians = async (id: number): Promise<IAvailableTechnician[]> => {
+  const { data } = await AxiosClient.get(`/api/rescue-requests/${id}/available-technicians`);
+  return data?.data ?? data;
+};
+
 // SA: Assign technician → DISPATCHED
 export const assignTechnician = async (
   id: number,
@@ -258,12 +279,6 @@ export const markSpamRescueRequest = async (id: number, spamReason: string) => {
   const { data } = await AxiosClient.patch(`/api/rescue-requests/${id}/mark-spam`, {
     spamReason,
   });
-  return data;
-};
-
-// Technician: Accept job → EN_ROUTE
-export const acceptRescueJob = async (id: number) => {
-  const { data } = await AxiosClient.patch(`/api/rescue-requests/${id}/accept-job`);
   return data;
 };
 
@@ -367,6 +382,26 @@ export const completeTowing = async (
   const { data } = await AxiosClient.patch(
     `/api/rescue-requests/${id}/complete-towing`,
     payload,
+  );
+  return data;
+};
+
+// Customer: Pay deposit → isDepositPaid = true
+export const makeRescueDeposit = async (
+  id: number,
+  payload: IRescuePaymentPayload,
+) => {
+  const { data } = await AxiosClient.post(
+    `/api/rescue-requests/${id}/deposit`,
+    payload,
+  );
+  return data;
+};
+
+// SA: Confirm deposit received from customer
+export const confirmRescueDeposit = async (id: number) => {
+  const { data } = await AxiosClient.patch(
+    `/api/rescue-requests/${id}/deposit/confirm`,
   );
   return data;
 };

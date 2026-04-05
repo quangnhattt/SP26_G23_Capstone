@@ -132,40 +132,18 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
-    // PATCH /api/users/{userId}/deactivate
-    [HttpPatch("{userId:int}/deactivate")]
+    // PATCH /api/users/{userId}/status
+    [HttpPatch("{userId:int}/status")]
     [Authorize(Roles = Roles.Admin)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Deactivate(int userId, CancellationToken ct)
+    public async Task<IActionResult> ChangeStatus(int userId, [FromBody] UpdateUserStatusRequest request, CancellationToken ct)
     {
         try
         {
-            await _userService.DeactivateUserAsync(userId, ct);
-            return NoContent();
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
-    // PATCH /api/users/{userId}/activate
-    [HttpPatch("{userId:int}/activate")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Activate(int userId, CancellationToken ct)
-    {
-        try
-        {
-            await _userService.ActivateUserAsync(userId, ct);
-            return NoContent();
+            await _userService.ChangeUserStatusAsync(userId, request.IsActive, ct);
+            return Ok(new { success = true, isActive = request.IsActive });
         }
         catch (KeyNotFoundException ex)
         {

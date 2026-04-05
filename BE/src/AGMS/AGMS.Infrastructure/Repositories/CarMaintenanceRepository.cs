@@ -15,7 +15,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         _db = db;
     }
 
-    public async Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(ServiceOrderListQueryDto query, CancellationToken ct = default)
+    public async Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersForStaffAsync(ServiceOrderListQueryDto query, int? employeeId = null, CancellationToken ct = default)
     {
         var page = query.Page <= 0 ? 1 : query.Page;
         var pageSize = query.PageSize <= 0 ? 20 : Math.Min(100, query.PageSize);
@@ -37,6 +37,11 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         {
             var kw = query.CustomerName.Trim();
             q = q.Where(m => m.Car.Owner.FullName.Contains(kw));
+        }
+
+        if (employeeId.HasValue)
+        {
+            q = q.Where(m => m.AssignedTechnicianID == employeeId.Value);
         }
 
         var total = await q.CountAsync(ct);
@@ -71,7 +76,8 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
     {
         var maintenance = await _db.CarMaintenances
             .AsNoTracking()
-            .Include(m => m.Car)
+            .Include(m => m.Car).ThenInclude(c => c.Owner)
+            .Include(m => m.AssignedTechnician)
             .Include(m => m.MaintenancePackageUsages).ThenInclude(mpu => mpu.Package)
             .Include(m => m.ServiceDetails).ThenInclude(sd => sd.Product)
             .Include(m => m.ServicePartDetails).ThenInclude(spd => spd.Product).FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
@@ -117,6 +123,9 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             Status = maintenance.Status,
             CreatedDate = maintenance.CreatedDate,
             MaintenanceDate = maintenance.MaintenanceDate,
+            TechnicianFullName = maintenance.AssignedTechnician?.FullName,
+            TechnicianPhone = maintenance.AssignedTechnician?.Phone,
+            TechnicianEmail = maintenance.AssignedTechnician?.Email,
             LineItems = serviceItems.Concat(partItems).ToList()
         };
     }
@@ -412,6 +421,8 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         }
 
         maintenance.TotalAmount += extraAmount;
+        // Lưu trước để Database cập nhật trạng thái ItemStatus mới, AnyAsync bên dưới mới chính xác.
+        await _db.SaveChangesAsync(ct);
 
         var stillHasPendingItems =
             await _db.ServiceDetails.AnyAsync(sd =>
@@ -424,13 +435,13 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
                 spd.IsAdditional &&
                 spd.ItemStatus == "PENDING", ct);
 
-        // Chỉ quay lại IN_DIAGNOSIS khi tất cả hạng mục đề xuất đã được xử lý xong.
+        // Chỉ tiếp tục (IN_PROGRESS) khi tất cả hạng mục đề xuất bổ sung đã được xử lý xong.
         if (!stillHasPendingItems)
-            maintenance.Status = "IN_DIAGNOSIS";
-
-        await _db.SaveChangesAsync(ct);
+        {
+            maintenance.Status = "IN_PROGRESS";
+            await _db.SaveChangesAsync(ct);
+        }
     }
-
     private static decimal CalculateAdditionalItemUnitPrice(Product product)
     {
         var averageCost = product.ProductInventory?.AverageCost;

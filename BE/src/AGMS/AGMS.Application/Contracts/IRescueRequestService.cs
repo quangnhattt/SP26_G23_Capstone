@@ -18,6 +18,7 @@ public interface IRescueRequestService
     /// </summary>
     Task<RescueRequestDetailDto> CreateAsync(int customerId, CreateRescueRequestDto request, CancellationToken ct);
     Task<RescueDepositResultDto> PayDepositAsync(int rescueId, int customerId, PayRescueDepositDto request, CancellationToken ct);
+    Task<RescueDepositResultDto> ConfirmDepositAsync(int rescueId, int saId, CancellationToken ct);
 
     /// <summary>SA lấy danh sách yêu cầu cứu hộ với bộ lọc (UC-RES-01 Step 3)</summary>
     Task<IEnumerable<RescueRequestListItemDto>> GetListAsync(

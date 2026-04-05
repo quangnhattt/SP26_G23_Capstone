@@ -25,5 +25,8 @@ export const ROUTER_PAGE = {
     rescue: "/admin/rescue-management",
     inventory: "/admin/inventory-management",
     intake: "/admin/intake-management",
+    order: "/admin/service-order-management",
+    membershipRanks: "/admin/membership-ranks-management",
+    maintenancePackage: "/admin/maintenance-package-management",
   },
 };

@@ -1,5 +1,19 @@
 import styled from "styled-components";
-import { HiChartBar, HiClipboardList, HiUsers, HiCog, HiViewGrid, HiSupport, HiTruck, HiShieldExclamation, HiArchive, HiClipboardCheck } from "react-icons/hi";
+import {
+  HiChartBar,
+  HiClipboardList,
+  HiUsers,
+  HiCog,
+  HiViewGrid,
+  HiSupport,
+  HiTruck,
+  HiShieldExclamation,
+  HiArchive,
+  HiClipboardCheck,
+  HiDocumentText,
+  HiBadgeCheck,
+  HiCollection,
+} from "react-icons/hi";
 import { useEffect, useState } from "react";
 import { getMenuAccess } from "@/services/admin/menuService";
 import type { IMenuGroup } from "@/services/admin/menuService";
@@ -35,11 +49,14 @@ const AdminDashboard = () => {
     if (lowerName.includes("user")) return <HiUsers size={18} />;
     if (lowerName.includes("appointment")) return <HiChartBar size={18} />;
     if (lowerName.includes("category")) return <HiViewGrid size={18} />;
+    if (lowerName.includes("order")) return <HiDocumentText size={18} />;
     if (lowerName.includes("service")) return <HiSupport size={18} />;
     if (lowerName.includes("supplier")) return <HiTruck size={18} />;
     if (lowerName.includes("rescue")) return <HiShieldExclamation size={18} />;
     if (lowerName.includes("inventory")) return <HiArchive size={18} />;
     if (lowerName.includes("intake")) return <HiClipboardCheck size={18} />;
+    if (lowerName.includes("membership")) return <HiBadgeCheck size={18} />;
+    if (lowerName.includes("package")) return <HiCollection size={18} />;
     return <HiCog size={18} />;
   };
 
@@ -48,13 +65,17 @@ const AdminDashboard = () => {
     if (lowerName.includes("product")) return "/admin/product";
     if (lowerName.includes("unit")) return "/admin/unit-managerment";
     if (lowerName.includes("user")) return "/admin/user-managerment";
-    if (lowerName.includes("appointment")) return "/admin/appoinment-managerment";
+    if (lowerName.includes("appointment"))
+      return "/admin/appoinment-managerment";
     if (lowerName.includes("category")) return "/admin/category";
+    if (lowerName.includes("order")) return "/admin/service-order-management";
     if (lowerName.includes("service")) return "/admin/service";
     if (lowerName.includes("supplier")) return "/admin/supplier";
     if (lowerName.includes("rescue")) return "/admin/rescue-management";
     if (lowerName.includes("inventory")) return "/admin/inventory-management";
     if (lowerName.includes("intake")) return "/admin/intake-management";
+    if (lowerName.includes("membership")) return "/admin/membership-ranks-management";
+    if (lowerName.includes("package")) return "/admin/maintenance-package-management";
     return "/admin";
   };
 
@@ -177,9 +198,9 @@ const MenuItem = styled.div<{ $isActive: boolean }>`
 
   &:hover {
     background: ${(props) =>
-    props.$isActive
-      ? "rgba(59, 130, 246, 0.2)"
-      : "rgba(255, 255, 255, 0.05)"};
+      props.$isActive
+        ? "rgba(59, 130, 246, 0.2)"
+        : "rgba(255, 255, 255, 0.05)"};
     color: #fff;
   }
 

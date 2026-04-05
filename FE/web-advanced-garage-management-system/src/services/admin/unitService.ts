@@ -42,6 +42,10 @@ export const updateUnit = async (id: number, unit: IUnitUpdateRequest): Promise<
   return data;
 };
 
+export const updateUnitStatus = async (id: number, isActive: boolean): Promise<void> => {
+  await AxiosClient.patch(`/api/Units/${id}/status`, { isActive });
+};
+
 export const deleteUnit = async (id: number): Promise<void> => {
   await AxiosClient.delete(`/api/Units/${id}`);
 };

@@ -1,4 +1,4 @@
-﻿using AGMS.Application.Constants;
+using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.MembershipRank;
 using Microsoft.AspNetCore.Authorization;
@@ -65,21 +65,10 @@ namespace AGMS.WebApi.Controllers
             return Ok(new { message = result.Message });
         }
 
-        [HttpPatch("{id}/activate")]
-        public async Task<IActionResult> ActivateRank(int id)
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> ChangeRankStatus(int id, [FromBody] UpdateMembershipRankStatusRequest request)
         {
-            var result = await _membershipRankService.ChangeStatusAsync(id, true);
-            if (!result.IsSuccess)
-            {
-                return BadRequest(new { message = result.Message });
-            }
-            return Ok(new { message = result.Message });
-        }
-
-        [HttpPatch("{id}/deactivate")]
-        public async Task<IActionResult> DeactivateRank(int id)
-        {
-            var result = await _membershipRankService.ChangeStatusAsync(id, false);
+            var result = await _membershipRankService.ChangeStatusAsync(id, request.IsActive);
             if (!result.IsSuccess)
             {
                 return BadRequest(new { message = result.Message });

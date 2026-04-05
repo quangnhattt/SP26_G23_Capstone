@@ -54,3 +54,10 @@ export const updateSupplier = async (
   );
   return data;
 };
+
+export const updateSupplierStatus = async (
+  id: number,
+  isActive: boolean
+): Promise<void> => {
+  await AxiosClient.patch(`/api/Suppliers/${id}/status`, { isActive });
+};

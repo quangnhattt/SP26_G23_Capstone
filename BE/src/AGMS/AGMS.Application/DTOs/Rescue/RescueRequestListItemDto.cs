@@ -1,4 +1,4 @@
-namespace AGMS.Application.DTOs.Rescue;
+﻿namespace AGMS.Application.DTOs.Rescue;
 
 /// <summary>
 /// DTO rút gọn dùng trong danh sách yêu cầu cứu hộ (GET /rescue-requests)
@@ -10,6 +10,13 @@ public class RescueRequestListItemDto
     public string? RescueType { get; set; }
     public string CurrentAddress { get; set; } = null!;
     public string? ProblemDescription { get; set; }
+    public bool RequiresDeposit { get; set; }
+    public decimal DepositAmount { get; set; }
+    public bool IsDepositPaid { get; set; }
+    public DateTime? DepositPaidDate { get; set; }
+    public bool IsDepositConfirmed { get; set; }
+    public DateTime? DepositConfirmedDate { get; set; }
+    public int? DepositConfirmedById { get; set; }
 
     // --- Thông tin khách hàng ---
     public int CustomerId { get; set; }

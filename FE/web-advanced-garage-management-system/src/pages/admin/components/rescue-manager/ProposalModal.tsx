@@ -33,6 +33,7 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
   const [selectedServices, setSelectedServices] = useState<IService[]>([]);
   const [selectedParts, setSelectedParts] = useState<SelectedPart[]>([]);
   const [manualFee, setManualFee] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
 
   useEffect(() => {
     setLoadingServices(true);
@@ -63,6 +64,15 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
       : manualFee
         ? Number(manualFee)
         : undefined;
+
+  // Auto-tính tiền đặt cọc = 20% tổng tiền đề xuất
+  useEffect(() => {
+    if (estimatedFee) {
+      setDepositAmount(Math.round(estimatedFee * 0.5).toString());
+    } else {
+      setDepositAmount("");
+    }
+  }, [estimatedFee]);
 
   const toggleService = (svc: IService) => {
     setSelectedServices((prev) =>
@@ -102,7 +112,8 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
       await proposeRescueToCustomer(rescue.rescueId, {
         rescueType: proposalType,
         proposalNotes: proposalNote.trim() || undefined,
-        estimatedServiceFee: estimatedFee,
+        estimatedServiceFee: estimatedFee ?? 0,
+        depositAmount: depositAmount ? Number(depositAmount) : undefined,
         suggestedParts: suggestedParts.length > 0 ? suggestedParts : undefined,
         suggestedServices: suggestedServices.length > 0 ? suggestedServices : undefined,
       });
@@ -267,6 +278,19 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
                 placeholder={t("rescueMgrProposalEstFeeManual")}
               />
             )}
+          </FormGroup>
+
+          {/* Deposit amount — 20% tổng tiền đề xuất */}
+          <FormGroup>
+            <FormLabel>{t("rescueMgrDepositAmountLabel")}</FormLabel>
+            <FormInput
+              type="number"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              placeholder="0"
+              readOnly={!!estimatedFee}
+            />
+            <DepositHint>{t("rescueMgrDepositAmountHint")}</DepositHint>
           </FormGroup>
         </ModalBody>
         <ModalFooter>
@@ -607,4 +631,11 @@ const FeeAutoAmount = styled.div`
   font-size: 1rem;
   font-weight: 700;
   color: #15803d;
+`;
+
+const DepositHint = styled.p`
+  margin: 0.375rem 0 0;
+  font-size: 0.75rem;
+  color: #d97706;
+  font-style: italic;
 `;

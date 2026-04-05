@@ -1,4 +1,4 @@
-﻿using AGMS.Application;
+using AGMS.Application;
 using AGMS.Application.Constants;
 using AGMS.Application.Contracts; 
 using AGMS.Application.DTOs.Unit;
@@ -149,6 +149,37 @@ namespace AGMS.WebApi.Controllers
                     {
                         return BadRequest(new { Message = result.Message });
                     }
+                    return NotFound(new { Message = result.Message });
+                }
+
+                return Ok(new { Message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Message = "MSG_SYS01: System error occurred while processing your request.",
+                    Error = ex.Message
+                });
+            }
+        }
+
+        // Change Unit Status
+        [HttpPatch("{id}/status")]
+        [Authorize(Roles = Roles.Admin)]
+        public async Task<IActionResult> ChangeUnitStatus(int id, [FromBody] UpdateUnitStatusRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { Message = "MSG_UNIT05: Required fields missing", Errors = ModelState });
+            }
+
+            try
+            {
+                var result = await _unitService.ChangeUnitStatusAsync(id, request.IsActive);
+
+                if (!result.IsSuccess)
+                {
                     return NotFound(new { Message = result.Message });
                 }
 

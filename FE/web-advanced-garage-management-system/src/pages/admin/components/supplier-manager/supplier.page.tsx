@@ -1,17 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { HiPlus, HiPencil, HiSearch, HiTrash, HiX } from "react-icons/hi";
+import { HiPlus, HiPencil, HiSearch } from "react-icons/hi";
+import { Table as AntTable, Switch } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   getSuppliers,
   createSupplier,
   updateSupplier,
+  updateSupplierStatus,
   type ISupplier,
   type ISupplierCreateRequest,
   type ISupplierUpdateRequest,
 } from "@/services/admin/supplierService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import SupplierModal from "./SupplierModal";
 
 interface SupplierFormData {
   name: string;
@@ -28,7 +32,9 @@ const SupplierPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState<ISupplier | null>(null);
+  const [editingSupplier, setEditingSupplier] = useState<ISupplier | null>(
+    null,
+  );
   const [formData, setFormData] = useState<SupplierFormData>({
     name: "",
     address: "",
@@ -39,6 +45,9 @@ const SupplierPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [updatingSupplierId, setUpdatingSupplierId] = useState<number | null>(
+    null,
+  );
 
   const fetchSuppliers = useCallback(async () => {
     try {
@@ -90,15 +99,13 @@ const SupplierPage = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]:
-        type === "checkbox"
-          ? (e.target as HTMLInputElement).checked
-          : value,
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -136,6 +143,22 @@ const SupplierPage = () => {
     }
   };
 
+  const handleToggleSupplierStatus = async (
+    supplierId: number,
+    isActive: boolean,
+  ) => {
+    setUpdatingSupplierId(supplierId);
+    try {
+      await updateSupplierStatus(supplierId, isActive);
+      await fetchSuppliers();
+    } catch (err) {
+      console.error("Error updating supplier status:", err);
+      toast.error(getApiErrorMessage(err, t("errorSavingSupplier")));
+    } finally {
+      setUpdatingSupplierId(null);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "N/A";
     try {
@@ -154,222 +177,137 @@ const SupplierPage = () => {
     (s) =>
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (s.phone && s.phone.includes(searchTerm))
+      (s.phone && s.phone.includes(searchTerm)),
   );
+
+  const columns: ColumnsType<ISupplier> = [
+    {
+      title: t("name"),
+      dataIndex: "name",
+      key: "name",
+      render: (name: string) => <SupplierName>{name}</SupplierName>,
+    },
+    {
+      title: t("address"),
+      dataIndex: "address",
+      key: "address",
+      render: (val: string) => (
+        <TextEllipsis title={val}>{val || t("notAvailable")}</TextEllipsis>
+      ),
+    },
+    {
+      title: t("phone"),
+      dataIndex: "phone",
+      key: "phone",
+      align: "center",
+      render: (val: string) => val || t("notAvailable"),
+    },
+    {
+      title: t("email"),
+      dataIndex: "email",
+      key: "email",
+      align: "center",
+      render: (val: string) => val || t("notAvailable"),
+    },
+    {
+      title: t("description"),
+      dataIndex: "description",
+      key: "description",
+      render: (val: string) => (
+        <TextEllipsis title={val}>{val || t("notAvailable")}</TextEllipsis>
+      ),
+    },
+    {
+      title: t("status"),
+      dataIndex: "isActive",
+      key: "isActive",
+      align: "center",
+      render: (isActive: boolean, record: ISupplier) => (
+        <Switch
+          checked={isActive}
+          loading={updatingSupplierId === record.supplierID}
+          onChange={(checked: boolean) =>
+            handleToggleSupplierStatus(record.supplierID, checked)
+          }
+        />
+      ),
+    },
+    {
+      title: t("createDate"),
+      dataIndex: "createdDate",
+      key: "createdDate",
+      align: "center",
+      render: (val: string) => formatDate(val),
+    },
+    {
+      title: t("action"),
+      key: "action",
+      align: "center",
+      render: (_: unknown, record: ISupplier) => (
+        <ActionButtons>
+          <EditButton
+            onClick={() => handleOpenEditModal(record)}
+            title={t("edit")}
+          >
+            <HiPencil size={18} />
+          </EditButton>
+        </ActionButtons>
+      ),
+    },
+  ];
 
   return (
     <Container>
       <Header>
-        <TitleSection>
+        <div>
           <Title>{t("suppliersManagement")}</Title>
           <Subtitle>{t("suppliersManagementSubtitle")}</Subtitle>
-        </TitleSection>
+        </div>
         <AddButton onClick={handleOpenCreateModal}>
           <HiPlus size={18} />
           {t("createNewSupplier")}
         </AddButton>
       </Header>
 
+      {error && <ErrorBox>{error}</ErrorBox>}
+
+      <Toolbar>
+        <SearchWrapper>
+          <HiSearch size={16} color="#9ca3af" />
+          <SearchInput
+            type="text"
+            placeholder={t("searchByNameEmailSupplier")}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </SearchWrapper>
+      </Toolbar>
+
       <TableCard>
-        <TableHeader>
-          <SearchBox>
-            <HiSearch size={18} />
-            <input
-              type="text"
-              placeholder={t("searchByNameEmailSupplier")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </SearchBox>
-        </TableHeader>
-
-        <TableSection>
-          <TableTitle>{t("supplierList")}</TableTitle>
-          <TableSubtitle>
-            {loading
-              ? t("loadingSuppliers")
-              : t("showingSuppliers", { count: filteredSuppliers.length })}
-          </TableSubtitle>
-
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-
-          {loading ? (
-            <LoadingMessage>{t("loadingData")}</LoadingMessage>
-          ) : (
-            <TableWrapper>
-            <Table>
-              <thead>
-                <tr>
-                  <Th>{t("name")}</Th>
-                  <Th>{t("address")}</Th>
-                  <Th>{t("phone")}</Th>
-                  <Th>{t("email")}</Th>
-                  <Th>{t("description")}</Th>
-                  <Th>{t("status")}</Th>
-                  <Th>{t("createDate")}</Th>
-                  <Th>{t("action")}</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSuppliers.map((supplier) => (
-                  <tr key={supplier.supplierID}>
-                    <Td>
-                      <SupplierName>{supplier.name}</SupplierName>
-                    </Td>
-                    <Td>
-                      <TextEllipsis title={supplier.address}>
-                        {supplier.address || "N/A"}
-                      </TextEllipsis>
-                    </Td>
-                    <Td>{supplier.phone || "N/A"}</Td>
-                    <Td>{supplier.email || "N/A"}</Td>
-                    <Td>
-                      <TextEllipsis title={supplier.description}>
-                        {supplier.description || "N/A"}
-                      </TextEllipsis>
-                    </Td>
-                    <Td>
-                      <StatusBadge $isActive={supplier.isActive}>
-                        {supplier.isActive ? t("active") : t("inactive")}
-                      </StatusBadge>
-                    </Td>
-                    <Td>{formatDate(supplier.createdDate)}</Td>
-                    <Td>
-                      <ActionButtons>
-                        <EditButton
-                          onClick={() => handleOpenEditModal(supplier)}
-                          title="Edit"
-                        >
-                          <HiPencil size={18} />
-                        </EditButton>
-                        <DeleteButton
-                          onClick={() =>
-                            console.log("Delete supplier:", supplier.supplierID)
-                          }
-                          title="Delete"
-                        >
-                          <HiTrash size={18} />
-                        </DeleteButton>
-                      </ActionButtons>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-            </TableWrapper>
-          )}
-        </TableSection>
+        <AntTable
+          columns={columns}
+          dataSource={filteredSuppliers}
+          rowKey="supplierID"
+          loading={loading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: false,
+            showTotal: (total, range) =>
+              `${range[0]}–${range[1]} / ${total} ${t("supplier")}`,
+          }}
+          scroll={{ x: "max-content" }}
+        />
       </TableCard>
 
-      {isModalOpen && (
-        <Modal>
-          <ModalOverlay onClick={handleCloseModal} />
-          <ModalContent>
-            <ModalHeader>
-              <ModalTitle>
-                {editingSupplier
-                  ? t("updateSupplier")
-                  : t("createNewSupplier")}
-              </ModalTitle>
-              <CloseButton onClick={handleCloseModal}>
-                <HiX size={24} />
-              </CloseButton>
-            </ModalHeader>
-
-            <ModalBody>
-              <Form onSubmit={handleSubmit}>
-                <FormGroup>
-                  <Label>{t("name")} *</Label>
-                  <Input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder={t("supplierNamePlaceholder")}
-                    required
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <Label>{t("address")} *</Label>
-                  <Input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    placeholder={t("addressPlaceholder")}
-                    required
-                  />
-                </FormGroup>
-
-                <FormRow>
-                  <FormGroup>
-                    <Label>{t("phone")} *</Label>
-                    <Input
-                      type="text"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder={t("phonePlaceholder")}
-                      required
-                    />
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label>{t("email")} *</Label>
-                    <Input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="contact@example.com"
-                      required
-                    />
-                  </FormGroup>
-                </FormRow>
-
-                <FormGroup>
-                  <Label>{t("description")}</Label>
-                  <TextArea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder={t("supplierDescriptionPlaceholder")}
-                    rows={3}
-                  />
-                </FormGroup>
-
-                {editingSupplier && (
-                  <FormGroup>
-                    <CheckboxLabel>
-                      <input
-                        type="checkbox"
-                        name="isActive"
-                        checked={formData.isActive}
-                        onChange={handleInputChange}
-                      />
-                      <span>{t("active")}</span>
-                    </CheckboxLabel>
-                  </FormGroup>
-                )}
-
-                <ModalFooter>
-                  <CancelButton type="button" onClick={handleCloseModal}>
-                    {t("cancel")}
-                  </CancelButton>
-                  <SubmitButton type="submit" disabled={submitting}>
-                    {submitting
-                      ? t("saving")
-                      : editingSupplier
-                        ? t("updateSupplier")
-                        : t("createSupplier")}
-                  </SubmitButton>
-                </ModalFooter>
-              </Form>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
+      <SupplierModal
+        isOpen={isModalOpen}
+        editingSupplier={editingSupplier}
+        formData={formData}
+        submitting={submitting}
+        onClose={handleCloseModal}
+        onSubmit={handleSubmit}
+        onInputChange={handleInputChange}
+      />
     </Container>
   );
 };
@@ -377,46 +315,41 @@ const SupplierPage = () => {
 export default SupplierPage;
 
 const Container = styled.div`
-  padding: 2rem;
-  background: #f8f9fa;
-  min-height: 100vh;
+  padding: 24px;
+  background: #f9fafb;
+  min-height: 100%;
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-`;
-
-const TitleSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  margin-bottom: 24px;
 `;
 
 const Title = styled.h1`
-  font-size: 1.5rem;
+  font-size: 22px;
   font-weight: 700;
-  color: #1a1d2e;
-  margin: 0;
+  color: #111827;
+  margin: 0 0 4px 0;
 `;
 
 const Subtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7590;
+  font-size: 14px;
+  color: #6b7280;
   margin: 0;
 `;
 
 const AddButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   background: #3b82f6;
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 8px 20px;
   border-radius: 8px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
@@ -426,114 +359,79 @@ const AddButton = styled.button`
   }
 `;
 
+const ErrorBox = styled.div`
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 14px;
+  margin-bottom: 16px;
+`;
+
+const Toolbar = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+`;
+
 const TableCard = styled.div`
-  background: white;
+  background: #fff;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
   overflow: hidden;
+  padding: 0 8px;
+
+  .ant-table {
+    color: #374151;
+  }
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
+  }
+  .ant-pagination {
+    color: #374151;
+  }
 `;
 
-const TableHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const SearchBox = styled.div`
+const SearchWrapper = styled.label`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: #f8f9fa;
-  padding: 0.75rem 1rem;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   flex: 1;
-  max-width: 400px;
-  color: #6b7590;
+  min-width: 220px;
+  max-width: 360px;
+  cursor: text;
 
-  input {
-    border: none;
-    background: transparent;
-    outline: none;
-    flex: 1;
-    font-size: 0.875rem;
-    color: #1a1d2e;
-
-    &::placeholder {
-      color: #9ca3bf;
-    }
+  &:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
   }
 `;
 
-const TableSection = styled.div`
-  padding: 1.5rem;
-`;
+const SearchInput = styled.input`
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 14px;
+  color: #111827;
+  background: transparent;
 
-const TableTitle = styled.h2`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1a1d2e;
-  margin: 0 0 0.25rem 0;
-`;
-
-const TableSubtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7590;
-  margin: 0 0 1.5rem 0;
-`;
-
-const ErrorMessage = styled.div`
-  background: #fee;
-  color: #c33;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  text-align: center;
-`;
-
-const LoadingMessage = styled.div`
-  padding: 3rem;
-  text-align: center;
-  color: #6b7590;
-  font-size: 1rem;
-`;
-
-const TableWrapper = styled.div`
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  min-width: max-content;
-  border-collapse: collapse;
-`;
-
-const Th = styled.th`
-  text-align: center;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7590;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-
-  &:first-child {
-    text-align: left;
-  }
-`;
-
-const Td = styled.td`
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1a1d2e;
-  text-align: center;
-
-  &:first-child {
-    text-align: left;
+  &::placeholder {
+    color: #9ca3af;
   }
 `;
 
@@ -552,16 +450,6 @@ const TextEllipsis = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-const StatusBadge = styled.span<{ $isActive: boolean }>`
-  background: ${(props) => (props.$isActive ? "#dcfce7" : "#f3f4f6")};
-  color: ${(props) => (props.$isActive ? "#16a34a" : "#6b7280")};
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
 `;
 
 const ActionButtons = styled.div`
@@ -585,221 +473,5 @@ const EditButton = styled.button`
   &:hover {
     background: #dbeafe;
     color: #2563eb;
-  }
-`;
-
-const DeleteButton = styled.button`
-  background: transparent;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #ef4444;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: #fee2e2;
-    color: #dc2626;
-  }
-`;
-
-const Modal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ModalOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-`;
-
-const ModalContent = styled.div`
-  position: relative;
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const ModalTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1a1d2e;
-  margin: 0;
-`;
-
-const CloseButton = styled.button`
-  background: transparent;
-  border: none;
-  padding: 0.5rem;
-  cursor: pointer;
-  color: #6b7590;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    color: #1a1d2e;
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 1.5rem;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-`;
-
-const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  &::placeholder {
-    color: #9ca3bf;
-  }
-`;
-
-const TextArea = styled.textarea`
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1a1d2e !important;
-  background: white !important;
-  font-family: inherit;
-  resize: vertical;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  &::placeholder {
-    color: #9ca3bf;
-  }
-`;
-
-const CheckboxLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
-
-  span {
-    font-size: 0.875rem;
-    color: #374151;
-  }
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const CancelButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: 1px solid #e5e7eb;
-  background: white;
-  color: #374151;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f9fafb;
-  }
-`;
-
-const SubmitButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background: #3b82f6;
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #2563eb;
-  }
-
-  &:disabled {
-    background: #9ca3bf;
-    cursor: not-allowed;
   }
 `;

@@ -1,4 +1,4 @@
-﻿using AGMS.Application.DTOs.Supplier;
+using AGMS.Application.DTOs.Supplier;
 using AGMS.Application.DTOs.Unit;
 using System;
 using System.Collections.Generic;
@@ -16,7 +16,6 @@ namespace AGMS.Application.Contracts
 
         Task<(bool IsSuccess, string Message, SupplierDto? Data)> CreateSupplierAsync(CreateSupplierRequest request);
         Task<(bool IsSuccess, string Message)> UpdateSupplierAsync(int id, UpdateSupplierRequest request);
-        Task<(bool IsSuccess, string Message)> DeactivateSupplierAsync(int id);
-        Task<(bool IsSuccess, string Message)> ActivateSupplierAsync(int id);
+        Task<(bool IsSuccess, string Message)> ChangeSupplierStatusAsync(int id, bool isActive);
     }
 }

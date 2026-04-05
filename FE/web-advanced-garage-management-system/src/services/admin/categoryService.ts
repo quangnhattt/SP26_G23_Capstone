@@ -5,38 +5,64 @@ export interface ICategory {
   name: string;
   type: string;
   description: string | null;
+  markupPercent: number;
+  isActive: boolean;
 }
 
 export interface ICategoryRequest {
   name: string;
   type: string;
   description?: string;
+  markupPercent?: number;
+  isActive?: boolean;
 }
 
-export type ICategoriesResponse = ICategory[];
+export interface ICategoriesResponse {
+  items: ICategory[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
 
-export const getCategories = async (params?: { type?: string }): Promise<ICategoriesResponse> => {
-  const { data } = await AxiosClient.get<ICategoriesResponse>("/api/categories", { params });
-  return data;
+export const getCategories = async (params?: {
+  type?: string;
+}): Promise<ICategory[]> => {
+  const { data } = await AxiosClient.get<ICategoriesResponse>(
+    "/api/categories",
+    { params },
+  );
+  return data.items;
 };
 
 export const createCategory = async (
-  category: ICategoryRequest
+  category: ICategoryRequest,
 ): Promise<ICategory> => {
   const { data } = await AxiosClient.post<ICategory>(
     "/api/categories",
-    category
+    category,
   );
   return data;
 };
 
 export const updateCategory = async (
   id: number,
-  category: ICategoryRequest
+  category: ICategoryRequest,
 ): Promise<ICategory> => {
   const { data } = await AxiosClient.put<ICategory>(
     `/api/categories/${id}`,
-    category
+    category,
+  );
+  return data;
+};
+
+export const updateCategoryStatus = async (
+  id: number,
+  isActive: boolean,
+): Promise<ICategory> => {
+  const { data } = await AxiosClient.patch<ICategory>(
+    `/api/categories/${id}/status`,
+    { isActive },
   );
   return data;
 };
@@ -49,5 +75,6 @@ export const categoryService = {
   getCategories,
   createCategory,
   updateCategory,
+  updateCategoryStatus,
   deleteCategory,
 };

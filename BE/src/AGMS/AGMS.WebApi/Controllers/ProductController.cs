@@ -69,29 +69,17 @@ public class ProductController : ControllerBase
         }
     }
 
-    [HttpPatch("parts/{id:int}/deactivate")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [HttpPatch("parts/{id:int}/status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeactivePartProduct(int id, CancellationToken ct)
+    public async Task<IActionResult> ChangePartProductStatus(int id, [FromBody] UpdateProductStatusDto request, CancellationToken ct)
     {
-        var success = await _productService.DeactivePartProductAsync(id, ct);
+        var success = await _productService.ChangePartProductStatusAsync(id, request.IsActive, ct);
         if (!success)
         {
             return NotFound();
         }
-        return NoContent();
-    }
-    [HttpPatch("parts/{id:int}/active")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ActivePartProductAsync(int id, CancellationToken ct)
-    {
-        var success = await _productService.ActivePartProductAsync(id, ct);
-        if (!success)
-        {
-            return NotFound();
-        }
-        return NoContent();
+        return Ok(new { success = true, isActive = request.IsActive });
     }
 
     //Product service 
@@ -146,5 +134,17 @@ public class ProductController : ControllerBase
         }
     }
 
+    [HttpPatch("services/{id:int}/status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ChangeServiceProductStatus(int id, [FromBody] UpdateProductStatusDto request, CancellationToken ct)
+    {
+        var success = await _productService.ChangeServiceProductStatusAsync(id, request.IsActive, ct);
+        if (!success)
+        {
+            return NotFound();
+        }
+        return Ok(new { success = true, isActive = request.IsActive });
+    }
 
-}
+   }
