@@ -589,7 +589,7 @@ public class RescueRequestService : IRescueRequestService
         var created = await _rescueRepo.CreateMaintenanceAsync(maintenance, ct);
 
         rescue.ResultingMaintenanceID = created.MaintenanceID;
-        rescue.Status = RescueStatus.Diagnosing;
+        rescue.Status = RescueStatus.Diagnosed;
         await _rescueRepo.UpdateAsync(rescue, ct);
 
         var updated =

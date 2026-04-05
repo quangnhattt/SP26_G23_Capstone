@@ -28,7 +28,7 @@ public class RescueRequestController : ControllerBase
     /// Khách hàng tạo yêu cầu cứu hộ (UC-RES-01 Step 1-2). BR-16.
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = Roles.Customer)]
+    [Authorize(Roles = Roles.Admin + "," + Roles.ServiceAdvisor + "," + Roles.Customer)]
     [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -85,7 +85,13 @@ public class RescueRequestController : ControllerBase
         try
         {
             var result = await _rescueService.PayDepositAsync(id, userId, request, ct);
-            return Ok(new { data = result, message = "Khách hàng đã gửi thông tin đặt cọc, đang chờ SA xác nhận." });
+            return Ok(
+                new
+                {
+                    data = result,
+                    message = "Khách hàng đã gửi thông tin đặt cọc, đang chờ SA xác nhận."
+                }
+            );
         }
         catch (KeyNotFoundException ex)
         {
@@ -113,10 +119,7 @@ public class RescueRequestController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<IActionResult> ConfirmDeposit(
-        int id,
-        CancellationToken ct
-    )
+    public async Task<IActionResult> ConfirmDeposit(int id, CancellationToken ct)
     {
         var (userId, err) = ExtractUserId();
         if (err != null)
