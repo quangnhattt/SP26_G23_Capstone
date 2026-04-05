@@ -221,9 +221,9 @@ public class ProductRepository : IProductRepository
             IsActive = product.IsActive,
         };
     }
-    public async Task<bool> ChangePartProductStatusAsync(int id, bool isActive, CancellationToken ct)
+    public async Task<bool> ChangeProductStatusAsync(int id, bool isActive, CancellationToken ct)
     {
-        var product = await _db.Products.FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.ProductID == id, ct);
         if (product == null) return false;
 
         if (product.IsActive == isActive)
@@ -417,20 +417,7 @@ public class ProductRepository : IProductRepository
                 IsActive=product.IsActive,
             };
         }
-        public async Task<bool> ChangeServiceProductStatusAsync(int id, bool isActive, CancellationToken ct)
-        {
-            var product = await _db.Products.FirstOrDefaultAsync(p => (p.Type == "SERVICE" || p.Type == "Service") && p.ProductID == id, ct);
-            if (product == null) return false;
 
-            if (product.IsActive == isActive)
-            {
-                return true;
-            }
-
-            product.IsActive = isActive;
-            await _db.SaveChangesAsync(ct);
-            return true;
-        }
 
     public async Task<bool> ActiveServiceProductAsync(int id, CancellationToken ct)
     {
