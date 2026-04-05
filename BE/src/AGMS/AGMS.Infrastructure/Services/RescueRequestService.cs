@@ -48,7 +48,7 @@ public class RescueRequestService : IRescueRequestService
         var rescue = new RescueRequest
         {
             CarID = request.CarId,
-            CustomerID = customerId,
+            CustomerID = car.OwnerID,
             CurrentAddress = request.CurrentAddress.Trim(),
             ProblemDescription = request.ProblemDescription.Trim(),
             Latitude = request.Latitude,
