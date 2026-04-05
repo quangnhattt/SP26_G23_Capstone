@@ -39,7 +39,7 @@ public class RescueRequestService : IRescueRequestService
             await _userRepo.GetByIdAsync(customerId, ct)
             ?? throw new KeyNotFoundException("Khách hàng không tồn tại.");
 
-        if (customer.RoleID != UserRole.Customer && car.OwnerID != customerId)
+        if (customer.RoleID == UserRole.Customer && car.OwnerID != customerId)
             throw new ArgumentException("Xe không thuộc sở hữu của khách hàng này.");
 
         // Khách có TrustScore = 0 phải đóng cọc, nhưng số tiền cụ thể sẽ do SA nhập ở bước propose.
