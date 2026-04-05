@@ -667,7 +667,7 @@ public class RescueRequestController : ControllerBase
     /// TOWING_DISPATCHED → TOWING_ACCEPTED. Từ chối → gọi /cancel.
     /// </summary>
     [HttpPatch("{id:int}/accept-towing")]
-    [Authorize(Roles = Roles.Customer)]
+    [Authorize]
     [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
