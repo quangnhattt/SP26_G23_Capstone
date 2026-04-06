@@ -1090,7 +1090,7 @@ public class RescueRequestService : IRescueRequestService
 
     /// <summary>
     /// Customer thanh toán (UC-RES-04 D5). customerId từ token.
-    /// PAYMENT_PENDING → COMPLETED. BR-23. SMP03, SMP05.
+    /// PAYMENT_PENDING → PAYMENT_SUBMITTED. BR-23. SMP03, SMP05.
     /// </summary>
     public async Task<PaymentResultDto> ProcessPaymentAsync(
         int rescueId,
@@ -1153,22 +1153,14 @@ public class RescueRequestService : IRescueRequestService
         };
         var created = await _rescueRepo.CreatePaymentTransactionAsync(transaction, ct);
 
-        // Đóng Repair Order (BR-22)
-        maintenance.Status = CarMaintenanceStatus.Completed;
-        maintenance.CompletedDate = now;
-        await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
-
-        rescue.Status = RescueStatus.Completed;
-        rescue.CompletedDate = now;
+        rescue.Status = RescueStatus.PaymentSubmitted;
         await _rescueRepo.UpdateAsync(rescue, ct);
-        // Chỉ tăng điểm tin cậy khi ca cứu hộ đã hoàn tất và thanh toán thành công.
-        await _userRepo.IncrementTrustScoreAsync(customerId, ct);
 
         return new PaymentResultDto
         {
             RescueId = rescueId,
-            Status = RescueStatus.Completed,
-            CompletedDate = now,
+            Status = RescueStatus.PaymentSubmitted,
+            CompletedDate = null,
             DepositAppliedAmount = depositApplied,
             Payment = new PaymentInfoDto
             {
@@ -1178,6 +1170,82 @@ public class RescueRequestService : IRescueRequestService
                 TransactionReference = created.TransactionReference,
                 PaymentStatus = created.Status,
                 PaymentDate = created.PaymentDate
+            }
+        };
+    }
+
+    /// <summary>
+    /// SA xác nhận đã nhận tiền sau khi customer thanh toán.
+    /// PAYMENT_SUBMITTED → COMPLETED.
+    /// </summary>
+    public async Task<PaymentResultDto> ConfirmPaymentAsync(
+        int rescueId,
+        int saId,
+        CancellationToken ct
+    )
+    {
+        var rescue =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForConfirmPayment.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể xác nhận nhận tiền. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PAYMENT_SUBMITTED."
+            );
+
+        var sa =
+            await _userRepo.GetByIdAsync(saId, ct)
+            ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
+        if (sa.RoleID != UserRole.ServiceAdvisor)
+            throw new ArgumentException("Chỉ Service Advisor mới có quyền xác nhận nhận tiền.");
+
+        if (rescue.ServiceAdvisorID.HasValue && rescue.ServiceAdvisorID.Value != saId)
+            throw new ArgumentException("Chỉ Service Advisor đang xử lý yêu cầu này mới được xác nhận nhận tiền.");
+
+        if (!rescue.ResultingMaintenanceID.HasValue)
+            throw new InvalidOperationException(
+                "Rescue không có Repair Order. Không thể xác nhận nhận tiền."
+            );
+
+        var maintenance =
+            await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID.Value, ct)
+            ?? throw new InvalidOperationException("Repair Order không tồn tại.");
+
+        var payment =
+            await _rescueRepo.GetPaymentByMaintenanceIdAsync(rescue.ResultingMaintenanceID.Value, ct)
+            ?? throw new InvalidOperationException("Chưa có giao dịch thanh toán để xác nhận.");
+
+        if (!string.Equals(payment.Status, PaymentStatus.Success, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Giao dịch thanh toán chưa thành công nên không thể xác nhận.");
+
+        var now = DateTime.UtcNow;
+        var invoiceFinalAmount = maintenance.FinalAmount ?? rescue.ServiceFee;
+        var depositApplied = GetDepositAppliedAmount(rescue, invoiceFinalAmount);
+
+        maintenance.Status = CarMaintenanceStatus.Completed;
+        maintenance.CompletedDate = now;
+        await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
+
+        rescue.Status = RescueStatus.Completed;
+        rescue.CompletedDate = now;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        await _userRepo.IncrementTrustScoreAsync(rescue.CustomerID, ct);
+
+        return new PaymentResultDto
+        {
+            RescueId = rescueId,
+            Status = RescueStatus.Completed,
+            CompletedDate = now,
+            DepositAppliedAmount = depositApplied,
+            Payment = new PaymentInfoDto
+            {
+                TransactionId = payment.TransactionID,
+                PaymentMethod = payment.PaymentMethod,
+                Amount = payment.Amount,
+                TransactionReference = payment.TransactionReference,
+                PaymentStatus = payment.Status,
+                PaymentDate = payment.PaymentDate
             }
         };
     }

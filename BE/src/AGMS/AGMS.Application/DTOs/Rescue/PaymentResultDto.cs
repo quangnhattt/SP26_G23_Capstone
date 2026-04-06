@@ -8,7 +8,7 @@ public class PaymentResultDto
     public int RescueId { get; set; }
     public string Status { get; set; } = null!;
     public PaymentInfoDto Payment { get; set; } = null!;
-    public DateTime CompletedDate { get; set; }
+    public DateTime? CompletedDate { get; set; }
     public decimal DepositAppliedAmount { get; set; }
 }
 

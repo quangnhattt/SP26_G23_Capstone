@@ -143,10 +143,16 @@ public interface IRescueRequestService
 
     /// <summary>
     /// Customer thanh toán (UC-RES-04 D5).
-    /// customerId lấy từ JWT token. PAYMENT_PENDING → COMPLETED.
+    /// customerId lấy từ JWT token. PAYMENT_PENDING → PAYMENT_SUBMITTED.
     /// Validate: amount = finalAmount (BR-23), method hợp lệ (SMP07). SMP03, SMP05.
     /// </summary>
     Task<PaymentResultDto> ProcessPaymentAsync(int rescueId, int customerId, ProcessPaymentDto request, CancellationToken ct);
+
+    /// <summary>
+    /// SA xác nhận đã nhận tiền sau khi customer thanh toán.
+    /// saId lấy từ JWT token. PAYMENT_SUBMITTED → COMPLETED.
+    /// </summary>
+    Task<PaymentResultDto> ConfirmPaymentAsync(int rescueId, int saId, CancellationToken ct);
 
     // -------------------------------------------------------------------------
     // UC-RES-05: Tranh chấp hóa đơn
