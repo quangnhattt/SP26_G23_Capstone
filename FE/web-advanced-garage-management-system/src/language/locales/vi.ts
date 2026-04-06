@@ -1182,6 +1182,8 @@ export default {
   rescueMgrEditPartsModalTitle: "Chỉnh sửa phụ tùng / dịch vụ",
   rescueMgrEditPartsHint: "Thêm hoặc điều chỉnh phụ tùng / công dịch vụ trước khi tạo hóa đơn.",
   rescueMgrProductIdPlaceholder: "Product ID *",
+  rescueMgrPartsSearchPlaceholder: "Tìm theo tên hoặc mã sản phẩm...",
+  rescueMgrSelectedCount: "Đã chọn {{count}} phụ tùng",
   rescueStepPropose: "Đề xuất",
   rescueStepCustomerConfirm: "KH xác nhận",
   rescueStepDeposit: "KH đặt cọc",

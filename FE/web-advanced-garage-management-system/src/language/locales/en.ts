@@ -1197,6 +1197,8 @@ export default {
   rescueMgrEditPartsModalTitle: "Edit parts / services",
   rescueMgrEditPartsHint: "Add or adjust parts / services before creating the invoice.",
   rescueMgrProductIdPlaceholder: "Product ID *",
+  rescueMgrPartsSearchPlaceholder: "Search by name or product code...",
+  rescueMgrSelectedCount: "{{count}} part(s) selected",
   rescueStepPropose: "Propose",
   rescueStepCustomerConfirm: "Customer confirm",
   rescueStepDeposit: "Deposit",

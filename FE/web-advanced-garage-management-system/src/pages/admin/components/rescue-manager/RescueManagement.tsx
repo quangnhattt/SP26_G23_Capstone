@@ -32,7 +32,6 @@ import {
   sendRescueInvoice,
   dispatchTowing,
   completeTowing,
-  addRepairItems,
   confirmRescueDeposit,
   getAvailableTechnicians,
   type IAvailableTechnician,
@@ -45,6 +44,7 @@ import { getTechnicians } from "@/apis/technicians";
 import { toast } from "react-toastify";
 import RescueDetailModal from "./RescueDetailModal";
 import ProposalModal from "./ProposalModal";
+import EditPartsModal from "./EditPartsModal";
 import RescueStepProgress from "./RescueStepProgress";
 import { AuthContext } from "@/context/AuthContext";
 
@@ -119,10 +119,6 @@ const RescueManagement = () => {
 
   // Edit parts modal (chỉnh sửa phụ tùng tại REPAIR_COMPLETE)
   const [showEditPartsModal, setShowEditPartsModal] = useState(false);
-  const [editPartsItems, setEditPartsItems] = useState([
-    { productId: "", quantity: "", unitPrice: "", notes: "" },
-  ]);
-  const [editPartsSubmitting, setEditPartsSubmitting] = useState(false);
 
   // Proposal modal (Đề xuất)
   const [showProposalModal, setShowProposalModal] = useState(false);
@@ -371,39 +367,6 @@ const RescueManagement = () => {
     }
   };
 
-  const handleEditParts = async () => {
-    if (!selectedRescue) return;
-    const validItems = editPartsItems.filter(
-      (i) => i.productId.trim() && i.quantity.trim() && i.unitPrice.trim(),
-    );
-    if (validItems.length === 0) {
-      toast.error(t("rescueTechRepairItemsRequired"));
-      return;
-    }
-    setEditPartsSubmitting(true);
-    try {
-      await addRepairItems(selectedRescue.rescueId, {
-        actorId: user?.id ? Number(user.id) : undefined,
-        items: validItems.map((i) => ({
-          productId: Number(i.productId),
-          quantity: Number(i.quantity),
-          unitPrice: Number(i.unitPrice),
-          notes: i.notes.trim() || undefined,
-        })),
-      });
-      toast.success(t("rescueTechRepairItemsSuccess"));
-      setShowEditPartsModal(false);
-      setEditPartsItems([
-        { productId: "", quantity: "", unitPrice: "", notes: "" },
-      ]);
-      fetchRescues();
-    } catch {
-      toast.error(t("rescueTechRepairItemsError"));
-    } finally {
-      setEditPartsSubmitting(false);
-    }
-  };
-
   const handleConfirmDeposit = async (id: number) => {
     try {
       await confirmRescueDeposit(id);
@@ -567,6 +530,48 @@ const RescueManagement = () => {
     };
   };
 
+  const currentTechId = Number((user as { id?: number; userID?: number } | null)?.id ?? (user as { id?: number; userID?: number } | null)?.userID);
+
+  const isAssignedToCurrentTech = (rescue: IRescueRequest) => {
+    if (!isTech || !Number.isFinite(currentTechId)) return false;
+
+    const r = rescue as IRescueRequest & {
+      technicianId?: number | null;
+      technicianUserId?: number | null;
+      assignedTechnicianId?: number | null;
+      technician?: { id?: number; userId?: number; technicianId?: number } | null;
+      assignedTechnicians?: Array<number | { id?: number; userId?: number; technicianId?: number }>;
+    };
+
+    const candidateIds = new Set<number>();
+
+    if (r.technicianId != null) candidateIds.add(Number(r.technicianId));
+    if (r.technicianUserId != null) candidateIds.add(Number(r.technicianUserId));
+    if (r.assignedTechnicianId != null) candidateIds.add(Number(r.assignedTechnicianId));
+
+    if (r.technician) {
+      if (r.technician.id != null) candidateIds.add(Number(r.technician.id));
+      if (r.technician.userId != null) candidateIds.add(Number(r.technician.userId));
+      if (r.technician.technicianId != null) {
+        candidateIds.add(Number(r.technician.technicianId));
+      }
+    }
+
+    if (Array.isArray(r.assignedTechnicians)) {
+      r.assignedTechnicians.forEach((tech) => {
+        if (typeof tech === "number") {
+          candidateIds.add(Number(tech));
+          return;
+        }
+        if (tech.id != null) candidateIds.add(Number(tech.id));
+        if (tech.userId != null) candidateIds.add(Number(tech.userId));
+        if (tech.technicianId != null) candidateIds.add(Number(tech.technicianId));
+      });
+    }
+
+    return candidateIds.has(currentTechId);
+  };
+
   // ─── Which actions are available per status (SA workflow) ─
   const getAvailableActions = (rescue: IRescueRequest) => {
     const actions: {
@@ -672,7 +677,7 @@ const RescueManagement = () => {
 
       // ═══ EN_ROUTE: KTV xác nhận đến nơi ═══
       case "EN_ROUTE":
-        if (isTech) {
+        if (isTech && isAssignedToCurrentTech(rescue)) {
           actions.push({
             label: t("rescueMgrConfirmArrived"),
             icon: <FaMapMarkerAlt size={12} />,
@@ -692,7 +697,7 @@ const RescueManagement = () => {
 
       // ═══ KTV: Tới hiện trường → bắt đầu chẩn đoán ═══
       case "ON_SITE":
-        if (isTech) {
+        if (isTech && isAssignedToCurrentTech(rescue)) {
           actions.push({
             label: t("rescueMgrStartDiagnosisAction"),
             icon: <FaTools size={12} />,
@@ -717,16 +722,13 @@ const RescueManagement = () => {
 
       // ═══ KTV: Ghi nhận vật tư → REPAIRING | SA: điều xe kéo nếu cần ═══
       case "DIAGNOSING":
-        if (isTech) {
+        if (isTech && isAssignedToCurrentTech(rescue)) {
           actions.push({
             label: t("rescueMgrEditPartsAction"),
             icon: <FaWrench size={12} />,
             color: "#2563eb",
             onClick: () => {
               setSelectedRescue(rescue);
-              setEditPartsItems([
-                { productId: "", quantity: "", unitPrice: "", notes: "" },
-              ]);
               setShowEditPartsModal(true);
             },
           });
@@ -755,7 +757,7 @@ const RescueManagement = () => {
 
       // ═══ KTV: Sửa tại chỗ ═══
       case "REPAIRING":
-        if (isTech) {
+        if (isTech && isAssignedToCurrentTech(rescue)) {
           actions.push({
             label: t("rescueMgrCompleteRepairAction"),
             icon: <FaWrench size={12} />,
@@ -779,16 +781,13 @@ const RescueManagement = () => {
 
       // ═══ SA + KTV: Chỉnh sửa phụ tùng, SA tạo hóa đơn ═══
       case "REPAIR_COMPLETE":
-        if (isSA || isTech) {
+        if (isSA || (isTech && isAssignedToCurrentTech(rescue))) {
           actions.push({
             label: t("rescueMgrEditPartsAction"),
             icon: <FaWrench size={12} />,
             color: "#2563eb",
             onClick: () => {
               setSelectedRescue(rescue);
-              setEditPartsItems([
-                { productId: "", quantity: "", unitPrice: "", notes: "" },
-              ]);
               setShowEditPartsModal(true);
             },
           });
@@ -1449,133 +1448,17 @@ const RescueManagement = () => {
         </ModalOverlay>
       )}
 
-      {/* ─── Edit Parts Modal (REPAIR_COMPLETE — SA & KTV) ─── */}
+      {/* ─── Edit Parts Modal (DIAGNOSING / REPAIR_COMPLETE — SA & KTV) ─── */}
       {showEditPartsModal && selectedRescue && (
-        <ModalOverlay onClick={() => setShowEditPartsModal(false)}>
-          <ModalContent
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "620px" }}
-          >
-            <ModalHeader>
-              <ModalTitle>
-                {t("rescueMgrEditPartsModalTitle")} — RESCUE-{selectedRescue.rescueId}
-              </ModalTitle>
-              <CloseBtn
-                onClick={() => setShowEditPartsModal(false)}
-                disabled={editPartsSubmitting}
-              >
-                <FaTimes />
-              </CloseBtn>
-            </ModalHeader>
-            <ModalBody>
-              <p
-                style={{
-                  fontSize: "0.8125rem",
-                  color: "#6b7280",
-                  marginBottom: "0.75rem",
-                }}
-              >
-                {t("rescueMgrEditPartsHint")}
-              </p>
-              {editPartsItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    gap: "0.5rem",
-                    marginBottom: "0.5rem",
-                    alignItems: "center",
-                  }}
-                >
-                  <FormInput
-                    type="number"
-                    placeholder={t("rescueMgrProductIdPlaceholder")}
-                    value={item.productId}
-                    onChange={(e) => {
-                      const next = [...editPartsItems];
-                      next[idx] = { ...next[idx], productId: e.target.value };
-                      setEditPartsItems(next);
-                    }}
-                    style={{ flex: "0 0 100px" }}
-                  />
-                  <FormInput
-                    type="number"
-                    placeholder={t("rescueTechQtyPlaceholder")}
-                    value={item.quantity}
-                    onChange={(e) => {
-                      const next = [...editPartsItems];
-                      next[idx] = { ...next[idx], quantity: e.target.value };
-                      setEditPartsItems(next);
-                    }}
-                    style={{ flex: "0 0 80px" }}
-                  />
-                  <FormInput
-                    type="number"
-                    placeholder={t("rescueTechUnitPricePlaceholder")}
-                    value={item.unitPrice}
-                    onChange={(e) => {
-                      const next = [...editPartsItems];
-                      next[idx] = { ...next[idx], unitPrice: e.target.value };
-                      setEditPartsItems(next);
-                    }}
-                    style={{ flex: "1" }}
-                  />
-                  <FormInput
-                    placeholder={t("rescueTechNotesPlaceholder")}
-                    value={item.notes}
-                    onChange={(e) => {
-                      const next = [...editPartsItems];
-                      next[idx] = { ...next[idx], notes: e.target.value };
-                      setEditPartsItems(next);
-                    }}
-                    style={{ flex: "2" }}
-                  />
-                  {editPartsItems.length > 1 && (
-                    <ModalCancelBtn
-                      style={{
-                        padding: "0.25rem 0.5rem",
-                        fontSize: "0.75rem",
-                        minWidth: "unset",
-                      }}
-                      onClick={() =>
-                        setEditPartsItems(
-                          editPartsItems.filter((_, i) => i !== idx),
-                        )
-                      }
-                    >
-                      ✕
-                    </ModalCancelBtn>
-                  )}
-                </div>
-              ))}
-              <ModalCancelBtn
-                style={{ marginTop: "0.25rem", fontSize: "0.8125rem" }}
-                onClick={() =>
-                  setEditPartsItems([
-                    ...editPartsItems,
-                    { productId: "", quantity: "", unitPrice: "", notes: "" },
-                  ])
-                }
-              >
-                {t("rescueTechAddRowBtn")}
-              </ModalCancelBtn>
-            </ModalBody>
-            <ModalFooter>
-              <ModalCancelBtn
-                onClick={() => setShowEditPartsModal(false)}
-                disabled={editPartsSubmitting}
-              >
-                {t("rescueMgrCancel")}
-              </ModalCancelBtn>
-              <ModalConfirmBtn
-                onClick={handleEditParts}
-                disabled={editPartsSubmitting}
-              >
-                {editPartsSubmitting ? t("rescueMgrProcessing") : t("rescueTechSavePartsBtn")}
-              </ModalConfirmBtn>
-            </ModalFooter>
-          </ModalContent>
-        </ModalOverlay>
+        <EditPartsModal
+          rescue={selectedRescue}
+          actorId={user?.id ? Number(user.id) : undefined}
+          onClose={() => setShowEditPartsModal(false)}
+          onSuccess={() => {
+            setShowEditPartsModal(false);
+            fetchRescues();
+          }}
+        />
       )}
 
       {/* ─── Spam / Cancel reason modal ─── */}

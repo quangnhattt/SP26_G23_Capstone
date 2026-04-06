@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { FaTimes, FaTruck, FaWrench } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
-import { proposeRescueToCustomer, type IRescueRequest, type IRescueSuggestedPart, type IRescueSuggestedService } from "@/apis/rescue";
+import { proposeRescueToCustomer, type IRescueRequest, type IRescueSuggestedPart } from "@/apis/rescue";
 import { getServices, type IService } from "@/services/admin/serviceService";
 import { getProducts, type IProduct } from "@/services/admin/productService";
 import { toast } from "react-toastify";
@@ -102,20 +102,27 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
     if (!proposalType) return;
     try {
       setSubmitting(true);
-      const suggestedParts: IRescueSuggestedPart[] = selectedParts.map((p) => ({
+      const selectedServiceAsParts: IRescueSuggestedPart[] = selectedServices.map(
+        (s) => ({
+          partId: s.id,
+          quantity: 1,
+        }),
+      );
+      const selectedPartsPayload: IRescueSuggestedPart[] = selectedParts.map((p) => ({
         partId: p.product.id,
         quantity: p.qty,
       }));
-      const suggestedServices: IRescueSuggestedService[] = selectedServices.map((s) => ({
-        serviceId: s.id,
-      }));
+      const suggestedParts: IRescueSuggestedPart[] = [
+        ...selectedServiceAsParts,
+        ...selectedPartsPayload,
+      ];
+
       await proposeRescueToCustomer(rescue.rescueId, {
         rescueType: proposalType,
         proposalNotes: proposalNote.trim() || undefined,
         estimatedServiceFee: estimatedFee ?? 0,
         depositAmount: depositAmount ? Number(depositAmount) : undefined,
         suggestedParts: suggestedParts.length > 0 ? suggestedParts : undefined,
-        suggestedServices: suggestedServices.length > 0 ? suggestedServices : undefined,
       });
       toast.success(
         proposalType === "ROADSIDE"
