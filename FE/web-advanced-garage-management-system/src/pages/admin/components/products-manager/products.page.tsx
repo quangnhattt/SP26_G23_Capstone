@@ -80,7 +80,7 @@ const ProductsPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const data = await getCategories({ type: "Service" });
+      const data = await getCategories({ type: "PART" });
       setCategories(data);
     } catch (err) {
       console.error("Failed to fetch categories:", err);
@@ -116,7 +116,7 @@ const ProductsPage = () => {
     }, 400);
   };
 
-  const handleOpenCreateModal = () => {
+  const handleOpenCreateModal = async () => {
     setEditingProduct(null);
     setFormData({
       code: "",
@@ -130,10 +130,12 @@ const ProductsPage = () => {
       image: "",
       isActive: true,
     });
+    await fetchCategories();
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = async (product: IProduct) => {
+    await fetchCategories();
     setEditingProduct(product);
     setIsModalOpen(true);
     setLoadingModal(true);
@@ -152,7 +154,9 @@ const ProductsPage = () => {
         categoryId:
           productDetail.categoryId ??
           categories.find(
-            (c) => c.name === productDetail.category && c.type === "Part",
+            (c) =>
+              c.name === productDetail.category &&
+              c.type.toUpperCase() === "PART",
           )?.categoryID ??
           0,
         warranty: productDetail.warranty,
@@ -170,7 +174,8 @@ const ProductsPage = () => {
         unitId: units.find((u) => u.name === product.unit)?.unitID ?? 0,
         categoryId:
           categories.find(
-            (c) => c.name === product.category && c.type === "Part",
+            (c) =>
+              c.name === product.category && c.type.toUpperCase() === "PART",
           )?.categoryID ?? 0,
         warranty: product.warranty,
         minStockLevel: product.minStockLevel,

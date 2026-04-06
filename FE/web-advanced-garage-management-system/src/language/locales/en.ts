@@ -354,6 +354,7 @@ export default {
   searchByNameCodeService: "Search by name, service code...",
   createService: "Create Service",
   errorSavingService: "Error occurred while saving service",
+  errorUpdatingServiceStatus: "Error occurred while updating service status",
   searchByNameCode: "Search by name, product code...",
   allCategories: "All categories",
   productList: "Product list",

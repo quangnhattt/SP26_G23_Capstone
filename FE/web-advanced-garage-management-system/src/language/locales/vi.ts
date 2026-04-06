@@ -354,6 +354,7 @@ export default {
   searchByNameCodeService: "Tìm theo tên, mã dịch vụ...",
   createService: "Tạo dịch vụ",
   errorSavingService: "Có lỗi xảy ra khi lưu dịch vụ",
+  errorUpdatingServiceStatus: "Có lỗi xảy ra khi cập nhật trạng thái dịch vụ",
   searchByNameCode: "Tìm theo tên, mã sản phẩm...",
   allCategories: "Tất cả danh mục",
   productList: "Danh sách sản phẩm",
