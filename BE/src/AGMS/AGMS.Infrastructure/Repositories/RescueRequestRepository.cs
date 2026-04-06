@@ -141,7 +141,10 @@ public class RescueRequestRepository : IRescueRequestRepository
             .AsNoTracking()
             .Where(u => u.RoleID == UserRole.Technician
                      && u.IsActive
-                     && !u.IsOnRescueMission)
+                     && !u.IsOnRescueMission
+                     && u.CarMaintenanceAssignedTechnicians
+                                     .Count(cm => cm.Status != "COMPLETED" && cm.Status != "CANCELLED") == 0
+                     )
             .OrderBy(u => u.FullName)
             .Select(u => new AvailableTechnicianDto
             {
