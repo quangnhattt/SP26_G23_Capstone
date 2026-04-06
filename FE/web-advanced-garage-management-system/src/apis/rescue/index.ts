@@ -53,11 +53,9 @@ export interface IRescueRequest {
 
 export type RescueStatus =
   | "PENDING"
-  | "REVIEWING"
   | "PROPOSED_ROADSIDE"
   | "PROPOSED_TOWING"
   | "PROPOSAL_ACCEPTED"
-  | "DISPATCHED"
   | "EN_ROUTE"
   | "ON_SITE"
   | "DIAGNOSING"
@@ -71,9 +69,7 @@ export type RescueStatus =
   | "PAYMENT_PENDING"
   | "COMPLETED"
   | "CANCELLED"
-  | "SPAM"
-  | "CUSTOMER_REJECTED"
-  | "TOWING_REJECTED";
+  | "SPAM";
 
 export interface IRescueCreatePayload {
   carId: number;
@@ -144,6 +140,7 @@ export interface IRescueRepairItem {
 }
 
 export interface IRescueRepairItemsPayload {
+  actorId?: number;
   items: IRescueRepairItem[];
 }
 

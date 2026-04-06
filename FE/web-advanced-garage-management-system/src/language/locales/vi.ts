@@ -1178,6 +1178,22 @@ export default {
   // Rescue Management - extra action labels
   rescueMgrEditPartsAction: "Chỉnh sửa phụ tùng",
   rescueMgrStartDrivingAction: "Bắt đầu di chuyển",
+  rescueMgrTechOnMission: "Đang trong nhiệm vụ ({{count}} job)",
+  rescueMgrEditPartsModalTitle: "Chỉnh sửa phụ tùng / dịch vụ",
+  rescueMgrEditPartsHint: "Thêm hoặc điều chỉnh phụ tùng / công dịch vụ trước khi tạo hóa đơn.",
+  rescueMgrProductIdPlaceholder: "Product ID *",
+  rescueStepPropose: "Đề xuất",
+  rescueStepCustomerConfirm: "KH xác nhận",
+  rescueStepDeposit: "KH đặt cọc",
+  rescueStepAssign: "Điều phối KTV",
+  rescueStepArrive: "Đến nơi",
+  rescueStepDiagnose: "Chẩn đoán",
+  rescueStepRepair: "Sửa chữa",
+  rescueStepComplete: "Sửa xong",
+  rescueStepInvoice: "Hóa đơn",
+  rescueStepSend: "Gửi HĐ",
+  rescueStepPaid: "Thanh toán",
+  rescueStepDone: "Hoàn thành",
 
   // Rescue Detail Modal - Customer actions (post-dispatch)
   rescueCustomerDiagnosingTitle: "Kỹ thuật viên đã hoàn tất chẩn đoán",

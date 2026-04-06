@@ -1193,6 +1193,22 @@ export default {
   // Rescue Management - extra action labels
   rescueMgrEditPartsAction: "Edit parts",
   rescueMgrStartDrivingAction: "Start driving",
+  rescueMgrTechOnMission: "On rescue mission ({{count}} job)",
+  rescueMgrEditPartsModalTitle: "Edit parts / services",
+  rescueMgrEditPartsHint: "Add or adjust parts / services before creating the invoice.",
+  rescueMgrProductIdPlaceholder: "Product ID *",
+  rescueStepPropose: "Propose",
+  rescueStepCustomerConfirm: "Customer confirm",
+  rescueStepDeposit: "Deposit",
+  rescueStepAssign: "Assign tech",
+  rescueStepArrive: "Arrive",
+  rescueStepDiagnose: "Diagnose",
+  rescueStepRepair: "Repair",
+  rescueStepComplete: "Complete",
+  rescueStepInvoice: "Invoice",
+  rescueStepSend: "Send",
+  rescueStepPaid: "Payment",
+  rescueStepDone: "Done",
 
   // Rescue Detail Modal - Customer actions (post-dispatch)
   rescueCustomerDiagnosingTitle: "Technician has completed diagnosis",

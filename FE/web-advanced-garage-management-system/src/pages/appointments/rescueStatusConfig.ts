@@ -3,11 +3,9 @@ export const rescueStatusStyle: Record<
   { color: string; bg: string; border: string; labelKey: string }
 > = {
   PENDING: { color: "#d97706", bg: "#fef3c7", border: "#fcd34d", labelKey: "rescueMgrStatusPending" },
-  REVIEWING: { color: "#2563eb", bg: "#dbeafe", border: "#93c5fd", labelKey: "rescueMgrStatusReviewing" },
   PROPOSED_ROADSIDE: { color: "#2563eb", bg: "#dbeafe", border: "#93c5fd", labelKey: "rescueMgrStatusProposedRoadside" },
   PROPOSED_TOWING: { color: "#ea580c", bg: "#fff7ed", border: "#fdba74", labelKey: "rescueMgrStatusProposedTowing" },
   PROPOSAL_ACCEPTED: { color: "#7c3aed", bg: "#ede9fe", border: "#c4b5fd", labelKey: "rescueMgrStatusProposalAccepted" },
-  DISPATCHED: { color: "#0891b2", bg: "#cffafe", border: "#67e8f9", labelKey: "rescueMgrStatusDispatched" },
   EN_ROUTE: { color: "#0891b2", bg: "#cffafe", border: "#67e8f9", labelKey: "rescueMgrStatusEnRoute" },
   ON_SITE: { color: "#0d9488", bg: "#ccfbf1", border: "#5eead4", labelKey: "rescueMgrStatusOnSite" },
   DIAGNOSING: { color: "#ea580c", bg: "#fff7ed", border: "#fdba74", labelKey: "rescueMgrStatusDiagnosing" },
@@ -22,17 +20,13 @@ export const rescueStatusStyle: Record<
   COMPLETED: { color: "#16a34a", bg: "#dcfce7", border: "#86efac", labelKey: "rescueMgrStatusCompleted" },
   CANCELLED: { color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb", labelKey: "rescueMgrStatusCancelled" },
   SPAM: { color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb", labelKey: "rescueMgrStatusSpam" },
-  CUSTOMER_REJECTED: { color: "#dc2626", bg: "#fee2e2", border: "#fca5a5", labelKey: "rescueMgrStatusCustomerRejected" },
-  TOWING_REJECTED: { color: "#dc2626", bg: "#fee2e2", border: "#fca5a5", labelKey: "rescueMgrStatusTowingRejected" },
 };
 
 export const rescueStatusConfig: Record<string, { labelKey: string; color: string; bg: string }> = {
   PENDING: { labelKey: "rescueStatusPending", color: "#d97706", bg: "#fef3c7" },
-  REVIEWING: { labelKey: "rescueStatusReviewing", color: "#2563eb", bg: "#dbeafe" },
   PROPOSED_ROADSIDE: { labelKey: "rescueStatusProposedRoadside", color: "#2563eb", bg: "#dbeafe" },
   PROPOSED_TOWING: { labelKey: "rescueStatusProposedTowing", color: "#ea580c", bg: "#fff7ed" },
   PROPOSAL_ACCEPTED: { labelKey: "rescueStatusProposalAccepted", color: "#7c3aed", bg: "#ede9fe" },
-  DISPATCHED: { labelKey: "rescueStatusDispatched", color: "#0891b2", bg: "#cffafe" },
   EN_ROUTE: { labelKey: "rescueStatusEnRoute", color: "#0891b2", bg: "#cffafe" },
   ON_SITE: { labelKey: "rescueStatusOnSite", color: "#0d9488", bg: "#ccfbf1" },
   DIAGNOSING: { labelKey: "rescueStatusDiagnosing", color: "#ea580c", bg: "#fff7ed" },
@@ -45,7 +39,6 @@ export const rescueStatusConfig: Record<string, { labelKey: string; color: strin
   INVOICE_SENT: { labelKey: "rescueStatusInvoiceSent", color: "#7c3aed", bg: "#ede9fe" },
   PAYMENT_PENDING: { labelKey: "rescueStatusPaymentPending", color: "#d97706", bg: "#fef3c7" },
   COMPLETED: { labelKey: "rescueStatusCompleted", color: "#16a34a", bg: "#dcfce7" },
-  CANCELLED: { labelKey: "rescueStatusCancelled", color: "#dc2626", bg: "#fee2e2" },
+  CANCELLED: { labelKey: "rescueStatusCancelled", color: "#6b7280", bg: "#f3f4f6" },
   SPAM: { labelKey: "rescueStatusSpam", color: "#6b7280", bg: "#f3f4f6" },
 };
-
