@@ -400,20 +400,15 @@ const RescueDetailModal = ({
             {/* ═══ TECHNICIAN actions ═══ */}
 
             {/* KTV: Đã được phân công / đang trên đường — xác nhận đến nơi */}
-            {isTechnician &&
-              ["DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
+            {isTechnician && data.status === "EN_ROUTE" && (
                 <>
                   <Divider />
                   <ActionCard $highlight>
                     <ActionCardTitle>
-                      {data.status === "DISPATCHED"
-                        ? t("rescueTechAssignedTitle")
-                        : t("rescueTechEnRouteTitle")}
+                      {t("rescueTechEnRouteTitle")}
                     </ActionCardTitle>
                     <ActionInfo>
-                      {data.status === "DISPATCHED"
-                        ? t("rescueTechAssignedInfo")
-                        : t("rescueTechEnRouteInfo")}
+                      {t("rescueTechEnRouteInfo")}
                     </ActionInfo>
                     <ActionBtnRow>
                       <ActionBtn
@@ -749,7 +744,7 @@ const RescueDetailModal = ({
 
             {/* KH: Chờ SA xử lý */}
             {isCustomer &&
-              ["PENDING", "REVIEWING"].includes(data.status as string) && (
+              data.status === "PENDING" && (
                 <>
                   <Divider />
                   <ActionCard>
@@ -988,15 +983,12 @@ const RescueDetailModal = ({
               )}
 
             {/* KH: Đã đồng ý — KTV đã được phân công tự động */}
-            {isCustomer &&
-              ["DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
+            {isCustomer && data.status === "EN_ROUTE" && (
                 <>
                   <Divider />
                   <ActionCard>
                     <ActionInfo>
-                      {data.status === "DISPATCHED"
-                        ? t("rescueCustomerKtvAssigned")
-                        : t("rescueCustomerKtvEnRoute")}
+                      {t("rescueCustomerKtvEnRoute")}
                     </ActionInfo>
                   </ActionCard>
                 </>

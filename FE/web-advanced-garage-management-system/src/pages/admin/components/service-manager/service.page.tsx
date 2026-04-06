@@ -2,12 +2,10 @@ import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
 import { useEffect, useState, useCallback } from "react";
-import { Table as AntTable } from "antd";
+import { Switch, Table as AntTable } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
-  getServices,
-  createService,
-  updateService,
+  serviceService,
 } from "@/services/admin/serviceService";
 import type { IService } from "@/services/admin/serviceService";
 import { getCategories } from "@/services/admin/categoryService";
@@ -52,6 +50,7 @@ const ServicePage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categories, setCategories] = useState<ICategory[]>([]);
   const [units, setUnits] = useState<IUnit[]>([]);
+  const [updatingStatusIds, setUpdatingStatusIds] = useState<number[]>([]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -75,7 +74,7 @@ const ServicePage = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getServices();
+      const data = await serviceService.getServices();
       setServices(data);
     } catch (err) {
       console.error("Failed to fetch services:", err);
@@ -164,9 +163,9 @@ const ServicePage = () => {
     setSubmitting(true);
     try {
       if (editingService) {
-        await updateService(editingService.id, formData);
+        await serviceService.updateService(editingService.id, formData);
       } else {
-        await createService(formData);
+        await serviceService.createService(formData);
       }
       handleCloseModal();
       await fetchServices();
@@ -190,6 +189,55 @@ const ServicePage = () => {
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.code.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  const handleToggleServiceStatus = async (
+    record: IService,
+    nextIsActive: boolean,
+  ) => {
+    if (updatingStatusIds.includes(record.id)) return;
+
+    const matchedUnit = units.find((u) => u.name === record.unit);
+    const matchedCategory = categories.find(
+      (c) => c.name === record.category && c.type === "Service",
+    );
+
+    if (!matchedUnit?.unitID || !matchedCategory?.categoryID) {
+      toast.error(t("errorUpdatingServiceStatus"));
+      return;
+    }
+
+    const payload: ServiceFormData = {
+      code: record.code,
+      name: record.name,
+      price: record.price,
+      unitId: matchedUnit.unitID,
+      categoryID: matchedCategory.categoryID,
+      estimatedDurationHours: record.estimatedDurationHours,
+      description: record.description || "",
+      image: record.image || "",
+      isActive: nextIsActive,
+    };
+
+    setUpdatingStatusIds((prev) => [...prev, record.id]);
+    setServices((prev) =>
+      prev.map((item) =>
+        item.id === record.id ? { ...item, isActive: nextIsActive } : item,
+      ),
+    );
+
+    try {
+      await serviceService.updateServiceStatus(record.id, payload);
+    } catch (err) {
+      setServices((prev) =>
+        prev.map((item) =>
+          item.id === record.id ? { ...item, isActive: record.isActive } : item,
+        ),
+      );
+      toast.error(getApiErrorMessage(err, t("errorUpdatingServiceStatus")));
+    } finally {
+      setUpdatingStatusIds((prev) => prev.filter((id) => id !== record.id));
+    }
+  };
 
   const columns: ColumnsType<IService> = [
     {
@@ -246,10 +294,12 @@ const ServicePage = () => {
       dataIndex: "isActive",
       key: "isActive",
       align: "center",
-      render: (isActive: boolean) => (
-        <StatusBadge $isActive={isActive}>
-          {isActive ? t("active") : t("inactive")}
-        </StatusBadge>
+      render: (_: boolean, record: IService) => (
+        <Switch
+          checked={record.isActive}
+          loading={updatingStatusIds.includes(record.id)}
+          onChange={(checked) => handleToggleServiceStatus(record, checked)}
+        />
       ),
     },
     {
@@ -489,16 +539,6 @@ const UnitBadge = styled.span`
 const CategoryBadge = styled.span`
   background: #fef3c7;
   color: #b45309;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-`;
-
-const StatusBadge = styled.span<{ $isActive: boolean }>`
-  background: ${(props) => (props.$isActive ? "#dcfce7" : "#f3f4f6")};
-  color: ${(props) => (props.$isActive ? "#16a34a" : "#6b7280")};
   padding: 0.375rem 0.75rem;
   border-radius: 6px;
   font-size: 0.75rem;

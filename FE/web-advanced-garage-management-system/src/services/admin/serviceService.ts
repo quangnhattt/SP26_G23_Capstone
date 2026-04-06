@@ -57,8 +57,20 @@ export const updateService = async (
   return data;
 };
 
+export const updateServiceStatus = async (
+  id: number,
+  service: IServiceRequest
+): Promise<IService> => {
+  const { data } = await AxiosClient.put<IService>(
+    `/api/products/services/${id}`,
+    service
+  );
+  return data;
+};
+
 export const serviceService = {
   getServices,
   createService,
   updateService,
+  updateServiceStatus,
 };

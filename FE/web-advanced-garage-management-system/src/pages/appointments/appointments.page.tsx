@@ -55,10 +55,9 @@ const statusConfig: Record<
 const IN_PROGRESS_STATUSES = ["PENDING", "CONFIRMED", "CHECKED_IN"];
 const IN_PROGRESS_RESCUE_STATUSES = [
   "PENDING",
-  "REVIEWING",
   "PROPOSED_ROADSIDE",
   "PROPOSED_TOWING",
-  "DISPATCHED",
+  "PROPOSAL_ACCEPTED",
   "EN_ROUTE",
   "ON_SITE",
   "DIAGNOSING",
@@ -698,7 +697,7 @@ const AppointmentsPage = () => {
 
                         {/* ── Technician actions ── */}
                         {isTechnician &&
-                          ["DISPATCHED", "EN_ROUTE"].includes(rescue.status) && (
+                          rescue.status === "EN_ROUTE" && (
                           <CustomerActionRow>
                             <CustomerActionBtn
                               $color="#0d9488"

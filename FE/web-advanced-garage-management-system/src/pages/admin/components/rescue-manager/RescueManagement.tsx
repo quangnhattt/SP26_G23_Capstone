@@ -383,6 +383,7 @@ const RescueManagement = () => {
     setEditPartsSubmitting(true);
     try {
       await addRepairItems(selectedRescue.rescueId, {
+        actorId: user?.id ? Number(user.id) : undefined,
         items: validItems.map((i) => ({
           productId: Number(i.productId),
           quantity: Number(i.quantity),
@@ -472,10 +473,9 @@ const RescueManagement = () => {
   const pendingCount = rescues.filter((r) => r.status === "PENDING").length;
   const activeCount = rescues.filter((r) =>
     [
-      "REVIEWING",
       "PROPOSED_ROADSIDE",
       "PROPOSED_TOWING",
-      "DISPATCHED",
+      "PROPOSAL_ACCEPTED",
       "EN_ROUTE",
       "ON_SITE",
       "DIAGNOSING",
@@ -501,10 +501,9 @@ const RescueManagement = () => {
       if (filterStatus === "all") return true;
       if (filterStatus === "ACTIVE")
         return [
-          "REVIEWING",
           "PROPOSED_ROADSIDE",
           "PROPOSED_TOWING",
-          "DISPATCHED",
+          "PROPOSAL_ACCEPTED",
           "EN_ROUTE",
           "ON_SITE",
           "DIAGNOSING",
@@ -580,7 +579,6 @@ const RescueManagement = () => {
     switch (rescue.status) {
       // ═══ SA: Tiếp nhận & đề xuất ═══
       case "PENDING":
-      case "REVIEWING":
         if (isSA) {
           actions.push({
             label: t("rescueMgrProposeSolution"),
@@ -672,8 +670,7 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ DISPATCHED / EN_ROUTE: KTV xác nhận đến nơi ═══
-      case "DISPATCHED":
+      // ═══ EN_ROUTE: KTV xác nhận đến nơi ═══
       case "EN_ROUTE":
         if (isTech) {
           actions.push({
@@ -693,9 +690,8 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ KTV: Chẩn đoán ═══
+      // ═══ KTV: Tới hiện trường → bắt đầu chẩn đoán ═══
       case "ON_SITE":
-      case "DIAGNOSING":
         if (isTech) {
           actions.push({
             label: t("rescueMgrStartDiagnosisAction"),
@@ -710,6 +706,44 @@ const RescueManagement = () => {
           });
         }
         if (isSA) {
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
+        }
+        break;
+
+      // ═══ KTV: Ghi nhận vật tư → REPAIRING | SA: điều xe kéo nếu cần ═══
+      case "DIAGNOSING":
+        if (isTech) {
+          actions.push({
+            label: t("rescueMgrEditPartsAction"),
+            icon: <FaWrench size={12} />,
+            color: "#2563eb",
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setEditPartsItems([
+                { productId: "", quantity: "", unitPrice: "", notes: "" },
+              ]);
+              setShowEditPartsModal(true);
+            },
+          });
+        }
+        if (isSA) {
+          actions.push({
+            label: t("rescueMgrDispatchTowingAction"),
+            icon: <FaTruck size={12} />,
+            color: "#0891b2",
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setTowingNotes("");
+              setTowingEstimatedArrival("");
+              setTowingServiceFee("");
+              setShowDispatchTowingModal(true);
+            },
+          });
           actions.push({
             label: t("rescueMgrCancel"),
             icon: <FaTimes size={12} />,
@@ -1099,7 +1133,7 @@ const RescueManagement = () => {
                         {tech.skills && <TechInfo>{tech.skills}</TechInfo>}
                         {tech.isOnRescueMission && (
                           <TechInfo style={{ color: "#d97706" }}>
-                            Đang trong nhiệm vụ ({tech.activeJobCount} job)
+                            {t("rescueMgrTechOnMission", { count: tech.activeJobCount })}
                           </TechInfo>
                         )}
                       </TechCard>
@@ -1424,7 +1458,7 @@ const RescueManagement = () => {
           >
             <ModalHeader>
               <ModalTitle>
-                Chỉnh sửa phụ tùng / dịch vụ — RESCUE-{selectedRescue.rescueId}
+                {t("rescueMgrEditPartsModalTitle")} — RESCUE-{selectedRescue.rescueId}
               </ModalTitle>
               <CloseBtn
                 onClick={() => setShowEditPartsModal(false)}
@@ -1441,8 +1475,7 @@ const RescueManagement = () => {
                   marginBottom: "0.75rem",
                 }}
               >
-                Thêm hoặc điều chỉnh phụ tùng / công dịch vụ trước khi tạo hóa
-                đơn.
+                {t("rescueMgrEditPartsHint")}
               </p>
               {editPartsItems.map((item, idx) => (
                 <div
@@ -1456,7 +1489,7 @@ const RescueManagement = () => {
                 >
                   <FormInput
                     type="number"
-                    placeholder="Product ID *"
+                    placeholder={t("rescueMgrProductIdPlaceholder")}
                     value={item.productId}
                     onChange={(e) => {
                       const next = [...editPartsItems];
@@ -1524,7 +1557,7 @@ const RescueManagement = () => {
                   ])
                 }
               >
-                + Thêm dòng
+                {t("rescueTechAddRowBtn")}
               </ModalCancelBtn>
             </ModalBody>
             <ModalFooter>

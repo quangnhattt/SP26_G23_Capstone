@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import {
   FaClipboardCheck,
@@ -20,79 +21,79 @@ import type { RescueStatus } from "@/apis/rescue";
 //       → Chẩn đoán → Sửa chữa → Sửa xong (SA/KTV edit phụ) → HĐ → Thanh toán
 const ON_SITE_STEPS: {
   key: string;
-  label: string;
+  labelKey: string;
   icon: React.ReactNode;
   statuses: RescueStatus[];
 }[] = [
   {
     key: "propose",
-    label: "Đề xuất",
+    labelKey: "rescueStepPropose",
     icon: <FaClipboardCheck size={14} />,
     statuses: ["PENDING"],
   },
   {
     key: "customer_confirm",
-    label: "KH xác nhận",
+    labelKey: "rescueStepCustomerConfirm",
     icon: <FaUserCheck size={14} />,
     statuses: ["PROPOSED_ROADSIDE", "PROPOSED_TOWING"],
   },
   {
     key: "deposit",
-    label: "KH đặt cọc",
+    labelKey: "rescueStepDeposit",
     icon: <FaHandHoldingUsd size={14} />,
     statuses: ["PROPOSAL_ACCEPTED"],
   },
   {
     key: "assign",
-    label: "Điều phối KTV",
+    labelKey: "rescueStepAssign",
     icon: <FaUserCog size={14} />,
     statuses: [],
   },
   {
     key: "arrive",
-    label: "Đến nơi",
+    labelKey: "rescueStepArrive",
     icon: <FaMapMarkerAlt size={14} />,
-    statuses: ["DISPATCHED", "EN_ROUTE"],
+    statuses: ["EN_ROUTE"],
   },
   {
     key: "diagnose",
-    label: "Chẩn đoán",
+    labelKey: "rescueStepDiagnose",
     icon: <FaTools size={14} />,
     statuses: ["ON_SITE", "DIAGNOSING"],
   },
   {
     key: "repair",
-    label: "Sửa chữa",
+    labelKey: "rescueStepRepair",
     icon: <FaWrench size={14} />,
     statuses: ["REPAIRING"],
   },
   {
     key: "complete",
-    label: "Sửa xong",
+    labelKey: "rescueStepComplete",
     icon: <FaCheckCircle size={14} />,
     statuses: ["REPAIR_COMPLETE"],
   },
   {
     key: "invoice",
-    label: "Hóa đơn",
+    labelKey: "rescueStepInvoice",
     icon: <FaFileInvoiceDollar size={14} />,
     statuses: ["INVOICED"],
   },
   {
     key: "send",
-    label: "Gửi HĐ",
+    labelKey: "rescueStepSend",
     icon: <FaPaperPlane size={14} />,
     statuses: ["INVOICE_SENT"],
   },
   {
     key: "paid",
-    label: "Thanh toán",
+    labelKey: "rescueStepPaid",
     icon: <FaMoneyBillWave size={14} />,
     statuses: ["PAYMENT_PENDING"],
   },
   {
     key: "done",
-    label: "Hoàn thành",
+    labelKey: "rescueStepDone",
     icon: <FaFlag size={14} />,
     statuses: ["COMPLETED"],
   },
@@ -102,8 +103,6 @@ const ON_SITE_STEPS: {
 const TERMINAL_STATUSES: RescueStatus[] = [
   "CANCELLED",
   "SPAM",
-  "CUSTOMER_REJECTED",
-  "TOWING_REJECTED",
 ];
 
 function getActiveStepIndex(status: RescueStatus): number {
@@ -113,13 +112,9 @@ function getActiveStepIndex(status: RescueStatus): number {
   // Statuses that fall between defined step statuses
   // Indices: 0=propose,1=customer_confirm,2=deposit,3=assign(auto-done),4=arrive,5=diagnose,6=repair,7=complete,8=invoice,9=send,10=paid,11=done
   const statusOrder: Record<string, number> = {
-    ACCEPTED: 0,
-    EVALUATING: 0,
-    QUOTE_SENT: 0,
-    REVIEWING: 1,             // SA đang xem xét → KH xác nhận step
     TOWING_ACCEPTED: 2,       // customer accepted towing → deposit step
-    NEED_TOWING: 5,
-    TOWING_CONFIRMED: 5,
+    TOWING_DISPATCHED: 2,
+    TOWED: 2,
   };
   return statusOrder[status] ?? -1;
 }
@@ -129,6 +124,7 @@ interface Props {
 }
 
 const RescueStepProgress = ({ status }: Props) => {
+  const { t } = useTranslation();
   if (TERMINAL_STATUSES.includes(status)) return null;
 
   const activeIdx = getActiveStepIndex(status);
@@ -147,7 +143,7 @@ const RescueStepProgress = ({ status }: Props) => {
             {idx < ON_SITE_STEPS.length - 1 && (
               <StepLine $done={idx < activeIdx} />
             )}
-            <StepLabel $state={state}>{step.label}</StepLabel>
+            <StepLabel $state={state}>{t(step.labelKey)}</StepLabel>
           </StepItem>
         );
       })}

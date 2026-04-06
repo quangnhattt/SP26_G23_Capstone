@@ -138,13 +138,11 @@ const ProductModal = ({
                     required
                   >
                     <option value="">{t("selectCategory")}</option>
-                    {categories
-                      .filter((c) => c.type === "Part")
-                      .map((cat) => (
-                        <option key={cat.categoryID} value={cat.categoryID}>
-                          {cat.name}
-                        </option>
-                      ))}
+                    {categories.map((cat) => (
+                      <option key={cat.categoryID} value={cat.categoryID}>
+                        {cat.name}
+                      </option>
+                    ))}
                   </Select>
                 </FormGroup>
 
