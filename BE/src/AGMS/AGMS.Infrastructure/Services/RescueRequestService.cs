@@ -1027,14 +1027,14 @@ public class RescueRequestService : IRescueRequestService
             throw new ArgumentException("Chỉ Service Advisor mới có quyền gửi hóa đơn.");
 
         var sentAt = DateTime.UtcNow;
-        rescue.Status = RescueStatus.InvoiceSent;
+        rescue.Status = RescueStatus.PaymentPending;
         await _rescueRepo.UpdateAsync(rescue, ct);
 
         return new SendInvoiceResultDto
         {
             RescueId = rescueId,
-            Status = RescueStatus.InvoiceSent,
-            InvoiceStatus = InvoiceStatus.Sent,
+            Status = RescueStatus.PaymentPending,
+            InvoiceStatus = InvoiceStatus.Accepted,
             SentAt = sentAt
         };
     }
