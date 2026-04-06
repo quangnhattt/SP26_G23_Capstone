@@ -13,6 +13,10 @@ namespace AGMS.Application.DTOs.MaintenanacePackage
         public string Name { get; set; } = null!;
         public decimal BasePrice { get; set; }
         public int? KilometerMilestone { get; set; }
+        public string? Description { get; set; }
+        public decimal? EstimatedDurationHours { get; set; }
+        public string? ApplicableBrands { get; set; }
+        public int DisplayOrder { get; set; }
         public int? MonthMilestone { get; set; }
         public decimal DiscountPercent { get; set; }
         public decimal? FinalPrice { get; set; }

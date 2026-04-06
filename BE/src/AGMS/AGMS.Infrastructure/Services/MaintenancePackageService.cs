@@ -24,10 +24,14 @@ public class MaintenancePackageService : IMaintenancePackageService
             PackageID = p.PackageID,
             PackageCode = p.PackageCode,
             Name = p.Name,
+            Description=p.Description,
             KilometerMilestone = p.KilometerMilestone,
             MonthMilestone = p.MonthMilestone,
             BasePrice = p.BasePrice,
             DiscountPercent = p.DiscountPercent,
+            EstimatedDurationHours= p.EstimatedDurationHours,   
+            ApplicableBrands = p.ApplicableBrands,
+            DisplayOrder= p.DisplayOrder,
             FinalPrice = p.FinalPrice,
             IsActive = p.IsActive
         }).ToList();
