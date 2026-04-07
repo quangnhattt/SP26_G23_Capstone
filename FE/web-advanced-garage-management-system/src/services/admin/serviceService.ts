@@ -14,7 +14,6 @@ export interface IService {
 }
 
 export interface IServiceRequest {
-  code: string;
   name: string;
   price: number;
   unitId: number;
@@ -37,7 +36,7 @@ export const getServices = async (): Promise<IService[]> => {
 };
 
 export const createService = async (
-  service: IServiceRequest
+  service: Omit<IServiceRequest, "code">
 ): Promise<IService> => {
   const { data } = await AxiosClient.post<IService>(
     "/api/products/services",
@@ -48,7 +47,7 @@ export const createService = async (
 
 export const updateService = async (
   id: number,
-  service: IServiceRequest
+  service: Omit<IServiceRequest, "code">
 ): Promise<IService> => {
   const { data } = await AxiosClient.put<IService>(
     `/api/products/services/${id}`,
@@ -59,7 +58,7 @@ export const updateService = async (
 
 export const updateServiceStatus = async (
   id: number,
-  service: IServiceRequest
+  service: Omit<IServiceRequest, "code">
 ): Promise<IService> => {
   const { data } = await AxiosClient.put<IService>(
     `/api/products/services/${id}`,

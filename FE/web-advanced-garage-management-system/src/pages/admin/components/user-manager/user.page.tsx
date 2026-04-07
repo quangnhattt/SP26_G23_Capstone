@@ -33,7 +33,7 @@ const UserPage = () => {
     dateOfBirth: "",
     image: "",
     roleID: 2,
-    isActive: true,
+    isActive: false,
   });
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmPasswordError, setConfirmPasswordError] = useState<
@@ -82,7 +82,7 @@ const UserPage = () => {
       dateOfBirth: "",
       image: "",
       roleID: 2,
-      isActive: true,
+      isActive: false,
       password: "",
       confirmPassword: "",
     });

@@ -1040,7 +1040,7 @@ const RescueManagement = () => {
                     <CardInfoRow>
                       <InfoChip>
                         <FaWrench size={12} />
-                        SA: {item.serviceAdvisorName}
+                        {t("rescueServiceAdvisorLabel")}: {item.serviceAdvisorName}
                       </InfoChip>
                     </CardInfoRow>
                   )}
@@ -1305,7 +1305,7 @@ const RescueManagement = () => {
                   type="number"
                   value={manualDiscount}
                   onChange={(e) => setManualDiscount(e.target.value)}
-                  placeholder="0"
+                  placeholder={t("zeroPlaceholder")}
                 />
               </FormGroup>
               <FormGroup>

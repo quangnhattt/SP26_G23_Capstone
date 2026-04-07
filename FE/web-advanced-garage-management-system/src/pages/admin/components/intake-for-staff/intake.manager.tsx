@@ -25,8 +25,8 @@ const typeColor: Record<string, string> = {
   REPAIR: "gold",
 };
 
-const formatDate = (iso: string | null) => {
-  if (!iso) return "—";
+const formatDate = (iso: string | null, fallback: string) => {
+  if (!iso) return fallback;
   const d = new Date(iso);
   return d.toLocaleString("vi-VN", {
     day: "2-digit",
@@ -183,14 +183,14 @@ const IntakeManager = () => {
       dataIndex: "maintenanceDate",
       key: "maintenanceDate",
       width: 160,
-      render: formatDate,
+      render: (val: string | null) => formatDate(val, t("notAvailable")),
     },
     {
       title: t("intakeColCompletedDate"),
       dataIndex: "completedDate",
       key: "completedDate",
       width: 160,
-      render: formatDate,
+      render: (val: string | null) => formatDate(val, t("notAvailable")),
     },
     {
       title: t("intakeColAction"),
@@ -354,12 +354,18 @@ const PageWrapper = styled.div`
   .ant-input,
   .ant-input input,
   .ant-select-selection-item,
-  .ant-select-selection-placeholder,
   .ant-input-affix-wrapper,
   .ant-input-affix-wrapper input,
   .ant-input-affix-wrapper > input.ant-input {
     color: #111827 !important;
     -webkit-text-fill-color: #111827 !important;
+  }
+
+  .ant-select-selection-placeholder,
+  .ant-input::placeholder,
+  .ant-input-affix-wrapper input::placeholder {
+    color: #9ca3af !important;
+    -webkit-text-fill-color: #9ca3af !important;
   }
 
   .ant-input-affix-wrapper,

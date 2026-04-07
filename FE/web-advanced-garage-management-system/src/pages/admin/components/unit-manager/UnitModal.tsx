@@ -1,4 +1,5 @@
 import { HiX } from "react-icons/hi";
+import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import type { IUnit } from "@/services/admin/unitService";
@@ -93,11 +94,17 @@ const UnitModal = ({
             {editingUnit && (
               <FormGroup>
                 <CheckboxRow>
-                  <input
-                    type="checkbox"
-                    name="isActive"
+                  <Switch
                     checked={formData.isActive}
-                    onChange={onInputChange}
+                    onChange={(checked) =>
+                      onInputChange({
+                        target: {
+                          name: "isActive",
+                          type: "checkbox",
+                          checked,
+                        } as HTMLInputElement,
+                      } as React.ChangeEvent<HTMLInputElement>)
+                    }
                   />
                   <Label style={{ margin: 0 }}>{t("active")}</Label>
                 </CheckboxRow>

@@ -7,12 +7,12 @@ import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import AppointmentDetailModal from "@/pages/appointments/AppointmentDetailModal";
 
-const statusConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  PENDING: { label: "Chờ đánh giá", color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
-  CONFIRMED: { label: "Đã chấp nhận", color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  CHECKED_IN: { label: "Đã chẩn đoán", color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
-  DONE: { label: "Hoàn thành", color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  CANCELLED: { label: "Đã từ chối", color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
+const statusConfig: Record<string, { color: string; bg: string; border: string }> = {
+  PENDING: { color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
+  CONFIRMED: { color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+  CHECKED_IN: { color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
+  DONE: { color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
+  CANCELLED: { color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
 };
 
 const ManagermentAppointment = () => {
@@ -153,12 +153,12 @@ const ManagermentAppointment = () => {
   };
 
   const getStatusInfo = (status: string) =>
-    statusConfig[status] || { label: status, color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" };
+    statusConfig[status] || { color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" };
 
   const getServiceTypeLabel = (type: string) => {
     switch (type?.toUpperCase()) {
-      case "REPAIR": return "Sửa chữa";
-      case "MAINTENANCE": return "Bảo dưỡng";
+      case "REPAIR": return t("bookingServiceTypeRepair");
+      case "MAINTENANCE": return t("bookingServiceTypeMaintenance");
       default: return type;
     }
   };
@@ -220,8 +220,10 @@ const ManagermentAppointment = () => {
         </SearchBox>
         <FilterSelect value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
           <option value="all">{t("appointmentsAll")}</option>
-          {Object.entries(statusConfig).map(([key, val]) => (
-            <option key={key} value={key}>{val.label}</option>
+          {Object.entries(statusConfig).map(([key]) => (
+            <option key={key} value={key}>
+              {t(`mgrAppointmentStatus_${key}`)}
+            </option>
           ))}
         </FilterSelect>
         <FilterSelect value={filterServiceType} onChange={(e) => setFilterServiceType(e.target.value)}>
@@ -248,7 +250,9 @@ const ManagermentAppointment = () => {
                   <CardTopRow>
                     <RequestCode>REQ-{item.appointmentId}</RequestCode>
                     <BadgeGroup>
-                      <Badge $color={statusInfo.color} $bg={statusInfo.bg}>{statusInfo.label}</Badge>
+                      <Badge $color={statusInfo.color} $bg={statusInfo.bg}>
+                        {t(`mgrAppointmentStatus_${item.status}`)}
+                      </Badge>
                       <Badge $color={serviceTypeBadge.color} $bg={serviceTypeBadge.bg}>{getServiceTypeLabel(item.serviceType)}</Badge>
                     </BadgeGroup>
                   </CardTopRow>

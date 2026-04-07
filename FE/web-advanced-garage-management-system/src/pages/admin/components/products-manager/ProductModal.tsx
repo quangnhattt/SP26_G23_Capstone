@@ -1,4 +1,5 @@
 import { HiX } from "react-icons/hi";
+import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import type { ICategory } from "@/services/admin/categoryService";
@@ -6,13 +7,12 @@ import type { IUnit } from "@/services/admin/unitService";
 import type { IProduct } from "@/services/admin/productService";
 
 interface ProductModalFormData {
-  code: string;
   name: string;
-  price: number;
+  price: number | "";
   unitId: number;
   categoryId: number;
-  warranty: number;
-  minStockLevel: number;
+  warranty: number | "";
+  minStockLevel: number | "";
   description: string;
   image: string;
   isActive: boolean;
@@ -73,25 +73,13 @@ const ProductModal = ({
             <Form onSubmit={onSubmit}>
               <FormRow>
                 <FormGroup>
-                  <Label>{t("code")} *</Label>
-                  <Input
-                    type="text"
-                    name="code"
-                    value={formData.code}
-                    onChange={onInputChange}
-                    placeholder="P1161200016"
-                    required
-                  />
-                </FormGroup>
-
-                <FormGroup>
                   <Label>{t("name")} *</Label>
                   <Input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={onInputChange}
-                    placeholder="Test tien postman"
+                    placeholder={t("productNamePlaceholder")}
                     required
                   />
                 </FormGroup>
@@ -105,7 +93,7 @@ const ProductModal = ({
                     name="price"
                     value={formData.price}
                     onChange={onInputChange}
-                    placeholder="9999999"
+                    placeholder={t("productPricePlaceholder")}
                     required
                   />
                 </FormGroup>
@@ -153,7 +141,7 @@ const ProductModal = ({
                     name="warranty"
                     value={formData.warranty}
                     onChange={onInputChange}
-                    placeholder="9"
+                    placeholder={t("productWarrantyPlaceholder")}
                     required
                   />
                 </FormGroup>
@@ -167,7 +155,7 @@ const ProductModal = ({
                     name="minStockLevel"
                     value={formData.minStockLevel}
                     onChange={onInputChange}
-                    placeholder="0"
+                    placeholder={t("productMinStockPlaceholder")}
                     required
                   />
                 </FormGroup>
@@ -179,7 +167,7 @@ const ProductModal = ({
                     name="image"
                     value={formData.image}
                     onChange={onInputChange}
-                    placeholder="string"
+                    placeholder={t("imageUrlPlaceholder")}
                   />
                 </FormGroup>
               </FormRow>
@@ -190,7 +178,7 @@ const ProductModal = ({
                   name="description"
                   value={formData.description}
                   onChange={onInputChange}
-                  placeholder="Test tien post man cho anh nhat"
+                  placeholder={t("productDescriptionPlaceholder")}
                   rows={3}
                   required
                 />
@@ -198,11 +186,17 @@ const ProductModal = ({
 
               <FormGroup>
                 <CheckboxLabel>
-                  <input
-                    type="checkbox"
-                    name="isActive"
+                  <Switch
                     checked={formData.isActive}
-                    onChange={onInputChange}
+                    onChange={(checked) =>
+                      onInputChange({
+                        target: {
+                          name: "isActive",
+                          type: "checkbox",
+                          checked,
+                        } as HTMLInputElement,
+                      } as React.ChangeEvent<HTMLInputElement>)
+                    }
                   />
                   <span>{t("active")}</span>
                 </CheckboxLabel>
@@ -387,13 +381,6 @@ const CheckboxLabel = styled.label`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
-
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
 
   span {
     font-size: 0.875rem;

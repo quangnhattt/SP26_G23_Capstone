@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiX, HiExclamation, HiCheckCircle } from "react-icons/hi";
 import { toast } from "react-toastify";
@@ -27,6 +28,7 @@ const AuditModal = ({
   data,
   onRebuildSuccess,
 }: AuditModalProps) => {
+  const { t } = useTranslation();
   const [rebuilding, setRebuilding] = useState(false);
 
   if (!isOpen) return null;
@@ -38,10 +40,10 @@ const AuditModal = ({
       setRebuilding(true);
       await inventoryService.rebuildInventoryBalances();
       await onRebuildSuccess();
-      toast.success("Đồng bộ số lượng thành công");
+      toast.success(t("inventoryAuditSyncSuccess"));
     } catch (error) {
       toast.error(
-        getApiErrorMessage(error, "Không thể đồng bộ số lượng, vui lòng thử lại"),
+        getApiErrorMessage(error, t("inventoryAuditSyncError")),
       );
     } finally {
       setRebuilding(false);
@@ -58,7 +60,7 @@ const AuditModal = ({
             ) : (
               <HiCheckCircle size={22} />
             )}
-            <ModalTitle>Kiểm tra sai lệch số lượng</ModalTitle>
+            <ModalTitle>{t("inventoryAuditTitle")}</ModalTitle>
           </HeaderLeft>
           <CloseBtn onClick={onClose}><HiX size={20} /></CloseBtn>
         </ModalHeader>
@@ -73,11 +75,11 @@ const AuditModal = ({
               <Table>
                 <thead>
                   <tr>
-                    <Th>STT</Th>
-                    <Th>Mã sản phẩm</Th>
-                    <ThRight>SL Snapshot</ThRight>
-                    <ThRight>SL Sổ cái</ThRight>
-                    <ThRight>Sai lệch</ThRight>
+                    <Th>{t("inventoryAuditColIndex")}</Th>
+                    <Th>{t("inventoryProductCode")}</Th>
+                    <ThRight>{t("inventoryAuditSnapshotQty")}</ThRight>
+                    <ThRight>{t("inventoryAuditLedgerQty")}</ThRight>
+                    <ThRight>{t("inventoryAuditDifference")}</ThRight>
                   </tr>
                 </thead>
                 <tbody>
@@ -101,16 +103,16 @@ const AuditModal = ({
           ) : (
             <EmptyState>
               <HiCheckCircle size={48} color="#10b981" />
-              <EmptyText>Không phát hiện sai lệch dữ liệu</EmptyText>
+              <EmptyText>{t("inventoryAuditNoDiscrepancy")}</EmptyText>
             </EmptyState>
           )}
         </Body>
 
         <Footer>
           <RebuildBtn onClick={handleRebuildBalances} disabled={rebuilding}>
-            {rebuilding ? "Đang đồng bộ..." : "Đồng bộ lại"}
+            {rebuilding ? t("inventoryAuditSyncing") : t("inventoryAuditSyncNow")}
           </RebuildBtn>
-          <CloseTextBtn onClick={onClose}>Đóng</CloseTextBtn>
+          <CloseTextBtn onClick={onClose}>{t("close")}</CloseTextBtn>
         </Footer>
       </Box>
     </Overlay>
