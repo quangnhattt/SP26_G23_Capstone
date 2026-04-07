@@ -44,5 +44,15 @@ public class CarMaintenanceService : ICarMaintenanceService
     {
         return await _repository.CreateMaintenanceInvoiceAsync(maintenanceId, ct);
     }
+
+    public async Task<bool> AssignTechnicianAsync(int maintenanceId, int technicianId, CancellationToken ct = default)
+    {
+        return await _repository.AssignTechnicianAsync(maintenanceId, technicianId, ct);
+    }
+
+    public async Task<bool> StartDiagnosisAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default)
+    {
+        return await _repository.StartDiagnosisAsync(maintenanceId, updatedByUserId, ct);
+    }
 }
 

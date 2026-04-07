@@ -454,4 +454,51 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         var markupPercent = product.Category?.MarkupPercent ?? 0m;
         return averageCost.Value * (1 + (markupPercent / 100m));
     }
+    public async Task<bool> AssignTechnicianAsync(int maintenanceId, int technicianId, CancellationToken ct = default)
+    {
+        var maintenance = await _db.CarMaintenances
+            .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+        if (maintenance == null) return false;
+
+        var tech = await _db.Users
+            .FirstOrDefaultAsync(u => u.UserID == technicianId && u.RoleID == 3 && u.IsActive, ct);
+        if (tech == null)
+            throw new KeyNotFoundException("Kỹ thuật viên không tồn tại hoặc không hoạt động.");
+
+        if (!string.Equals(maintenance.Status, "WAITING", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Chỉ có thể phân công kỹ thuật viên khi phiếu đang ở trạng thái 'WAITING'.");
+
+        maintenance.AssignedTechnicianID = technicianId;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<bool> StartDiagnosisAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default)
+    {
+        var maintenance = await _db.CarMaintenances
+            .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+        if (maintenance == null) return false;
+
+        if (!string.Equals(maintenance.Status, "WAITING", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Chỉ có thể bắt đầu chẩn đoán cho xe đang ở trạng thái 'WAITING'.");
+
+        var now = DateTime.UtcNow;
+        var oldStatus = maintenance.Status;
+
+        maintenance.Status = "IN_DIAGNOSIS";
+        maintenance.MaintenanceDate = now;
+
+        _db.MaintenanceStatusLogs.Add(new MaintenanceStatusLog
+        {
+            MaintenanceID = maintenanceId,
+            OldStatus = oldStatus,
+            NewStatus = "IN_DIAGNOSIS",
+            ChangedBy = updatedByUserId,
+            ChangedDate = now,
+            Note = "Bắt đầu chẩn đoán."
+        });
+
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
 }

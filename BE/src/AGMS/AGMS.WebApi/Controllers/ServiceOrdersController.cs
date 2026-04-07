@@ -64,10 +64,6 @@ public class ServiceOrdersController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// POST /api/service-orders/{id}/invoice
-    /// Import khuyến mãi membership rank vào CarMaintenance và lưu vào DB.
-    /// </summary>
     [HttpPost("{id:int}/invoice")]
     [ProducesResponseType(typeof(MaintenanceInvoiceDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -149,6 +145,53 @@ public class ServiceOrdersController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPatch("{id:int}/assign-technician")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AssignTechnician(int id, [FromBody] TechnicianAssignmentRequest request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var success = await _carMaintenanceService.AssignTechnicianAsync(id, request.TechnicianId, ct);
+            if (!success)
+                return NotFound(new { message = $"Không tìm thấy phiếu bảo dưỡng với ID = {id}." });
+
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    [HttpPatch("{id:int}/start-diagnosis")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> StartDiagnosis(int id, CancellationToken ct)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var updatedByUserId))
+            return Unauthorized(new { message = "Invalid or missing user id claim." });
+
+        try
+        {
+            var success = await _carMaintenanceService.StartDiagnosisAsync(id, updatedByUserId, ct);
+            if (!success)
+                return NotFound(new { message = $"Không tìm thấy phiếu bảo dưỡng với ID = {id}." });
+
+            return NoContent();
         }
         catch (InvalidOperationException ex)
         {
