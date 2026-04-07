@@ -22,7 +22,7 @@ public interface IRescueRequestService
 
     /// <summary>SA lấy danh sách yêu cầu cứu hộ với bộ lọc (UC-RES-01 Step 3)</summary>
     Task<IEnumerable<RescueRequestListItemDto>> GetListAsync(
-        string? status, string? rescueType, int? customerId,
+        string? status, string? rescueType, int? customerId, int? assignedTechnicianId,
         DateTime? fromDate, DateTime? toDate, CancellationToken ct);
 
     /// <summary>Xem chi tiết yêu cầu cứu hộ — dùng cho cả SA và Customer (UC-RES-01 Step 3-4)</summary>

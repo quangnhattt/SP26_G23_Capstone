@@ -147,7 +147,7 @@ public class RescueRequestController : ControllerBase
     // GET /api/rescue-requests
     /// <summary>
     /// Lấy danh sách yêu cầu cứu hộ (UC-RES-01 Step 3).
-    /// Customer chỉ thấy yêu cầu của mình (auto-filter theo token).
+    /// Customer chỉ thấy yêu cầu của mình, technician chỉ thấy đơn được phân công cho mình.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<RescueRequestListItemDto>), StatusCodes.Status200OK)]
@@ -167,14 +167,22 @@ public class RescueRequestController : ControllerBase
         if (err != null)
             return err;
 
+        int? assignedTechnicianId = null;
+
         // Customer chỉ được xem rescue của chính mình
         if (IsRole(Roles.Customer))
             customerId = userId;
+        else if (IsRole(Roles.Technician))
+        {
+            customerId = null;
+            assignedTechnicianId = userId;
+        }
 
         var result = await _rescueService.GetListAsync(
             status,
             rescueType,
             customerId,
+            assignedTechnicianId,
             fromDate,
             toDate,
             ct

@@ -229,10 +229,20 @@ public class RescueRequestService : IRescueRequestService
         string? status,
         string? rescueType,
         int? customerId,
+        int? assignedTechnicianId,
         DateTime? fromDate,
         DateTime? toDate,
         CancellationToken ct
-    ) => await _rescueRepo.GetListAsync(status, rescueType, customerId, fromDate, toDate, ct);
+    ) =>
+        await _rescueRepo.GetListAsync(
+            status,
+            rescueType,
+            customerId,
+            assignedTechnicianId,
+            fromDate,
+            toDate,
+            ct
+        );
 
     /// <summary>Xem chi tiết yêu cầu cứu hộ (UC-RES-01 Step 3-4).</summary>
     public async Task<RescueRequestDetailDto> GetDetailAsync(int rescueId, CancellationToken ct)

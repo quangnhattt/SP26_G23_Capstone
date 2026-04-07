@@ -35,7 +35,7 @@ public class RescueRequestRepository : IRescueRequestRepository
     /// Dùng projection (Select) trực tiếp sang DTO để tối ưu — không cần Include.
     /// </summary>
     public async Task<IEnumerable<RescueRequestListItemDto>> GetListAsync(
-        string? status, string? rescueType, int? customerId,
+        string? status, string? rescueType, int? customerId, int? assignedTechnicianId,
         DateTime? fromDate, DateTime? toDate, CancellationToken ct)
     {
         var query = _db.RescueRequests.AsNoTracking().AsQueryable();
@@ -54,6 +54,9 @@ public class RescueRequestRepository : IRescueRequestRepository
         // Lọc theo khách hàng — cho phép customer chỉ xem rescue của mình
         if (customerId.HasValue)
             query = query.Where(r => r.CustomerID == customerId.Value);
+
+        if (assignedTechnicianId.HasValue)
+            query = query.Where(r => r.AssignedTechnicianID == assignedTechnicianId.Value);
 
         // Lọc theo khoảng thời gian
         if (fromDate.HasValue)
