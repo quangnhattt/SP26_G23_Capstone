@@ -191,11 +191,17 @@ public static class RescueType
 /// </summary>
 public static class RescueMaintenanceType
 {
+    /// <summary>
+    /// DB hiện chỉ chấp nhận MaintenanceType = RESCUE cho mọi hồ sơ phát sinh từ rescue.
+    /// Phân biệt roadside / towing được giữ ở RescueRequest.RescueType.
+    /// </summary>
+    public const string Unified = "RESCUE";
+
     /// <summary>Sửa chữa tại chỗ ven đường (UC-RES-02)</summary>
-    public const string Roadside = "RESCUE_ROADSIDE";
+    public const string Roadside = Unified;
 
     /// <summary>Kéo xe về xưởng (UC-RES-03)</summary>
-    public const string Towing = "RESCUE_TOWING";
+    public const string Towing = Unified;
 }
 
 /// <summary>

@@ -206,6 +206,8 @@ public class RescueRequestRepository : IRescueRequestRepository
         entity.Status        = maintenance.Status;
         entity.TotalAmount   = maintenance.TotalAmount;
         entity.CompletedDate = maintenance.CompletedDate;
+        entity.AssignedTechnicianID = maintenance.AssignedTechnicianID;
+        entity.MaintenanceType      = maintenance.MaintenanceType;
 
         // Trường tài chính — cập nhật khi tạo hóa đơn (UC-RES-04 D1, BR-24)
         entity.DiscountAmount        = maintenance.DiscountAmount;
