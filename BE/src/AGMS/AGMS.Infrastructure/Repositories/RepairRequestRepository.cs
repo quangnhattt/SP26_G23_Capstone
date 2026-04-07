@@ -176,4 +176,24 @@ public class RepairRequestRepository : IRepairRequestRepository
                      && (a.Status == "PENDING" || a.Status == "CONFIRMED"))
             .CountAsync(ct);
     }
+
+    public async Task<Dictionary<int, int>> GetTechnicianJobCountsForDateAsync(DateOnly date, CancellationToken ct)
+    {
+        // Tạo biến 0h00 hôm nay và 0h00 ngày mai để giới hạn khoảng chuẩn xác nhất
+        var startOfDay = date.ToDateTime(TimeOnly.MinValue);
+        var endOfDay = startOfDay.AddDays(1);
+
+        // Kéo data toàn bộ appointment của NGÀY ĐÓ lên list, sau đó mới GroupBy trên RAM C# để tuyệt đối không bị lỗi dịch SQL
+        var appointments = await _db.Appointments
+            .AsNoTracking()
+            .Where(a => a.AppointmentDate >= startOfDay 
+                     && a.AppointmentDate < endOfDay
+                     && a.AssignedTechnicianID != null
+                     && (a.Status == "PENDING" || a.Status == "CONFIRMED"))
+            .ToListAsync(ct);
+
+        return appointments
+            .GroupBy(a => a.AssignedTechnicianID!.Value)
+            .ToDictionary(g => g.Key, g => g.Count());
+    }
 }

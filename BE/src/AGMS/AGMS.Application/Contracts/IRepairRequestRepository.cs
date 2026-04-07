@@ -51,4 +51,9 @@ public interface IRepairRequestRepository
     /// Đếm tổng số appointment (PENDING/CONFIRMED) trong 1 slot cụ thể.
     /// </summary>
     Task<int> CountAppointmentsInSlotAsync(DateOnly date, TimeOnly slotStart, CancellationToken ct);
+
+    /// <summary>
+    /// Đếm số job (PENDING/CONFIRMED) KTV đã nhận trong một ngày cụ thể.
+    /// </summary>
+    Task<Dictionary<int, int>> GetTechnicianJobCountsForDateAsync(DateOnly date, CancellationToken ct);
 }

@@ -41,7 +41,7 @@ const SupplierPage = () => {
     phone: "",
     email: "",
     description: "",
-    isActive: true,
+    isActive: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,7 +75,7 @@ const SupplierPage = () => {
       phone: "",
       email: "",
       description: "",
-      isActive: true,
+      isActive: false,
     });
     setIsModalOpen(true);
   };

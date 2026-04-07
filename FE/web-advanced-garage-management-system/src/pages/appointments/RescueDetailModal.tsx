@@ -391,7 +391,7 @@ const RescueDetailModal = ({
 
             {/* Stepper */}
             <Section>
-              <SectionTitle>Tiến trình xử lý</SectionTitle>
+              <SectionTitle>{t("rescueProcessTitle")}</SectionTitle>
               <RescueStepProgress status={data.status} />
             </Section>
 
@@ -400,20 +400,15 @@ const RescueDetailModal = ({
             {/* ═══ TECHNICIAN actions ═══ */}
 
             {/* KTV: Đã được phân công / đang trên đường — xác nhận đến nơi */}
-            {isTechnician &&
-              ["DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
+            {isTechnician && data.status === "EN_ROUTE" && (
                 <>
                   <Divider />
                   <ActionCard $highlight>
                     <ActionCardTitle>
-                      {data.status === "DISPATCHED"
-                        ? t("rescueTechAssignedTitle")
-                        : t("rescueTechEnRouteTitle")}
+                      {t("rescueTechEnRouteTitle")}
                     </ActionCardTitle>
                     <ActionInfo>
-                      {data.status === "DISPATCHED"
-                        ? t("rescueTechAssignedInfo")
-                        : t("rescueTechEnRouteInfo")}
+                      {t("rescueTechEnRouteInfo")}
                     </ActionInfo>
                     <ActionBtnRow>
                       <ActionBtn
@@ -496,7 +491,7 @@ const RescueDetailModal = ({
                       <RepairItemInputs>
                         <FormInput
                           type="number"
-                          placeholder="Product ID *"
+                          placeholder={t("rescueTechProductIdPlaceholder")}
                           value={item.productId}
                           onChange={(e) => {
                             const next = [...repairItems];
@@ -629,7 +624,7 @@ const RescueDetailModal = ({
                       <RepairItemInputs>
                         <FormInput
                           type="number"
-                          placeholder="Product ID *"
+                          placeholder={t("rescueTechProductIdPlaceholder")}
                           value={item.productId}
                           onChange={(e) => {
                             const next = [...repairItems];
@@ -749,13 +744,12 @@ const RescueDetailModal = ({
 
             {/* KH: Chờ SA xử lý */}
             {isCustomer &&
-              ["PENDING", "REVIEWING"].includes(data.status as string) && (
+              data.status === "PENDING" && (
                 <>
                   <Divider />
                   <ActionCard>
                     <ActionInfo>
-                      Yêu cầu đang được xưởng tiếp nhận và xử lý. Vui lòng chờ
-                      phản hồi.
+                      {t("rescueCustomerPendingInfo")}
                     </ActionInfo>
                   </ActionCard>
                 </>
@@ -776,7 +770,7 @@ const RescueDetailModal = ({
                       </ProposalDocIcon>
                       <div>
                         <ProposalDocTitle>
-                          Phiếu đề xuất từ xưởng
+                          {t("rescueProposalDocumentTitle")}
                         </ProposalDocTitle>
                         <ProposalDocCode>
                           RESCUE-{data.rescueId}
@@ -803,13 +797,13 @@ const RescueDetailModal = ({
                         data.estimatedServiceFee > 0 && (
                           <ProposalFeeBlock>
                             <ProposalFeeLabel>
-                              <FaMoneyBillWave size={13} /> Chi phí ước tính
+                              <FaMoneyBillWave size={13} /> {t("rescueEstimatedFeeLabel")}
                             </ProposalFeeLabel>
                             <ProposalFeeAmount>
                               {data.estimatedServiceFee.toLocaleString()} VND
                             </ProposalFeeAmount>
                             <ProposalFeeNote>
-                              Có thể thay đổi sau khi chẩn đoán thực tế
+                              {t("rescueEstimatedFeeNote")}
                             </ProposalFeeNote>
                           </ProposalFeeBlock>
                         )}
@@ -836,7 +830,7 @@ const RescueDetailModal = ({
                       {data.proposalNotes && (
                         <ProposalSection>
                           <ProposalSectionTitle>
-                            <FaStickyNote size={12} /> Ghi chú từ xưởng
+                              <FaStickyNote size={12} /> {t("rescueProposalWorkshopNote")}
                           </ProposalSectionTitle>
                           <ProposalNoteText>
                             {data.proposalNotes}
@@ -849,14 +843,14 @@ const RescueDetailModal = ({
                         data.suggestedServices.length > 0 && (
                           <ProposalSection>
                             <ProposalSectionTitle>
-                              <FaTools size={12} /> Dịch vụ dự kiến
+                              <FaTools size={12} /> {t("rescueProposalServicesTitle")}
                             </ProposalSectionTitle>
                             <ProposalPartsList>
                               {data.suggestedServices.map((svc, idx) => (
                                 <ProposalPartItem key={idx}>
                                   <ProposalPartName>
                                     {svc.serviceName ||
-                                      `Dịch vụ #${svc.serviceId}`}
+                                      `${t("rescueServiceFallback")} #${svc.serviceId}`}
                                   </ProposalPartName>
                                   {svc.price != null && svc.price > 0 && (
                                     <ProposalPartMeta>
@@ -874,14 +868,14 @@ const RescueDetailModal = ({
                         data.suggestedParts.length > 0 && (
                           <ProposalSection>
                             <ProposalSectionTitle>
-                              <FaBoxOpen size={12} /> Phụ tùng dự kiến
+                              <FaBoxOpen size={12} /> {t("rescueProposalPartsTitle")}
                             </ProposalSectionTitle>
                             <ProposalPartsList>
                               {data.suggestedParts.map((part, idx) => (
                                 <ProposalPartItem key={idx}>
                                   <ProposalPartName>
                                     {part.partName ||
-                                      `Phụ tùng #${part.partId}`}
+                                      `${t("rescuePartFallback")} #${part.partId}`}
                                   </ProposalPartName>
                                   <ProposalPartMeta>
                                     x{part.quantity}
@@ -935,7 +929,7 @@ const RescueDetailModal = ({
                           style={{ gap: "0.375rem" }}
                         >
                           <FaTimesCircle size={13} />
-                          Từ chối
+                          {t("rescueCustomerDeclineBtn")}
                         </ActionBtnOutline>
                       </ActionBtnRow>
                     </ProposalDocFooter>
@@ -988,15 +982,12 @@ const RescueDetailModal = ({
               )}
 
             {/* KH: Đã đồng ý — KTV đã được phân công tự động */}
-            {isCustomer &&
-              ["DISPATCHED", "EN_ROUTE"].includes(data.status as string) && (
+            {isCustomer && data.status === "EN_ROUTE" && (
                 <>
                   <Divider />
                   <ActionCard>
                     <ActionInfo>
-                      {data.status === "DISPATCHED"
-                        ? t("rescueCustomerKtvAssigned")
-                        : t("rescueCustomerKtvEnRoute")}
+                      {t("rescueCustomerKtvEnRoute")}
                     </ActionInfo>
                   </ActionCard>
                 </>

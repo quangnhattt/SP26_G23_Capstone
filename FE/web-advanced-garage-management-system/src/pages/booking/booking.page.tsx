@@ -640,23 +640,35 @@ const BookingPage = () => {
                       </TechnicianCard>
 
                       {slotTechnicians
-                        .filter((tech) => tech.isAvailableInSlot)
                         .map((tech) => (
                           <TechnicianCard
                             key={tech.technicianId}
                             $selected={bookingData.selectedTechnician === tech.technicianId}
-                            onClick={() =>
+                            $disabled={!tech.isAvailableInSlot}
+                            onClick={() => {
+                              if (!tech.isAvailableInSlot) return;
                               setBookingData((prev) => ({
                                 ...prev,
                                 selectedTechnician: tech.technicianId,
-                              }))
-                            }
+                              }));
+                            }}
                           >
                             <TechnicianAvatar $hasImage={false}>
                               {tech.fullName.charAt(0)}
                             </TechnicianAvatar>
                             <TechnicianName>{tech.fullName}</TechnicianName>
-                            {tech.skills && <TechnicianBadge>{tech.skills}</TechnicianBadge>}
+                            
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px', marginBottom: '2px' }}>
+                               (Đang nhận: {tech.currentJobCount || 0} xe)
+                            </div>
+
+                            {!tech.isAvailableInSlot ? (
+                              <TechnicianBadge style={{ background: '#fef2f2', color: '#ef4444' }}>
+                                Trùng lịch
+                              </TechnicianBadge>
+                            ) : (
+                              tech.skills && <TechnicianBadge>{tech.skills}</TechnicianBadge>
+                            )}
                           </TechnicianCard>
                         ))}
                     </TechnicianGrid>
@@ -1424,22 +1436,23 @@ const TechnicianGrid = styled.div`
   }
 `;
 
-const TechnicianCard = styled.div<{ $selected: boolean }>`
-  border: 2px solid ${({ $selected }) => ($selected ? "#1d4ed8" : "#e5e7eb")};
+const TechnicianCard = styled.div<{ $selected: boolean; $disabled?: boolean }>`
+  border: 2px solid ${({ $selected, $disabled }) => ($disabled ? "#f3f4f6" : $selected ? "#1d4ed8" : "#e5e7eb")};
   border-radius: 12px;
   padding: 1.25rem 1rem;
   text-align: center;
-  cursor: pointer;
+  cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   transition: all 0.2s;
-  background: ${({ $selected }) => ($selected ? "#eff6ff" : "white")};
+  background: ${({ $selected, $disabled }) => ($disabled ? "#f9fafb" : $selected ? "#eff6ff" : "white")};
+  opacity: ${({ $disabled }) => ($disabled ? 0.6 : 1)};
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
 
   &:hover {
-    border-color: #1d4ed8;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: ${({ $disabled }) => ($disabled ? "#f3f4f6" : "#1d4ed8")};
+    box-shadow: ${({ $disabled }) => ($disabled ? "none" : "0 2px 8px rgba(0, 0, 0, 0.08)")};
   }
 `;
 

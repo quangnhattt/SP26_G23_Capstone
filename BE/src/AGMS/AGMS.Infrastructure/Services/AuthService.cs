@@ -228,6 +228,24 @@ public class AuthService : IAuthService
 
     public Task LogoutAsync(int userId, CancellationToken ct) => Task.CompletedTask;
 
+    public async Task ChangePasswordAsync(ChangePasswordRequest req, int userId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword != req.ConfirmNewPassword)
+            throw new InvalidOperationException("Mật khẩu mới và xác nhận mật khẩu không khớp.");
+
+        if (!IsPasswordStrong(req.NewPassword))
+            throw new InvalidOperationException("Mật khẩu không đáp ứng yêu cầu bảo mật.");
+
+        var user = await _userRepo.GetByIdAsync(userId, ct)
+            ?? throw new InvalidOperationException("Không tìm thấy người dùng.");
+
+        if (!_passwordHasher.Verify(req.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+            throw new InvalidOperationException("Mật khẩu hiện tại không đúng.");
+
+        var (hash, salt) = _passwordHasher.Hash(req.NewPassword);
+        await _userRepo.UpdatePasswordAsync(user.UserID, hash, salt, ct);
+    }
+
     private static bool IsPasswordStrong(string password)
     {
         if (password.Length < 6)

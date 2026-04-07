@@ -33,7 +33,7 @@ const UnitPage = () => {
     name: "",
     type: "PART",
     description: "",
-    isActive: true,
+    isActive: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -59,7 +59,7 @@ const UnitPage = () => {
 
   const handleOpenCreateModal = () => {
     setEditingUnit(null);
-    setFormData({ name: "", type: "PART", description: "", isActive: true });
+    setFormData({ name: "", type: "PART", description: "", isActive: false });
     setIsModalOpen(true);
   };
 

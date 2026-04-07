@@ -362,7 +362,7 @@ const IntakeFormModal = ({
           theme={{
             token: {
               colorText: "#000000",
-              colorTextPlaceholder: "#000000",
+              colorTextPlaceholder: "#9ca3af",
               colorBgContainer: "#ffffff",
             },
             components: {
@@ -437,7 +437,7 @@ const IntakeFormModal = ({
                     name="customerFullName"
                     label={t("intakeDetailFullName")}
                   >
-                    <Input />
+                    <Input placeholder={t("intakeDetailFullName")} />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -445,7 +445,7 @@ const IntakeFormModal = ({
                     name="customerPhone"
                     label={t("intakeDetailPhone")}
                   >
-                    <Input />
+                    <Input placeholder={t("intakeDetailPhone")} />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -453,7 +453,7 @@ const IntakeFormModal = ({
                     name="customerEmail"
                     label={t("intakeDetailEmail")}
                   >
-                    <Input />
+                    <Input placeholder={t("intakeDetailEmail")} />
                   </Form.Item>
                 </Col>
                 {!isCreate && (
@@ -465,6 +465,7 @@ const IntakeFormModal = ({
                       >
                         <Select
                           allowClear
+                          placeholder={t("selectGender")}
                           options={[
                             { value: "Male", label: t("intakeFormMale") },
                             { value: "Female", label: t("intakeFormFemale") },
@@ -482,7 +483,7 @@ const IntakeFormModal = ({
                         name="customerDob"
                         label={t("intakeDetailDob")}
                       >
-                        <Input placeholder="YYYY-MM-DD" />
+                        <Input placeholder={t("dateFormatPlaceholder")} />
                       </Form.Item>
                     </Col>
                   </>
@@ -534,17 +535,17 @@ const IntakeFormModal = ({
                     name="carLicensePlate"
                     label={t("intakeDetailLicensePlate")}
                   >
-                    <Input />
+                    <Input placeholder={t("intakeDetailLicensePlate")} />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
                   <Form.Item name="carBrand" label={t("intakeFormBrand")}>
-                    <Input />
+                    <Input placeholder={t("intakeFormBrand")} />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
                   <Form.Item name="carModel" label={t("intakeFormModel")}>
-                    <Input />
+                    <Input placeholder={t("intakeFormModel")} />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -553,12 +554,13 @@ const IntakeFormModal = ({
                       style={{ width: "100%" }}
                       min={1900}
                       max={2100}
+                      placeholder={t("intakeFormYear")}
                     />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
                   <Form.Item name="carColor" label={t("intakeFormColor")}>
-                    <Input />
+                    <Input placeholder={t("intakeFormColor")} />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -566,7 +568,11 @@ const IntakeFormModal = ({
                     name="carOdometer"
                     label={t("intakeDetailOdometer")}
                   >
-                    <InputNumber style={{ width: "100%" }} min={0} />
+                    <InputNumber
+                      style={{ width: "100%" }}
+                      min={0}
+                      placeholder={t("intakeDetailOdometer")}
+                    />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -574,7 +580,7 @@ const IntakeFormModal = ({
                     name="carEngineNumber"
                     label={t("intakeDetailEngine")}
                   >
-                    <Input />
+                    <Input placeholder={t("intakeDetailEngine")} />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
@@ -582,7 +588,7 @@ const IntakeFormModal = ({
                     name="carChassisNumber"
                     label={t("intakeFormChassis")}
                   >
-                    <Input />
+                    <Input placeholder={t("intakeFormChassis")} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -600,6 +606,7 @@ const IntakeFormModal = ({
                   rules={[{ required: isCreate }]}
                 >
                   <Select
+                    placeholder={t("intakeFormSelectPlaceholder")}
                     options={[
                       { value: "REPAIR", label: t("intakeRepair") },
                       { value: "MAINTENANCE", label: t("intakeMaintenance") },
@@ -618,6 +625,7 @@ const IntakeFormModal = ({
                 >
                   <Select
                     showSearch
+                    placeholder={t("intakeFormSelectPlaceholder")}
                     filterOption={(input, opt) =>
                       (opt?.label ?? "")
                         .toString()
@@ -639,7 +647,11 @@ const IntakeFormModal = ({
                   name={["maintenance", "bayId"]}
                   label={t("intakeFormBayId")}
                 >
-                  <InputNumber style={{ width: "100%" }} min={1} />
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={1}
+                    placeholder={t("intakeFormBayId")}
+                  />
                 </Form.Item>
               </Col>
             </Row>
@@ -647,7 +659,7 @@ const IntakeFormModal = ({
               name={["maintenance", "notes"]}
               label={t("intakeDetailNotes")}
             >
-              <TextArea rows={2} />
+              <TextArea rows={2} placeholder={t("intakeDetailNotes")} />
             </Form.Item>
 
             <Divider />
@@ -658,6 +670,7 @@ const IntakeFormModal = ({
               <Select
                 allowClear
                 showSearch
+                placeholder={t("intakeFormSelectPlaceholder")}
                 filterOption={(input, opt) =>
                   (opt?.label ?? "")
                     .toString()
@@ -691,6 +704,7 @@ const IntakeFormModal = ({
                         >
                           <Select
                             showSearch
+                            placeholder={t("intakeFormSelectPlaceholder")}
                             filterOption={(input, opt) =>
                               (opt?.label ?? "")
                                 .toString()
@@ -715,7 +729,11 @@ const IntakeFormModal = ({
                           label={t("intakeDetailQty")}
                           rules={[{ required: true }]}
                         >
-                          <InputNumber style={{ width: "100%" }} min={1} />
+                          <InputNumber
+                            style={{ width: "100%" }}
+                            min={1}
+                            placeholder={t("intakeDetailQty")}
+                          />
                         </Form.Item>
                       </Col>
                       <Col span={10}>
@@ -723,7 +741,7 @@ const IntakeFormModal = ({
                           name={[name, "notes"]}
                           label={t("intakeDetailNotes")}
                         >
-                          <Input />
+                          <Input placeholder={t("intakeDetailNotes")} />
                         </Form.Item>
                       </Col>
                       <Col span={2} style={{ paddingTop: 6 }}>
@@ -765,6 +783,7 @@ const IntakeFormModal = ({
                         >
                           <Select
                             showSearch
+                            placeholder={t("intakeFormSelectPlaceholder")}
                             filterOption={(input, opt) =>
                               (opt?.label ?? "")
                                 .toString()
@@ -789,7 +808,11 @@ const IntakeFormModal = ({
                           label={t("intakeDetailQty")}
                           rules={[{ required: true }]}
                         >
-                          <InputNumber style={{ width: "100%" }} min={1} />
+                          <InputNumber
+                            style={{ width: "100%" }}
+                            min={1}
+                            placeholder={t("intakeDetailQty")}
+                          />
                         </Form.Item>
                       </Col>
                       <Col span={10}>
@@ -797,7 +820,7 @@ const IntakeFormModal = ({
                           name={[name, "notes"]}
                           label={t("intakeDetailNotes")}
                         >
-                          <Input />
+                          <Input placeholder={t("intakeDetailNotes")} />
                         </Form.Item>
                       </Col>
                       <Col span={2} style={{ paddingTop: 6 }}>
@@ -838,6 +861,7 @@ const IntakeFormModal = ({
                             label={t("intakeDetailFront")}
                           >
                             <Select
+                              placeholder={t("intakeFormSelectPlaceholder")}
                               options={CONDITION_OPTIONS}
                               classNames={{
                                 popup: { root: "intake-form-dropdown" },
@@ -853,6 +877,7 @@ const IntakeFormModal = ({
                             label={t("intakeDetailRear")}
                           >
                             <Select
+                              placeholder={t("intakeFormSelectPlaceholder")}
                               options={CONDITION_OPTIONS}
                               classNames={{
                                 popup: { root: "intake-form-dropdown" },
@@ -868,6 +893,7 @@ const IntakeFormModal = ({
                             label={t("intakeDetailRoof")}
                           >
                             <Select
+                              placeholder={t("intakeFormSelectPlaceholder")}
                               options={CONDITION_OPTIONS}
                               classNames={{
                                 popup: { root: "intake-form-dropdown" },
@@ -883,6 +909,7 @@ const IntakeFormModal = ({
                             label={t("intakeDetailLeft")}
                           >
                             <Select
+                              placeholder={t("intakeFormSelectPlaceholder")}
                               options={CONDITION_OPTIONS}
                               classNames={{
                                 popup: { root: "intake-form-dropdown" },
@@ -898,6 +925,7 @@ const IntakeFormModal = ({
                             label={t("intakeDetailRight")}
                           >
                             <Select
+                              placeholder={t("intakeFormSelectPlaceholder")}
                               options={CONDITION_OPTIONS}
                               classNames={{
                                 popup: { root: "intake-form-dropdown" },
@@ -912,7 +940,7 @@ const IntakeFormModal = ({
                             name={[name, "conditionNote"]}
                             label={t("intakeDetailConditionNote")}
                           >
-                            <Input />
+                            <Input placeholder={t("intakeDetailConditionNote")} />
                           </Form.Item>
                         </Col>
                       </Row>
@@ -967,11 +995,22 @@ const FormWrapper = styled.div`
   .ant-input-number-input,
   .ant-input-affix-wrapper input,
   .ant-select-selection-item,
-  .ant-select-selection-placeholder,
   .ant-radio-wrapper,
   .ant-radio-wrapper span {
     color: #000000 !important;
     -webkit-text-fill-color: #000000 !important;
+  }
+
+  .ant-select-selection-placeholder {
+    color: #9ca3af !important;
+    -webkit-text-fill-color: #9ca3af !important;
+  }
+
+  .ant-input::placeholder,
+  textarea.ant-input::placeholder,
+  .ant-input-number-input::placeholder {
+    color: #9ca3af !important;
+    -webkit-text-fill-color: #9ca3af !important;
   }
 
   .ant-input,
@@ -996,9 +1035,16 @@ const formGlobalStyle = `
   .intake-form-modal [class*="ant-input-number-input"],
   .intake-form-modal [class*="ant-radio"] span,
   .intake-form-modal .ant-select-selector,
-  .intake-form-modal .ant-select-selector * {
+  .intake-form-modal .ant-select-selector *:not(.ant-select-selection-placeholder) {
     color: #000000 !important;
     -webkit-text-fill-color: #000000 !important;
+  }
+  .intake-form-modal .ant-select-selection-placeholder,
+  .intake-form-modal input::placeholder,
+  .intake-form-modal textarea::placeholder,
+  .intake-form-modal .ant-input-number-input::placeholder {
+    color: #9ca3af !important;
+    -webkit-text-fill-color: #9ca3af !important;
   }
   .intake-form-modal [class*="ant-select-selector"],
   .intake-form-modal [class*="ant-input"],

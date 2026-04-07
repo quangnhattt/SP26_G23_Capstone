@@ -21,13 +21,12 @@ import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import ProductModal from "./ProductModal";
 
 interface ProductFormData {
-  code: string;
   name: string;
-  price: number;
+  price: number | "";
   unitId: number;
   categoryId: number;
-  warranty: number;
-  minStockLevel: number;
+  warranty: number | "";
+  minStockLevel: number | "";
   description: string;
   image: string;
   isActive: boolean;
@@ -45,16 +44,15 @@ const ProductsPage = () => {
   const [editingProduct, setEditingProduct] = useState<IProduct | null>(null);
   const [loadingModal, setLoadingModal] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>({
-    code: "",
     name: "",
-    price: 0,
+    price: "",
     unitId: 1,
     categoryId: 1,
-    warranty: 0,
-    minStockLevel: 0,
+    warranty: "",
+    minStockLevel: "",
     description: "",
     image: "",
-    isActive: true,
+    isActive: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -119,16 +117,15 @@ const ProductsPage = () => {
   const handleOpenCreateModal = async () => {
     setEditingProduct(null);
     setFormData({
-      code: "",
       name: "",
-      price: 0,
+      price: "",
       unitId: 0,
       categoryId: 0,
-      warranty: 0,
-      minStockLevel: 0,
+      warranty: "",
+      minStockLevel: "",
       description: "",
       image: "",
-      isActive: true,
+      isActive: false,
     });
     await fetchCategories();
     setIsModalOpen(true);
@@ -144,7 +141,6 @@ const ProductsPage = () => {
       const productDetail = await getProductById(product.id);
 
       setFormData({
-        code: productDetail.code,
         name: productDetail.name,
         price: productDetail.price,
         unitId:
@@ -168,7 +164,6 @@ const ProductsPage = () => {
     } catch (error) {
       console.error("Failed to fetch product detail:", error);
       setFormData({
-        code: product.code,
         name: product.name,
         price: product.price,
         unitId: units.find((u) => u.name === product.unit)?.unitID ?? 0,
@@ -206,6 +201,8 @@ const ProductsPage = () => {
           ? (e.target as HTMLInputElement).checked
           : name === "unitId" || name === "categoryId"
             ? Number(value)
+            : type === "number" && value === ""
+              ? ""
             : type === "number"
               ? Number(value)
               : value,
@@ -217,10 +214,17 @@ const ProductsPage = () => {
     setSubmitting(true);
 
     try {
+      const payload = {
+        ...formData,
+        price: Number(formData.price),
+        warranty: Number(formData.warranty),
+        minStockLevel: Number(formData.minStockLevel),
+      };
+
       if (editingProduct) {
-        await updateProduct(editingProduct.id, formData);
+        await updateProduct(editingProduct.id, payload);
       } else {
-        await createProduct(formData);
+        await createProduct(payload);
       }
       await fetchProducts(searchTerm.trim() || undefined, currentPage);
       handleCloseModal();
@@ -291,14 +295,16 @@ const ProductsPage = () => {
       dataIndex: "unit",
       key: "unit",
       align: "center",
-      render: (val: string) => <UnitBadge>{val || "N/A"}</UnitBadge>,
+      render: (val: string) => <UnitBadge>{val || t("notAvailable")}</UnitBadge>,
     },
     {
       title: t("category"),
       dataIndex: "category",
       key: "category",
       align: "center",
-      render: (val: string) => <CategoryBadge>{val || "N/A"}</CategoryBadge>,
+      render: (val: string) => (
+        <CategoryBadge>{val || t("notAvailable")}</CategoryBadge>
+      ),
     },
     {
       title: t("warranty"),
@@ -347,7 +353,7 @@ const ProductsPage = () => {
       align: "center",
       render: (_: unknown, record: IProduct) => (
         <ActionButtons>
-          <EditButton onClick={() => handleOpenEditModal(record)} title="Edit">
+          <EditButton onClick={() => handleOpenEditModal(record)} title={t("edit")}>
             <HiPencil size={18} />
           </EditButton>
         </ActionButtons>
