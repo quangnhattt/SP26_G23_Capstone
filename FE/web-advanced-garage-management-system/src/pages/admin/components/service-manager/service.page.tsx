@@ -7,7 +7,7 @@ import type { ColumnsType } from "antd/es/table";
 import {
   serviceService,
 } from "@/services/admin/serviceService";
-import type { IService } from "@/services/admin/serviceService";
+import type { IService, IServiceRequest } from "@/services/admin/serviceService";
 import { getCategories } from "@/services/admin/categoryService";
 import type { ICategory } from "@/services/admin/categoryService";
 import { getUnits } from "@/services/admin/unitService";
@@ -160,7 +160,7 @@ const ServicePage = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const payload = {
+      const payload: IServiceRequest = {
         ...formData,
         price: Number(formData.price),
         estimatedDurationHours: Number(formData.estimatedDurationHours),
@@ -210,7 +210,7 @@ const ServicePage = () => {
       return;
     }
 
-    const payload: ServiceFormData = {
+    const payload: IServiceRequest = {
       name: record.name,
       price: record.price,
       unitId: matchedUnit.unitID,
