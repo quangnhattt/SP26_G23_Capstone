@@ -16,6 +16,7 @@ namespace AGMS.Application.Contracts
         Task<ServiceOrderIntakeDetailDto?> GetIntakeDetailAsync(int maintenanceId, CancellationToken ct = default);
         Task<ServiceOrderIntakeDetailDto?> UpdateIntakeAsync(int maintenanceId, IntakeUpdateRequest request, int updatedByUserId, CancellationToken ct = default);
         Task<bool> StartDiagnosisAsync(int maintenanceId, IntakeStartDiagnosisRequest request, int updatedByUserId, CancellationToken ct = default);
+        Task<bool> FinalizeIntakeAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default);
 
     }
 }

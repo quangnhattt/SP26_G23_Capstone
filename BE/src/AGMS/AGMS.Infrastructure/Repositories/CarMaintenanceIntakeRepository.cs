@@ -24,12 +24,12 @@ namespace AGMS.Infrastructure.Repositories
             var page = query.Page <= 0 ? 1 : query.Page;
             var pageSize = query.PageSize <= 0 ? 20 : Math.Min(100, query.PageSize);
 
-            // Intake list mặc định = WAITING (giống API cũ).
+            // Intake list mặc định = RECEIVED (giống sơ đồ mới).
             var q = _db.CarMaintenances
                 .AsNoTracking()
                 .Include(m => m.Car).ThenInclude(c => c.Owner)
                 .Include(m => m.AssignedTechnician)
-                .Where(m => m.Status == "WAITING")
+                .Where(m => m.Status == "RECEIVED")
                 .AsQueryable();
 
             if (currentRoleId == 3) // Roles.Technician
@@ -169,7 +169,7 @@ namespace AGMS.Infrastructure.Repositories
                     // MaintenanceDate is finalized when intake is moved to IN_DIAGNOSIS.
                     MaintenanceDate = new DateTime(1900, 1, 1),
                     Odometer = car.CurrentOdometer,
-                    Status = "WAITING",
+                    Status = "RECEIVED",
                     TotalAmount = totalAmount,
                     DiscountAmount = 0m,
                     MaintenanceType = maintenanceType,
@@ -893,6 +893,23 @@ namespace AGMS.Infrastructure.Repositories
                 ChangedDate = changedAt,
                 Note = string.IsNullOrWhiteSpace(request.Note) ? "Moved to In_DIAGNOSIS from intake." : request.Note.Trim()
             });
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        public async Task<bool> FinalizeIntakeAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default)
+        {
+            await ResolveCreatedByUserIdAsync(updatedByUserId, ct);
+            var maintenance = await _db.CarMaintenances
+                .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+
+            if (maintenance == null)
+                return false;
+
+            if (!string.Equals(maintenance.Status, "RECEIVED", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Chỉ có thể chốt lệnh cho phiếu ở trạng thái 'RECEIVED'.");
+
+            maintenance.Status = "WAITING";
             await _db.SaveChangesAsync(ct);
             return true;
         }

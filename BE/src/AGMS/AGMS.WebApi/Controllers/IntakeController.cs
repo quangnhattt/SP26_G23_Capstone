@@ -166,26 +166,53 @@ namespace AGMS.WebApi.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(claim) || !int.TryParse(claim, out int userId))
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var updatedByUserId))
                 return Unauthorized(new { message = "Invalid or missing user id claim." });
 
-            var isStaff = await _intakeService.IsStaffUserAsync(userId, ct);
+            var isStaff = await _intakeService.IsStaffUserAsync(updatedByUserId, ct);
             if (!isStaff)
                 return Forbid();
 
             try
             {
-                var ok = await _intakeService.StartDiagnosisAsync(maintenanceId, request, userId, ct);
-                if (!ok)
+                var success = await _intakeService.StartDiagnosisAsync(maintenanceId, request, updatedByUserId, ct);
+                if (!success)
                     return NotFound(new { message = $"No intake found for maintenance ID {maintenanceId}." });
-
                 return NoContent();
             }
-            catch (ArgumentException ex)
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPatch("{maintenanceId:int}/finalize")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> FinalizeIntake(int maintenanceId, CancellationToken ct)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var updatedByUserId))
+                return Unauthorized(new { message = "Invalid or missing user id claim." });
+
+            var isStaff = await _intakeService.IsStaffUserAsync(updatedByUserId, ct);
+            if (!isStaff)
+                return Forbid();
+
+            try
+            {
+                var success = await _intakeService.FinalizeIntakeAsync(maintenanceId, updatedByUserId, ct);
+                if (!success)
+                    return NotFound(new { message = $"No intake found for maintenance ID {maintenanceId}." });
+                return NoContent();
             }
             catch (InvalidOperationException ex)
             {

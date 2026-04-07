@@ -43,5 +43,9 @@ namespace AGMS.Infrastructure.Services
         {
             return await _repository.StartDiagnosisAsync(maintenanceId, request, updatedByUserId, ct);
         }
+        public async Task<bool> FinalizeIntakeAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default)
+        {
+            return await _repository.FinalizeIntakeAsync(maintenanceId, updatedByUserId, ct);
+        }
     }
 }
