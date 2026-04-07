@@ -1,4 +1,5 @@
 import { HiX, HiEye, HiEyeOff } from "react-icons/hi";
+import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import type { IUser, IUserRequest } from "@/services/admin/userService";
@@ -272,11 +273,17 @@ const UserModal = ({
 
               <FormGroup>
                 <CheckboxWrapper>
-                  <Checkbox
-                    type="checkbox"
-                    name="isActive"
+                  <Switch
                     checked={formData.isActive}
-                    onChange={onInputChange}
+                    onChange={(checked) =>
+                      onInputChange({
+                        target: {
+                          name: "isActive",
+                          type: "checkbox",
+                          checked,
+                        } as HTMLInputElement,
+                      } as React.ChangeEvent<HTMLInputElement>)
+                    }
                   />
                   <Label>{t("activate")}</Label>
                 </CheckboxWrapper>
@@ -539,12 +546,6 @@ const CheckboxWrapper = styled.div`
   align-items: center;
   gap: 0.5rem;
   margin-top: 1.75rem;
-`;
-
-const Checkbox = styled.input`
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
 `;
 
 const ModalFooter = styled.div`

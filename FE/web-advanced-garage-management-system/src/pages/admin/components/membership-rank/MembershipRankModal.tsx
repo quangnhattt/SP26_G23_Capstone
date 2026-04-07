@@ -1,12 +1,13 @@
 import { HiX } from "react-icons/hi";
+import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import type { IMembershipRank } from "@/services/admin/membershipRankService";
 
 interface MembershipRankFormData {
   rankName: string;
-  minSpending: number;
-  discountPercent: number;
+  minSpending: number | "";
+  discountPercent: number | "";
   description: string;
   isActive: boolean;
 }
@@ -58,7 +59,7 @@ const MembershipRankModal = ({
                 name="rankName"
                 value={formData.rankName}
                 onChange={onInputChange}
-                placeholder="VIP Gold"
+                placeholder={t("membershipRankNamePlaceholder")}
                 required
               />
             </FormGroup>
@@ -72,6 +73,7 @@ const MembershipRankModal = ({
                 onChange={onInputChange}
                 min="0"
                 step="1"
+                placeholder={t("minSpendingPlaceholder")}
                 required
               />
             </FormGroup>
@@ -86,6 +88,7 @@ const MembershipRankModal = ({
                 min="0"
                 max="100"
                 step="0.01"
+                placeholder={t("discountPercentPlaceholder")}
                 required
               />
             </FormGroup>
@@ -104,11 +107,17 @@ const MembershipRankModal = ({
             {editingRank && (
               <FormGroup>
                 <CheckboxLabel>
-                  <input
-                    type="checkbox"
-                    name="isActive"
+                  <Switch
                     checked={formData.isActive}
-                    onChange={onInputChange}
+                    onChange={(checked) =>
+                      onInputChange({
+                        target: {
+                          name: "isActive",
+                          type: "checkbox",
+                          checked,
+                        } as HTMLInputElement,
+                      } as React.ChangeEvent<HTMLInputElement>)
+                    }
                   />
                   <span>{t("isActive")}</span>
                 </CheckboxLabel>
@@ -267,13 +276,6 @@ const CheckboxLabel = styled.label`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
-
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
 
   span {
     font-size: 0.875rem;

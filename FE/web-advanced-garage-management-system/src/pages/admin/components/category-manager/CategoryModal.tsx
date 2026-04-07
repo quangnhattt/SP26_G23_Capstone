@@ -1,4 +1,5 @@
 import { HiX } from "react-icons/hi";
+import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import type { ICategory } from "@/services/admin/categoryService";
@@ -7,7 +8,7 @@ interface CategoryModalFormData {
   name: string;
   type: string;
   description: string;
-  markupPercent: number;
+  markupPercent: number | "";
   isActive: boolean;
 }
 
@@ -62,7 +63,7 @@ const CategoryModal = ({
                 name="name"
                 value={formData.name}
                 onChange={onInputChange}
-                placeholder="Sua chua may gam"
+                placeholder={t("categoryNamePlaceholder")}
                 required
               />
             </FormGroup>
@@ -86,7 +87,7 @@ const CategoryModal = ({
                 name="description"
                 value={formData.description}
                 onChange={onInputChange}
-                placeholder="Cong kiem tra, ha may, thay phuoc, thay rotuyn.."
+                placeholder={t("categoryDescriptionPlaceholder")}
                 rows={3}
               />
             </FormGroup>
@@ -100,17 +101,24 @@ const CategoryModal = ({
                 onChange={onInputChange}
                 min="0"
                 step="0.01"
+                placeholder={t("markupPercentPlaceholder")}
                 required
               />
             </FormGroup>
 
             <FormGroup>
               <CheckboxLabel>
-                <input
-                  type="checkbox"
-                  name="isActive"
+                <Switch
                   checked={formData.isActive}
-                  onChange={onInputChange}
+                  onChange={(checked) =>
+                    onInputChange({
+                      target: {
+                        name: "isActive",
+                        type: "checkbox",
+                        checked,
+                      } as HTMLInputElement,
+                    } as React.ChangeEvent<HTMLInputElement>)
+                  }
                 />
                 <span>{t("isActive")}</span>
               </CheckboxLabel>
@@ -284,13 +292,6 @@ const CheckboxLabel = styled.label`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
-
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
 
   span {
     font-size: 0.875rem;

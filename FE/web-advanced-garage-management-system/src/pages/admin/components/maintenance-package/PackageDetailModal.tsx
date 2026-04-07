@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { HiX } from "react-icons/hi";
+import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { Select as AntSelect, ConfigProvider, Spin } from "antd";
@@ -139,6 +140,7 @@ const PackageDetailModal = ({
                   onChange={(e) => handleNumberInput(e, "quantity")}
                   min="1"
                   step="1"
+                  placeholder={t("quantity")}
                   required
                 />
               </FormGroup>
@@ -149,6 +151,7 @@ const PackageDetailModal = ({
                   value={formData.displayOrder}
                   onChange={(e) => handleNumberInput(e, "displayOrder")}
                   min="0"
+                  placeholder={t("displayOrderPlaceholder")}
                 />
               </FormGroup>
             </FormRow>
@@ -165,12 +168,9 @@ const PackageDetailModal = ({
 
             <FormGroup>
               <CheckboxLabel>
-                <input
-                  type="checkbox"
+                <Switch
                   checked={formData.isRequired}
-                  onChange={(e) =>
-                    onFormDataChange({ isRequired: e.target.checked })
-                  }
+                  onChange={(checked) => onFormDataChange({ isRequired: checked })}
                 />
                 <span>{t("isRequired")}</span>
               </CheckboxLabel>
@@ -322,13 +322,6 @@ const CheckboxLabel = styled.label`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
-
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
 
   span {
     font-size: 0.875rem;

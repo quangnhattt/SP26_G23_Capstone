@@ -24,7 +24,7 @@ interface CategoryFormData {
   name: string;
   type: string;
   description: string;
-  markupPercent: number;
+  markupPercent: number | "";
   isActive: boolean;
 }
 
@@ -41,8 +41,8 @@ const CategoryPage = () => {
     name: "",
     type: "Service",
     description: "",
-    markupPercent: 0,
-    isActive: true,
+    markupPercent: "",
+    isActive: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,8 +75,8 @@ const CategoryPage = () => {
       name: "",
       type: "Service",
       description: "",
-      markupPercent: 0,
-      isActive: true,
+      markupPercent: "",
+      isActive: false,
     });
     setIsModalOpen(true);
   };
@@ -109,6 +109,8 @@ const CategoryPage = () => {
       [name]:
         type === "checkbox"
           ? (e.target as HTMLInputElement).checked
+          : type === "number" && value === ""
+            ? ""
           : type === "number"
             ? Number(value)
             : value,
@@ -119,10 +121,15 @@ const CategoryPage = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const payload = {
+        ...formData,
+        markupPercent: Number(formData.markupPercent),
+      };
+
       if (editingCategory) {
-        await updateCategory(editingCategory.categoryID, formData);
+        await updateCategory(editingCategory.categoryID, payload);
       } else {
-        await createCategory(formData);
+        await createCategory(payload);
       }
       handleCloseModal();
       await fetchCategories();
@@ -206,7 +213,7 @@ const CategoryPage = () => {
       align: "center",
       render: (_: unknown, record: ICategory) => (
         <ActionButtons>
-          <EditButton onClick={() => handleOpenEditModal(record)} title="Edit">
+          <EditButton onClick={() => handleOpenEditModal(record)} title={t("edit")}>
             <HiPencil size={18} />
           </EditButton>
         </ActionButtons>

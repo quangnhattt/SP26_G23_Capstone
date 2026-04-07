@@ -1,4 +1,5 @@
 import { HiX } from "react-icons/hi";
+import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import type { ISupplier } from "@/services/admin/supplierService";
@@ -98,7 +99,7 @@ const SupplierModal = ({
                   name="email"
                   value={formData.email}
                   onChange={onInputChange}
-                  placeholder="contact@example.com"
+                  placeholder={t("supplierEmailPlaceholder")}
                   required
                 />
               </FormGroup>
@@ -118,11 +119,17 @@ const SupplierModal = ({
             {editingSupplier && (
               <FormGroup>
                 <CheckboxLabel>
-                  <input
-                    type="checkbox"
-                    name="isActive"
+                  <Switch
                     checked={formData.isActive}
-                    onChange={onInputChange}
+                    onChange={(checked) =>
+                      onInputChange({
+                        target: {
+                          name: "isActive",
+                          type: "checkbox",
+                          checked,
+                        } as HTMLInputElement,
+                      } as React.ChangeEvent<HTMLInputElement>)
+                    }
                   />
                   <span>{t("active")}</span>
                 </CheckboxLabel>
@@ -291,13 +298,6 @@ const CheckboxLabel = styled.label`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
-
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
 
   span {
     font-size: 0.875rem;

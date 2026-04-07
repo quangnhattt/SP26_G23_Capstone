@@ -42,7 +42,7 @@ const EMPTY_PACKAGE_FORM: PackageFormData = {
   applicableBrands: "",
   image: "",
   displayOrder: "",
-  isActive: true,
+  isActive: false,
 };
 
 const EMPTY_DETAIL_FORM: DetailFormData = {

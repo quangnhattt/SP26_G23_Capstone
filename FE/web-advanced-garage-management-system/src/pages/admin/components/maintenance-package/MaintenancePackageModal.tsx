@@ -1,4 +1,5 @@
 import { HiX } from "react-icons/hi";
+import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import type { IMaintenancePackage } from "@/services/admin/packageService";
@@ -67,7 +68,7 @@ const MaintenancePackageModal = ({
                 name="packageCode"
                 value={formData.packageCode}
                 onChange={onInputChange}
-                placeholder="PKG_001"
+                placeholder={t("packageCodePlaceholder")}
                 required
               />
             </FormGroup>
@@ -79,7 +80,7 @@ const MaintenancePackageModal = ({
                 name="name"
                 value={formData.name}
                 onChange={onInputChange}
-                placeholder={t("name")}
+                placeholder={t("maintenancePackageNamePlaceholder")}
                 required
               />
             </FormGroup>
@@ -90,6 +91,7 @@ const MaintenancePackageModal = ({
                 name="description"
                 value={formData.description}
                 onChange={onInputChange}
+                placeholder={t("maintenancePackageDescriptionPlaceholder")}
                 rows={3}
               />
             </FormGroup>
@@ -103,7 +105,7 @@ const MaintenancePackageModal = ({
                   value={formData.kilometerMilestone}
                   onChange={onInputChange}
                   min="0"
-                  placeholder="80000"
+                  placeholder={t("kilometerMilestonePlaceholder")}
                 />
               </FormGroup>
               <FormGroup>
@@ -114,7 +116,7 @@ const MaintenancePackageModal = ({
                   value={formData.monthMilestone}
                   onChange={onInputChange}
                   min="0"
-                  placeholder="10"
+                  placeholder={t("monthMilestonePlaceholder")}
                 />
               </FormGroup>
             </FormRow>
@@ -129,6 +131,7 @@ const MaintenancePackageModal = ({
                   onChange={onInputChange}
                   min="0"
                   step="1000"
+                  placeholder={t("basePricePlaceholder")}
                   required
                 />
               </FormGroup>
@@ -142,6 +145,7 @@ const MaintenancePackageModal = ({
                   min="0"
                   max="100"
                   step="0.01"
+                  placeholder={t("discountPercentPlaceholder")}
                 />
               </FormGroup>
             </FormRow>
@@ -156,6 +160,7 @@ const MaintenancePackageModal = ({
                   onChange={onInputChange}
                   min="0"
                   step="0.5"
+                  placeholder={t("estimatedDurationHoursPlaceholder")}
                 />
               </FormGroup>
               <FormGroup>
@@ -166,6 +171,7 @@ const MaintenancePackageModal = ({
                   value={formData.displayOrder}
                   onChange={onInputChange}
                   min="0"
+                  placeholder={t("displayOrderPlaceholder")}
                 />
               </FormGroup>
             </FormRow>
@@ -188,17 +194,23 @@ const MaintenancePackageModal = ({
                 name="image"
                 value={formData.image}
                 onChange={onInputChange}
-                placeholder="https://..."
+                placeholder={t("imageUrlPlaceholder")}
               />
             </FormGroup>
 
             <FormGroup>
               <CheckboxLabel>
-                <input
-                  type="checkbox"
-                  name="isActive"
+                <Switch
                   checked={formData.isActive}
-                  onChange={onInputChange}
+                  onChange={(checked) =>
+                    onInputChange({
+                      target: {
+                        name: "isActive",
+                        type: "checkbox",
+                        checked,
+                      } as HTMLInputElement,
+                    } as React.ChangeEvent<HTMLInputElement>)
+                  }
                 />
                 <span>{t("isActive")}</span>
               </CheckboxLabel>
@@ -361,13 +373,6 @@ const CheckboxLabel = styled.label`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
-
-  input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
 
   span {
     font-size: 0.875rem;

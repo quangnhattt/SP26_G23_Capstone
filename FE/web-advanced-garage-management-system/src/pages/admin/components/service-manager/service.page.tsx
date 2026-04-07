@@ -17,12 +17,11 @@ import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import ServiceModal from "./ServiceModal";
 
 interface ServiceFormData {
-  code: string;
   name: string;
-  price: number;
+  price: number | "";
   unitId: number;
   categoryID: number;
-  estimatedDurationHours: number;
+  estimatedDurationHours: number | "";
   description: string;
   image: string;
   isActive: boolean;
@@ -36,15 +35,14 @@ const ServicePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<IService | null>(null);
   const [formData, setFormData] = useState<ServiceFormData>({
-    code: "",
     name: "",
-    price: 0,
+    price: "",
     unitId: 0,
     categoryID: 0,
-    estimatedDurationHours: 0,
+    estimatedDurationHours: "",
     description: "",
     image: "",
-    isActive: true,
+    isActive: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,15 +97,14 @@ const ServicePage = () => {
   const handleOpenCreateModal = async () => {
     setEditingService(null);
     setFormData({
-      code: "",
       name: "",
-      price: 0,
+      price: "",
       unitId: 0,
       categoryID: 0,
-      estimatedDurationHours: 0,
+      estimatedDurationHours: "",
       description: "",
       image: "",
-      isActive: true,
+      isActive: false,
     });
     await fetchCategories();
     setIsModalOpen(true);
@@ -121,7 +118,6 @@ const ServicePage = () => {
     );
     setEditingService(service);
     setFormData({
-      code: service.code,
       name: service.name,
       price: service.price,
       unitId: 0,
@@ -148,13 +144,15 @@ const ServicePage = () => {
     setFormData((prev) => ({
       ...prev,
       [name]:
-        type === "number"
-          ? Number(value)
-          : type === "checkbox"
-            ? (e.target as HTMLInputElement).checked
-            : name === "categoryID"
-              ? Number(value)
-              : value,
+        type === "checkbox"
+          ? (e.target as HTMLInputElement).checked
+          : name === "unitId" || name === "categoryID"
+            ? Number(value)
+            : type === "number" && value === ""
+              ? ""
+              : type === "number"
+                ? Number(value)
+                : value,
     }));
   };
 
@@ -162,10 +160,16 @@ const ServicePage = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const payload = {
+        ...formData,
+        price: Number(formData.price),
+        estimatedDurationHours: Number(formData.estimatedDurationHours),
+      };
+
       if (editingService) {
-        await serviceService.updateService(editingService.id, formData);
+        await serviceService.updateService(editingService.id, payload);
       } else {
-        await serviceService.createService(formData);
+        await serviceService.createService(payload);
       }
       handleCloseModal();
       await fetchServices();
@@ -207,7 +211,6 @@ const ServicePage = () => {
     }
 
     const payload: ServiceFormData = {
-      code: record.code,
       name: record.name,
       price: record.price,
       unitId: matchedUnit.unitID,

@@ -21,7 +21,6 @@ export interface IProductDetail extends IProduct {
 }
 
 export interface IProductRequest {
-  code: string;
   name: string;
   price: number;
   unitId: number;
@@ -61,7 +60,7 @@ export const getProductById = async (id: number): Promise<IProductDetail> => {
 };
 
 export const createProduct = async (
-  product: IProductRequest
+  product: Omit<IProductRequest, "code">
 ): Promise<IProduct> => {
   const { data } = await AxiosClient.post<IProduct>(
     "/api/products/parts",
@@ -72,7 +71,7 @@ export const createProduct = async (
 
 export const updateProduct = async (
   id: number,
-  product: IProductRequest
+  product: Omit<IProductRequest, "code">
 ): Promise<IProduct> => {
   const { data } = await AxiosClient.put<IProduct>(
     `/api/products/parts/${id}`,

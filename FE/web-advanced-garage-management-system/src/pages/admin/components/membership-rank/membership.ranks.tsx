@@ -21,8 +21,8 @@ import MembershipRankModal from "./MembershipRankModal";
 
 interface MembershipRankFormData {
   rankName: string;
-  minSpending: number;
-  discountPercent: number;
+  minSpending: number | "";
+  discountPercent: number | "";
   description: string;
   isActive: boolean;
 }
@@ -36,10 +36,10 @@ const MembershipRanksManager = () => {
   const [editingRank, setEditingRank] = useState<IMembershipRank | null>(null);
   const [formData, setFormData] = useState<MembershipRankFormData>({
     rankName: "",
-    minSpending: 0,
-    discountPercent: 0,
+    minSpending: "",
+    discountPercent: "",
     description: "",
-    isActive: true,
+    isActive: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -67,10 +67,10 @@ const MembershipRanksManager = () => {
     setEditingRank(null);
     setFormData({
       rankName: "",
-      minSpending: 0,
-      discountPercent: 0,
+      minSpending: "",
+      discountPercent: "",
       description: "",
-      isActive: true,
+      isActive: false,
     });
     setIsModalOpen(true);
   };
@@ -101,6 +101,8 @@ const MembershipRanksManager = () => {
       [name]:
         type === "checkbox"
           ? (e.target as HTMLInputElement).checked
+          : type === "number" && value === ""
+            ? ""
           : type === "number"
             ? Number(value)
             : value,
@@ -111,14 +113,20 @@ const MembershipRanksManager = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const payload = {
+        ...formData,
+        minSpending: Number(formData.minSpending),
+        discountPercent: Number(formData.discountPercent),
+      };
+
       if (editingRank) {
-        await updateMembershipRank(editingRank.rankID, formData);
+        await updateMembershipRank(editingRank.rankID, payload);
       } else {
         await createMembershipRank({
-          rankName: formData.rankName,
-          minSpending: formData.minSpending,
-          discountPercent: formData.discountPercent,
-          description: formData.description,
+          rankName: payload.rankName,
+          minSpending: payload.minSpending,
+          discountPercent: payload.discountPercent,
+          description: payload.description,
         });
       }
       handleCloseModal();
@@ -204,7 +212,7 @@ const MembershipRanksManager = () => {
       align: "center",
       render: (_: unknown, record: IMembershipRank) => (
         <ActionButtons>
-          <EditButton onClick={() => handleOpenEditModal(record)} title="Edit">
+          <EditButton onClick={() => handleOpenEditModal(record)} title={t("edit")}>
             <HiPencil size={18} />
           </EditButton>
         </ActionButtons>

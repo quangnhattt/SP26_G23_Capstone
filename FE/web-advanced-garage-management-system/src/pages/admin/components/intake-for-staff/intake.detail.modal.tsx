@@ -16,8 +16,8 @@ interface Props {
   onClose: () => void;
 }
 
-const formatDate = (iso: string | null | undefined) => {
-  if (!iso) return "—";
+const formatDate = (iso: string | null | undefined, fallback: string) => {
+  if (!iso) return fallback;
   const d = new Date(iso);
   return d.toLocaleString("vi-VN", {
     day: "2-digit",
@@ -46,6 +46,12 @@ const statusColor: Record<string, string> = {
 
 const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
   const { t } = useTranslation();
+  const statusLabel: Record<string, string> = {
+    WAITING: t("intakeStatusWaiting"),
+    IN_PROGRESS: t("intakeStatusInProgress"),
+    DONE: t("intakeStatusDone"),
+    CANCELLED: t("intakeStatusCancelled"),
+  };
 
   const serviceColumns: ColumnsType<IServiceDetail> = [
     {
@@ -79,7 +85,9 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
       dataIndex: "serviceStatus",
       key: "serviceStatus",
       width: 110,
-      render: (s: string) => <Tag color={statusColor[s] ?? "default"}>{s}</Tag>,
+      render: (s: string) => (
+        <Tag color={statusColor[s] ?? "default"}>{statusLabel[s] ?? s}</Tag>
+      ),
     },
     {
       title: t("intakeDetailNotes"),
@@ -120,7 +128,9 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
       dataIndex: "partStatus",
       key: "partStatus",
       width: 110,
-      render: (s: string) => <Tag color={statusColor[s] ?? "default"}>{s}</Tag>,
+      render: (s: string) => (
+        <Tag color={statusColor[s] ?? "default"}>{statusLabel[s] ?? s}</Tag>
+      ),
     },
     { title: t("intakeDetailNotes"), dataIndex: "partNotes", key: "partNotes" },
   ];
@@ -131,7 +141,7 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
       dataIndex: "checkInTime",
       key: "checkInTime",
       width: 160,
-      render: formatDate,
+      render: (val: string | null | undefined) => formatDate(val, t("notAvailable")),
     },
     {
       title: t("intakeDetailFront"),
@@ -205,11 +215,11 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
             <SectionTitle>{t("intakeDetailBasicInfo")}</SectionTitle>
             <Descriptions bordered size="small" column={2}>
               <Descriptions.Item label={t("intakeDetailDate")}>
-                {formatDate(data.maintenanceDate)}
+                {formatDate(data.maintenanceDate, t("notAvailable"))}
               </Descriptions.Item>
               <Descriptions.Item label={t("intakeDetailMaintenanceStatus")}>
                 <Tag color={statusColor[data.maintenanceStatus] ?? "default"}>
-                  {data.maintenanceStatus}
+                  {statusLabel[data.maintenanceStatus] ?? data.maintenanceStatus}
                 </Tag>
               </Descriptions.Item>
             </Descriptions>
@@ -235,16 +245,16 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
                 {data.car.licensePlate}
               </Descriptions.Item>
               <Descriptions.Item label={t("intakeDetailCarBrand")}>
-                {data.car.brand ?? "—"}
+                {data.car.brand ?? t("notAvailable")}
               </Descriptions.Item>
               <Descriptions.Item label={t("intakeDetailCarModel")}>
-                {data.car.model ?? "—"}
+                {data.car.model ?? t("notAvailable")}
               </Descriptions.Item>
               <Descriptions.Item label={t("intakeDetailCarYear")}>
-                {data.car.year ?? "—"}
+                {data.car.year ?? t("notAvailable")}
               </Descriptions.Item>
               <Descriptions.Item label={t("intakeDetailCarColor")}>
-                {data.car.color ?? "—"}
+                {data.car.color ?? t("notAvailable")}
               </Descriptions.Item>
               <Descriptions.Item label={t("intakeDetailCarDetails")}>
                 {data.car.carDetails}
@@ -253,7 +263,7 @@ const IntakeDetailModal = ({ open, loading, data, onClose }: Props) => {
                 {data.car.engineNumber}
               </Descriptions.Item>
               <Descriptions.Item label={t("intakeDetailChassis")}>
-                {data.car.chassisNumber ?? "—"}
+                {data.car.chassisNumber ?? t("notAvailable")}
               </Descriptions.Item>
               <Descriptions.Item label={t("intakeDetailOdometer")}>
                 {data.car.currentOdometer} km
