@@ -24,7 +24,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             .AsNoTracking()
             .Include(m => m.Car).ThenInclude(c => c.Owner)
             .Include(m => m.AssignedTechnician)
-            .Where(m => m.Status != "WAITING")
+            .Where(m => m.Status != "RECEIVED")
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query.MaintenanceType))
@@ -454,5 +454,4 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         var markupPercent = product.Category?.MarkupPercent ?? 0m;
         return averageCost.Value * (1 + (markupPercent / 100m));
     }
-
 }
