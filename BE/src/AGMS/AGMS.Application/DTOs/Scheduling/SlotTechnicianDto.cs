@@ -13,4 +13,7 @@ public class SlotTechnicianDto
 
     /// <summary>true = KTV chưa có lịch hẹn trong slot này → có thể chọn</summary>
     public bool IsAvailableInSlot { get; set; }
+
+    /// <summary>Số job trong ngày (cân bằng tải)</summary>
+    public int CurrentJobCount { get; set; }
 }

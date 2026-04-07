@@ -124,6 +124,7 @@ export interface ISlotTechnician {
   phone: string | null;
   skills: string | null;
   isAvailableInSlot: boolean;
+  currentJobCount?: number;
 }
 
 export const getAvailableSlots = async (date: string): Promise<IDayAvailability> => {

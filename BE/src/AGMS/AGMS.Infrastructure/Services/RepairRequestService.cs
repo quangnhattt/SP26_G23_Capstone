@@ -190,6 +190,9 @@ public class RepairRequestService : IRepairRequestService
         var bookedTechIds = await _repo.GetBookedTechnicianIdsInSlotAsync(parsedDate, parsedTime, ct);
         var bookedSet = new HashSet<int>(bookedTechIds);
 
+        // Đếm số job trong ngày (cân bằng tải)
+        var kpiCounts = await _repo.GetTechnicianJobCountsForDateAsync(parsedDate, ct);
+
         // Trả danh sách KTV, đánh dấu ai rảnh ai bận
         return allTechs.Select(t => new SlotTechnicianDto
         {
@@ -198,9 +201,11 @@ public class RepairRequestService : IRepairRequestService
             Email = t.Email,
             Phone = t.Phone,
             Skills = t.Skills,
-            IsAvailableInSlot = !bookedSet.Contains(t.TechnicianId)
+            IsAvailableInSlot = !bookedSet.Contains(t.TechnicianId),
+            CurrentJobCount = kpiCounts.GetValueOrDefault(t.TechnicianId, 0)
         })
-        .OrderByDescending(t => t.IsAvailableInSlot) // Rảnh lên đầu
+        .OrderByDescending(t => t.IsAvailableInSlot) // Rảnh trong khung giờ
+        .ThenBy(t => t.CurrentJobCount)              // Ít việc trong ngày
         .ToList();
     }
 
