@@ -1200,7 +1200,9 @@ public class RescueRequestService : IRescueRequestService
             throw new ArgumentException("Chỉ Service Advisor mới có quyền xác nhận nhận tiền.");
 
         if (rescue.ServiceAdvisorID.HasValue && rescue.ServiceAdvisorID.Value != saId)
-            throw new ArgumentException("Chỉ Service Advisor đang xử lý yêu cầu này mới được xác nhận nhận tiền.");
+            throw new ArgumentException(
+                "Chỉ Service Advisor đang xử lý yêu cầu này mới được xác nhận nhận tiền."
+            );
 
         if (!rescue.ResultingMaintenanceID.HasValue)
             throw new InvalidOperationException(
@@ -1212,11 +1214,21 @@ public class RescueRequestService : IRescueRequestService
             ?? throw new InvalidOperationException("Repair Order không tồn tại.");
 
         var payment =
-            await _rescueRepo.GetPaymentByMaintenanceIdAsync(rescue.ResultingMaintenanceID.Value, ct)
-            ?? throw new InvalidOperationException("Chưa có giao dịch thanh toán để xác nhận.");
+            await _rescueRepo.GetPaymentByMaintenanceIdAsync(
+                rescue.ResultingMaintenanceID.Value,
+                ct
+            ) ?? throw new InvalidOperationException("Chưa có giao dịch thanh toán để xác nhận.");
 
-        if (!string.Equals(payment.Status, PaymentStatus.Success, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Giao dịch thanh toán chưa thành công nên không thể xác nhận.");
+        if (
+            !string.Equals(
+                payment.Status,
+                PaymentStatus.Success,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+            throw new InvalidOperationException(
+                "Giao dịch thanh toán chưa thành công nên không thể xác nhận."
+            );
 
         var now = DateTime.UtcNow;
         var invoiceFinalAmount = maintenance.FinalAmount ?? rescue.ServiceFee;
@@ -1663,11 +1675,11 @@ public class RescueRequestService : IRescueRequestService
                 ?? throw new KeyNotFoundException(
                     $"Phu tung ID={part.PartId} khong ton tai hoac khong con hoat dong."
                 );
-
-            if (!string.Equals(product.Type, "PART", StringComparison.OrdinalIgnoreCase))
-                throw new ArgumentException(
-                    $"San pham ID={part.PartId} khong phai phu tung nen khong the gan vao buoc de xuat."
-                );
+            // Tháo bỏ ràng buộc khi đề xuất
+            //if (!string.Equals(product.Type, "PART", StringComparison.OrdinalIgnoreCase))
+            //    throw new ArgumentException(
+            //        $"San pham ID={part.PartId} khong phai phu tung nen khong the gan vao buoc de xuat."
+            //    );
 
             snapshots.Add(
                 new SuggestedRescuePartDetailDto
