@@ -220,7 +220,7 @@ const ManagermentAppointment = () => {
         </SearchBox>
         <FilterSelect value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
           <option value="all">{t("appointmentsAll")}</option>
-          {Object.entries(statusConfig).map(([key, val]) => (
+          {Object.entries(statusConfig).map(([key]) => (
             <option key={key} value={key}>
               {t(`mgrAppointmentStatus_${key}`)}
             </option>
