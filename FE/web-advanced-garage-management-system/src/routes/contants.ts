@@ -28,5 +28,7 @@ export const ROUTER_PAGE = {
     order: "/admin/service-order-management",
     membershipRanks: "/admin/membership-ranks-management",
     maintenancePackage: "/admin/maintenance-package-management",
+    assigned: "/admin/order-assigned-management",
+    transfer_history: "/admin/history-transfer-order-management",
   },
 };

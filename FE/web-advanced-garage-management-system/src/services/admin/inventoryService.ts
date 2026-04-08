@@ -97,10 +97,109 @@ export const rebuildInventoryBalances = async (): Promise<void> => {
   await AxiosClient.post("/api/Inventory/rebuild-balances");
 };
 
+export interface ITransferOrderDetail {
+  productID: number;
+  productCode: string;
+  productName: string;
+  quantity: number;
+  unitCost: number;
+  note: string;
+}
+
+export interface ITransferOrder {
+  transferOrderID: number;
+  status: string;
+  note: string;
+  documentDate: string;
+  createdDate: string;
+  maintenanceID: number;
+  maintenanceStatus: string;
+  carLicensePlate: string;
+  carModel: string;
+  carBrand: string;
+  itemCount: number;
+  details: ITransferOrderDetail[];
+}
+
+export interface IMyTransferOrdersResponse {
+  message: string;
+  data: ITransferOrder[];
+}
+
+export const getMyTransferOrders = async (): Promise<IMyTransferOrdersResponse> => {
+  const { data } = await AxiosClient.get<IMyTransferOrdersResponse>(
+    "/api/Inventory/my-transfer-orders"
+  );
+  return data;
+};
+
+export interface ITransferOrderHistoryDetail {
+  orderDetailID: number;
+  productID: number;
+  productCode: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalLineValue: number;
+  inventoryStatus: string;
+  notes: string | null;
+}
+
+export interface ITransferOrderHistoryItem {
+  transferOrderID: number;
+  type: string;
+  status: string;
+  note: string | null;
+  documentDate: string;
+  createdDate: string;
+  createByUserId: number;
+  createdByName: string;
+  approvedByUserId: number | null;
+  approvedByName: string | null;
+  maintenanceID: number;
+  maintenanceStatus: string;
+  technicianID: number;
+  technicianName: string;
+  carLicensePlate: string;
+  carModel: string;
+  details: ITransferOrderHistoryDetail[];
+}
+
+export interface ITransferOrderHistoryParams {
+  Type?: string;
+  Status?: string;
+  MaintenanceId?: number;
+  TechnicianId?: number;
+  PageIndex?: number;
+  PageSize?: number;
+}
+
+export interface ITransferOrderHistoryResponse {
+  message: string;
+  data: {
+    totalCount: number;
+    totalPages: number;
+    currentPage: number;
+    items: ITransferOrderHistoryItem[];
+  };
+}
+
+export const getTransferOrderHistory = async (
+  params: ITransferOrderHistoryParams
+): Promise<ITransferOrderHistoryResponse> => {
+  const { data } = await AxiosClient.get<ITransferOrderHistoryResponse>(
+    "/api/inventory/transfer-orders",
+    { params }
+  );
+  return data;
+};
+
 export const inventoryService = {
   getInventoryTransactions,
   importInventory,
   adjustInventory,
   getAuditDiscrepancies,
   rebuildInventoryBalances,
+  getMyTransferOrders,
+  getTransferOrderHistory,
 };
