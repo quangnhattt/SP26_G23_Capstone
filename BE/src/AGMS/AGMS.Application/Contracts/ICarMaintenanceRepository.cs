@@ -18,6 +18,7 @@ namespace AGMS.Application.Contracts
         Task<MaintenanceInvoiceDto?> CreateMaintenanceInvoiceAsync(int maintenanceId,CancellationToken ct = default);
         Task<bool> AssignTechnicianAsync(int maintenanceId, int technicianId, CancellationToken ct = default);
         Task<bool> StartDiagnosisAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default);
+        Task<bool> ConfirmRepairOrderAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default);
         Task<PartsExportListDto?> GetPartsToExportAsync(int maintenanceId, CancellationToken ct = default);
     }
 }

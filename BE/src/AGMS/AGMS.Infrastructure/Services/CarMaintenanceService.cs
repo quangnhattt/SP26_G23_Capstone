@@ -55,6 +55,11 @@ public class CarMaintenanceService : ICarMaintenanceService
         return await _repository.StartDiagnosisAsync(maintenanceId, updatedByUserId, ct);
     }
 
+    public async Task<bool> ConfirmRepairOrderAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default)
+    {
+        return await _repository.ConfirmRepairOrderAsync(maintenanceId, updatedByUserId, ct);
+    }
+
     public async Task<PartsExportListDto?> GetPartsToExportAsync(int maintenanceId, CancellationToken ct = default)
     {
         return await _repository.GetPartsToExportAsync(maintenanceId, ct);

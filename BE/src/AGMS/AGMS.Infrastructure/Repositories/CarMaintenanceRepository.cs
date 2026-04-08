@@ -505,6 +505,37 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         return true;
     }
 
+    public async Task<bool> ConfirmRepairOrderAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default)
+    {
+        var maintenance = await _db.CarMaintenances
+            .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+        if (maintenance == null) return false;
+
+        // Chỉ cho phép xác nhận khi đang ở trạng thái chẩn đoán
+        if (!string.Equals(maintenance.Status, "IN_DIAGNOSIS", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Chỉ có thể xác nhận sửa chữa khi đơn đang ở trạng thái chẩn đoán.");
+        }
+
+        var now = DateTime.UtcNow;
+        var oldStatus = maintenance.Status;
+
+        maintenance.Status = "IN_PROGRESS";
+        
+        _db.MaintenanceStatusLogs.Add(new MaintenanceStatusLog
+        {
+            MaintenanceID = maintenanceId,
+            OldStatus = oldStatus,
+            NewStatus = "IN_PROGRESS",
+            ChangedBy = updatedByUserId,
+            ChangedDate = now,
+            Note = "Cố vấn dịch vụ xác nhận bắt đầu sửa chữa chính thức."
+        });
+
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<PartsExportListDto?> GetPartsToExportAsync(int maintenanceId, CancellationToken ct = default)
     {
         var maintenance = await _db.CarMaintenances

@@ -199,6 +199,30 @@ public class ServiceOrdersController : ControllerBase
         }
     }
 
+    [HttpPatch("{id:int}/confirm-repair")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConfirmRepairOrder(int id, CancellationToken ct)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var updatedByUserId))
+            return Unauthorized(new { message = "Invalid or missing user id claim." });
+
+        try
+        {
+            var success = await _carMaintenanceService.ConfirmRepairOrderAsync(id, updatedByUserId, ct);
+            if (!success)
+                return NotFound(new { message = $"Không tìm thấy phiếu bảo dưỡng với ID = {id}." });
+
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("{id:int}/parts-export")]
     [ProducesResponseType(typeof(PartsExportListDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
