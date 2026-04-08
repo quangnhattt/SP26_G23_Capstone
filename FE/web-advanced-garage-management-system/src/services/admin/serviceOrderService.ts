@@ -223,6 +223,12 @@ export const startDiagnosis = async (id: number): Promise<void> => {
   await AxiosClient.patch(`/api/service-orders/${id}/start-diagnosis`, {});
 };
 
+/** POST /api/Inventory/service-orders/{id}/transfer-order
+ *  Chuyển báo giá sang phiếu xuất kho */
+export const transferOrder = async (id: number): Promise<void> => {
+  await AxiosClient.post(`/api/Inventory/service-orders/${id}/transfer-order`);
+};
+
 export const serviceOrderService = {
   getServiceOrders,
   getServiceOrderDetail,
@@ -232,4 +238,5 @@ export const serviceOrderService = {
   respondAdditionalItems,
   assignTechnician,
   startDiagnosis,
+  transferOrder,
 };

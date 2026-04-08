@@ -24,6 +24,7 @@ interface Props {
   maintenanceId: number | null;
   canAdd: boolean; // true when order status === IN_DIAGNOSIS
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 const formatCurrency = (v: number) =>
@@ -84,11 +85,12 @@ const selectTheme = {
   },
 };
 
-const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props) => {
+const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose, onSuccess }: Props) => {
   const { t } = useTranslation();
   const [data, setData] = useState<IAdditionalItemsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [serviceRows, setServiceRows] = useState<Row[]>([emptyRow()]);
   const [partRows, setPartRows] = useState<Row[]>([emptyRow()]);
   const [serviceOptions, setServiceOptions] = useState<IService[]>([]);
@@ -110,6 +112,7 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
     reload(maintenanceId);
     setServiceRows([emptyRow()]);
     setPartRows([emptyRow()]);
+    setHasSubmitted(false);
   }, [isOpen, maintenanceId]);
 
   useEffect(() => {
@@ -171,6 +174,7 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
       setSubmitting(true);
       await serviceOrderService.addAdditionalItems(maintenanceId, { services, parts });
       toast.success(t("additionalItemsSuccess"));
+      setHasSubmitted(true);
       await reload(maintenanceId!);
 
       setServiceRows([emptyRow()]);
@@ -265,14 +269,19 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
     [t],
   );
 
+  const handleClose = () => {
+    if (hasSubmitted) onSuccess?.();
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
-    <Overlay onClick={onClose}>
+    <Overlay onClick={handleClose}>
       <Box onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <HeaderTitle>{t("additionalItemsTitle")} #{maintenanceId}</HeaderTitle>
-          <CloseBtn onClick={onClose}>
+          <CloseBtn onClick={handleClose}>
             <HiX size={20} />
           </CloseBtn>
         </ModalHeader>
@@ -458,7 +467,7 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
         </Body>
 
         <Footer>
-          <CancelBtn onClick={onClose}>{t("additionalItemsClose")}</CancelBtn>
+          <CancelBtn onClick={handleClose}>{t("additionalItemsClose")}</CancelBtn>
           {canAdd && (
             <ConfirmBtn onClick={handleSubmit} disabled={submitting}>
               {submitting ? t("additionalItemsSubmitting") : t("additionalItemsSubmit")}

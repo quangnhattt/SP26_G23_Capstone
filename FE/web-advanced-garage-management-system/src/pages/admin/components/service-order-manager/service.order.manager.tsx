@@ -9,6 +9,7 @@ import {
   HiClipboardCheck,
   HiDocumentText,
   HiPlay,
+  HiArchive,
 } from "react-icons/hi";
 import { ConfigProvider, Table, Tag, Select as AntSelect, Tooltip } from "antd";
 import type { TableColumnsType } from "antd";
@@ -86,6 +87,9 @@ const ServiceOrderManager = () => {
   const [startingDiagnosisIds, setStartingDiagnosisIds] = useState<number[]>(
     [],
   );
+  const [transferringIds, setTransferringIds] = useState<number[]>([]);
+  const [transferredIds, setTransferredIds] = useState<number[]>([]);
+  const [respondedIds, setRespondedIds] = useState<number[]>([]);
 
   const fetchOrders = useCallback(
     async (page: number, search?: string, status?: string, type?: string) => {
@@ -189,20 +193,26 @@ const ServiceOrderManager = () => {
         technicianId,
       });
       toast.success(t("serviceOrderAssignSuccess"));
-      setItems((prev) =>
-        prev.map((item) =>
-          item.maintenanceId === maintenanceId
-            ? {
-                ...item,
-                technicianName: selectedTech.fullName,
-              }
-            : item,
-        ),
-      );
+      fetchOrders(currentPage, searchTerm || undefined, statusFilter, typeFilter);
     } catch {
       toast.error(t("serviceOrderAssignError"));
     } finally {
       setAssigningIds((prev) => prev.filter((id) => id !== maintenanceId));
+    }
+  };
+
+  const handleTransferOrder = async (maintenanceId: number) => {
+    if (transferringIds.includes(maintenanceId)) return;
+    try {
+      setTransferringIds((prev) => [...prev, maintenanceId]);
+      await serviceOrderService.transferOrder(maintenanceId);
+      setTransferredIds((prev) => [...prev, maintenanceId]);
+      toast.success(t("serviceOrderTransferOrderSuccess"));
+      fetchOrders(currentPage, searchTerm || undefined, statusFilter, typeFilter);
+    } catch {
+      toast.error(t("serviceOrderTransferOrderError"));
+    } finally {
+      setTransferringIds((prev) => prev.filter((id) => id !== maintenanceId));
     }
   };
 
@@ -212,13 +222,7 @@ const ServiceOrderManager = () => {
       setStartingDiagnosisIds((prev) => [...prev, maintenanceId]);
       await serviceOrderService.startDiagnosis(maintenanceId);
       toast.success(t("serviceOrderStartDiagnosisSuccess"));
-      setItems((prev) =>
-        prev.map((item) =>
-          item.maintenanceId === maintenanceId
-            ? { ...item, status: "IN_DIAGNOSIS" }
-            : item,
-        ),
-      );
+      fetchOrders(currentPage, searchTerm || undefined, statusFilter, typeFilter);
     } catch {
       toast.error(t("serviceOrderStartDiagnosisError"));
     } finally {
@@ -361,13 +365,25 @@ const ServiceOrderManager = () => {
             </Tooltip>
           )}
 
-          {record.status === "QUOTED" && !isTech && (
+          {record.status === "QUOTED" && !isTech && !respondedIds.includes(record.maintenanceId) && (
             <Tooltip title={t("serviceOrderTooltipApprove")}>
               <ActionBtn
                 $color="green"
                 onClick={() => handleOpenRespond(record.maintenanceId)}
               >
                 <HiClipboardCheck size={17} />
+              </ActionBtn>
+            </Tooltip>
+          )}
+
+          {record.status === "QUOTED" && !isTech && !transferredIds.includes(record.maintenanceId) && (
+            <Tooltip title={t("serviceOrderTooltipTransferOrder")}>
+              <ActionBtn
+                $color="blue"
+                onClick={() => handleTransferOrder(record.maintenanceId)}
+                disabled={transferringIds.includes(record.maintenanceId)}
+              >
+                <HiArchive size={17} />
               </ActionBtn>
             </Tooltip>
           )}
@@ -550,12 +566,6 @@ const ServiceOrderManager = () => {
         maintenanceId={additionalId}
         canAdd={additionalCanAdd}
         onClose={() => setAdditionalOpen(false)}
-      />
-
-      <RespondAdditionalItemsModal
-        isOpen={respondOpen}
-        maintenanceId={respondId}
-        onClose={() => setRespondOpen(false)}
         onSuccess={() =>
           fetchOrders(
             currentPage,
@@ -564,6 +574,23 @@ const ServiceOrderManager = () => {
             typeFilter,
           )
         }
+      />
+
+      <RespondAdditionalItemsModal
+        isOpen={respondOpen}
+        maintenanceId={respondId}
+        onClose={() => setRespondOpen(false)}
+        onSuccess={() => {
+          if (respondId !== null) {
+            setRespondedIds((prev) => [...prev, respondId]);
+          }
+          fetchOrders(
+            currentPage,
+            searchTerm || undefined,
+            statusFilter,
+            typeFilter,
+          );
+        }}
       />
 
       <InvoiceModal
