@@ -175,5 +175,63 @@ namespace AGMS.WebApi.Controllers
                 return BadRequest(new { message = ex.Message, detail = ex.InnerException?.Message });
             }
         }
+
+        // ============================================================
+        // API 8: TECH XEM DANH SÁCH PHIẾU XUẤT KHO CỦA MÌNH
+        // - Chỉ cho role Technician (Role = 3)
+        // - Lọc theo: đơn sửa chữa nào có AssignedTechnicianID == userId đang đăng nhập
+        // - Tech chỉ thấy phiếu ISSUE thuộc về đơn mình được phân công
+        // ============================================================
+        [HttpGet("my-transfer-orders")]
+        [Authorize(Roles = Roles.Technician)]
+        public async Task<IActionResult> GetMyTransferOrders(CancellationToken ct)
+        {
+            try
+            {
+                // Lấy userId từ JWT token
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int loggedInUserId))
+                    return Unauthorized(new { message = "Token không hợp lệ hoặc đã hết hạn." });
+
+                var result = await _inventoryService.GetMyTransferOrdersAsync(loggedInUserId, ct);
+
+                return Ok(new
+                {
+                    message = $"Lấy danh sách phiếu xuất kho thành công. Tìm thấy {result.Count} phiếu.",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message, detail = ex.InnerException?.Message });
+            }
+        }
+
+        // ============================================================
+        // API 9: ADMIN/SA XEM TOÀN BỘ TRANSFER ORDER KÈM CHI TIẾT LINH KIỆN
+        // - Cho phép Admin (Role = 1) và ServiceAdvisor (Role = 2)
+        // - Hỗ trợ filter: Type, Status, MaintenanceId, TechnicianId
+        // - Phân trang: PageIndex, PageSize
+        // ============================================================
+        [HttpGet("transfer-orders")]
+        [Authorize(Roles = Roles.Admin + "," + Roles.ServiceAdvisor)]
+        public async Task<IActionResult> GetAllTransferOrdersWithDetails(
+            [FromQuery] TransferOrderFilterDto filter, CancellationToken ct)
+        {
+            try
+            {
+                var result = await _inventoryService.GetAllTransferOrdersWithDetailsAsync(filter, ct);
+
+                return Ok(new
+                {
+                    message = "Lấy danh sách Transfer Order thành công.",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message, detail = ex.InnerException?.Message });
+            }
+        }
     }
 }

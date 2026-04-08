@@ -25,5 +25,12 @@ namespace AGMS.Application.Contracts
         Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(InventoryTransactionFilterDto filter, CancellationToken ct);
         Task AdjustStockAsync(int userId, InventoryAdjustmentDto request, CancellationToken ct);
         Task RebuildInventoryBalancesAsync(CancellationToken ct);
+
+        // API Xem Transfer Order
+        /// <summary>Kỹ thuật viên xem danh sách phiếu xuất kho dành cho đơn mà họ được phân công.</summary>
+        Task<List<MyTransferOrderDto>> GetMyTransferOrdersAsync(int technicianUserId, CancellationToken ct);
+
+        /// <summary>Admin/SA xem toàn bộ phiếu xuất kho kèm thông tin chi tiết linh kiện, hỗ trợ filter và phân trang.</summary>
+        Task<PaginatedResult<TransferOrderWithDetailsDto>> GetAllTransferOrdersWithDetailsAsync(TransferOrderFilterDto filter, CancellationToken ct);
     }
 }

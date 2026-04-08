@@ -605,4 +605,146 @@ public class InventoryRepository : IInventoryRepository
             throw;
         }
     }
+
+    // ============================================================
+    // API 1: Kỹ thuật viên xem danh sách phiếu xuất kho của mình
+    // Logic: Lọc TransferOrder qua RelatedMaintenance.AssignedTechnicianID == technicianUserId
+    // ============================================================
+    public async Task<List<MyTransferOrderDto>> GetMyTransferOrdersAsync(int technicianUserId, CancellationToken ct)
+    {
+        var result = await _db.TransferOrders
+            .Where(to => to.Type == "ISSUE"
+                      && to.RelatedMaintenanceID != null
+                      && to.RelatedMaintenance != null
+                      && to.RelatedMaintenance.AssignedTechnicianID == technicianUserId)
+            .Include(to => to.RelatedMaintenance)
+                .ThenInclude(m => m!.Car)
+            .Include(to => to.TransferOrderDetails)
+                .ThenInclude(d => d.Product)   // <<< Thêm để lấy Product.Code, Product.Name
+            .OrderByDescending(to => to.DocumentDate)
+            .Select(to => new MyTransferOrderDto
+            {
+                TransferOrderID   = to.TransferOrderID,
+                Status            = to.Status,
+                Note              = to.Note,
+                DocumentDate      = to.DocumentDate,
+                CreatedDate       = to.CreatedDate,
+                // Thông tin đơn sửa chữa
+                MaintenanceID     = to.RelatedMaintenanceID,
+                MaintenanceStatus = to.RelatedMaintenance != null ? to.RelatedMaintenance.Status : string.Empty,
+                // Thông tin xe
+                CarLicensePlate   = to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
+                                        ? to.RelatedMaintenance.Car.LicensePlate : null,
+                CarModel          = to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
+                                        ? to.RelatedMaintenance.Car.Model : null,
+                CarBrand          = to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
+                                        ? to.RelatedMaintenance.Car.Brand : null,
+                // Tổng số dòng (badge hiển thị nhanh)
+                ItemCount         = to.TransferOrderDetails.Count,
+                // Chi tiết từng linh kiện (tech cần biết xuất cái gì, số lượng bao nhiêu)
+                Details = to.TransferOrderDetails.Select(d => new TransferOrderDetailItemDto
+                {
+                    OrderDetailID = d.OrderDetailID,
+                    ProductID     = d.ProductID,
+                    ProductCode   = d.Product != null ? d.Product.Code : "N/A",
+                    ProductName   = d.Product != null ? d.Product.Name : "N/A",
+                    Quantity      = d.Quantity,
+                    UnitPrice     = d.UnitPrice,
+                    Notes         = d.Notes
+                }).ToList()
+            })
+            .ToListAsync(ct);
+
+        return result;
+    }
+
+    // ============================================================
+    // API 2: Admin/SA xem toàn bộ Transfer Order kèm chi tiết linh kiện
+    // Hỗ trợ filter theo Type, Status, MaintenanceId, TechnicianId và phân trang
+    // ============================================================
+    public async Task<PaginatedResult<TransferOrderWithDetailsDto>> GetAllTransferOrdersWithDetailsAsync(
+        TransferOrderFilterDto filter, CancellationToken ct)
+    {
+        // 1. Khởi tạo query gốc với các Include cần thiết
+        var query = _db.TransferOrders
+            .Include(to => to.TransferOrderDetails)
+                .ThenInclude(d => d.Product)
+            .Include(to => to.CreateByNavigation)
+            .Include(to => to.ApprovedByNavigation)
+            .Include(to => to.RelatedMaintenance)
+                .ThenInclude(m => m!.AssignedTechnician)
+            .Include(to => to.RelatedMaintenance)
+                .ThenInclude(m => m!.Car)
+            .AsQueryable();
+
+        // 2. Lọc động theo filter
+        if (!string.IsNullOrWhiteSpace(filter.Type))
+            query = query.Where(to => to.Type == filter.Type);
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+            query = query.Where(to => to.Status == filter.Status);
+
+        if (filter.MaintenanceId.HasValue)
+            query = query.Where(to => to.RelatedMaintenanceID == filter.MaintenanceId.Value);
+
+        if (filter.TechnicianId.HasValue)
+            query = query.Where(to => to.RelatedMaintenance != null
+                                   && to.RelatedMaintenance.AssignedTechnicianID == filter.TechnicianId.Value);
+
+        // 3. Đếm tổng (phục vụ phân trang)
+        int totalCount = await query.CountAsync(ct);
+
+        // 4. Phân trang + Map sang DTO
+        var items = await query
+            .OrderByDescending(to => to.DocumentDate)
+            .Skip((filter.PageIndex - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .Select(to => new TransferOrderWithDetailsDto
+            {
+                TransferOrderID   = to.TransferOrderID,
+                Type              = to.Type,
+                Status            = to.Status,
+                Note              = to.Note,
+                DocumentDate      = to.DocumentDate,
+                CreatedDate       = to.CreatedDate,
+                // Người tạo
+                CreateByUserId    = to.CreateBy,
+                CreatedByName     = to.CreateByNavigation != null ? to.CreateByNavigation.FullName : "N/A",
+                // Người duyệt (nếu có)
+                ApprovedByUserId  = to.ApprovedBy,
+                ApprovedByName    = to.ApprovedByNavigation != null ? to.ApprovedByNavigation.FullName : null,
+                // Thông tin đơn sửa chữa
+                MaintenanceID     = to.RelatedMaintenanceID,
+                MaintenanceStatus = to.RelatedMaintenance != null ? to.RelatedMaintenance.Status : null,
+                // Kỹ thuật viên
+                TechnicianID      = to.RelatedMaintenance != null ? to.RelatedMaintenance.AssignedTechnicianID : null,
+                TechnicianName    = to.RelatedMaintenance != null && to.RelatedMaintenance.AssignedTechnician != null
+                                        ? to.RelatedMaintenance.AssignedTechnician.FullName : null,
+                // Thông tin xe
+                CarLicensePlate   = to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
+                                        ? to.RelatedMaintenance.Car.LicensePlate : null,
+                CarModel          = to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
+                                        ? to.RelatedMaintenance.Car.Model : null,
+                // Chi tiết linh kiện
+                Details = to.TransferOrderDetails.Select(d => new TransferOrderDetailItemDto
+                {
+                    OrderDetailID = d.OrderDetailID,
+                    ProductID     = d.ProductID,
+                    ProductCode   = d.Product != null ? d.Product.Code : "N/A",
+                    ProductName   = d.Product != null ? d.Product.Name : "N/A",
+                    Quantity      = d.Quantity,
+                    UnitPrice     = d.UnitPrice,
+                    Notes         = d.Notes
+                }).ToList()
+            })
+            .ToListAsync(ct);
+
+        return new PaginatedResult<TransferOrderWithDetailsDto>
+        {
+            TotalCount   = totalCount,
+            TotalPages   = (int)Math.Ceiling(totalCount / (double)filter.PageSize),
+            CurrentPage  = filter.PageIndex,
+            Items        = items
+        };
+    }
 }
