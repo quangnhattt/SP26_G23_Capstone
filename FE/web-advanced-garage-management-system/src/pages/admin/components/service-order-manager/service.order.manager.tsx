@@ -8,6 +8,7 @@ import {
   HiPlusCircle,
   HiClipboardCheck,
   HiDocumentText,
+  HiPlay,
 } from "react-icons/hi";
 import { ConfigProvider, Table, Tag, Select as AntSelect, Tooltip } from "antd";
 import type { TableColumnsType } from "antd";
@@ -16,6 +17,7 @@ import {
   type IServiceOrder,
 } from "@/services/admin/serviceOrderService";
 import { toast } from "react-toastify";
+import { getTechnicians, type ITechnician } from "@/apis/technicians";
 import ServiceOrderDetailModal from "./service.order.detail.modal";
 import AdditionalItemsModal from "./additional-items.modal";
 import RespondAdditionalItemsModal from "./respond-additional-items.modal";
@@ -79,6 +81,11 @@ const ServiceOrderManager = () => {
   const [respondOpen, setRespondOpen] = useState(false);
   const [invoiceId, setInvoiceId] = useState<number | null>(null);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [technicians, setTechnicians] = useState<ITechnician[]>([]);
+  const [assigningIds, setAssigningIds] = useState<number[]>([]);
+  const [startingDiagnosisIds, setStartingDiagnosisIds] = useState<number[]>(
+    [],
+  );
 
   const fetchOrders = useCallback(
     async (page: number, search?: string, status?: string, type?: string) => {
@@ -107,6 +114,18 @@ const ServiceOrderManager = () => {
   useEffect(() => {
     fetchOrders(currentPage, searchTerm || undefined, statusFilter, typeFilter);
   }, [currentPage, statusFilter, typeFilter, fetchOrders]);
+
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      try {
+        const data = await getTechnicians();
+        setTechnicians(data ?? []);
+      } catch {
+        toast.error(t("serviceOrderAssignLoadTechError"));
+      }
+    };
+    fetchTechnicians();
+  }, [t]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -151,6 +170,64 @@ const ServiceOrderManager = () => {
     setInvoiceOpen(true);
   };
 
+  const handleAssignTechnician = async (
+    maintenanceId: number,
+    technicianId: number,
+  ) => {
+    if (assigningIds.includes(maintenanceId)) return;
+    const selectedTech = technicians.find(
+      (tech) => tech.technicianId === technicianId,
+    );
+    if (!selectedTech) {
+      toast.error(t("serviceOrderAssignError"));
+      return;
+    }
+
+    try {
+      setAssigningIds((prev) => [...prev, maintenanceId]);
+      await serviceOrderService.assignTechnician(maintenanceId, {
+        technicianId,
+      });
+      toast.success(t("serviceOrderAssignSuccess"));
+      setItems((prev) =>
+        prev.map((item) =>
+          item.maintenanceId === maintenanceId
+            ? {
+                ...item,
+                technicianName: selectedTech.fullName,
+              }
+            : item,
+        ),
+      );
+    } catch {
+      toast.error(t("serviceOrderAssignError"));
+    } finally {
+      setAssigningIds((prev) => prev.filter((id) => id !== maintenanceId));
+    }
+  };
+
+  const handleStartDiagnosis = async (maintenanceId: number) => {
+    if (startingDiagnosisIds.includes(maintenanceId)) return;
+    try {
+      setStartingDiagnosisIds((prev) => [...prev, maintenanceId]);
+      await serviceOrderService.startDiagnosis(maintenanceId);
+      toast.success(t("serviceOrderStartDiagnosisSuccess"));
+      setItems((prev) =>
+        prev.map((item) =>
+          item.maintenanceId === maintenanceId
+            ? { ...item, status: "IN_DIAGNOSIS" }
+            : item,
+        ),
+      );
+    } catch {
+      toast.error(t("serviceOrderStartDiagnosisError"));
+    } finally {
+      setStartingDiagnosisIds((prev) =>
+        prev.filter((id) => id !== maintenanceId),
+      );
+    }
+  };
+
   const columns: TableColumnsType<IServiceOrder> = [
     {
       title: t("serviceOrderColNo"),
@@ -181,9 +258,36 @@ const ServiceOrderManager = () => {
     },
     {
       title: t("serviceOrderColTechnician"),
-      dataIndex: "technicianName",
       key: "technicianName",
-      width: 180,
+      width: 220,
+      render: (_: unknown, record: IServiceOrder) => {
+        const normalizedTechnicianName = (record.technicianName ?? "").trim();
+        const hasTechnician =
+          normalizedTechnicianName.length > 0 &&
+          !["—", "-", "N/A", "null", "undefined"].includes(
+            normalizedTechnicianName,
+          );
+        if (hasTechnician) return record.technicianName;
+
+        return (
+          <AssignSelect
+            className="service-order-filter-select"
+            popupClassName="service-order-filter-dropdown"
+            style={{ width: "100%" }}
+            placeholder={t("serviceOrderAssignTechPlaceholder")}
+            loading={assigningIds.includes(record.maintenanceId)}
+            disabled={isTech}
+            value={undefined}
+            onChange={(value) =>
+              handleAssignTechnician(record.maintenanceId, Number(value))
+            }
+            options={technicians.map((tech) => ({
+              value: tech.technicianId,
+              label: <span style={{ color: "#111827" }}>{tech.fullName}</span>,
+            }))}
+          />
+        );
+      },
     },
     {
       title: t("serviceOrderColServiceType"),
@@ -233,6 +337,18 @@ const ServiceOrderManager = () => {
               <HiEye size={17} />
             </ActionBtn>
           </Tooltip>
+
+          {record.status === "WAITING" && (
+            <Tooltip title={t("serviceOrderTooltipStartDiagnosis")}>
+              <ActionBtn
+                $color="green"
+                onClick={() => handleStartDiagnosis(record.maintenanceId)}
+                disabled={startingDiagnosisIds.includes(record.maintenanceId)}
+              >
+                <HiPlay size={17} />
+              </ActionBtn>
+            </Tooltip>
+          )}
 
           {(record.status === "IN_DIAGNOSIS" || record.status === "QUOTED") && (
             <Tooltip title={t("serviceOrderTooltipAdditional")}>
@@ -559,6 +675,22 @@ const FilterSelect = styled(AntSelect)`
     color: #000 !important;
     -webkit-text-fill-color: #000 !important;
     opacity: 1 !important;
+  }
+`;
+
+const AssignSelect = styled(AntSelect)`
+  &&&&& .ant-select-selector,
+  &&&&& .ant-select-selector .ant-select-selection-item,
+  &&&&& .ant-select-selector .ant-select-selection-item-content,
+  &&&&& .ant-select-selector .ant-select-selection-placeholder,
+  &&&&& .ant-select-selection-search-input,
+  &&&&& .ant-select-arrow,
+  &&&&& .ant-select-clear,
+  &&&&& .ant-select-selector .ant-select-selection-item * {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
   }
 `;
 

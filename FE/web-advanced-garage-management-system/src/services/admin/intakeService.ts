@@ -204,3 +204,7 @@ export const createIntake = async (payload: ICreateIntakePayload): Promise<void>
 export const updateIntake = async (id: number, payload: IUpdateIntakePayload): Promise<void> => {
   await AxiosClient.put(`/api/intake/${id}`, payload);
 };
+
+export const finalizeIntake = async (id: number): Promise<void> => {
+  await AxiosClient.patch(`/api/intake/${id}/finalize`);
+};

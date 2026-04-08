@@ -204,6 +204,25 @@ export const respondAdditionalItems = async (
   );
 };
 
+export interface IAssignTechnicianPayload {
+  technicianId: number;
+}
+
+/** PATCH /api/service-orders/{id}/assign-technician
+ *  Chọn kỹ thuật viên cho service order ở trạng thái chờ */
+export const assignTechnician = async (
+  id: number,
+  payload: IAssignTechnicianPayload
+): Promise<void> => {
+  await AxiosClient.patch(`/api/service-orders/${id}/assign-technician`, payload);
+};
+
+/** PATCH /api/service-orders/{id}/start-diagnosis
+ *  Chuyển trạng thái từ WAITING sang IN_DIAGNOSIS */
+export const startDiagnosis = async (id: number): Promise<void> => {
+  await AxiosClient.patch(`/api/service-orders/${id}/start-diagnosis`, {});
+};
+
 export const serviceOrderService = {
   getServiceOrders,
   getServiceOrderDetail,
@@ -211,4 +230,6 @@ export const serviceOrderService = {
   addAdditionalItems,
   createInvoice,
   respondAdditionalItems,
+  assignTechnician,
+  startDiagnosis,
 };
