@@ -231,18 +231,21 @@ const HistoryTransferOrderManager = () => {
       key: "maintenanceID",
       width: 120,
       align: "center",
-      render: (_: unknown, record: ITransferOrderHistoryItem) => (
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontWeight: 600 }}>#{record.maintenanceID}</div>
-          <Tag
-            color={MAINTENANCE_STATUS_COLOR[record.maintenanceStatus] ?? "default"}
-            style={{ marginTop: 2 }}
-          >
-            {t(`historyTransferOrderMaintenanceStatus_${record.maintenanceStatus}`) ||
-              record.maintenanceStatus}
-          </Tag>
-        </div>
-      ),
+      render: (_: unknown, record: ITransferOrderHistoryItem) => {
+        if (record.maintenanceID == null) return <div style={{ textAlign: "center" }}>-</div>;
+        return (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 600 }}>#{record.maintenanceID}</div>
+            <Tag
+              color={MAINTENANCE_STATUS_COLOR[record.maintenanceStatus] ?? "default"}
+              style={{ marginTop: 2 }}
+            >
+              {t(`historyTransferOrderMaintenanceStatus_${record.maintenanceStatus}`) ||
+                record.maintenanceStatus}
+            </Tag>
+          </div>
+        );
+      },
     },
     {
       title: t("historyTransferOrderColCreatedBy"),
