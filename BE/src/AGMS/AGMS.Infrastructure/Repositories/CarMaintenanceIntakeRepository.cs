@@ -790,95 +790,6 @@ namespace AGMS.Infrastructure.Repositories
             if (!string.Equals(maintenance.Status, "WAITING", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Only intake records with status WAITING can be moved to IN_DIAGNOSIS.");
 
-            if (request.PackageId.HasValue)
-            {
-                var package = await _db.MaintenancePackages
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.PackageID == request.PackageId.Value && p.IsActive, ct);
-
-                if (package == null)
-                    throw new KeyNotFoundException("Selected maintenance package not found or inactive.");
-
-                var packageDetails = await _db.MaintenancePackageDetails
-                    .AsNoTracking()
-                    .Where(d => d.PackageID == request.PackageId.Value)
-                    .Select(d => new
-                    {
-                        d.ProductID,
-                        d.Quantity,
-                        d.Notes,
-                        Product = d.Product
-                    })
-                    .ToListAsync(ct);
-
-                if (packageDetails.Count == 0)
-                    throw new InvalidOperationException("Selected maintenance package has no items.");
-
-                if (!maintenance.MaintenancePackageUsages.Any(x => x.PackageID == request.PackageId.Value))
-                {
-                    var packageAmount = package.FinalPrice ?? package.BasePrice;
-                    _db.MaintenancePackageUsages.Add(new MaintenancePackageUsage
-                    {
-                        MaintenanceID = maintenanceId,
-                        PackageID = package.PackageID,
-                        AppliedPrice = packageAmount,
-                        DiscountAmount = Math.Max(0m, package.BasePrice - packageAmount),
-                        AppliedDate = DateTime.UtcNow
-                    });
-                }
-
-                foreach (var item in packageDetails)
-                {
-                    if (item.Product == null || !item.Product.IsActive)
-                        continue;
-
-                    if (string.Equals(item.Product.Type?.Trim(), "SERVICE", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var exists = maintenance.ServiceDetails.Any(sd =>
-                            sd.FromPackage &&
-                            sd.PackageID == request.PackageId.Value &&
-                            sd.ProductID == item.ProductID);
-                        if (exists) continue;
-
-                        _db.ServiceDetails.Add(new ServiceDetail
-                        {
-                            MaintenanceID = maintenanceId,
-                            ProductID = item.ProductID,
-                            Quantity = item.Quantity,
-                            UnitPrice = item.Product.Price,
-                            ItemStatus = "APPROVED",
-                            IsAdditional = false,
-                            FromPackage = true,
-                            PackageID = request.PackageId.Value,
-                            Notes = item.Notes
-                        });
-                    }
-                    else if (string.Equals(item.Product.Type?.Trim(), "PART", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var exists = maintenance.ServicePartDetails.Any(spd =>
-                            spd.FromPackage &&
-                            spd.PackageID == request.PackageId.Value &&
-                            spd.ProductID == item.ProductID);
-                        if (exists) continue;
-
-                        _db.ServicePartDetails.Add(new ServicePartDetail
-                        {
-                            MaintenanceID = maintenanceId,
-                            ProductID = item.ProductID,
-                            Quantity = (int)Math.Ceiling(item.Quantity),
-                            UnitPrice = item.Product.Price,
-                            ItemStatus = "APPROVED",
-                            IsAdditional = false,
-                            InventoryStatus = "PENDING",
-                            IssuedQuantity = 0,
-                            FromPackage = true,
-                            PackageID = request.PackageId.Value,
-                            Notes = item.Notes
-                        });
-                    }
-                }
-            }
-
             var changedAt = DateTime.UtcNow;
             var oldStatus = maintenance.Status;
             maintenance.Status = "IN_DIAGNOSIS";
@@ -901,6 +812,9 @@ namespace AGMS.Infrastructure.Repositories
         {
             await ResolveCreatedByUserIdAsync(updatedByUserId, ct);
             var maintenance = await _db.CarMaintenances
+                .Include(m => m.MaintenancePackageUsages)
+                .Include(m => m.ServiceDetails)
+                .Include(m => m.ServicePartDetails)
                 .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
 
             if (maintenance == null)
@@ -908,6 +822,68 @@ namespace AGMS.Infrastructure.Repositories
 
             if (!string.Equals(maintenance.Status, "RECEIVED", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Chỉ có thể chốt lệnh cho phiếu ở trạng thái 'RECEIVED'.");
+
+            // Flatten package items into detail tables
+            var usage = maintenance.MaintenancePackageUsages.FirstOrDefault();
+            if (usage != null)
+            {
+                var packageId = usage.PackageID;
+                var packageDetails = await _db.MaintenancePackageDetails
+                    .Include(d => d.Product)
+                    .Where(d => d.PackageID == packageId)
+                    .ToListAsync(ct);
+
+                foreach (var item in packageDetails)
+                {
+                    if (item.Product == null || !item.Product.IsActive)
+                        continue;
+
+                    if (string.Equals(item.Product.Type?.Trim(), "SERVICE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var exists = maintenance.ServiceDetails.Any(sd =>
+                            sd.FromPackage &&
+                            sd.PackageID == packageId &&
+                            sd.ProductID == item.ProductID);
+                        if (!exists)
+                        {
+                            _db.ServiceDetails.Add(new ServiceDetail
+                            {
+                                MaintenanceID = maintenanceId,
+                                ProductID = item.ProductID,
+                                Quantity = item.Quantity,
+                                UnitPrice = item.Product.Price,
+                                ItemStatus = "APPROVED",
+                                IsAdditional = false,
+                                FromPackage = true,
+                                PackageID = packageId
+                            });
+                        }
+                    }
+                    else if (string.Equals(item.Product.Type?.Trim(), "PART", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var exists = maintenance.ServicePartDetails.Any(spd =>
+                            spd.FromPackage &&
+                            spd.PackageID == packageId &&
+                            spd.ProductID == item.ProductID);
+                        if (!exists)
+                        {
+                            _db.ServicePartDetails.Add(new ServicePartDetail
+                            {
+                                MaintenanceID = maintenanceId,
+                                ProductID = item.ProductID,
+                                Quantity = (int)Math.Ceiling(item.Quantity),
+                                UnitPrice = item.Product.Price,
+                                ItemStatus = "APPROVED",
+                                IsAdditional = false,
+                                InventoryStatus = "PENDING",
+                                IssuedQuantity = 0,
+                                FromPackage = true,
+                                PackageID = packageId
+                            });
+                        }
+                    }
+                }
+            }
 
             maintenance.Status = "WAITING";
             await _db.SaveChangesAsync(ct);
