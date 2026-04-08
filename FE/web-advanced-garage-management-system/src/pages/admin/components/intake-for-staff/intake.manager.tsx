@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
-import { Table, Tag, Select, Input, Space, Button } from "antd";
+import { Table, Tag, Select, Input, Space, Button, message, Tooltip } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
-import { SearchOutlined, EyeOutlined, PlusOutlined, EditOutlined } from "@ant-design/icons";
+import {
+  SearchOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  EditOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import {
   getIntakeList,
   getIntakeDetail,
+  finalizeIntake,
   type IIntakeItem,
   type IIntakeDetail,
 } from "@/services/admin/intakeService";
@@ -80,8 +87,13 @@ const IntakeManager = () => {
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "update">("create");
-  const [formIntakeId, setFormIntakeId] = useState<number | undefined>(undefined);
-  const [formDetailData, setFormDetailData] = useState<IIntakeDetail | null>(null);
+  const [formIntakeId, setFormIntakeId] = useState<number | undefined>(
+    undefined,
+  );
+  const [formDetailData, setFormDetailData] = useState<IIntakeDetail | null>(
+    null,
+  );
+  const [finalizingIds, setFinalizingIds] = useState<number[]>([]);
 
   const handleCreate = () => {
     setFormMode("create");
@@ -117,7 +129,23 @@ const IntakeManager = () => {
     }
   };
 
+  const handleRequestService = async (id: number) => {
+    if (finalizingIds.includes(id)) return;
+    try {
+      setFinalizingIds((prev) => [...prev, id]);
+      await finalizeIntake(id);
+      message.success(t("intakeRequestServiceSuccess"));
+      fetchData(page, maintenanceType, customerName);
+    } catch (err) {
+      console.error("Error finalizing intake:", err);
+      message.error(t("intakeRequestServiceError"));
+    } finally {
+      setFinalizingIds((prev) => prev.filter((itemId) => itemId !== id));
+    }
+  };
+
   const statusLabel: Record<string, string> = {
+    RECEIVED: t("intakeStatusReceived"),
     WAITING: t("intakeStatusWaiting"),
     IN_PROGRESS: t("intakeStatusInProgress"),
     DONE: t("intakeStatusDone"),
@@ -199,6 +227,17 @@ const IntakeManager = () => {
       fixed: "right" as const,
       render: (_: unknown, record: IIntakeItem) => (
         <div style={{ display: "flex", gap: 4 }}>
+          <Tooltip title={t("intakeRequestServiceBtn")}>
+            <Button
+              type="default"
+              size="small"
+              icon={<CheckCircleOutlined />}
+              onClick={() => handleRequestService(record.maintenanceId)}
+              loading={finalizingIds.includes(record.maintenanceId)}
+              disabled={record.status !== "RECEIVED"}
+              style={{ color: "#15803d", borderColor: "#86efac" }}
+            />
+          </Tooltip>
           <Button
             type="default"
             size="small"
@@ -262,11 +301,7 @@ const IntakeManager = () => {
       <PageHeader>
         <PageTitle>{t("intakeTitle")}</PageTitle>
         <FilterRow>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleCreate}
-          >
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             {t("intakeCreateBtn")}
           </Button>
           <Space>
