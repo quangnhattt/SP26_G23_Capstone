@@ -226,20 +226,30 @@ const IntakeFormModal = ({
             bayId: v.maintenance?.bayId ?? null,
           },
           packageSelection: { selectedPackageId: v.packageId ?? null },
-          serviceDetails: (v.serviceDetails ?? []).map(
-            (s: { productId: number; quantity: number; notes: string }) => ({
-              productId: s.productId,
-              quantity: s.quantity,
-              notes: s.notes,
-            }),
-          ),
-          partDetails: (v.partDetails ?? []).map(
-            (p: { productId: number; quantity: number; notes: string }) => ({
-              productId: p.productId,
-              quantity: p.quantity,
-              notes: p.notes,
-            }),
-          ),
+          serviceDetails: (v.serviceDetails ?? [])
+            .filter(
+              (s: { productId?: number | null }) =>
+                s.productId != null && s.productId !== undefined,
+            )
+            .map(
+              (s: { productId: number; quantity?: number; notes?: string }) => ({
+                productId: s.productId,
+                quantity: s.quantity ?? 1,
+                notes: s.notes ?? "",
+              }),
+            ),
+          partDetails: (v.partDetails ?? [])
+            .filter(
+              (p: { productId?: number | null }) =>
+                p.productId != null && p.productId !== undefined,
+            )
+            .map(
+              (p: { productId: number; quantity?: number; notes?: string }) => ({
+                productId: p.productId,
+                quantity: p.quantity ?? 1,
+                notes: p.notes ?? "",
+              }),
+            ),
           vehicleIntakeConditions: (v.vehicleConditions ?? []).map(
             (c: {
               frontStatus: string;
@@ -284,20 +294,30 @@ const IntakeFormModal = ({
             currentOdometer: v.carOdometer ?? null,
           },
           packageSelection: { selectedPackageId: v.packageId ?? null },
-          serviceDetails: (v.serviceDetails ?? []).map(
-            (s: { productId: number; quantity: number; notes: string }) => ({
-              productId: s.productId,
-              quantity: s.quantity,
-              notes: s.notes,
-            }),
-          ),
-          partDetails: (v.partDetails ?? []).map(
-            (p: { productId: number; quantity: number; notes: string }) => ({
-              productId: p.productId,
-              quantity: p.quantity,
-              notes: p.notes,
-            }),
-          ),
+          serviceDetails: (v.serviceDetails ?? [])
+            .filter(
+              (s: { productId?: number | null }) =>
+                s.productId != null && s.productId !== undefined,
+            )
+            .map(
+              (s: { productId: number; quantity?: number; notes?: string }) => ({
+                productId: s.productId,
+                quantity: s.quantity ?? 1,
+                notes: s.notes ?? "",
+              }),
+            ),
+          partDetails: (v.partDetails ?? [])
+            .filter(
+              (p: { productId?: number | null }) =>
+                p.productId != null && p.productId !== undefined,
+            )
+            .map(
+              (p: { productId: number; quantity?: number; notes?: string }) => ({
+                productId: p.productId,
+                quantity: p.quantity ?? 1,
+                notes: p.notes ?? "",
+              }),
+            ),
           vehicleCondition: (v.vehicleConditions ?? []).map(
             (c: {
               frontStatus: string;
@@ -621,10 +641,10 @@ const IntakeFormModal = ({
                 <Form.Item
                   name={["maintenance", "assignedTechnicianId"]}
                   label={t("intakeFormTechnicianId")}
-                  rules={[{ required: true }]}
                 >
                   <Select
                     showSearch
+                    allowClear
                     placeholder={t("intakeFormSelectPlaceholder")}
                     filterOption={(input, opt) =>
                       (opt?.label ?? "")
@@ -700,11 +720,11 @@ const IntakeFormModal = ({
                         <Form.Item
                           name={[name, "productId"]}
                           label={t("intakeFormProductId")}
-                          rules={[{ required: true }]}
                         >
                           <Select
                             showSearch
                             placeholder={t("intakeFormSelectPlaceholder")}
+                            allowClear
                             filterOption={(input, opt) =>
                               (opt?.label ?? "")
                                 .toString()
@@ -727,7 +747,6 @@ const IntakeFormModal = ({
                         <Form.Item
                           name={[name, "quantity"]}
                           label={t("intakeDetailQty")}
-                          rules={[{ required: true }]}
                         >
                           <InputNumber
                             style={{ width: "100%" }}
@@ -779,11 +798,11 @@ const IntakeFormModal = ({
                         <Form.Item
                           name={[name, "productId"]}
                           label={t("intakeFormProductId")}
-                          rules={[{ required: true }]}
                         >
                           <Select
                             showSearch
                             placeholder={t("intakeFormSelectPlaceholder")}
+                            allowClear
                             filterOption={(input, opt) =>
                               (opt?.label ?? "")
                                 .toString()
@@ -806,7 +825,6 @@ const IntakeFormModal = ({
                         <Form.Item
                           name={[name, "quantity"]}
                           label={t("intakeDetailQty")}
-                          rules={[{ required: true }]}
                         >
                           <InputNumber
                             style={{ width: "100%" }}

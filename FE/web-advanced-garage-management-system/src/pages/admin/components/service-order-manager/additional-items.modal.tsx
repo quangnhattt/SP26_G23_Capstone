@@ -1,8 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiX, HiPlus, HiTrash } from "react-icons/hi";
-import { ConfigProvider, Tag, Select, Spin } from "antd";
+import {
+  ConfigProvider,
+  Tag,
+  Select,
+  Spin,
+  Table as AntTable,
+  InputNumber,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   serviceOrderService,
   type IAdditionalItemsResponse,
@@ -27,8 +35,18 @@ const ITEM_STATUS_COLOR: Record<string, string> = {
   REJECTED: "red",
 };
 
-type Row = { productId: number | null; quantity: number; notes: string };
-const emptyRow = (): Row => ({ productId: null, quantity: 1, notes: "" });
+type FlatItemRow = {
+  type: "SERVICE" | "PART";
+  itemCode: string;
+  itemName: string;
+  quantity: number;
+  unitPrice: number;
+  notes?: string;
+  itemStatus: string;
+};
+
+type Row = { productId: number | null; quantity: number | null; notes: string };
+const emptyRow = (): Row => ({ productId: null, quantity: null, notes: "" });
 
 const dropdownGlobalStyle = `
   .additional-items-dropdown .ant-select-item {
@@ -108,18 +126,40 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
 
   const handleSubmit = async () => {
     if (!maintenanceId) return;
+
+    const rowsWithProduct = [...serviceRows, ...partRows].filter(
+      (r) => r.productId !== null,
+    );
+    const hasInvalidQty = rowsWithProduct.some(
+      (r) => r.quantity == null || r.quantity < 1,
+    );
+    if (hasInvalidQty) {
+      toast.warning(t("additionalItemsQtyInvalid"));
+      return;
+    }
+
     const services = serviceRows
-      .filter((r) => r.productId !== null)
+      .filter(
+        (r) =>
+          r.productId !== null &&
+          r.quantity != null &&
+          r.quantity >= 1,
+      )
       .map(({ productId, quantity, notes }) => ({
         productId: productId!,
-        quantity,
+        quantity: quantity!,
         ...(notes ? { notes } : {}),
       }));
     const parts = partRows
-      .filter((r) => r.productId !== null)
+      .filter(
+        (r) =>
+          r.productId !== null &&
+          r.quantity != null &&
+          r.quantity >= 1,
+      )
       .map(({ productId, quantity, notes }) => ({
         productId: productId!,
-        quantity,
+        quantity: quantity!,
         ...(notes ? { notes } : {}),
       }));
 
@@ -142,18 +182,90 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
     }
   };
 
-  if (!isOpen) return null;
+  const flatItems: FlatItemRow[] = useMemo(
+    () =>
+      data
+        ? [
+            ...(data.services ?? []).map((s) => ({
+              ...s,
+              type: "SERVICE" as const,
+            })),
+            ...(data.parts ?? []).map((p) => ({ ...p, type: "PART" as const })),
+          ]
+        : [],
+    [data],
+  );
 
-  // Flatten services + parts into a unified display list
-  const flatItems = data
-    ? [
-        ...(data.services ?? []).map((s) => ({
-          ...s,
-          type: "SERVICE" as const,
-        })),
-        ...(data.parts ?? []).map((p) => ({ ...p, type: "PART" as const })),
-      ]
-    : [];
+  const additionalItemsColumns: ColumnsType<FlatItemRow> = useMemo(
+    () => [
+      {
+        title: t("additionalItemsColNo"),
+        key: "index",
+        width: 56,
+        align: "center",
+        render: (_: unknown, __: FlatItemRow, index: number) => index + 1,
+      },
+      {
+        title: t("additionalItemsColType"),
+        key: "type",
+        width: 120,
+        render: (_: unknown, record: FlatItemRow) => (
+          <Tag color={record.type === "SERVICE" ? "blue" : "purple"}>
+            {record.type === "SERVICE"
+              ? t("additionalItemsTypeService")
+              : t("additionalItemsTypePart")}
+          </Tag>
+        ),
+      },
+      {
+        title: t("additionalItemsColCode"),
+        dataIndex: "itemCode",
+        key: "itemCode",
+        width: 120,
+        render: (code: string) => <CodeCell>{code}</CodeCell>,
+      },
+      {
+        title: t("additionalItemsColName"),
+        key: "itemName",
+        ellipsis: true,
+        render: (_: unknown, record: FlatItemRow) => (
+          <div>
+            <div>{record.itemName}</div>
+            {record.notes && <NoteText>{record.notes}</NoteText>}
+          </div>
+        ),
+      },
+      {
+        title: t("additionalItemsColQty"),
+        dataIndex: "quantity",
+        key: "quantity",
+        width: 88,
+        align: "right",
+      },
+      {
+        title: t("additionalItemsColUnitPrice"),
+        key: "unitPrice",
+        width: 120,
+        align: "right",
+        render: (_: unknown, record: FlatItemRow) =>
+          formatCurrency(record.unitPrice),
+      },
+      {
+        title: t("additionalItemsColStatus"),
+        key: "itemStatus",
+        width: 130,
+        align: "center",
+        render: (_: unknown, record: FlatItemRow) => (
+          <Tag color={ITEM_STATUS_COLOR[record.itemStatus] ?? "default"}>
+            {t(`additionalItemsStatus_${record.itemStatus}`) || record.itemStatus}
+          </Tag>
+        ),
+      },
+    ],
+    [t],
+  );
+
+  if (!isOpen) return null;
 
   return (
     <Overlay onClick={onClose}>
@@ -175,51 +287,18 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
               {/* Existing items list */}
               <SectionLabel>{t("additionalItemsExistingLabel")}</SectionLabel>
               {flatItems.length > 0 ? (
-                <TableWrapper>
-                  <LineTable>
-                    <thead>
-                      <tr>
-                        <Th style={{ width: 40 }}>{t("additionalItemsColNo")}</Th>
-                        <Th>{t("additionalItemsColType")}</Th>
-                        <Th>{t("additionalItemsColCode")}</Th>
-                        <Th>{t("additionalItemsColName")}</Th>
-                        <Th style={{ textAlign: "right" }}>{t("additionalItemsColQty")}</Th>
-                        <Th style={{ textAlign: "right" }}>{t("additionalItemsColUnitPrice")}</Th>
-                        <Th style={{ textAlign: "center" }}>{t("additionalItemsColStatus")}</Th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {flatItems.map((item, idx) => (
-                        <Tr key={idx}>
-                          <TdMuted>{idx + 1}</TdMuted>
-                          <Td>
-                            <Tag color={item.type === "SERVICE" ? "blue" : "purple"}>
-                              {item.type === "SERVICE"
-                                ? t("additionalItemsTypeService")
-                                : t("additionalItemsTypePart")}
-                            </Tag>
-                          </Td>
-                          <TdMuted style={{ textAlign: "left" }}>
-                            {item.itemCode}
-                          </TdMuted>
-                          <Td>
-                            <div>{item.itemName}</div>
-                            {item.notes && (
-                              <NoteText>{item.notes}</NoteText>
-                            )}
-                          </Td>
-                          <TdRight>{item.quantity}</TdRight>
-                          <TdRight>{formatCurrency(item.unitPrice)}</TdRight>
-                          <Td style={{ textAlign: "center" }}>
-                            <Tag color={ITEM_STATUS_COLOR[item.itemStatus] ?? "default"}>
-                              {t(`additionalItemsStatus_${item.itemStatus}`) || item.itemStatus}
-                            </Tag>
-                          </Td>
-                        </Tr>
-                      ))}
-                    </tbody>
-                  </LineTable>
-                </TableWrapper>
+                <TableCard>
+                  <AntTable<FlatItemRow>
+                    columns={additionalItemsColumns}
+                    dataSource={flatItems}
+                    rowKey={(record, index) =>
+                      `${record.type}-${record.itemCode}-${index}`
+                    }
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: "max-content" }}
+                  />
+                </TableCard>
               ) : (
                 <EmptyText>{t("additionalItemsEmpty")}</EmptyText>
               )}
@@ -242,26 +321,35 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
                           onChange={(val) =>
                             updateRow(setServiceRows, idx, { productId: val })
                           }
-                          filterOption={(input, opt) =>
-                            (opt?.label as string ?? "")
+                          filterOption={(input, opt) => {
+                            const id = opt?.value as number | undefined;
+                            const s = serviceOptions.find((x) => x.id === id);
+                            if (!s) return false;
+                            return `[${s.code}] ${s.name}`
                               .toLowerCase()
-                              .includes(input.toLowerCase())
-                          }
+                              .includes(input.toLowerCase());
+                          }}
                           options={serviceOptions.map((s) => ({
                             value: s.id,
-                            label: `[${s.code}] ${s.name}`,
+                            label: (
+                              <span style={{ color: "#111827" }}>{`[${s.code}] ${s.name}`}</span>
+                            ),
                           }))}
                         />
                       </ConfigProvider>
-                      <QtyInput
-                        type="number"
+                      <QtyInputNumber
+                        min={1}
+                        step={1}
+                        precision={0}
                         placeholder={t("additionalItemsQtyPlaceholder")}
-                        value={row.quantity}
-                        min={0.01}
-                        step={0.01}
-                        onChange={(e) =>
+                        value={row.quantity ?? null}
+                        controls
+                        onChange={(val) =>
                           updateRow(setServiceRows, idx, {
-                            quantity: parseFloat(e.target.value) || 1,
+                            quantity:
+                              val != null && !Number.isNaN(Number(val))
+                                ? Math.max(1, Math.floor(Number(val)))
+                                : null,
                           })
                         }
                       />
@@ -306,26 +394,35 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose }: Props)
                           onChange={(val) =>
                             updateRow(setPartRows, idx, { productId: val })
                           }
-                          filterOption={(input, opt) =>
-                            (opt?.label as string ?? "")
+                          filterOption={(input, opt) => {
+                            const id = opt?.value as number | undefined;
+                            const p = partOptions.find((x) => x.id === id);
+                            if (!p) return false;
+                            return `[${p.code}] ${p.name}`
                               .toLowerCase()
-                              .includes(input.toLowerCase())
-                          }
+                              .includes(input.toLowerCase());
+                          }}
                           options={partOptions.map((p) => ({
                             value: p.id,
-                            label: `[${p.code}] ${p.name}`,
+                            label: (
+                              <span style={{ color: "#111827" }}>{`[${p.code}] ${p.name}`}</span>
+                            ),
                           }))}
                         />
                       </ConfigProvider>
-                      <QtyInput
-                        type="number"
-                        placeholder={t("additionalItemsQtyPlaceholder")}
-                        value={row.quantity}
+                      <QtyInputNumber
                         min={1}
                         step={1}
-                        onChange={(e) =>
+                        precision={0}
+                        placeholder={t("additionalItemsQtyPlaceholder")}
+                        value={row.quantity ?? null}
+                        controls
+                        onChange={(val) =>
                           updateRow(setPartRows, idx, {
-                            quantity: parseInt(e.target.value) || 1,
+                            quantity:
+                              val != null && !Number.isNaN(Number(val))
+                                ? Math.max(1, Math.floor(Number(val)))
+                                : null,
                           })
                         }
                       />
@@ -456,51 +553,32 @@ const SectionLabel = styled.h3`
   border-bottom: 1px solid #f3f4f6;
 `;
 
-const TableWrapper = styled.div`
-  overflow-x: auto;
+const TableCard = styled.div`
+  background: #fff;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-`;
+  overflow: hidden;
+  padding: 0 8px;
 
-const LineTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-`;
-
-const Th = styled.th`
-  padding: 9px 12px;
-  text-align: left;
-  font-weight: 600;
-  color: #374151;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-  white-space: nowrap;
-`;
-
-const Tr = styled.tr`
-  &:not(:last-child) {
-    border-bottom: 1px solid #f3f4f6;
+  .ant-table {
+    color: #374151;
   }
-  &:hover {
-    background: #f9fafb;
+  .ant-table-thead > tr > th,
+  .ant-table-thead > tr > td {
+    color: #374151 !important;
+    background: #f3f4f6 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #374151 !important;
+  }
+  .ant-table-tbody > tr:hover > td {
+    background: #f9fafb !important;
   }
 `;
 
-const Td = styled.td`
-  padding: 9px 12px;
-  color: #374151;
-`;
-
-const TdMuted = styled(Td)`
+const CodeCell = styled.span`
   color: #9ca3af;
   font-size: 12px;
-  text-align: center;
-`;
-
-const TdRight = styled(Td)`
-  text-align: right;
-  white-space: nowrap;
 `;
 
 const NoteText = styled.div`
@@ -522,16 +600,36 @@ const FormRow = styled.div`
   align-items: center;
 `;
 
-const QtyInput = styled.input`
-  width: 80px;
-  padding: 7px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #111827;
-  outline: none;
-  &:focus {
+const QtyInputNumber = styled(InputNumber)`
+  width: 112px !important;
+  flex-shrink: 0;
+
+  && .ant-input-number-input-wrap input {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    font-size: 13px;
+  }
+
+  && .ant-input-number-handler-wrap {
+    border-inline-start-color: #d1d5db;
+  }
+
+  && .ant-input-number-handler {
+    color: #374151;
+  }
+
+  && .ant-input-number-handler:hover {
+    color: #111827;
+  }
+
+  &&.ant-input-number-outlined {
+    border-color: #d1d5db;
+    border-radius: 6px;
+  }
+
+  &&.ant-input-number-focused.ant-input-number-outlined {
     border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
   }
 `;
 

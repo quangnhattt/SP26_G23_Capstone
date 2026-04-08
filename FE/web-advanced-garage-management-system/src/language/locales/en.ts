@@ -1674,7 +1674,9 @@ export default {
   additionalItemsSelectService: "Select service...",
   additionalItemsNewPartsLabel: "Propose New Parts",
   additionalItemsSelectPart: "Select part...",
-  additionalItemsQtyPlaceholder: "Qty",
+  additionalItemsQtyPlaceholder: "0",
+  additionalItemsQtyInvalid:
+    "Please enter a quantity of at least 1 for each row where a service or part is selected.",
   additionalItemsNotePlaceholder: "Note",
   additionalItemsAddRow: "Add Row",
   additionalItemsClose: "Close",

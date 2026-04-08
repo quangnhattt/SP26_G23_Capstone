@@ -1659,7 +1659,9 @@ export default {
   additionalItemsSelectService: "Chọn dịch vụ...",
   additionalItemsNewPartsLabel: "Đề xuất phụ tùng mới",
   additionalItemsSelectPart: "Chọn phụ tùng...",
-  additionalItemsQtyPlaceholder: "SL",
+  additionalItemsQtyPlaceholder: "0",
+  additionalItemsQtyInvalid:
+    "Vui lòng nhập số lượng tối thiểu 1 cho các dòng đã chọn dịch vụ hoặc phụ tùng.",
   additionalItemsNotePlaceholder: "Ghi chú",
   additionalItemsAddRow: "Thêm dòng",
   additionalItemsClose: "Đóng",
