@@ -650,6 +650,13 @@ public class InventoryRepository : IInventoryRepository
                     ProductName   = d.Product != null ? d.Product.Name : "N/A",
                     Quantity      = d.Quantity,
                     UnitPrice     = d.UnitPrice,
+                    InventoryStatus = to.RelatedMaintenanceID.HasValue
+                        ? _db.ServicePartDetails
+                            .Where(sp => sp.MaintenanceID == to.RelatedMaintenanceID.Value && sp.ProductID == d.ProductID)
+                            .OrderByDescending(sp => sp.ServicePartDetailID)
+                            .Select(sp => sp.InventoryStatus)
+                            .FirstOrDefault()
+                        : null,
                     Notes         = d.Notes
                 }).ToList()
             })
@@ -734,6 +741,13 @@ public class InventoryRepository : IInventoryRepository
                     ProductName   = d.Product != null ? d.Product.Name : "N/A",
                     Quantity      = d.Quantity,
                     UnitPrice     = d.UnitPrice,
+                    InventoryStatus = to.RelatedMaintenanceID.HasValue
+                        ? _db.ServicePartDetails
+                            .Where(sp => sp.MaintenanceID == to.RelatedMaintenanceID.Value && sp.ProductID == d.ProductID)
+                            .OrderByDescending(sp => sp.ServicePartDetailID)
+                            .Select(sp => sp.InventoryStatus)
+                            .FirstOrDefault()
+                        : null,
                     Notes         = d.Notes
                 }).ToList()
             })

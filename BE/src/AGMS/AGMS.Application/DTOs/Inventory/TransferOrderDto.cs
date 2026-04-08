@@ -75,6 +75,7 @@ namespace AGMS.Application.DTOs.Inventory
         public decimal Quantity { get; set; }
         public decimal? UnitPrice { get; set; }
         public decimal? TotalLineValue => UnitPrice.HasValue ? Quantity * UnitPrice.Value : null;
+    public string? InventoryStatus { get; set; }
         public string? Notes { get; set; }
     }
 
