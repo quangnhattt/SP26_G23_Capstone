@@ -421,26 +421,9 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         }
 
         maintenance.TotalAmount += extraAmount;
-        // Lưu trước để Database cập nhật trạng thái ItemStatus mới, AnyAsync bên dưới mới chính xác.
+        // Chỉ lưu kết quả approve/reject và cộng thêm tiền.
+        // Không tự chuyển trạng thái; phiếu giữ nguyên QUOTED để xử lý ở bước tiếp theo.
         await _db.SaveChangesAsync(ct);
-
-        var stillHasPendingItems =
-            await _db.ServiceDetails.AnyAsync(sd =>
-                sd.MaintenanceID == maintenanceId &&
-                sd.IsAdditional &&
-                sd.ItemStatus == "PENDING", ct)
-            ||
-            await _db.ServicePartDetails.AnyAsync(spd =>
-                spd.MaintenanceID == maintenanceId &&
-                spd.IsAdditional &&
-                spd.ItemStatus == "PENDING", ct);
-
-        // Chỉ tiếp tục (IN_PROGRESS) khi tất cả hạng mục đề xuất bổ sung đã được xử lý xong.
-        if (!stillHasPendingItems)
-        {
-            maintenance.Status = "IN_PROGRESS";
-            await _db.SaveChangesAsync(ct);
-        }
     }
     private static decimal CalculateAdditionalItemUnitPrice(Product product)
     {
