@@ -72,5 +72,22 @@ namespace AGMS.Infrastructure.Services
         {
             await _inventoryRepo.RebuildInventoryBalancesAsync(ct);
         }
+
+        // ============================================================
+        // API 1: Kỹ thuật viên xem danh sách phiếu xuất kho của mình
+        // ============================================================
+        public async Task<List<MyTransferOrderDto>> GetMyTransferOrdersAsync(int technicianUserId, CancellationToken ct)
+        {
+            return await _inventoryRepo.GetMyTransferOrdersAsync(technicianUserId, ct);
+        }
+
+        // ============================================================
+        // API 2: Admin/SA xem toàn bộ Transfer Order kèm chi tiết
+        // ============================================================
+        public async Task<PaginatedResult<TransferOrderWithDetailsDto>> GetAllTransferOrdersWithDetailsAsync(
+            TransferOrderFilterDto filter, CancellationToken ct)
+        {
+            return await _inventoryRepo.GetAllTransferOrdersWithDetailsAsync(filter, ct);
+        }
     }
 }
