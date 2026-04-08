@@ -504,4 +504,39 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         await _db.SaveChangesAsync(ct);
         return true;
     }
+
+    public async Task<PartsExportListDto?> GetPartsToExportAsync(int maintenanceId, CancellationToken ct = default)
+    {
+        var maintenance = await _db.CarMaintenances
+            .AsNoTracking()
+            .Include(m => m.Car).ThenInclude(c => c.Owner)
+            .Include(m => m.ServicePartDetails).ThenInclude(spd => spd.Product).ThenInclude(p => p.Unit)
+            .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+
+        if (maintenance == null) return null;
+
+        var exportList = new PartsExportListDto
+        {
+            MaintenanceID = maintenanceId,
+            CustomerName = maintenance.Car.Owner.FullName,
+            LicensePlate = maintenance.Car.LicensePlate ?? string.Empty,
+            Model = maintenance.Car.Model ?? string.Empty,
+            Items = maintenance.ServicePartDetails
+                .Where(spd => spd.ItemStatus == "APPROVED" && spd.InventoryStatus == "PENDING")
+                .Select(spd => new PartsExportItemDto
+                {
+                    ProductID = spd.ProductID,
+                    ProductCode = spd.Product.Code,
+                    ProductName = spd.Product.Name,
+                    Quantity = spd.Quantity,
+                    UnitName = spd.Product.Unit?.Name ?? "Cái",
+                    ItemStatus = spd.ItemStatus,
+                    InventoryStatus = spd.InventoryStatus,
+                    Notes = spd.Notes,
+                    FromPackage = spd.FromPackage
+                }).ToList()
+        };
+
+        return exportList;
+    }
 }

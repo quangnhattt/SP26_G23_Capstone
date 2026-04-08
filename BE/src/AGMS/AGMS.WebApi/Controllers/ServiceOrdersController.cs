@@ -199,5 +199,16 @@ public class ServiceOrdersController : ControllerBase
         }
     }
 
+    [HttpGet("{id:int}/parts-export")]
+    [ProducesResponseType(typeof(PartsExportListDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPartsExport(int id, CancellationToken ct)
+    {
+        var result = await _carMaintenanceService.GetPartsToExportAsync(id, ct);
+        if (result == null)
+            return NotFound(new { message = $"Không tìm thấy phiếu bảo dưỡng với ID = {id}." });
+
+        return Ok(result);
+    }
 }
 
