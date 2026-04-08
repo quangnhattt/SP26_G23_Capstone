@@ -482,6 +482,9 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         if (!string.Equals(maintenance.Status, "WAITING", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Chỉ có thể bắt đầu chẩn đoán cho xe đang ở trạng thái 'WAITING'.");
 
+        if (!maintenance.AssignedTechnicianID.HasValue)
+            throw new InvalidOperationException("Đơn này chưa có kĩ thuật viên không thể chuyển trạng thái.");
+
         var now = DateTime.UtcNow;
         var oldStatus = maintenance.Status;
 
