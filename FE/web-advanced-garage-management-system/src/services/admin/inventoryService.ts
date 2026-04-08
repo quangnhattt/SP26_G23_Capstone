@@ -194,6 +194,10 @@ export const getTransferOrderHistory = async (
   return data;
 };
 
+export const issueTransferOrder = async (transferOrderId: number): Promise<void> => {
+  await AxiosClient.post(`/api/Inventory/issue/${transferOrderId}`);
+};
+
 export const inventoryService = {
   getInventoryTransactions,
   importInventory,
@@ -202,4 +206,5 @@ export const inventoryService = {
   rebuildInventoryBalances,
   getMyTransferOrders,
   getTransferOrderHistory,
+  issueTransferOrder,
 };

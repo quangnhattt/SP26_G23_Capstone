@@ -1806,6 +1806,7 @@ export default {
   orderAssignedColDocumentDate: "Document Date",
   orderAssignedColNote: "Note",
   orderAssignedUnit: "orders",
+  orderAssignedStatus_DRAFT: "Draft",
   orderAssignedStatus_PENDING: "Pending",
   orderAssignedStatus_APPROVED: "Approved",
   orderAssignedStatus_REJECTED: "Rejected",
@@ -1817,6 +1818,13 @@ export default {
   orderAssignedMaintenanceStatus_IN_PROGRESS: "In Progress",
   orderAssignedMaintenanceStatus_COMPLETED: "Completed",
   orderAssignedMaintenanceStatus_CANCELLED: "Cancelled",
+  orderAssignedColAction: "Action",
+  orderAssignedIssueBtn: "Issue",
+  orderAssignedIssued: "Issued",
+  orderAssignedIssueConfirmTitle: "Confirm warehouse issue",
+  orderAssignedIssueConfirmDesc: "Are you sure you want to issue this transfer order?",
+  orderAssignedIssueSuccess: "Warehouse issued successfully!",
+  orderAssignedIssueError: "Failed to issue warehouse",
 
   // ── History Transfer Order Manager ────────────────────────────────────────
   historyTransferOrderTitle: "Transfer Order History",

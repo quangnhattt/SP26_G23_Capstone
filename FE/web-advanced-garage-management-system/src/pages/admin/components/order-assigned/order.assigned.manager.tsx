@@ -2,15 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { createGlobalStyle } from "styled-components";
 import { HiSearch } from "react-icons/hi";
-import { ConfigProvider, Table, Tag, Select as AntSelect } from "antd";
+import { Button, ConfigProvider, Modal, Table, Tag, Select as AntSelect } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   inventoryService,
   type ITransferOrder,
 } from "@/services/admin/inventoryService";
 import { toast } from "react-toastify";
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const formatDate = (iso: string | null) => {
   if (!iso) return "—";
@@ -28,7 +26,7 @@ const formatDate = (iso: string | null) => {
 const PAGE_SIZE = 20;
 
 const STATUS_COLOR: Record<string, string> = {
-  PENDING: "default",
+  DRAFT: "default",
   APPROVED: "blue",
   REJECTED: "red",
   COMPLETED: "green",
@@ -44,8 +42,6 @@ const MAINTENANCE_STATUS_COLOR: Record<string, string> = {
   CANCELLED: "red",
 };
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
 const OrderAssignedManager = () => {
   const { t } = useTranslation();
   const [items, setItems] = useState<ITransferOrder[]>([]);
@@ -54,6 +50,24 @@ const OrderAssignedManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [issuingId, setIssuingId] = useState<number | null>(null);
+  const [issueModalRecord, setIssueModalRecord] = useState<ITransferOrder | null>(null);
+
+  const handleIssue = async () => {
+    if (!issueModalRecord) return;
+    try {
+      setIssuingId(issueModalRecord.transferOrderID);
+      await inventoryService.issueTransferOrder(issueModalRecord.transferOrderID);
+      toast.success(t("orderAssignedIssueSuccess"));
+      setIssueModalRecord(null);
+      fetchOrders();
+    } catch {
+      toast.error(t("orderAssignedIssueError"));
+    } finally {
+      setIssuingId(null);
+    }
+  };
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -180,6 +194,32 @@ const OrderAssignedManager = () => {
       ellipsis: true,
       render: (note: string) => <NoteText>{note || "—"}</NoteText>,
     },
+    {
+      title: t("orderAssignedColAction"),
+      key: "action",
+      width: 120,
+      align: "center",
+      render: (_: unknown, record: ITransferOrder) => {
+        if (record.status === "APPROVED") {
+          return (
+            <Tag color="blue">{t("orderAssignedIssued")}</Tag>
+          );
+        }
+        if (record.status === "DRAFT") {
+          return (
+            <Button
+              type="primary"
+              size="small"
+              loading={issuingId === record.transferOrderID}
+              onClick={() => setIssueModalRecord(record)}
+            >
+              {t("orderAssignedIssueBtn")}
+            </Button>
+          );
+        }
+        return null;
+      },
+    },
   ];
 
   return (
@@ -224,8 +264,8 @@ const OrderAssignedManager = () => {
             onChange={handleStatusChange}
             options={[
               {
-                value: "PENDING",
-                label: <span style={{ color: "#000" }}>{t("orderAssignedStatus_PENDING")}</span>,
+                value: "DRAFT",
+                label: <span style={{ color: "#000" }}>{t("orderAssignedStatus_DRAFT")}</span>,
               },
               {
                 value: "APPROVED",
@@ -266,6 +306,24 @@ const OrderAssignedManager = () => {
           }}
         />
       </TableCard>
+
+      <Modal
+        open={!!issueModalRecord}
+        title={t("orderAssignedIssueConfirmTitle")}
+        onOk={handleIssue}
+        onCancel={() => setIssueModalRecord(null)}
+        okText={t("orderAssignedIssueBtn")}
+        cancelText={t("no")}
+        confirmLoading={issuingId !== null}
+        centered
+      >
+        <p>{t("orderAssignedIssueConfirmDesc")}</p>
+        {issueModalRecord && (
+          <p style={{ color: "#6b7280", fontSize: 13 }}>
+            #{issueModalRecord.transferOrderID} — {issueModalRecord.carBrand} {issueModalRecord.carModel} ({issueModalRecord.carLicensePlate})
+          </p>
+        )}
+      </Modal>
     </Container>
   );
 };

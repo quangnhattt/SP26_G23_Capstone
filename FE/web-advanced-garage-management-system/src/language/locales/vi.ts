@@ -1792,6 +1792,7 @@ export default {
   orderAssignedColDocumentDate: "Ngày chứng từ",
   orderAssignedColNote: "Ghi chú",
   orderAssignedUnit: "phiếu",
+  orderAssignedStatus_DRAFT: "Bản nháp",
   orderAssignedStatus_PENDING: "Chờ duyệt",
   orderAssignedStatus_APPROVED: "Đã duyệt",
   orderAssignedStatus_REJECTED: "Từ chối",
@@ -1803,6 +1804,13 @@ export default {
   orderAssignedMaintenanceStatus_IN_PROGRESS: "Đang thực hiện",
   orderAssignedMaintenanceStatus_COMPLETED: "Hoàn thành",
   orderAssignedMaintenanceStatus_CANCELLED: "Đã hủy",
+  orderAssignedColAction: "Hành động",
+  orderAssignedIssueBtn: "Xuất kho",
+  orderAssignedIssued: "Đã xuất kho",
+  orderAssignedIssueConfirmTitle: "Xác nhận xuất kho",
+  orderAssignedIssueConfirmDesc: "Bạn có chắc chắn muốn xuất kho phiếu này không?",
+  orderAssignedIssueSuccess: "Xuất kho thành công!",
+  orderAssignedIssueError: "Xuất kho thất bại",
 
   // ── History Transfer Order Manager ────────────────────────────────────────
   historyTransferOrderTitle: "Lịch sử phiếu chuyển kho",
