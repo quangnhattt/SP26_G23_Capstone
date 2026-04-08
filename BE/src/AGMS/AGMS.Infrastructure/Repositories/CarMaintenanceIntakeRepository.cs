@@ -560,8 +560,8 @@ namespace AGMS.Infrastructure.Repositories
                 .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
             if (maintenance == null)
                 return null;
-            if (!string.Equals(maintenance.Status, "WAITING", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Only intakes with status 'WAITING' can be updated.");
+            if (!string.Equals(maintenance.Status, "RECEIVED", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Only intakes with status 'RECEIVED' can be updated.");
             if (request.Maintenance.AssignedTechnicianId.HasValue)
             {
                 var techExists = await _db.Users.AnyAsync(u => u.UserID == request.Maintenance.AssignedTechnicianId.Value && u.RoleID == 3 && u.IsActive, ct);
