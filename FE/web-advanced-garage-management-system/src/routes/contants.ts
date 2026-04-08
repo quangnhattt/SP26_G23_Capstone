@@ -29,6 +29,6 @@ export const ROUTER_PAGE = {
     membershipRanks: "/admin/membership-ranks-management",
     maintenancePackage: "/admin/maintenance-package-management",
     assigned: "/admin/order-assigned-management",
-    transfer_history: "/admin/history-transfer-order-management",
+    history: "/admin/history-transfer-order-management",
   },
 };

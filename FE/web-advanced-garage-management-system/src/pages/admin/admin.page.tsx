@@ -66,7 +66,7 @@ const AdminDashboard = () => {
     if (lowerName.includes("appointment")) return <HiChartBar size={18} />;
     if (lowerName.includes("category")) return <HiViewGrid size={18} />;
     if (lowerName.includes("assigned")) return <HiUserGroup size={18} />;
-    if (lowerName.includes("transfer_history")) return <HiArchive size={18} />;
+    if (lowerName.includes("history")) return <HiArchive size={18} />;
     if (lowerName.includes("order")) return <HiDocumentText size={18} />;
     if (lowerName.includes("service")) return <HiSupport size={18} />;
     if (lowerName.includes("supplier")) return <HiTruck size={18} />;
@@ -87,7 +87,7 @@ const AdminDashboard = () => {
       return "/admin/appoinment-managerment";
     if (lowerName.includes("category")) return "/admin/category";
     if (lowerName.includes("assigned")) return "/admin/order-assigned-management";
-    if (lowerName.includes("transfer_history")) return "/admin/history-transfer-order-management";
+    if (lowerName.includes("history")) return "/admin/history-transfer-order-management";
     if (lowerName.includes("order")) return "/admin/service-order-management";
     if (lowerName.includes("service")) return "/admin/service";
     if (lowerName.includes("supplier")) return "/admin/supplier";
