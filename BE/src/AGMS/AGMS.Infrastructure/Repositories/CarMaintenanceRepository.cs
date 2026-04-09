@@ -441,9 +441,33 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         }
 
         maintenance.TotalAmount += extraAmount;
-        // Chỉ lưu kết quả approve/reject và cộng thêm tiền.
-        // Không tự chuyển trạng thái; phiếu giữ nguyên QUOTED để xử lý ở bước tiếp theo.
+        
+        // Lưu kết quả approve/reject và cộng thêm tiền trước
         await _db.SaveChangesAsync(ct);
+
+        // KIỂM TRA PHỤ TRỢ: Xem thử sau cú duyệt vừa rồi, cái bill này còn cái nào dán nhãn PENDING không?
+        var hasPendingService = await _db.ServiceDetails
+            .AnyAsync(sd => sd.MaintenanceID == maintenanceId && sd.ItemStatus == "PENDING", ct);
+        var hasPendingPart = await _db.ServicePartDetails
+            .AnyAsync(spd => spd.MaintenanceID == maintenanceId && spd.ItemStatus == "PENDING", ct);
+
+        // Nếu sạch bóng bóng PENDING (Khách đã confirm HẾT SẠCH) -> Tự động nhảy số sang IN_PROGRESS luôn!
+        if (!hasPendingService && !hasPendingPart)
+        {
+            maintenance.Status = "IN_PROGRESS";
+            
+            _db.MaintenanceStatusLogs.Add(new MaintenanceStatusLog
+            {
+                MaintenanceID = maintenanceId,
+                OldStatus = "QUOTED",
+                NewStatus = "IN_PROGRESS",
+                // Vì API này đang chưa có claim UserId nên có thể để null hoặc ko bắt buộc
+                ChangedDate = DateTime.UtcNow,
+                Note = "Hệ thống tự động chuyển đổi do tất cả phát sinh đã được Khách Hàng phản hồi xong."
+            });
+
+            await _db.SaveChangesAsync(ct);
+        }
     }
     private static decimal CalculateAdditionalItemUnitPrice(Product product)
     {
