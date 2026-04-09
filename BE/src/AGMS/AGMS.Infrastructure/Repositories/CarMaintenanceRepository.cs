@@ -534,6 +534,58 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         return true;
     }
 
+    public async Task<bool> FinishRepairOrderAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default)
+    {
+        var maintenance = await _db.CarMaintenances
+            .Include(m => m.ServicePartDetails) // Dùng để kiểm tra tồn kho vật tư
+            .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+            
+        if (maintenance == null) return false;
+
+        // Bắt buộc phải đang sửa
+        if (maintenance.Status.ToUpperInvariant() != "IN_PROGRESS")
+            throw new InvalidOperationException("Chỉ có thể báo cáo hoàn tất khi xe đang ở trạng thái sửa chữa (IN_PROGRESS).");
+
+        // 1. Chốt chặn: Kiểm tra đúng là thợ được giao không
+        var user = await _db.Users.FindAsync(new object[] { updatedByUserId }, ct);
+        if (user != null && user.RoleID == 3) // Nếu người gọi API đích thị là Kỹ thuật viên (Role 3)
+        {
+            if (maintenance.AssignedTechnicianID != updatedByUserId)
+            {
+                throw new InvalidOperationException("Thao tác bị từ chối: Chỉ kỹ thuật viên được phân công cho xe này mới có quyền bấm Hoàn tất.");
+            }
+        }
+
+        // 2. Chốt chặn: Phụ tùng (nếu có được duyệt) bắt buộc phải xuất ra khỏi kho
+        var unissuedApprovedParts = maintenance.ServicePartDetails
+            .Where(spd => spd.ItemStatus == "APPROVED" && spd.InventoryStatus != "ISSUED")
+            .ToList();
+
+        if (unissuedApprovedParts.Any())
+        {
+            // Báo lỗi chặn lại
+            throw new InvalidOperationException("Không thể hoàn tất sửa chữa: Phụ tùng đã được duyệt nhưng chưa xuất kho. Vui lòng liên hệ SA/Kho.");
+        }
+
+        var now = DateTime.UtcNow;
+        var oldStatus = maintenance.Status;
+        
+        maintenance.Status = "COMPLETED";
+
+        _db.MaintenanceStatusLogs.Add(new MaintenanceStatusLog
+        {
+            MaintenanceID = maintenanceId,
+            OldStatus = oldStatus,
+            NewStatus = "COMPLETED",
+            ChangedBy = updatedByUserId,
+            ChangedDate = now,
+            Note = "Kỹ thuật viên xác nhận hoàn tất sửa chữa."
+        });
+
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<PartsExportListDto?> GetPartsToExportAsync(int maintenanceId, CancellationToken ct = default)
     {
         var maintenance = await _db.CarMaintenances

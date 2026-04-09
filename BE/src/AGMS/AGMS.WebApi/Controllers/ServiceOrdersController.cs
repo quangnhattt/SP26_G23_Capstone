@@ -234,5 +234,30 @@ public class ServiceOrdersController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPatch("{id:int}/finish-repair")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> FinishRepair(int id, CancellationToken ct)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var updatedByUserId))
+            return Unauthorized(new { message = "Invalid or missing user id claim." });
+
+        try
+        {
+            var success = await _carMaintenanceService.FinishRepairOrderAsync(id, updatedByUserId, ct);
+            if (!success)
+                return NotFound(new { message = $"Không tìm thấy phiếu bảo dưỡng với ID = {id}." });
+
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }
 
