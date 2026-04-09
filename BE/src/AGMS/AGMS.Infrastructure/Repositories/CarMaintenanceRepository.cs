@@ -494,10 +494,25 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
         if (maintenance == null) return false;
 
-        // Chỉ cho phép xác nhận khi đang ở trạng thái chẩn đoán
-        if (!string.Equals(maintenance.Status, "IN_DIAGNOSIS", StringComparison.OrdinalIgnoreCase))
+        // Cho phép xác nhận từ IN_DIAGNOSIS (không phát sinh) hoặc QUOTED (có phát sinh đã duyệt)
+        var currentStatus = maintenance.Status.ToUpperInvariant();
+        if (currentStatus != "IN_DIAGNOSIS" && currentStatus != "QUOTED")
         {
-            throw new InvalidOperationException("Chỉ có thể xác nhận sửa chữa khi đơn đang ở trạng thái chẩn đoán.");
+            throw new InvalidOperationException("Chỉ có thể xác nhận sửa chữa khi đơn đang ở trạng thái chẩn đoán (IN_DIAGNOSIS) hoặc đã báo giá (QUOTED).");
+        }
+
+        // Nếu là QUOTED, phải đảm bảo tất cả hạng mục phát sinh đã được xử lý (APPROVED hoặc REJECTED)
+        if (currentStatus == "QUOTED")
+        {
+            var hasPendingService = await _db.ServiceDetails
+                .AnyAsync(sd => sd.MaintenanceID == maintenanceId && sd.ItemStatus == "PENDING", ct);
+            var hasPendingPart = await _db.ServicePartDetails
+                .AnyAsync(spd => spd.MaintenanceID == maintenanceId && spd.ItemStatus == "PENDING", ct);
+
+            if (hasPendingService || hasPendingPart)
+            {
+                throw new InvalidOperationException("Khách hàng chưa duyệt điều kiện phát sinh.");
+            }
         }
 
         var now = DateTime.UtcNow;
