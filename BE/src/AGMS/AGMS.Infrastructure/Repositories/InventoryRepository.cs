@@ -357,12 +357,17 @@ public class InventoryRepository : IInventoryRepository
         int createdByUserId,
         CancellationToken ct)
     {
-        var maintenanceExists = await _db.CarMaintenances
+        var maintenanceStatus = await _db.CarMaintenances
             .AsNoTracking()
-            .AnyAsync(m => m.MaintenanceID == maintenanceId, ct);
+            .Where(m => m.MaintenanceID == maintenanceId)
+            .Select(m => m.Status)
+            .FirstOrDefaultAsync(ct);
 
-        if (!maintenanceExists)
+        if (maintenanceStatus == null)
             throw new KeyNotFoundException($"Không tìm thấy service order với ID = {maintenanceId}.");
+
+        if (maintenanceStatus.ToUpperInvariant() != "IN_PROGRESS")
+            throw new InvalidOperationException("Chỉ có thể tạo phiếu xuất phụ tùng dể sửa chữa khi đơn ở trạng thái Đang tiến hành (IN_PROGRESS).");
         var hasPendingServiceItems = await _db.ServiceDetails.AnyAsync(sd => sd.MaintenanceID == maintenanceId && sd.ItemStatus == "PENDING", ct);
         var hasPendingPartItems = await _db.ServicePartDetails.AnyAsync(spd => spd.MaintenanceID == maintenanceId && spd.ItemStatus == "PENDING", ct);
         if (hasPendingServiceItems || hasPendingPartItems)
@@ -414,13 +419,6 @@ public class InventoryRepository : IInventoryRepository
 
                 part.ReservedTransferOrderID = transferOrder.TransferOrderID;
                 part.InventoryStatus = "RESERVED";
-            }
-
-            var maintenance = await _db.CarMaintenances
-                .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
-            if (maintenance != null && !string.Equals(maintenance.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase))
-            {
-                maintenance.Status = "IN_PROGRESS";
             }
 
             await _db.SaveChangesAsync(ct);
