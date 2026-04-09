@@ -10,8 +10,10 @@ import {
   HiDocumentText,
   HiPlay,
   HiArchive,
+  HiCheckCircle,
+  HiArrowNarrowRight,
 } from "react-icons/hi";
-import { ConfigProvider, Table, Tag, Select as AntSelect, Tooltip } from "antd";
+import { Checkbox, ConfigProvider, Modal, Table, Tag, Select as AntSelect, Tooltip } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   serviceOrderService,
@@ -43,10 +45,13 @@ const PAGE_SIZE = 20;
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: "default",
+  WAITING: "default",
   IN_DIAGNOSIS: "volcano",
   QUOTED: "gold",
   IN_PROGRESS: "blue",
   COMPLETED: "green",
+  WAITING_FOR_PAYMENT: "purple",
+  CLOSED: "cyan",
   CANCELLED: "red",
 };
 
@@ -81,6 +86,7 @@ const ServiceOrderManager = () => {
   const [respondId, setRespondId] = useState<number | null>(null);
   const [respondOpen, setRespondOpen] = useState(false);
   const [invoiceId, setInvoiceId] = useState<number | null>(null);
+  const [invoiceMode, setInvoiceMode] = useState<"create" | "view">("create");
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [technicians, setTechnicians] = useState<ITechnician[]>([]);
   const [assigningIds, setAssigningIds] = useState<number[]>([]);
@@ -89,7 +95,15 @@ const ServiceOrderManager = () => {
   );
   const [transferringIds, setTransferringIds] = useState<number[]>([]);
   const [transferredIds, setTransferredIds] = useState<number[]>([]);
+  const [confirmingRepairIds, setConfirmingRepairIds] = useState<number[]>([]);
+  const [finishingRepairIds, setFinishingRepairIds] = useState<number[]>([]);
+  const [processingPaymentIds, setProcessingPaymentIds] = useState<number[]>([]);
   const [respondedIds, setRespondedIds] = useState<number[]>([]);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentMaintenanceId, setPaymentMaintenanceId] = useState<number | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | null>(
+    null,
+  );
 
   const fetchOrders = useCallback(
     async (page: number, search?: string, status?: string, type?: string) => {
@@ -112,12 +126,16 @@ const ServiceOrderManager = () => {
         setLoading(false);
       }
     },
-    [],
+    [t],
   );
+
+  const refreshOrders = useCallback(() => {
+    fetchOrders(currentPage, searchTerm || undefined, statusFilter, typeFilter);
+  }, [currentPage, fetchOrders, searchTerm, statusFilter, typeFilter]);
 
   useEffect(() => {
     fetchOrders(currentPage, searchTerm || undefined, statusFilter, typeFilter);
-  }, [currentPage, statusFilter, typeFilter, fetchOrders]);
+  }, [currentPage, statusFilter, typeFilter, searchTerm, fetchOrders]);
 
   useEffect(() => {
     const fetchTechnicians = async () => {
@@ -169,8 +187,9 @@ const ServiceOrderManager = () => {
     setRespondOpen(true);
   };
 
-  const handleOpenInvoice = (id: number) => {
+  const handleOpenInvoice = (id: number, mode: "create" | "view") => {
     setInvoiceId(id);
+    setInvoiceMode(mode);
     setInvoiceOpen(true);
   };
 
@@ -193,7 +212,7 @@ const ServiceOrderManager = () => {
         technicianId,
       });
       toast.success(t("serviceOrderAssignSuccess"));
-      fetchOrders(currentPage, searchTerm || undefined, statusFilter, typeFilter);
+      refreshOrders();
     } catch {
       toast.error(t("serviceOrderAssignError"));
     } finally {
@@ -208,7 +227,7 @@ const ServiceOrderManager = () => {
       await serviceOrderService.transferOrder(maintenanceId);
       setTransferredIds((prev) => [...prev, maintenanceId]);
       toast.success(t("serviceOrderTransferOrderSuccess"));
-      fetchOrders(currentPage, searchTerm || undefined, statusFilter, typeFilter);
+      refreshOrders();
     } catch {
       toast.error(t("serviceOrderTransferOrderError"));
     } finally {
@@ -222,7 +241,7 @@ const ServiceOrderManager = () => {
       setStartingDiagnosisIds((prev) => [...prev, maintenanceId]);
       await serviceOrderService.startDiagnosis(maintenanceId);
       toast.success(t("serviceOrderStartDiagnosisSuccess"));
-      fetchOrders(currentPage, searchTerm || undefined, statusFilter, typeFilter);
+      refreshOrders();
     } catch {
       toast.error(t("serviceOrderStartDiagnosisError"));
     } finally {
@@ -231,6 +250,71 @@ const ServiceOrderManager = () => {
       );
     }
   };
+
+  const handleConfirmRepair = async (maintenanceId: number) => {
+    if (confirmingRepairIds.includes(maintenanceId)) return;
+    try {
+      setConfirmingRepairIds((prev) => [...prev, maintenanceId]);
+      await serviceOrderService.confirmRepair(maintenanceId);
+      toast.success(t("serviceOrderConfirmRepairSuccess"));
+      refreshOrders();
+    } catch {
+      toast.error(t("serviceOrderConfirmRepairError"));
+    } finally {
+      setConfirmingRepairIds((prev) => prev.filter((id) => id !== maintenanceId));
+    }
+  };
+
+  const handleFinishRepair = async (maintenanceId: number) => {
+    if (finishingRepairIds.includes(maintenanceId)) return;
+    try {
+      setFinishingRepairIds((prev) => [...prev, maintenanceId]);
+      await serviceOrderService.finishRepair(maintenanceId);
+      toast.success(t("serviceOrderFinishRepairSuccess"));
+      refreshOrders();
+    } catch {
+      toast.error(t("serviceOrderFinishRepairError"));
+    } finally {
+      setFinishingRepairIds((prev) => prev.filter((id) => id !== maintenanceId));
+    }
+  };
+
+  const handleProcessPayment = async (
+    maintenanceId: number,
+    method: "CASH" | "TRANSFER",
+  ) => {
+    if (processingPaymentIds.includes(maintenanceId)) return;
+
+    try {
+      setProcessingPaymentIds((prev) => [...prev, maintenanceId]);
+      await serviceOrderService.processPayment(maintenanceId, {
+        paymentMethod: method,
+      });
+      toast.success(t("serviceOrderProcessPaymentSuccess"));
+      setPaymentModalOpen(false);
+      setPaymentMaintenanceId(null);
+      setPaymentMethod(null);
+      refreshOrders();
+    } catch {
+      toast.error(t("serviceOrderProcessPaymentError"));
+    } finally {
+      setProcessingPaymentIds((prev) => prev.filter((id) => id !== maintenanceId));
+    }
+  };
+
+  const openPaymentModal = (maintenanceId: number) => {
+    setPaymentMaintenanceId(maintenanceId);
+    setPaymentMethod("CASH");
+    setPaymentModalOpen(true);
+  };
+
+  const transferQrPayload =
+    paymentMaintenanceId !== null
+      ? `AGMS|MAINTENANCE:${paymentMaintenanceId}|METHOD:TRANSFER`
+      : "";
+  const transferQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+    transferQrPayload,
+  )}`;
 
   const columns: TableColumnsType<IServiceOrder> = [
     {
@@ -354,7 +438,7 @@ const ServiceOrderManager = () => {
             </Tooltip>
           )}
 
-          {(record.status === "IN_DIAGNOSIS" || record.status === "QUOTED") && (
+          {isTech && (record.status === "IN_DIAGNOSIS" || record.status === "QUOTED") && (
             <Tooltip title={t("serviceOrderTooltipAdditional")}>
               <ActionBtn
                 $color="orange"
@@ -376,7 +460,19 @@ const ServiceOrderManager = () => {
             </Tooltip>
           )}
 
-          {record.status === "QUOTED" && !isTech && !transferredIds.includes(record.maintenanceId) && (
+          {record.status === "IN_DIAGNOSIS" && isTech && (
+            <Tooltip title={t("serviceOrderTooltipConfirmRepair")}>
+              <ActionBtn
+                $color="green"
+                onClick={() => handleConfirmRepair(record.maintenanceId)}
+                disabled={confirmingRepairIds.includes(record.maintenanceId)}
+              >
+                <HiArrowNarrowRight size={17} />
+              </ActionBtn>
+            </Tooltip>
+          )}
+
+          {record.status === "IN_PROGRESS" && !isTech && !transferredIds.includes(record.maintenanceId) && (
             <Tooltip title={t("serviceOrderTooltipTransferOrder")}>
               <ActionBtn
                 $color="blue"
@@ -388,13 +484,48 @@ const ServiceOrderManager = () => {
             </Tooltip>
           )}
 
-          {record.status === "COMPLETED" && (
+          {record.status === "IN_PROGRESS" && isTech && (
+            <Tooltip title={t("serviceOrderTooltipFinishRepair")}>
+              <ActionBtn
+                $color="green"
+                onClick={() => handleFinishRepair(record.maintenanceId)}
+                disabled={finishingRepairIds.includes(record.maintenanceId)}
+              >
+                <HiCheckCircle size={17} />
+              </ActionBtn>
+            </Tooltip>
+          )}
+
+          {record.status === "COMPLETED" && !isTech && (
+            <Tooltip title={t("serviceOrderTooltipCreateInvoice")}>
+              <ActionBtn
+                $color="purple"
+                onClick={() => handleOpenInvoice(record.maintenanceId, "create")}
+              >
+                <HiDocumentText size={17} />
+              </ActionBtn>
+            </Tooltip>
+          )}
+
+          {(record.status === "WAITING_FOR_PAYMENT" || record.status === "CLOSED") && (
             <Tooltip title={t("serviceOrderTooltipInvoice")}>
               <ActionBtn
                 $color="purple"
-                onClick={() => handleOpenInvoice(record.maintenanceId)}
+                onClick={() => handleOpenInvoice(record.maintenanceId, "view")}
               >
                 <HiDocumentText size={17} />
+              </ActionBtn>
+            </Tooltip>
+          )}
+
+          {record.status === "WAITING_FOR_PAYMENT" && !isTech && (
+            <Tooltip title={t("serviceOrderTooltipProcessPayment")}>
+              <ActionBtn
+                $color="green"
+                onClick={() => openPaymentModal(record.maintenanceId)}
+                disabled={processingPaymentIds.includes(record.maintenanceId)}
+              >
+                <HiCheckCircle size={17} />
               </ActionBtn>
             </Tooltip>
           )}
@@ -449,10 +580,10 @@ const ServiceOrderManager = () => {
             onChange={handleStatusChange}
             options={[
               {
-                value: "PENDING",
+                value: "WAITING",
                 label: (
                   <span style={{ color: "#000" }}>
-                    {t("serviceOrderStatus_PENDING")}
+                    {t("serviceOrderStatus_WAITING")}
                   </span>
                 ),
               },
@@ -485,6 +616,22 @@ const ServiceOrderManager = () => {
                 label: (
                   <span style={{ color: "#000" }}>
                     {t("serviceOrderStatus_COMPLETED")}
+                  </span>
+                ),
+              },
+              {
+                value: "WAITING_FOR_PAYMENT",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderStatus_WAITING_FOR_PAYMENT")}
+                  </span>
+                ),
+              },
+              {
+                value: "CLOSED",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderStatus_CLOSED")}
                   </span>
                 ),
               },
@@ -596,8 +743,65 @@ const ServiceOrderManager = () => {
       <InvoiceModal
         isOpen={invoiceOpen}
         maintenanceId={invoiceId}
+        mode={invoiceMode}
+        onSuccess={refreshOrders}
         onClose={() => setInvoiceOpen(false)}
       />
+
+      <Modal
+        open={paymentModalOpen}
+        title={t("serviceOrderPaymentModalTitle")}
+        onCancel={() => {
+          setPaymentModalOpen(false);
+          setPaymentMaintenanceId(null);
+          setPaymentMethod(null);
+        }}
+        onOk={() => {
+          if (!paymentMaintenanceId || !paymentMethod) return;
+          handleProcessPayment(paymentMaintenanceId, paymentMethod);
+        }}
+        okText={
+          paymentMethod === "TRANSFER"
+            ? t("serviceOrderPaymentConfirmTransfer")
+            : t("serviceOrderPaymentConfirmCash")
+        }
+        cancelText={t("serviceOrderPaymentCancel")}
+        okButtonProps={{
+          disabled: !paymentMethod || paymentMaintenanceId === null,
+          loading:
+            paymentMaintenanceId !== null &&
+            processingPaymentIds.includes(paymentMaintenanceId),
+        }}
+        centered
+      >
+        <PaymentMethodBox>
+          <PaymentLabel>{t("serviceOrderPaymentChooseMethod")}</PaymentLabel>
+          <MethodRow>
+            <Checkbox
+              checked={paymentMethod === "CASH"}
+              onChange={(e) => setPaymentMethod(e.target.checked ? "CASH" : null)}
+            >
+              {t("serviceOrderPaymentMethodCash")}
+            </Checkbox>
+            <Checkbox
+              checked={paymentMethod === "TRANSFER"}
+              onChange={(e) =>
+                setPaymentMethod(e.target.checked ? "TRANSFER" : null)
+              }
+            >
+              {t("serviceOrderPaymentMethodTransfer")}
+            </Checkbox>
+          </MethodRow>
+
+          {paymentMethod === "TRANSFER" && paymentMaintenanceId !== null && (
+            <QrBox>
+              <QrNote>{t("serviceOrderPaymentQrHint")}</QrNote>
+              <img src={transferQrUrl} alt="transfer-qr" width={220} height={220} />
+              <QrPayload>{transferQrPayload}</QrPayload>
+            </QrBox>
+          )}
+        </PaymentMethodBox>
+      </Modal>
     </Container>
   );
 };
@@ -828,4 +1032,46 @@ const ActionGroup = styled.div`
   align-items: center;
   justify-content: center;
   gap: 6px;
+`;
+
+const PaymentMethodBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const PaymentLabel = styled.div`
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+`;
+
+const MethodRow = styled.div`
+  display: flex;
+  gap: 14px;
+`;
+
+const QrBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+`;
+
+const QrNote = styled.div`
+  color: #6b7280;
+  font-size: 13px;
+  text-align: center;
+`;
+
+const QrPayload = styled.code`
+  color: #111827;
+  font-size: 12px;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 6px;
+  word-break: break-all;
 `;

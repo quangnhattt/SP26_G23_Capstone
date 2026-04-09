@@ -9,6 +9,7 @@ export interface IServiceOrder {
   maintenanceType: string;
   status: string;
   technicianName: string;
+  transferOrderId?: number | null;
 }
 
 export interface IServiceOrdersResponse {
@@ -186,6 +187,15 @@ export const createInvoice = async (id: number): Promise<IInvoice> => {
   return data;
 };
 
+/** GET /api/service-orders/{id}/invoice
+ *  Xem hóa đơn đã chốt (status WAITING_FOR_PAYMENT hoặc CLOSED) */
+export const getInvoice = async (id: number): Promise<IInvoice> => {
+  const { data } = await AxiosClient.get<IInvoice>(
+    `/api/service-orders/${id}/invoice`
+  );
+  return data;
+};
+
 // ─── Respond to Additional Items ──────────────────────────────────────────────
 
 export interface IRespondAdditionalItemsPayload {
@@ -223,10 +233,41 @@ export const startDiagnosis = async (id: number): Promise<void> => {
   await AxiosClient.patch(`/api/service-orders/${id}/start-diagnosis`, {});
 };
 
+/** PATCH /api/service-orders/{id}/confirm-repair
+ *  Xác nhận sửa chữa, chuyển đơn sang IN_PROGRESS */
+export const confirmRepair = async (id: number): Promise<void> => {
+  await AxiosClient.patch(`/api/service-orders/${id}/confirm-repair`, {});
+};
+
 /** POST /api/Inventory/service-orders/{id}/transfer-order
  *  Chuyển báo giá sang phiếu xuất kho */
 export const transferOrder = async (id: number): Promise<void> => {
   await AxiosClient.post(`/api/Inventory/service-orders/${id}/transfer-order`);
+};
+
+/** POST /api/Inventory/issue/{transferOrderId}
+ *  Thực xuất kho cho phiếu xuất */
+export const issueTransferOrder = async (transferOrderId: number): Promise<void> => {
+  await AxiosClient.post(`/api/Inventory/issue/${transferOrderId}`);
+};
+
+/** PATCH /api/service-orders/{id}/finish-repair
+ *  Xác nhận sửa chữa hoàn tất, chuyển đơn sang COMPLETED */
+export const finishRepair = async (id: number): Promise<void> => {
+  await AxiosClient.patch(`/api/service-orders/${id}/finish-repair`, {});
+};
+
+export interface IProcessPaymentPayload {
+  paymentMethod: "CASH" | "TRANSFER" | "CARD" | "EWALLET";
+}
+
+/** POST /api/service-orders/{id}/process-payment
+ *  Thực hiện thanh toán và đóng đơn */
+export const processPayment = async (
+  id: number,
+  payload: IProcessPaymentPayload
+): Promise<void> => {
+  await AxiosClient.post(`/api/service-orders/${id}/process-payment`, payload);
 };
 
 export const serviceOrderService = {
@@ -235,8 +276,13 @@ export const serviceOrderService = {
   getAdditionalItems,
   addAdditionalItems,
   createInvoice,
+  getInvoice,
   respondAdditionalItems,
   assignTechnician,
   startDiagnosis,
+  confirmRepair,
   transferOrder,
+  issueTransferOrder,
+  finishRepair,
+  processPayment,
 };

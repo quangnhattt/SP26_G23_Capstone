@@ -234,7 +234,7 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose, onSucces
         ellipsis: true,
         render: (_: unknown, record: FlatItemRow) => (
           <div>
-            <div>{record.itemName}</div>
+            <ItemNameText>{record.itemName}</ItemNameText>
             {record.notes && <NoteText>{record.notes}</NoteText>}
           </div>
         ),
@@ -588,6 +588,10 @@ const TableCard = styled.div`
 const CodeCell = styled.span`
   color: #9ca3af;
   font-size: 12px;
+`;
+
+const ItemNameText = styled.div`
+  color: #111827;
 `;
 
 const NoteText = styled.div`

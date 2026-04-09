@@ -12,6 +12,8 @@ import { toast } from "react-toastify";
 interface Props {
   isOpen: boolean;
   maintenanceId: number | null;
+  mode?: "create" | "view";
+  onSuccess?: () => void;
   onClose: () => void;
 }
 
@@ -33,7 +35,13 @@ const formatDate = (iso: string | null) => {
   });
 };
 
-const InvoiceModal = ({ isOpen, maintenanceId, onClose }: Props) => {
+const InvoiceModal = ({
+  isOpen,
+  maintenanceId,
+  mode = "create",
+  onSuccess,
+  onClose,
+}: Props) => {
   const { t } = useTranslation();
   const [invoice, setInvoice] = useState<IInvoice | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,10 +58,19 @@ const InvoiceModal = ({ isOpen, maintenanceId, onClose }: Props) => {
       }
     });
 
-    serviceOrderService
-      .createInvoice(maintenanceId)
+    const apiCall =
+      mode === "view"
+        ? serviceOrderService.getInvoice(maintenanceId)
+        : serviceOrderService.createInvoice(maintenanceId);
+
+    apiCall
       .then((data) => {
-        if (!cancelled) setInvoice(data);
+        if (!cancelled) {
+          setInvoice(data);
+          if (mode === "create") {
+            onSuccess?.();
+          }
+        }
       })
       .catch(() => {
         if (!cancelled) toast.error(t("invoiceLoadError"));
@@ -64,7 +81,7 @@ const InvoiceModal = ({ isOpen, maintenanceId, onClose }: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [isOpen, maintenanceId, t]);
+  }, [isOpen, maintenanceId, mode, onSuccess, t]);
 
   if (!isOpen) return null;
 

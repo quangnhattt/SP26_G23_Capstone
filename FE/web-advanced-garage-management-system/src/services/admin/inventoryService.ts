@@ -98,12 +98,15 @@ export const rebuildInventoryBalances = async (): Promise<void> => {
 };
 
 export interface ITransferOrderDetail {
+  orderDetailID: number;
   productID: number;
   productCode: string;
   productName: string;
   quantity: number;
-  unitCost: number;
-  note: string;
+  unitPrice: number;
+  totalLineValue: number;
+  inventoryStatus: string;
+  notes: string | null;
 }
 
 export interface ITransferOrder {

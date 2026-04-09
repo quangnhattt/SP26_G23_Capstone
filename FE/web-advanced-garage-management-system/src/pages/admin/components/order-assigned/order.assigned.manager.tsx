@@ -7,6 +7,7 @@ import type { TableColumnsType } from "antd";
 import {
   inventoryService,
   type ITransferOrder,
+  type ITransferOrderDetail,
 } from "@/services/admin/inventoryService";
 import { toast } from "react-toastify";
 
@@ -22,6 +23,12 @@ const formatDate = (iso: string | null) => {
     minute: "2-digit",
   });
 };
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(value);
 
 const PAGE_SIZE = 20;
 
@@ -42,6 +49,13 @@ const MAINTENANCE_STATUS_COLOR: Record<string, string> = {
   CANCELLED: "red",
 };
 
+const INVENTORY_STATUS_COLOR: Record<string, string> = {
+  ISSUED: "green",
+  RESERVED: "blue",
+  PENDING: "gold",
+  CANCELLED: "red",
+};
+
 const OrderAssignedManager = () => {
   const { t } = useTranslation();
   const [items, setItems] = useState<ITransferOrder[]>([]);
@@ -53,6 +67,7 @@ const OrderAssignedManager = () => {
 
   const [issuingId, setIssuingId] = useState<number | null>(null);
   const [issueModalRecord, setIssueModalRecord] = useState<ITransferOrder | null>(null);
+  const [detailModalRecord, setDetailModalRecord] = useState<ITransferOrder | null>(null);
 
   const handleIssue = async () => {
     if (!issueModalRecord) return;
@@ -197,28 +212,99 @@ const OrderAssignedManager = () => {
     {
       title: t("orderAssignedColAction"),
       key: "action",
-      width: 120,
+      width: 220,
       align: "center",
       render: (_: unknown, record: ITransferOrder) => {
-        if (record.status === "APPROVED") {
-          return (
-            <Tag color="blue">{t("orderAssignedIssued")}</Tag>
-          );
-        }
-        if (record.status === "DRAFT") {
-          return (
-            <Button
-              type="primary"
-              size="small"
-              loading={issuingId === record.transferOrderID}
-              onClick={() => setIssueModalRecord(record)}
-            >
-              {t("orderAssignedIssueBtn")}
+        return (
+          <ActionGroup>
+            <Button size="small" onClick={() => setDetailModalRecord(record)}>
+              {t("orderAssignedViewListBtn")}
             </Button>
-          );
-        }
-        return null;
+            {record.status === "APPROVED" ? (
+              <Tag color="blue">{t("orderAssignedIssued")}</Tag>
+            ) : null}
+            {record.status === "DRAFT" ? (
+              <Button
+                type="primary"
+                size="small"
+                loading={issuingId === record.transferOrderID}
+                onClick={() => setIssueModalRecord(record)}
+              >
+                {t("orderAssignedIssueBtn")}
+              </Button>
+            ) : null}
+          </ActionGroup>
+        );
       },
+    },
+  ];
+
+  const detailColumns: TableColumnsType<ITransferOrderDetail> = [
+    {
+      title: t("orderAssignedDetailColNo"),
+      key: "index",
+      width: 60,
+      align: "center",
+      render: (_: unknown, __: ITransferOrderDetail, index: number) => (
+        <BlackText>{index + 1}</BlackText>
+      ),
+    },
+    {
+      title: t("orderAssignedDetailColProductCode"),
+      dataIndex: "productCode",
+      key: "productCode",
+      width: 140,
+      render: (value: string) => <BlackText>{value}</BlackText>,
+    },
+    {
+      title: t("orderAssignedDetailColProductName"),
+      dataIndex: "productName",
+      key: "productName",
+      width: 260,
+      render: (value: string) => <BlackText>{value}</BlackText>,
+    },
+    {
+      title: t("orderAssignedDetailColQty"),
+      dataIndex: "quantity",
+      key: "quantity",
+      width: 100,
+      align: "right",
+      render: (value: number) => <BlackText>{value}</BlackText>,
+    },
+    {
+      title: t("orderAssignedDetailColUnitPrice"),
+      dataIndex: "unitPrice",
+      key: "unitPrice",
+      width: 140,
+      align: "right",
+      render: (value: number) => <BlackText>{formatCurrency(value)}</BlackText>,
+    },
+    {
+      title: t("orderAssignedDetailColTotal"),
+      dataIndex: "totalLineValue",
+      key: "totalLineValue",
+      width: 150,
+      align: "right",
+      render: (value: number) => <BlackText>{formatCurrency(value)}</BlackText>,
+    },
+    {
+      title: t("orderAssignedDetailColInventoryStatus"),
+      dataIndex: "inventoryStatus",
+      key: "inventoryStatus",
+      width: 130,
+      align: "center",
+      render: (value: string) => (
+        <Tag color={INVENTORY_STATUS_COLOR[value] ?? "default"}>
+          {t(`orderAssignedInventoryStatus_${value}`) || value}
+        </Tag>
+      ),
+    },
+    {
+      title: t("orderAssignedDetailColNotes"),
+      dataIndex: "notes",
+      key: "notes",
+      width: 160,
+      render: (value: string | null) => <BlackText>{value || "—"}</BlackText>,
     },
   ];
 
@@ -322,6 +408,50 @@ const OrderAssignedManager = () => {
           <p style={{ color: "#6b7280", fontSize: 13 }}>
             #{issueModalRecord.transferOrderID} — {issueModalRecord.carBrand} {issueModalRecord.carModel} ({issueModalRecord.carLicensePlate})
           </p>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!detailModalRecord}
+        title={t("orderAssignedDetailTitle")}
+        onCancel={() => setDetailModalRecord(null)}
+        footer={null}
+        width={980}
+        centered
+      >
+        {detailModalRecord && (
+          <DetailModalBody>
+            <DetailSummary>
+              <SummaryItem>
+                <SummaryLabel>{t("orderAssignedColTransferID")}:</SummaryLabel>
+                <SummaryValue>#{detailModalRecord.transferOrderID}</SummaryValue>
+              </SummaryItem>
+              <SummaryItem>
+                <SummaryLabel>{t("orderAssignedColMaintenanceID")}:</SummaryLabel>
+                <SummaryValue>#{detailModalRecord.maintenanceID}</SummaryValue>
+              </SummaryItem>
+              <SummaryItem>
+                <SummaryLabel>{t("orderAssignedColCar")}:</SummaryLabel>
+                <SummaryValue>
+                  {detailModalRecord.carBrand} {detailModalRecord.carModel} (
+                  {detailModalRecord.carLicensePlate})
+                </SummaryValue>
+              </SummaryItem>
+              <SummaryItem>
+                <SummaryLabel>{t("orderAssignedColDocumentDate")}:</SummaryLabel>
+                <SummaryValue>{formatDate(detailModalRecord.documentDate)}</SummaryValue>
+              </SummaryItem>
+            </DetailSummary>
+
+            <Table<ITransferOrderDetail>
+              rowKey={(row) => `${detailModalRecord.transferOrderID}-${row.orderDetailID}`}
+              columns={detailColumns}
+              dataSource={detailModalRecord.details ?? []}
+              pagination={false}
+              scroll={{ x: "max-content" }}
+              locale={{ emptyText: t("orderAssignedDetailEmpty") }}
+            />
+          </DetailModalBody>
         )}
       </Modal>
     </Container>
@@ -466,4 +596,49 @@ const CarPlate = styled.div`
 const NoteText = styled.div`
   color: #6b7280;
   font-size: 13px;
+`;
+
+const ActionGroup = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const BlackText = styled.span`
+  color: #111827;
+`;
+
+const DetailModalBody = styled.div`
+  .ant-table-thead > tr > th {
+    color: #111827 !important;
+  }
+  .ant-table-tbody > tr > td {
+    color: #111827 !important;
+  }
+`;
+
+const DetailSummary = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin-bottom: 14px;
+`;
+
+const SummaryItem = styled.div`
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+`;
+
+const SummaryLabel = styled.span`
+  color: #6b7280;
+  font-size: 13px;
+`;
+
+const SummaryValue = styled.span`
+  color: #111827;
+  font-size: 13px;
+  font-weight: 600;
 `;
