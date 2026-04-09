@@ -54,14 +54,22 @@ public class ServiceOrdersController : ControllerBase
     }
     [HttpGet("{id:int}/invoice")]
     [ProducesResponseType(typeof(MaintenanceInvoiceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMaintenanceInvoice(int id, CancellationToken ct)
     {
-        var result=await _carMaintenanceService.GetMaintenanceInvoiceAsync(id, ct);
-        if(result== null)
-        
-            return NotFound(new {message=$"Không tìm thấy phiếu bảo dưỡng vơi ID= {id}"});
-        return Ok(result);
+        try
+        {
+            var result = await _carMaintenanceService.GetMaintenanceInvoiceAsync(id, ct);
+            if(result == null)
+                return NotFound(new {message=$"Không tìm thấy phiếu bảo dưỡng với ID = {id}"});
+            
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("{id:int}/invoice")]
@@ -70,12 +78,18 @@ public class ServiceOrdersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateMaintenanceInvoice(int id, CancellationToken ct)
     {
-        var result = await _carMaintenanceService.CreateMaintenanceInvoiceAsync(id, ct);
+        try
+        {
+            var result = await _carMaintenanceService.CreateMaintenanceInvoiceAsync(id, ct);
+            if (result == null)
+                return NotFound(new { message = $"Không tìm thấy phiếu bảo dưỡng với ID = {id}." });
 
-        if (result == null)
-            return NotFound(new { message = $"Không tìm thấy phiếu bảo dưỡng với ID = {id}." });
-
-        return Ok(result);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("{id:int}/additional-items")]

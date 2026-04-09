@@ -142,6 +142,12 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         {
             return null;
         }
+
+        var status = maintenance.Status.ToUpperInvariant();
+        if (status != "WAITING_FOR_PAYMENT" && status != "CLOSED")
+        {
+            throw new InvalidOperationException("Chỉ có thể xem biên lai (Hóa đơn) khi đơn ở trạng thái CHỜ THANH TOÁN (WAITING_FOR_PAYMENT) hoặc ĐÃ ĐÓNG (CLOSED).");
+        }
         var owner = maintenance.Car.Owner;
         var baseAmount = maintenance.TotalAmount;
 
@@ -250,6 +256,11 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
 
         if (maintenance == null)
             return null;
+
+        if (maintenance.Status.ToUpperInvariant() != "COMPLETED")
+        {
+            throw new InvalidOperationException("Chỉ có thể chốt/Tạo hóa đơn khi đơn sửa chữa đã hoàn tất (COMPLETED).");
+        }
 
         var hasFrozenMembership = !string.IsNullOrWhiteSpace(maintenance.RankAtTimeOfService)
                                    || maintenance.MemberDiscountPercent != 0m
