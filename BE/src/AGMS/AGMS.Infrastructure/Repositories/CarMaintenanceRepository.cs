@@ -266,6 +266,15 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             maintenance.MemberDiscountPercent = memberPercent;
             maintenance.MemberDiscountAmount = memberAmount;
             maintenance.RankAtTimeOfService = rank?.RankName;
+            
+            // CHỐT CỨNG số tiền cuối cùng cần thanh toán xuống DB để tiện làm báo cáo doanh thu
+            maintenance.FinalAmount = maintenance.TotalAmount - maintenance.DiscountAmount - memberAmount;
+        }
+
+        // ĐổI TRẠNG THÁI: Để FE làm tín hiệu hiển thị nút "Xem Hóa Đơn" / "Thanh Toán"
+        if (maintenance.Status.ToUpperInvariant() == "COMPLETED")
+        {
+            maintenance.Status = "WAITING_FOR_PAYMENT";
         }
 
         await _db.SaveChangesAsync(ct);
