@@ -132,7 +132,7 @@ public class AppointmentRepository : IAppointmentRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task ProposeRescheduleAsync(int appointmentId, DateTime proposedTime, CancellationToken ct)
+    public async Task ProposeRescheduleAsync(int appointmentId, string reason, CancellationToken ct)
     {
         var appointment = await _db.Appointments.FirstOrDefaultAsync(a => a.AppointmentID == appointmentId, ct)
             ?? throw new KeyNotFoundException("Không tìm thấy lịch hẹn.");
@@ -142,12 +142,13 @@ public class AppointmentRepository : IAppointmentRepository
             throw new InvalidOperationException("Chỉ có thể đề xuất lịch mới cho các lịch hẹn đang chờ duyệt.");
 
         appointment.Status = "RESCHEDULED";
-        appointment.ProposedTime = proposedTime;
+        appointment.ProposedTime = null;
+        appointment.RejectionReason = "SA yêu cầu dời lịch: " + reason;
 
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task RespondRescheduleAsync(int appointmentId, bool accept, string? notes, CancellationToken ct)
+    public async Task RespondRescheduleAsync(int appointmentId, bool accept, string? newDate, string? newTime, string? notes, CancellationToken ct)
     {
         var appointment = await _db.Appointments
             .FirstOrDefaultAsync(a => a.AppointmentID == appointmentId, ct)
@@ -158,22 +159,25 @@ public class AppointmentRepository : IAppointmentRepository
 
         if (accept)
         {
-            if (!appointment.ProposedTime.HasValue)
-                throw new InvalidOperationException("Không tìm thấy thời gian đề xuất.");
+            if (string.IsNullOrWhiteSpace(newDate) || string.IsNullOrWhiteSpace(newTime))
+                throw new InvalidOperationException("Phải cung cấp ngày và giờ mới nếu muốn dời lịch.");
+
+            if (!DateOnly.TryParse(newDate, out var parsedDate) || !TimeOnly.TryParse(newTime, out var parsedTime))
+                throw new InvalidOperationException("Định dạng ngày giờ không hợp lệ.");
 
             appointment.Status = "CONFIRMED";
-            appointment.AppointmentDate = appointment.ProposedTime.Value;
+            appointment.AppointmentDate = parsedDate.ToDateTime(parsedTime);
             appointment.ConfirmedDate = DateTime.UtcNow;
             appointment.ProposedTime = null;
             if (!string.IsNullOrWhiteSpace(notes))
             {
-                appointment.Notes = (appointment.Notes ?? "") + "\nKH đồng ý: " + notes;
+                appointment.Notes = (appointment.Notes ?? "") + "\nKH chọn lịch mới: " + notes;
             }
         }
         else
         {
             appointment.Status = "CANCELLED";
-            appointment.RejectionReason = "Khách từ chối đề xuất: " + notes;
+            appointment.RejectionReason = "Khách không đồng ý dời lịch: " + notes;
         }
 
         await _db.SaveChangesAsync(ct);

@@ -8,11 +8,16 @@ public class AppointmentService : IAppointmentService
 {
     private readonly IAppointmentRepository _repo;
     private readonly ISymptomService _symptomService;
+    private readonly IRepairRequestService _repairRequestService;
 
-    public AppointmentService(IAppointmentRepository repo, ISymptomService symptomService)
+    public AppointmentService(
+        IAppointmentRepository repo, 
+        ISymptomService symptomService,
+        IRepairRequestService repairRequestService)
     {
         _repo = repo;
         _symptomService = symptomService;
+        _repairRequestService = repairRequestService;
     }
 
     public async Task<IEnumerable<AppointmentListItemDto>> GetListAsync(int currentUserId, bool isServiceAdvisor, AppointmentFilterDto filter, CancellationToken ct)
@@ -142,26 +147,41 @@ public class AppointmentService : IAppointmentService
         await _repo.RejectAsync(appointmentId, currentUserId, reason, ct);
     }
 
-    public async Task ProposeRescheduleAsync(int appointmentId, int currentUserId, DateTime proposedTime, CancellationToken ct)
+    public async Task ProposeRescheduleAsync(int appointmentId, int currentUserId, string reason, CancellationToken ct)
     {
         var roleId = await _repo.GetUserRoleIdAsync(currentUserId, ct);
         if (roleId != 2) // Role 2 = ServiceAdvisor
             throw new UnauthorizedAccessException("Chỉ Service Advisor mới có thể đề xuất dời lịch.");
 
-        if (proposedTime <= DateTime.UtcNow)
-            throw new InvalidOperationException("Thời gian đề xuất phải lớn hơn thời gian hiện tại.");
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Lý do đề xuất dời lịch là bắt buộc.");
 
-        await _repo.ProposeRescheduleAsync(appointmentId, proposedTime, ct);
+        await _repo.ProposeRescheduleAsync(appointmentId, reason, ct);
     }
 
-    public async Task RespondRescheduleAsync(int appointmentId, int currentUserId, bool accept, string? notes, CancellationToken ct)
+    public async Task RespondRescheduleAsync(int appointmentId, int currentUserId, RespondRescheduleRequest request, CancellationToken ct)
     {
         // Kiểm tra quyền: Chỉ chủ xe (CreatedBy hoặc Owner) mới được phản hồi
         var appointment = await _repo.GetByIdAsync(appointmentId, currentUserId, ct);
         if (appointment == null)
             throw new UnauthorizedAccessException("Bạn không có quyền phản hồi lịch hẹn này.");
 
-        await _repo.RespondRescheduleAsync(appointmentId, accept, notes, ct);
+        if (request.Accept)
+        {
+            if (string.IsNullOrWhiteSpace(request.NewDate) || string.IsNullOrWhiteSpace(request.NewTime))
+                throw new InvalidOperationException("Vui lòng cung cấp ngày và giờ mới.");
+
+            if (!DateOnly.TryParse(request.NewDate, out var date))
+                throw new InvalidOperationException("Định dạng ngày không hợp lệ.");
+                
+            if (!TimeOnly.TryParse(request.NewTime, out var time))
+                throw new InvalidOperationException("Định dạng giờ không hợp lệ.");
+
+            // Kiểm tra khung giờ có khả dụng hay không, nếu đầy sẽ ném Exception ngay tại đây
+            await _repairRequestService.ValidateSlotCapacityAsync(date, time, appointment.AssignedTechnicianID, ct);
+        }
+
+        await _repo.RespondRescheduleAsync(appointmentId, request.Accept, request.NewDate, request.NewTime, request.Notes, ct);
     }
 
     public async Task CheckInAsync(int appointmentId, int currentUserId, CancellationToken ct)

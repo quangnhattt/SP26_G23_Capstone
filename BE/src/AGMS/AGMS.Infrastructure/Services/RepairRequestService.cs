@@ -214,7 +214,7 @@ public class RepairRequestService : IRepairRequestService
     /// <summary>
     /// Validate: slot còn chỗ không? KTV (nếu chọn) có bị book chưa?
     /// </summary>
-    private async Task ValidateSlotCapacityAsync(DateOnly date, TimeOnly time, int? technicianId, CancellationToken ct)
+    public async Task ValidateSlotCapacityAsync(DateOnly date, TimeOnly time, int? technicianId, CancellationToken ct)
     {
         if (!SchedulingConfig.IsValidSlotStartTime(time))
             throw new ArgumentException(

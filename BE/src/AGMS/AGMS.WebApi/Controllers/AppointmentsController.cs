@@ -196,7 +196,7 @@ public class AppointmentsController : ControllerBase
 
         try
         {
-            await _appointmentService.ProposeRescheduleAsync(id, userId, request.ProposedTime, ct);
+            await _appointmentService.ProposeRescheduleAsync(id, userId, request.Reason, ct);
             return NoContent();
         }
         catch (UnauthorizedAccessException)
@@ -226,7 +226,7 @@ public class AppointmentsController : ControllerBase
 
         try
         {
-            await _appointmentService.RespondRescheduleAsync(id, userId, request.Accept, request.Notes, ct);
+            await _appointmentService.RespondRescheduleAsync(id, userId, request, ct);
             return NoContent();
         }
         catch (UnauthorizedAccessException)

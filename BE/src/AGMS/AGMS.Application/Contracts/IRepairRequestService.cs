@@ -18,5 +18,8 @@ public interface IRepairRequestService
 
     /// <summary>Lấy danh sách KTV rảnh trong 1 slot cụ thể</summary>
     Task<IEnumerable<SlotTechnicianDto>> GetAvailableTechniciansInSlotAsync(string date, string time, CancellationToken ct);
+
+    /// <summary>Kiểm tra slot còn trống không</summary>
+    Task ValidateSlotCapacityAsync(DateOnly date, TimeOnly time, int? technicianId, CancellationToken ct);
 }
 
