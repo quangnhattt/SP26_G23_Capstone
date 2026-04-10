@@ -206,7 +206,7 @@ public class AppointmentRepository : IAppointmentRepository
                 AppointmentID = appointment.AppointmentID,
                 MaintenanceDate = new DateTime(1900, 1, 1),
                 Odometer = appointment.Car.CurrentOdometer,
-                Status = "WAITING",
+                Status = "RECEIVED",
                 TotalAmount = 0m,
                 DiscountAmount = 0m,
                 MaintenanceType = maintenanceType,

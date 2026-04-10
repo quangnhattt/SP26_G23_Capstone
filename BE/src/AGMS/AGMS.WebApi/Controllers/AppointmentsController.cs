@@ -144,7 +144,7 @@ public class AppointmentsController : ControllerBase
         }
     } 
 
-    // POST /api/appointments/{id}/check-in — SA bấm nút Check-in: đổi status → CHECKED_IN và tạo CarMaintenance WAITING
+    // POST /api/appointments/{id}/check-in — SA bấm nút Check-in: đổi status → CHECKED_IN và tạo CarMaintenance RECEIVED
     [HttpPost("{id:int}/check-in")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
