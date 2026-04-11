@@ -12,9 +12,12 @@ export interface IRescueInvoiceData {
 
 export interface IRescueSuggestedPartDetail {
   partId: number;
+  partCode?: string;
   partName?: string;
+  partType?: string;
   quantity: number;
   unitPrice?: number;
+  estimatedLineAmount?: number;
 }
 
 export interface IRescueSuggestedServiceDetail {
@@ -48,6 +51,7 @@ export interface IRescueRequest {
   isDepositConfirmed?: boolean;
   depositConfirmedDate?: string | null;
   depositConfirmedById?: number | null;
+  serviceFee?: number;
   suggestedParts?: IRescueSuggestedPartDetail[];
   suggestedServices?: IRescueSuggestedServiceDetail[];
   invoice?: IRescueInvoiceData;
