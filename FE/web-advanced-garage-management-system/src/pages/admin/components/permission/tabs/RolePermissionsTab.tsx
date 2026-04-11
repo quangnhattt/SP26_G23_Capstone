@@ -75,7 +75,7 @@ const RolePermissionsTab = () => {
     });
   };
 
-  const toggleGroup = (groupName: string, allIds: number[]) => {
+  const toggleGroup = (allIds: number[]) => {
     const allGranted = allIds.every((id) => granted.has(id));
     setGranted((prev) => {
       const next = new Set(prev);
@@ -160,7 +160,7 @@ const RolePermissionsTab = () => {
                     type="checkbox"
                     checked={allChecked}
                     ref={(el) => { if (el) el.indeterminate = someChecked && !allChecked; }}
-                    onChange={() => toggleGroup(groupName, allIds)}
+                    onChange={() => toggleGroup(allIds)}
                   />
                   <GroupName>{groupName}</GroupName>
                   <GroupCount>{items.filter((i) => granted.has(i.permissionID)).length}/{items.length}</GroupCount>
