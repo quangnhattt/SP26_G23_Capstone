@@ -1969,4 +1969,9 @@ export default {
   rolePermEmpty: "Không có quyền nào cho vai trò này",
   permGroupOther: "Khác",
   permGroupEmpty: "Nhóm này chưa có quyền nào",
+
+  // Role Tab
+  roleName: "Tên vai trò",
+  roleSearch: "Tìm theo tên vai trò, mô tả...",
+  managePermissions: "Phân quyền",
 };

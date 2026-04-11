@@ -1983,4 +1983,9 @@ export default {
   rolePermEmpty: "No permissions found for this role",
   permGroupOther: "Other",
   permGroupEmpty: "No permissions in this group yet",
+
+  // Role Tab
+  roleName: "Role Name",
+  roleSearch: "Search by role name, description...",
+  managePermissions: "Manage Permissions",
 };

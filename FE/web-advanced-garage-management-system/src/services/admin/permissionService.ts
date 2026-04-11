@@ -105,6 +105,19 @@ export const deletePermission = async (id: number): Promise<void> => {
   await AxiosClient.delete(`/api/Permissions/${id}`);
 };
 
+// ── Roles (BE RolesController) ────────────────────────────────────────────────
+export interface IRole {
+  roleID: number;
+  roleName: string;
+  description: string;
+  isActive: boolean;
+}
+
+export const getRoles = async (): Promise<IRole[]> => {
+  const { data } = await AxiosClient.get<{ message: string; data: IRole[] }>("/api/Roles");
+  return data.data;
+};
+
 // ── Role ↔ Permissions (BE RolePermissionsController) ──────────────────────────
 export const getRolePermissionMatrix = async (
   roleId: number,
