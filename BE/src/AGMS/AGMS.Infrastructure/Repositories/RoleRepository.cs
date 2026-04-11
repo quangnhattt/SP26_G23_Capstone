@@ -1,7 +1,8 @@
-﻿using AGMS.Application.Contracts;
+using AGMS.Application.Contracts;
 using AGMS.Domain.Entities;
 using AGMS.Infrastructure.Persistence.Db;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace AGMS.Infrastructure.Repositories
@@ -13,6 +14,11 @@ namespace AGMS.Infrastructure.Repositories
         public RoleRepository(CarServiceDbContext context)
         {
             _context = context;
+        }
+
+        public async Task<IEnumerable<Role>> GetAllAsync()
+        {
+            return await _context.Roles.ToListAsync();
         }
 
         public async Task<Role?> GetByIdWithPermissionsAsync(int roleId)
