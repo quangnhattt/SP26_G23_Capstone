@@ -212,6 +212,7 @@ public static class CarMaintenanceStatus
     public const string Waiting = "WAITING";
     public const string Completed = "COMPLETED";
     public const string Cancelled = "CANCELLED";
+    public const string RECEIVED = "RECEIVED";
 }
 
 /// <summary>
