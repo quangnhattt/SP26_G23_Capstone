@@ -69,8 +69,8 @@ const ProductsPage = () => {
 
   const fetchUnits = async () => {
     try {
-      const data = await getUnits({ type: "PART" });
-      setUnits(data);
+      const data = await getUnits({ Type: "PART" });
+      setUnits(data.items);
     } catch (err) {
       console.error("Failed to fetch units:", err);
     }

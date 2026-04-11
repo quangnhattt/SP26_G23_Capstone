@@ -62,7 +62,7 @@ const ServicePage = () => {
   const fetchUnits = useCallback(async () => {
     try {
       const data = await getUnits();
-      setUnits(data);
+      setUnits(data.items);
     } catch (err) {
       console.error("Failed to fetch units:", err);
     }

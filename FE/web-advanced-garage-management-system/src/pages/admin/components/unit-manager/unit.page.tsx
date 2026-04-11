@@ -279,7 +279,7 @@ const UnitPage = () => {
             allowClear
             placeholder={t("unitTypeFilterPlaceholder")}
             value={typeFilter}
-            onChange={handleTypeChange}
+            onChange={(v) => handleTypeChange(v as string | undefined)}
             style={{ width: 160 }}
             options={[
               {
@@ -305,7 +305,7 @@ const UnitPage = () => {
                 ? "true"
                 : "false"
             }
-            onChange={handleIsActiveChange}
+            onChange={(v) => handleIsActiveChange(v as string | undefined)}
             style={{ width: 160 }}
             options={[
               {
