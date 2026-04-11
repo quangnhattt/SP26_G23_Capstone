@@ -10,7 +10,7 @@ namespace AGMS.Application.DTOs.Supplier
     {
         public int Page { get; set; } = 1;
 
-        public int PageSize { get; set; } = 20;
+        public int PageSize { get; set; } = 5;
 
         public string? SearchTerm { get; set; }
         public bool? IsActive { get; set; }
