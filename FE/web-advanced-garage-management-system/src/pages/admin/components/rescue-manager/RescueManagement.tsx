@@ -21,7 +21,6 @@ import {
 } from "react-icons/fa";
 import {
   getRescueRequests,
-  updateRescueStatus,
   assignTechnician,
   cancelRescueRequest,
   markSpamRescueRequest,
@@ -33,10 +32,10 @@ import {
   dispatchTowing,
   completeTowing,
   confirmRescueDeposit,
+  confirmRescuePayment,
   getAvailableTechnicians,
   type IAvailableTechnician,
   type IRescueRequest,
-  type RescueStatus,
 } from "@/apis/rescue";
 import { rescueStatusStyle } from "@/pages/appointments/rescueStatusConfig";
 import { getUsers } from "@/services/admin/userService";
@@ -178,21 +177,6 @@ const RescueManagement = () => {
   }, [fetchRescues, fetchTechnicians]);
 
   // ─── Actions ─────────────────────────────────────────────
-  const handleUpdateStatus = async (
-    id: number,
-    status: RescueStatus,
-    note?: string,
-  ) => {
-    try {
-      await updateRescueStatus(id, { status, note });
-      toast.success(t("rescueMgrStatusUpdated"));
-      fetchRescues();
-      setShowDetailModal(false);
-    } catch (error) {
-      console.error("Error updating status:", error);
-      toast.error(t("rescueMgrStatusError"));
-    }
-  };
 
   const [assignSubmitting, setAssignSubmitting] = useState(false);
 
@@ -377,6 +361,16 @@ const RescueManagement = () => {
     }
   };
 
+  const handleConfirmPayment = async (id: number) => {
+    try {
+      await confirmRescuePayment(id);
+      toast.success(t("rescueMgrPaymentConfirmSuccess"));
+      fetchRescues();
+    } catch {
+      toast.error(t("rescueMgrPaymentConfirmError"));
+    }
+  };
+
   const openAssignModal = async (rescue: IRescueRequest) => {
     setSelectedRescue(rescue);
     setEstimatedArrival("");
@@ -447,6 +441,7 @@ const RescueManagement = () => {
       "INVOICED",
       "INVOICE_SENT",
       "PAYMENT_PENDING",
+      "PAYMENT_SUBMITTED",
     ].includes(r.status),
   ).length;
   const towingCount = rescues.filter((r) =>
@@ -475,6 +470,7 @@ const RescueManagement = () => {
           "INVOICED",
           "INVOICE_SENT",
           "PAYMENT_PENDING",
+          "PAYMENT_SUBMITTED",
         ].includes(r.status);
       if (filterStatus === "TOWING")
         return ["TOWING_DISPATCHED", "TOWING_ACCEPTED", "TOWED"].includes(
@@ -645,27 +641,31 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ PROPOSAL_ACCEPTED: KH đã xác nhận → SA xác nhận cọc → điều KTV ═══
+      // ═══ PROPOSAL_ACCEPTED ═══
+      // Nhánh 1: Không cần cọc | Cọc đã xác nhận → điều KTV
+      // Nhánh 2: Cần cọc, KH đã trả, SA chưa xác nhận → xác nhận cọc
+      // Nhánh 3: Cần cọc, KH chưa trả → chờ KH (chỉ hiện huỷ)
       case "PROPOSAL_ACCEPTED":
         if (isSA) {
           const needsDeposit = rescue.requiresDeposit === true || (rescue.depositAmount != null && rescue.depositAmount > 0);
-          if (needsDeposit && !rescue.isDepositConfirmed) {
-            // Chưa xác nhận cọc → chỉ hiện nút xác nhận cọc
-            actions.push({
-              label: t("rescueMgrConfirmDeposit"),
-              icon: <FaMoneyBillWave size={12} />,
-              color: "#16a34a",
-              onClick: () => handleConfirmDeposit(rescue.rescueId),
-            });
-          } else {
-            // Đã xác nhận cọc (hoặc không cần cọc) → hiện nút điều KTV
+          if (!needsDeposit || rescue.isDepositConfirmed) {
+            // Không cần cọc hoặc đã xác nhận cọc → điều KTV
             actions.push({
               label: t("rescueMgrDispatchTech"),
               icon: <FaUserCog size={12} />,
               color: "#0891b2",
               onClick: () => openAssignModal(rescue),
             });
+          } else if (rescue.isDepositPaid && !rescue.isDepositConfirmed) {
+            // KH đã trả cọc, SA cần xác nhận
+            actions.push({
+              label: t("rescueMgrConfirmDeposit"),
+              icon: <FaMoneyBillWave size={12} />,
+              color: "#16a34a",
+              onClick: () => handleConfirmDeposit(rescue.rescueId),
+            });
           }
+          // Nhánh 3: KH chưa trả cọc → SA chỉ chờ, không có action ngoài huỷ
           actions.push({
             label: t("rescueMgrCancel"),
             icon: <FaTimes size={12} />,
@@ -889,14 +889,27 @@ const RescueManagement = () => {
         }
         break;
 
+      // ═══ SA: Chờ khách hàng thanh toán ═══
       case "INVOICE_SENT":
       case "PAYMENT_PENDING":
+        if (isSA) {
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
+        }
+        break;
+
+      // ═══ SA: Khách đã thanh toán → xác nhận đã nhận tiền ═══
+      case "PAYMENT_SUBMITTED":
         if (isSA) {
           actions.push({
             label: t("rescueMgrConfirmPaymentAction"),
             icon: <FaMoneyBillWave size={12} />,
             color: "#16a34a",
-            onClick: () => handleUpdateStatus(rescue.rescueId, "COMPLETED"),
+            onClick: () => handleConfirmPayment(rescue.rescueId),
           });
           actions.push({
             label: t("rescueMgrCancel"),

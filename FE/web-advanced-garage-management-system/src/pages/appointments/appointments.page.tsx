@@ -28,6 +28,7 @@ import {
   getRescueRequests,
   getRescueCustomerById,
   makeRescuePayment,
+  makeRescueDeposit,
   customerConsent,
   acceptTowing,
   arriveRescue,
@@ -69,6 +70,7 @@ const IN_PROGRESS_RESCUE_STATUSES = [
   "INVOICED",
   "INVOICE_SENT",
   "PAYMENT_PENDING",
+  "PAYMENT_SUBMITTED",
 ];
 type MainTab = "BOOKING" | "RESCUE";
 
@@ -112,6 +114,13 @@ const AppointmentsPage = () => {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+
+  // Deposit modal
+  const [depositModalRescue, setDepositModalRescue] = useState<IRescueRequest | null>(null);
+  const [depositFetching, setDepositFetching] = useState(false);
+  const depositMethod: IRescuePaymentPayload["paymentMethod"] = "TRANSFER";
+  const [depositRef, setDepositRef] = useState("");
+  const [depositPaying, setDepositPaying] = useState(false);
 
   // Technician simple action loading
   const [techActionLoadingId, setTechActionLoadingId] = useState<number | null>(
@@ -341,6 +350,40 @@ const AppointmentsPage = () => {
     setPaymentMethod("TRANSFER");
     setPaymentAmount("");
     setPaymentRef("");
+  };
+
+  const openDepositModal = async (id: number) => {
+    setDepositRef("");
+    setDepositFetching(true);
+    setDepositModalRescue({ rescueId: id } as IRescueRequest); // show modal immediately with loading
+    try {
+      const detail = await getRescueCustomerById(id);
+      setDepositModalRescue(detail);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t("errorOccurred")));
+      setDepositModalRescue(null);
+    } finally {
+      setDepositFetching(false);
+    }
+  };
+
+  const handlePayDeposit = async () => {
+    if (!depositModalRescue?.depositAmount) return;
+    setDepositPaying(true);
+    try {
+      await makeRescueDeposit(depositModalRescue.rescueId, {
+        paymentMethod: depositMethod,
+        amount: depositModalRescue.depositAmount,
+        transactionReference: depositRef.trim() || undefined,
+      });
+      toast.success(t("rescueDepositPaySuccess"));
+      setDepositModalRescue(null);
+      fetchRescueRequestsRefresh();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, t("rescueDepositPayError")));
+    } finally {
+      setDepositPaying(false);
+    }
   };
 
   const openConsentModal = (rescue: IRescueRequest) => {
@@ -737,11 +780,55 @@ const AppointmentsPage = () => {
                                 onClick={() => handleViewRescueDetail(rescue.rescueId)}
                               >
                                 {rescue.status === "PROPOSED_ROADSIDE"
-                                  ? "Xem đề xuất sửa tại chỗ & xác nhận"
-                                  : "Xem đề xuất kéo xe & xác nhận"}
+                                  ? t("rescueViewRoadsideProposal")
+                                  : t("rescueViewTowingProposal")}
                               </CustomerActionBtn>
                             </CustomerActionRow>
                           )}
+                        {isCustomer && rescue.status === "PROPOSAL_ACCEPTED" && (() => {
+                          const needsDeposit = rescue.requiresDeposit === true || (rescue.depositAmount != null && rescue.depositAmount > 0);
+                          if (!needsDeposit) {
+                            // Không cần cọc → chỉ xem chi tiết, chờ SA điều KTV
+                            return (
+                              <CustomerActionRow>
+                                <CustomerActionBtn $color="#7c3aed" onClick={() => handleViewRescueDetail(rescue.rescueId)}>
+                                  {t("rescueViewDetailBtn")}
+                                </CustomerActionBtn>
+                              </CustomerActionRow>
+                            );
+                          }
+                          if (!rescue.isDepositPaid) {
+                            // Cần cọc, chưa trả → hiện 2 nút
+                            return (
+                              <CustomerActionRow>
+                                <CustomerActionBtn $color="#7c3aed" onClick={() => handleViewRescueDetail(rescue.rescueId)}>
+                                  {t("rescueViewDetailBtn")}
+                                </CustomerActionBtn>
+                                <CustomerActionBtn $color="#ea580c" onClick={() => openDepositModal(rescue.rescueId)}>
+                                  {t("rescuePayDepositBtn")}
+                                </CustomerActionBtn>
+                              </CustomerActionRow>
+                            );
+                          }
+                          if (!rescue.isDepositConfirmed) {
+                            // Đã trả, chờ SA xác nhận
+                            return (
+                              <CustomerActionRow>
+                                <CustomerActionBtn $color="#d97706" disabled style={{ opacity: 0.75, cursor: "default" }} onClick={() => {}}>
+                                  {t("rescueDepositWaitingConfirm")}
+                                </CustomerActionBtn>
+                              </CustomerActionRow>
+                            );
+                          }
+                          // Cọc đã xác nhận, chờ SA điều KTV
+                          return (
+                            <CustomerActionRow>
+                              <CustomerActionBtn $color="#16a34a" disabled style={{ opacity: 0.75, cursor: "default" }} onClick={() => {}}>
+                                {t("rescueDepositConfirmedWaiting")}
+                              </CustomerActionBtn>
+                            </CustomerActionRow>
+                          );
+                        })()}
                         {isCustomer && rescue.status === "DIAGNOSING" && (
                           <CustomerActionRow>
                             <CustomerActionBtn
@@ -777,10 +864,22 @@ const AppointmentsPage = () => {
                                 $color="#1d4ed8"
                                 onClick={() => openInvoiceModal(rescue)}
                               >
-                                Xem hoá đơn & thanh toán
+                                {t("rescueViewInvoiceAndPay")}
                               </CustomerActionBtn>
                             </CustomerActionRow>
                           )}
+                        {isCustomer && rescue.status === "PAYMENT_SUBMITTED" && (
+                          <CustomerActionRow>
+                            <CustomerActionBtn
+                              $color="#16a34a"
+                              disabled
+                              style={{ opacity: 0.75, cursor: "default" }}
+                              onClick={() => {}}
+                            >
+                              {t("rescuePaymentSubmittedInfo")}
+                            </CustomerActionBtn>
+                          </CustomerActionRow>
+                        )}
 
                         <CardFooter>
                           <FooterItem>
@@ -1058,6 +1157,90 @@ const AppointmentsPage = () => {
                 disabled={!paymentAmount || paymentSubmitting}
               >
                 {paymentSubmitting ? "Đang xử lý..." : "Xác nhận thanh toán"}
+              </PaymentConfirmBtn>
+            </PaymentFooter>
+          </PaymentCard>
+        </PaymentOverlay>
+      )}
+
+      {/* ── Deposit Modal ── */}
+      {depositModalRescue && (
+        <PaymentOverlay onClick={() => !depositPaying && setDepositModalRescue(null)}>
+          <PaymentCard onClick={(e) => e.stopPropagation()} style={{ maxWidth: "480px" }}>
+            <PaymentHeader>
+              <PaymentTitle>{t("rescueDepositModalTitle")}</PaymentTitle>
+              <CloseModalBtn onClick={() => !depositPaying && setDepositModalRescue(null)}>
+                <FaTimes size={18} />
+              </CloseModalBtn>
+            </PaymentHeader>
+            <PaymentBody>
+              {depositFetching ? (
+                <div style={{ textAlign: "center", padding: "2rem", color: "#6b7280" }}>
+                  {t("loading")}
+                </div>
+              ) : (
+                <>
+                  {/* ── Thông tin đơn hàng ── */}
+                  <AcceptJobInfo>
+                    <AcceptJobRow>
+                      <AcceptJobLabel>{t("rescueDepositOrderId")}</AcceptJobLabel>
+                      <AcceptJobValue>#RESCUE-{depositModalRescue.rescueId}</AcceptJobValue>
+                    </AcceptJobRow>
+                    <AcceptJobRow>
+                      <AcceptJobLabel>{t("rescueDepositCar")}</AcceptJobLabel>
+                      <AcceptJobValue>
+                        {depositModalRescue.brand} {depositModalRescue.model} — {depositModalRescue.licensePlate}
+                      </AcceptJobValue>
+                    </AcceptJobRow>
+                    {depositModalRescue.problemDescription && (
+                      <AcceptJobRow>
+                        <AcceptJobLabel>{t("rescueDepositProblem")}</AcceptJobLabel>
+                        <AcceptJobValue>{depositModalRescue.problemDescription}</AcceptJobValue>
+                      </AcceptJobRow>
+                    )}
+                    <AcceptJobRow style={{ borderTop: "1px solid #e5e7eb", paddingTop: "0.5rem", marginTop: "0.25rem" }}>
+                      <AcceptJobLabel style={{ fontWeight: 700, color: "#111827" }}>
+                        {t("rescueDepositDueLabel")}
+                      </AcceptJobLabel>
+                      <AcceptJobValue style={{ fontWeight: 700, fontSize: "1.1rem", color: "#ea580c" }}>
+                        {depositModalRescue.depositAmount != null
+                          ? depositModalRescue.depositAmount.toLocaleString("vi-VN") + " đ"
+                          : "—"}
+                      </AcceptJobValue>
+                    </AcceptJobRow>
+                  </AcceptJobInfo>
+
+                  {/* ── QR chuyển khoản ── */}
+                  <div style={{ borderTop: "2px dashed #e5e7eb", marginTop: "1.25rem", paddingTop: "1.25rem" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=RESCUE-${depositModalRescue.rescueId}|DEPOSIT|${depositModalRescue.depositAmount ?? 0}VND`}
+                        alt={t("rescueDepositQRTitle")}
+                        style={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                      />
+                      <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>{t("rescueDepositQRScanHint")}</span>
+                    </div>
+                    <div>
+                      <FormLabel>{t("rescueDepositTransactionRef")}</FormLabel>
+                      <FormInput
+                        value={depositRef}
+                        onChange={(e) => setDepositRef(e.target.value)}
+                        placeholder="VD: VCB20260411001234"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </PaymentBody>
+            <PaymentFooter>
+              <PaymentCancelBtn onClick={() => !depositPaying && setDepositModalRescue(null)} disabled={depositPaying}>
+                {t("cancel")}
+              </PaymentCancelBtn>
+              <PaymentConfirmBtn
+                onClick={handlePayDeposit}
+                disabled={depositFetching || depositPaying || !depositModalRescue.depositAmount}
+              >
+                {depositPaying ? t("rescueMgrProcessing") : t("rescueConfirmDepositBtn")}
               </PaymentConfirmBtn>
             </PaymentFooter>
           </PaymentCard>

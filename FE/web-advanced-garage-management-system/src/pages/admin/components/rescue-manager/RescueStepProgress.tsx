@@ -13,6 +13,7 @@ import {
   FaMoneyBillWave,
   FaFlag,
   FaHandHoldingUsd,
+  FaCheckDouble,
 } from "react-icons/fa";
 import type { RescueStatus } from "@/apis/rescue";
 
@@ -47,19 +48,19 @@ const ON_SITE_STEPS: {
     key: "assign",
     labelKey: "rescueStepAssign",
     icon: <FaUserCog size={14} />,
-    statuses: [],
+    statuses: ["EN_ROUTE"],
   },
   {
     key: "arrive",
     labelKey: "rescueStepArrive",
     icon: <FaMapMarkerAlt size={14} />,
-    statuses: ["EN_ROUTE"],
+    statuses: ["ON_SITE"],
   },
   {
     key: "diagnose",
     labelKey: "rescueStepDiagnose",
     icon: <FaTools size={14} />,
-    statuses: ["ON_SITE", "DIAGNOSING"],
+    statuses: ["DIAGNOSING"],
   },
   {
     key: "repair",
@@ -92,6 +93,12 @@ const ON_SITE_STEPS: {
     statuses: ["PAYMENT_PENDING"],
   },
   {
+    key: "payment_submitted",
+    labelKey: "rescueStepPaymentSubmitted",
+    icon: <FaCheckDouble size={14} />,
+    statuses: ["PAYMENT_SUBMITTED"],
+  },
+  {
     key: "done",
     labelKey: "rescueStepDone",
     icon: <FaFlag size={14} />,
@@ -110,11 +117,11 @@ function getActiveStepIndex(status: RescueStatus): number {
     if (ON_SITE_STEPS[i].statuses.includes(status)) return i;
   }
   // Statuses that fall between defined step statuses
-  // Indices: 0=propose,1=customer_confirm,2=deposit,3=assign(auto-done),4=arrive,5=diagnose,6=repair,7=complete,8=invoice,9=send,10=paid,11=done
+  // Indices: 0=propose,1=customer_confirm,2=deposit,3=assign,4=arrive,5=diagnose,6=repair,7=complete,8=invoice,9=send,10=paid,11=payment_submitted,12=done
   const statusOrder: Record<string, number> = {
-    TOWING_ACCEPTED: 2,       // customer accepted towing → deposit step
-    TOWING_DISPATCHED: 2,
-    TOWED: 2,
+    TOWING_DISPATCHED: 3, // SA dispatches tow truck → assign-equivalent step
+    TOWING_ACCEPTED: 4,   // customer accepts towing → arrive-equivalent step
+    TOWED: 7,             // towing complete → repair_complete-equivalent step
   };
   return statusOrder[status] ?? -1;
 }
