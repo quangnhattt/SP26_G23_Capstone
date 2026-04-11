@@ -47,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<IMembershipRankRepository, MembershipRankRepository>();
         services.AddScoped<IMembershipRankService, MembershipRankService>();
         services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IPermissionGroupRepository, PermissionGroupRepository>();
         services.AddScoped<IPermissionRepository, PermissionRepository>();
         services.AddScoped<ICarMaintenanceIntakeRepository, CarMaintenanceIntakeRepository>();
