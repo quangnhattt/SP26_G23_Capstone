@@ -15,6 +15,8 @@ public class RescueRequestDetailDto
     public string? ImageEvidence { get; set; }
     public decimal ServiceFee { get; set; }
     public List<SuggestedRescuePartDetailDto> SuggestedParts { get; set; } = [];
+    public IEnumerable<RepairItemResponseDto> RepairItems { get; set; } = [];
+    public decimal RepairSubtotal { get; set; }
     public bool RequiresDeposit { get; set; }
     public decimal DepositAmount { get; set; }
     public bool IsDepositPaid { get; set; }

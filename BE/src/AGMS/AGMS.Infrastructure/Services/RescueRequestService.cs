@@ -1755,6 +1755,15 @@ public class RescueRequestService : IRescueRequestService
     )
     {
         var suggestedParts = await DeserializeSuggestedPartsAsync(r.SuggestedPartsJson, ct);
+        var repairItems = Array.Empty<RepairItemResponseDto>();
+        decimal repairSubtotal = 0;
+
+        if (r.ResultingMaintenanceID.HasValue)
+        {
+            repairItems = (await _rescueRepo.GetRepairItemsAsync(r.ResultingMaintenanceID.Value, ct))
+                .ToArray();
+            repairSubtotal = repairItems.Sum(i => i.TotalPrice);
+        }
 
         return new RescueRequestDetailDto
         {
@@ -1768,6 +1777,8 @@ public class RescueRequestService : IRescueRequestService
             ImageEvidence = r.ImageEvidence,
             ServiceFee = r.ServiceFee,
             SuggestedParts = suggestedParts,
+            RepairItems = repairItems,
+            RepairSubtotal = repairSubtotal,
             RequiresDeposit = r.RequiresDeposit,
             DepositAmount = r.DepositAmount,
             IsDepositPaid = r.IsDepositPaid,
