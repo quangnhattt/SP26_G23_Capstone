@@ -1915,22 +1915,6 @@ const FormInput = styled.input`
   }
 `;
 
-const FormSelect = styled.select`
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  outline: none;
-  box-sizing: border-box;
-  color: #111827;
-  background: #fff;
-
-  &:focus {
-    border-color: #1d4ed8;
-  }
-`;
-
 const PaymentCancelBtn = styled.button`
   padding: 0.5rem 1.25rem;
   border: 1px solid #e5e7eb;
