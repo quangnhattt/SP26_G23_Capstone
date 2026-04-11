@@ -34,16 +34,20 @@ const PermissionsTab = () => {
   const [modalGroupName, setModalGroupName] = useState("");
 
   const fetchAll = async () => {
-    try {
-      setLoading(true);
-      const [perms, grps] = await Promise.all([getPermissions(), getPermissionGroups()]);
-      setPermissions(perms);
-      setGroups(grps);
-    } catch {
-      toast.error(t("permCannotLoad"));
-    } finally {
-      setLoading(false);
+    setLoading(true);
+    const [grpsResult, permsResult] = await Promise.allSettled([
+      getPermissionGroups(),
+      getPermissions(),
+    ]);
+    if (grpsResult.status === "fulfilled") {
+      setGroups(grpsResult.value);
+    } else {
+      toast.error(t("permGrpCannotLoad"));
     }
+    if (permsResult.status === "fulfilled") {
+      setPermissions(permsResult.value);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -196,7 +200,9 @@ const PermissionsTab = () => {
                 <Label>{t("permName")} *</Label>
                 <Input
                   value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  onChange={(e) =>
+                  setForm((f: IPermissionRequest) => ({ ...f, name: e.target.value }))
+                }
                   placeholder={t("permNamePlaceholder")}
                   required
                 />
@@ -205,7 +211,9 @@ const PermissionsTab = () => {
                 <Label>{t("permUrl")}</Label>
                 <Input
                   value={form.url}
-                  onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
+                  onChange={(e) =>
+                  setForm((f: IPermissionRequest) => ({ ...f, url: e.target.value }))
+                }
                   placeholder={t("permUrlPlaceholder")}
                 />
               </FormGroup>
@@ -213,7 +221,12 @@ const PermissionsTab = () => {
                 <Label>{t("description")}</Label>
                 <Input
                   value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  onChange={(e) =>
+                  setForm((f: IPermissionRequest) => ({
+                    ...f,
+                    description: e.target.value,
+                  }))
+                }
                   placeholder={t("permDescPlaceholder")}
                 />
               </FormGroup>

@@ -1,14 +1,12 @@
 import styled, { createGlobalStyle } from "styled-components";
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import { Select as AntSelect } from "antd";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import {
   getRolePermissionMatrix,
   updateRolePermissions,
-  getPermissionGroups,
   type IRolePermissionMatrix,
-  type IPermissionGroup,
 } from "@/services/admin/permissionService";
 
 const DropdownGlobalStyle = createGlobalStyle`
@@ -39,21 +37,21 @@ const RolePermissionsTab = () => {
   const { t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState<number | null>(null);
   const [matrix, setMatrix] = useState<IRolePermissionMatrix[]>([]);
-  const [groups, setGroups] = useState<IPermissionGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [granted, setGranted] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    void getPermissionGroups().then(setGroups).catch(() => {});
-  }, []);
+  // no useEffect needed — roles are static
+
 
   const fetchMatrix = async (roleId: number) => {
     try {
       setLoading(true);
       const data = await getRolePermissionMatrix(roleId);
       setMatrix(data);
-      setGranted(new Set(data.filter((p) => p.isGranted).map((p) => p.permissionID)));
+      setGranted(
+        new Set(data.flatMap((g) => g.permissions.filter((p) => p.isGranted).map((p) => p.permissionID)))
+      );
     } catch {
       toast.error(t("rolePermCannotLoad"));
     } finally {
@@ -100,20 +98,6 @@ const RolePermissionsTab = () => {
     }
   };
 
-  // Group matrix by groupName
-  const groupedMatrix = matrix.reduce<Record<string, IRolePermissionMatrix[]>>((acc, item) => {
-    const key = item.groupName || t("permGroupOther");
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(item);
-    return acc;
-  }, {});
-
-  const groupOrder = groups.map((g) => g.groupName);
-  const sortedGroupNames = [
-    ...groupOrder.filter((n) => groupedMatrix[n]),
-    ...Object.keys(groupedMatrix).filter((n) => !groupOrder.includes(n)),
-  ];
-
   return (
     <Wrapper>
       <DropdownGlobalStyle />
@@ -147,14 +131,13 @@ const RolePermissionsTab = () => {
 
       {selectedRole && !loading && matrix.length > 0 && (
         <MatrixGrid>
-          {sortedGroupNames.map((groupName) => {
-            const items = groupedMatrix[groupName];
-            const allIds = items.map((i) => i.permissionID);
+          {matrix.map((group) => {
+            const allIds = group.permissions.map((p) => p.permissionID);
             const allChecked = allIds.every((id) => granted.has(id));
             const someChecked = allIds.some((id) => granted.has(id));
 
             return (
-              <GroupCard key={groupName}>
+              <GroupCard key={group.groupID}>
                 <GroupHeader>
                   <GroupCheckbox
                     type="checkbox"
@@ -162,11 +145,13 @@ const RolePermissionsTab = () => {
                     ref={(el) => { if (el) el.indeterminate = someChecked && !allChecked; }}
                     onChange={() => toggleGroup(allIds)}
                   />
-                  <GroupName>{groupName}</GroupName>
-                  <GroupCount>{items.filter((i) => granted.has(i.permissionID)).length}/{items.length}</GroupCount>
+                  <GroupName>{group.groupName}</GroupName>
+                  <GroupCount>
+                    {group.permissions.filter((p) => granted.has(p.permissionID)).length}/{group.permissions.length}
+                  </GroupCount>
                 </GroupHeader>
                 <PermList>
-                  {items.map((perm) => (
+                  {group.permissions.map((perm) => (
                     <PermItem key={perm.permissionID}>
                       <PermCheckbox
                         type="checkbox"
@@ -175,7 +160,7 @@ const RolePermissionsTab = () => {
                       />
                       <PermInfo>
                         <PermName>{perm.name}</PermName>
-                        {perm.url && <PermUrl>{perm.url}</PermUrl>}
+                        {perm.description && <PermUrl>{perm.description}</PermUrl>}
                       </PermInfo>
                     </PermItem>
                   ))}

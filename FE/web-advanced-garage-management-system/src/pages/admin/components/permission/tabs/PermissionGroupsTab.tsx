@@ -146,7 +146,12 @@ const PermissionGroupsTab = () => {
                 <Label>{t("permGrpName")} *</Label>
                 <Input
                   value={form.groupName}
-                  onChange={(e) => setForm((f) => ({ ...f, groupName: e.target.value }))}
+                  onChange={(e) =>
+                  setForm((f: IPermissionGroupRequest) => ({
+                    ...f,
+                    groupName: e.target.value,
+                  }))
+                }
                   placeholder={t("permGrpNamePlaceholder")}
                   required
                 />
@@ -155,7 +160,12 @@ const PermissionGroupsTab = () => {
                 <Label>{t("description")}</Label>
                 <Input
                   value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  onChange={(e) =>
+                  setForm((f: IPermissionGroupRequest) => ({
+                    ...f,
+                    description: e.target.value,
+                  }))
+                }
                   placeholder={t("permGrpDescPlaceholder")}
                 />
               </FormGroup>
