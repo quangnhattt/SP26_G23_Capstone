@@ -65,14 +65,14 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
         ? Number(manualFee)
         : undefined;
 
-  // Auto-tính tiền đặt cọc = 20% tổng tiền đề xuất
+  // Auto-tính tiền đặt cọc = 50% tổng tiền đề xuất (chỉ khi requiresDeposit = true)
   useEffect(() => {
-    if (estimatedFee) {
+    if (rescue.requiresDeposit && estimatedFee) {
       setDepositAmount(Math.round(estimatedFee * 0.5).toString());
     } else {
       setDepositAmount("");
     }
-  }, [estimatedFee]);
+  }, [estimatedFee, rescue.requiresDeposit]);
 
   const toggleService = (svc: IService) => {
     setSelectedServices((prev) =>
@@ -121,7 +121,7 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
         rescueType: proposalType,
         proposalNotes: proposalNote.trim() || undefined,
         estimatedServiceFee: estimatedFee ?? 0,
-        depositAmount: depositAmount ? Number(depositAmount) : undefined,
+        depositAmount: rescue.requiresDeposit && depositAmount ? Number(depositAmount) : undefined,
         suggestedParts: suggestedParts.length > 0 ? suggestedParts : undefined,
       });
       toast.success(
@@ -287,18 +287,19 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
             )}
           </FormGroup>
 
-          {/* Deposit amount — 20% tổng tiền đề xuất */}
-          <FormGroup>
-            <FormLabel>{t("rescueMgrDepositAmountLabel")}</FormLabel>
-            <FormInput
-              type="number"
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-              placeholder="0"
-              readOnly={!!estimatedFee}
-            />
-            <DepositHint>{t("rescueMgrDepositAmountHint")}</DepositHint>
-          </FormGroup>
+          {rescue.requiresDeposit && (
+            <FormGroup>
+              <FormLabel>{t("rescueMgrDepositAmountLabel")}</FormLabel>
+              <FormInput
+                type="number"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                placeholder="0"
+                readOnly={!!estimatedFee}
+              />
+              <DepositHint>{t("rescueMgrDepositAmountHint")}</DepositHint>
+            </FormGroup>
+          )}
         </ModalBody>
         <ModalFooter>
           <ModalCancelBtn onClick={onClose} disabled={submitting}>
@@ -646,3 +647,4 @@ const DepositHint = styled.p`
   color: #d97706;
   font-style: italic;
 `;
+

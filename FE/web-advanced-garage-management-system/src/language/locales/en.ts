@@ -1129,6 +1129,7 @@ export default {
   rescueMgrProposalEstFeeLabel: "Estimated service fee (VND)",
   rescueMgrProposalEstFeeAuto: "Auto-calculated from selected services & parts",
   rescueMgrProposalEstFeeManual: "Enter manually (if no selection above)",
+  rescueMgrRequiresDepositLabel: "Requires deposit",
   rescueMgrDepositAmountLabel: "Deposit amount (50% of estimated fee)",
   rescueMgrDepositAmountHint: "Please pay a deposit invoice with your first transaction.",
   rescueMgrProposalConfirmRoadside: "Confirm fix on-site",

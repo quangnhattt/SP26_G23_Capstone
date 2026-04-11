@@ -1119,6 +1119,7 @@ export default {
   rescueMgrProposalEstFeeLabel: "Phí dịch vụ ước tính (VND)",
   rescueMgrProposalEstFeeAuto: "Tự động tính từ dịch vụ & phụ kiện đã chọn",
   rescueMgrProposalEstFeeManual: "Nhập thủ công (nếu chưa chọn bên trên)",
+  rescueMgrRequiresDepositLabel: "Yêu cầu đặt cọc",
   rescueMgrDepositAmountLabel: "Tiền đặt cọc (50% tổng tiền ước tính)",
   rescueMgrDepositAmountHint: "Vui lòng đặt cọc hoá đơn với giao dịch đầu tiên của bạn.",
   rescueMgrProposalConfirmRoadside: "Xác nhận sửa tại chỗ",
