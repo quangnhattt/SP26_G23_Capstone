@@ -22,7 +22,7 @@ public interface IRescueRequestService
 
     /// <summary>SA lấy danh sách yêu cầu cứu hộ với bộ lọc (UC-RES-01 Step 3)</summary>
     Task<IEnumerable<RescueRequestListItemDto>> GetListAsync(
-        string? status, string? rescueType, int? customerId,
+        string? status, string? rescueType, int? customerId, int? assignedTechnicianId,
         DateTime? fromDate, DateTime? toDate, CancellationToken ct);
 
     /// <summary>Xem chi tiết yêu cầu cứu hộ — dùng cho cả SA và Customer (UC-RES-01 Step 3-4)</summary>
@@ -143,10 +143,16 @@ public interface IRescueRequestService
 
     /// <summary>
     /// Customer thanh toán (UC-RES-04 D5).
-    /// customerId lấy từ JWT token. PAYMENT_PENDING → COMPLETED.
+    /// customerId lấy từ JWT token. PAYMENT_PENDING → PAYMENT_SUBMITTED.
     /// Validate: amount = finalAmount (BR-23), method hợp lệ (SMP07). SMP03, SMP05.
     /// </summary>
     Task<PaymentResultDto> ProcessPaymentAsync(int rescueId, int customerId, ProcessPaymentDto request, CancellationToken ct);
+
+    /// <summary>
+    /// SA xác nhận đã nhận tiền sau khi customer thanh toán.
+    /// saId lấy từ JWT token. PAYMENT_SUBMITTED → COMPLETED.
+    /// </summary>
+    Task<PaymentResultDto> ConfirmPaymentAsync(int rescueId, int saId, CancellationToken ct);
 
     // -------------------------------------------------------------------------
     // UC-RES-05: Tranh chấp hóa đơn

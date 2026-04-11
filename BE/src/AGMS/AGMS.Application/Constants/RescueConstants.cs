@@ -22,6 +22,7 @@ public static class RescueStatus
     public const string Invoiced = "INVOICED"; // Trạng thái đơn khi SA tạo hoá đơn
     public const string InvoiceSent = "INVOICE_SENT"; // Trạng thái đơn khi hoá đơn được gửi tới khách hàng
     public const string PaymentPending = "PAYMENT_PENDING"; // Trạng thái đơn khi đang chờ khách thanh toán
+    public const string PaymentSubmitted = "PAYMENT_SUBMITTED"; // Trạng thái đơn khi khách đã thanh toán và chờ SA xác nhận nhận tiền
     public const string InvoiceDisputed = "INVOICE_DISPUTED"; //bỏ
     public const string Completed = "COMPLETED"; // Trạng thái đơn khi khách hàng thanh toán xong, job đóng
     public const string Cancelled = "CANCELLED"; // Trạng thái đơn khi đóng bởi bất cứ ai có quyền
@@ -133,6 +134,12 @@ public static class RescueStatus
         PaymentPending
     };
 
+    /// <summary>SA xác nhận đã nhận tiền sau khi khách đã thanh toán.</summary>
+    public static readonly IReadOnlySet<string> AllowedForConfirmPayment = new HashSet<string>
+    {
+        PaymentSubmitted
+    };
+
     // --- UC-RES-05: Status sets cho tranh chấp hóa đơn ---
 
     /// <summary>Customer khiếu nại — chỉ khi hóa đơn đã gửi (BR-18, BR-26)</summary>
@@ -184,11 +191,17 @@ public static class RescueType
 /// </summary>
 public static class RescueMaintenanceType
 {
+    /// <summary>
+    /// DB hiện chỉ chấp nhận MaintenanceType = RESCUE cho mọi hồ sơ phát sinh từ rescue.
+    /// Phân biệt roadside / towing được giữ ở RescueRequest.RescueType.
+    /// </summary>
+    public const string Unified = "RESCUE";
+
     /// <summary>Sửa chữa tại chỗ ven đường (UC-RES-02)</summary>
-    public const string Roadside = "RESCUE_ROADSIDE";
+    public const string Roadside = Unified;
 
     /// <summary>Kéo xe về xưởng (UC-RES-03)</summary>
-    public const string Towing = "RESCUE_TOWING";
+    public const string Towing = Unified;
 }
 
 /// <summary>
@@ -219,6 +232,7 @@ public static class InvoiceStatus
             RescueStatus.Invoiced => Created,
             RescueStatus.InvoiceSent => Sent,
             RescueStatus.PaymentPending => Accepted,
+            RescueStatus.PaymentSubmitted => Paid,
             RescueStatus.Completed => Paid,
             RescueStatus.InvoiceDisputed => Disputed,
             _ => Created

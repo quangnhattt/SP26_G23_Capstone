@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddDbContext<CarServiceDbContext>(options =>
             options.UseSqlServer(connectionString));
 
+        services.AddScoped<ITransactionManager, TransactionManager>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
