@@ -1269,12 +1269,12 @@ const RescueManagement = () => {
                 </p>
               ) : (
                 <>
-                  {/* ─── Danh sách vật tư / dịch vụ ─── */}
+                  {/* ─── Danh sách vật tư / dịch vụ đã sửa ─── */}
                   <div>
                     <FormLabel style={{ marginBottom: "0.5rem", display: "block" }}>
                       {t("rescueMgrInvoicePartsTitle")}
                     </FormLabel>
-                    {(!selectedRescue.suggestedParts || selectedRescue.suggestedParts.length === 0) ? (
+                    {(!selectedRescue.repairItems || selectedRescue.repairItems.length === 0) ? (
                       <p style={{ fontSize: "0.8125rem", color: "#9ca3af", margin: 0 }}>
                         {t("rescueMgrInvoicePartsEmpty")}
                       </p>
@@ -1290,16 +1290,16 @@ const RescueManagement = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedRescue.suggestedParts.map((part, idx) => {
-                              const lineTotal = part.estimatedLineAmount ?? ((part.unitPrice ?? 0) * part.quantity);
+                            {selectedRescue.repairItems.map((item, idx) => {
+                              const lineTotal = item.lineTotal ?? (item.unitPrice * item.quantity);
                               return (
-                                <tr key={part.partId} style={{ borderBottom: idx < (selectedRescue.suggestedParts?.length ?? 0) - 1 ? "1px solid #f3f4f6" : "none" }}>
+                                <tr key={`${item.productId}-${idx}`} style={{ borderBottom: idx < (selectedRescue.repairItems?.length ?? 0) - 1 ? "1px solid #f3f4f6" : "none" }}>
                                   <td style={{ padding: "0.5rem 0.75rem", color: "#111827" }}>
-                                    <div style={{ fontWeight: 500 }}>{part.partName ?? `ID ${part.partId}`}</div>
-                                    {part.partCode && <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{part.partCode}</div>}
+                                    <div style={{ fontWeight: 500 }}>{item.productName ?? `ID ${item.productId}`}</div>
+                                    {item.productCode && <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{item.productCode}</div>}
                                   </td>
-                                  <td style={{ padding: "0.5rem 0.5rem", textAlign: "center", color: "#374151" }}>{part.quantity}</td>
-                                  <td style={{ padding: "0.5rem 0.5rem", textAlign: "right", color: "#374151", whiteSpace: "nowrap" }}>{(part.unitPrice ?? 0).toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem 0.5rem", textAlign: "center", color: "#374151" }}>{item.quantity}</td>
+                                  <td style={{ padding: "0.5rem 0.5rem", textAlign: "right", color: "#374151", whiteSpace: "nowrap" }}>{item.unitPrice.toLocaleString()}</td>
                                   <td style={{ padding: "0.5rem 0.75rem", textAlign: "right", color: "#111827", fontWeight: 500, whiteSpace: "nowrap" }}>{lineTotal.toLocaleString()}</td>
                                 </tr>
                               );
@@ -1309,8 +1309,8 @@ const RescueManagement = () => {
                         <div style={{ padding: "0.5rem 0.75rem", background: "#f0fdf4", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <span style={{ fontSize: "0.8125rem", color: "#374151" }}>{t("rescueMgrInvoiceSubtotal")}</span>
                           <span style={{ fontWeight: 700, color: "#15803d", fontSize: "0.9375rem" }}>
-                            {selectedRescue.suggestedParts
-                              .reduce((sum, p) => sum + (p.estimatedLineAmount ?? ((p.unitPrice ?? 0) * p.quantity)), 0)
+                            {selectedRescue.repairItems
+                              .reduce((sum, item) => sum + (item.lineTotal ?? (item.unitPrice * item.quantity)), 0)
                               .toLocaleString()} VND
                           </span>
                         </div>

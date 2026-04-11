@@ -26,6 +26,16 @@ export interface IRescueSuggestedServiceDetail {
   price?: number;
 }
 
+export interface IRepairItemDetail {
+  productId: number;
+  productCode?: string;
+  productName?: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal?: number;
+  notes?: string;
+}
+
 export interface IRescueRequest {
   rescueId: number;
   status: RescueStatus;
@@ -54,6 +64,7 @@ export interface IRescueRequest {
   serviceFee?: number;
   suggestedParts?: IRescueSuggestedPartDetail[];
   suggestedServices?: IRescueSuggestedServiceDetail[];
+  repairItems?: IRepairItemDetail[];
   invoice?: IRescueInvoiceData;
 }
 
