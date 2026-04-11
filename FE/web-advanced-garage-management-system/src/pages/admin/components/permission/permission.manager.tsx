@@ -2,10 +2,9 @@ import styled from "styled-components";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import PermissionGroupsTab from "./tabs/PermissionGroupsTab";
-import PermissionsTab from "./tabs/PermissionsTab";
-import RolePermissionsTab from "./tabs/RolePermissionsTab";
+import RoleTab from "./tabs/RoleTab";
 
-type TabKey = "groups" | "permissions" | "rolePermissions";
+type TabKey = "groups" | "role";
 
 const PermissionManager = () => {
   const { t } = useTranslation();
@@ -13,8 +12,7 @@ const PermissionManager = () => {
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: "groups", label: t("permTabGroups") },
-    { key: "permissions", label: t("permTabPermissions") },
-    { key: "rolePermissions", label: t("permTabRolePermissions") },
+    { key: "role", label: t("permTabRole") },
   ];
 
   return (
@@ -40,8 +38,7 @@ const PermissionManager = () => {
 
       <TabContent>
         {activeTab === "groups" && <PermissionGroupsTab />}
-        {activeTab === "permissions" && <PermissionsTab />}
-        {activeTab === "rolePermissions" && <RolePermissionsTab />}
+        {activeTab === "role" && <RoleTab />}
       </TabContent>
     </Container>
   );

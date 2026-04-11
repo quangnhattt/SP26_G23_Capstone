@@ -12,11 +12,10 @@ export interface IPermissionGroupRequest {
   description: string;
 }
 
-// ── Permissions ────────────────────────────────────────────────────────────────
+// ── Permissions (items under a group) ─────────────────────────────────────────
 export interface IPermission {
   permissionID: number;
   groupID: number;
-  groupName?: string;
   name: string;
   url: string;
   description: string;
@@ -29,19 +28,19 @@ export interface IPermissionRequest {
   description: string;
 }
 
-// ── Role Permissions ───────────────────────────────────────────────────────────
-export interface IRolePermissionMatrix {
+/** Row inside role matrix (matches BE PermissionDetailDto; URL not returned by matrix API). */
+export interface IPermissionMatrixItem {
   permissionID: number;
   name: string;
-  url: string;
-  description: string;
-  groupName: string;
+  description?: string | null;
   isGranted: boolean;
 }
 
-export interface IRole {
-  roleID: number;
-  roleName: string;
+/** Group block in role matrix (matches BE PermissionGroupMatrixDto). */
+export interface IRolePermissionMatrix {
+  groupID: number;
+  groupName: string;
+  permissions: IPermissionMatrixItem[];
 }
 
 // ── Permission Groups API ──────────────────────────────────────────────────────
@@ -50,58 +49,93 @@ export const getPermissionGroups = async (): Promise<IPermissionGroup[]> => {
   return data;
 };
 
-export const getPermissionGroupById = async (id: number): Promise<IPermissionGroup> => {
-  const { data } = await AxiosClient.get<IPermissionGroup>(`/api/PermissionGroups/${id}`);
-  return data;
+export const createPermissionGroup = async (body: IPermissionGroupRequest): Promise<void> => {
+  await AxiosClient.post("/api/PermissionGroups", body);
 };
 
-export const createPermissionGroup = async (body: IPermissionGroupRequest): Promise<IPermissionGroup> => {
-  const { data } = await AxiosClient.post<IPermissionGroup>("/api/PermissionGroups", body);
-  return data;
-};
-
-export const updatePermissionGroup = async (id: number, body: IPermissionGroupRequest): Promise<IPermissionGroup> => {
-  const { data } = await AxiosClient.put<IPermissionGroup>(`/api/PermissionGroups/${id}`, body);
-  return data;
+export const updatePermissionGroup = async (
+  id: number,
+  body: IPermissionGroupRequest,
+): Promise<void> => {
+  await AxiosClient.put(`/api/PermissionGroups/${id}`, body);
 };
 
 export const deletePermissionGroup = async (id: number): Promise<void> => {
   await AxiosClient.delete(`/api/PermissionGroups/${id}`);
 };
 
-// ── Permissions API ────────────────────────────────────────────────────────────
+// ── Permissions API (BE PermissionsController) ─────────────────────────────────
+/**
+ * Lists all permissions by loading the role matrix for roleId 1 (Admin).
+ * The API returns every permission under each group; `isGranted` is ignored here.
+ * URLs are not included in the matrix DTO — left empty until BE exposes them.
+ */
 export const getPermissions = async (): Promise<IPermission[]> => {
-  const { data } = await AxiosClient.get<IPermission[]>("/api/Permissions");
-  return data;
+  const matrix = await getRolePermissionMatrix(1);
+  return matrix.flatMap((g) =>
+    g.permissions.map((p) => ({
+      permissionID: p.permissionID,
+      groupID: g.groupID,
+      name: p.name,
+      url: "",
+      description: p.description ?? "",
+    })),
+  );
 };
 
-export const createPermission = async (body: IPermissionRequest): Promise<IPermission> => {
-  const { data } = await AxiosClient.post<IPermission>("/api/Permissions", body);
-  return data;
+export const createPermission = async (body: IPermissionRequest): Promise<void> => {
+  await AxiosClient.post("/api/Permissions", {
+    name: body.name,
+    url: body.url || null,
+    description: body.description || null,
+    groupID: body.groupID,
+  });
 };
 
-export const updatePermission = async (id: number, body: IPermissionRequest): Promise<IPermission> => {
-  const { data } = await AxiosClient.put<IPermission>(`/api/Permissions/${id}`, body);
-  return data;
+export const updatePermission = async (id: number, body: IPermissionRequest): Promise<void> => {
+  await AxiosClient.put(`/api/Permissions/${id}`, {
+    name: body.name,
+    url: body.url || null,
+    description: body.description || null,
+    groupID: body.groupID,
+  });
 };
 
 export const deletePermission = async (id: number): Promise<void> => {
   await AxiosClient.delete(`/api/Permissions/${id}`);
 };
 
-// ── Role Permissions API ───────────────────────────────────────────────────────
-export const getRolePermissionMatrix = async (roleId: number): Promise<IRolePermissionMatrix[]> => {
-  const { data } = await AxiosClient.get<IRolePermissionMatrix[]>(`/api/RolePermissions/matrix/${roleId}`);
-  return data;
-};
-
-export const updateRolePermissions = async (roleId: number, permissionIds: number[]): Promise<void> => {
-  await AxiosClient.put(`/api/RolePermissions/editUserPermission`, permissionIds, {
-    params: { roleId },
-  });
-};
+// ── Roles (BE RolesController) ────────────────────────────────────────────────
+export interface IRole {
+  roleID: number;
+  roleName: string;
+  description: string;
+  isActive: boolean;
+}
 
 export const getRoles = async (): Promise<IRole[]> => {
-  const { data } = await AxiosClient.get<IRole[]>("/api/roles");
+  const { data } = await AxiosClient.get<{ message: string; data: IRole[] }>("/api/Roles");
+  return data.data;
+};
+
+// ── Role ↔ Permissions (BE RolePermissionsController) ──────────────────────────
+export const getRolePermissionMatrix = async (
+  roleId: number,
+): Promise<IRolePermissionMatrix[]> => {
+  const { data } = await AxiosClient.get<IRolePermissionMatrix[]>(
+    "/api/RolePermissions/matrix",
+    { params: { roleId } },
+  );
   return data;
+};
+
+export const updateRolePermissions = async (
+  roleId: number,
+  permissionIds: number[],
+): Promise<void> => {
+  await AxiosClient.put(
+    "/api/RolePermissions/editUserPermission",
+    { permissionIds },
+    { params: { roleId } },
+  );
 };

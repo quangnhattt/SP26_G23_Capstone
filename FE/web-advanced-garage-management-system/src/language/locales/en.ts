@@ -1939,9 +1939,8 @@ export default {
   // ── Permission Management ──────────────────────────────────────────────────
   permManagement: "Permission Management",
   permManagementSubtitle: "Manage permission groups, permissions and role assignments",
-  permTabGroups: "Permission Groups",
-  permTabPermissions: "Permissions",
-  permTabRolePermissions: "Role Permissions",
+  permTabGroups: "Menu Access",
+  permTabRole: "Role",
 
   // Permission Groups
   permGrpName: "Group Name",
@@ -1984,4 +1983,9 @@ export default {
   rolePermEmpty: "No permissions found for this role",
   permGroupOther: "Other",
   permGroupEmpty: "No permissions in this group yet",
+
+  // Role Tab
+  roleName: "Role Name",
+  roleSearch: "Search by role name, description...",
+  managePermissions: "Manage Permissions",
 };

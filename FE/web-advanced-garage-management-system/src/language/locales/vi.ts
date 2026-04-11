@@ -1925,9 +1925,8 @@ export default {
   // ── Quản lý phân quyền ─────────────────────────────────────────────────────
   permManagement: "Quản lý phân quyền",
   permManagementSubtitle: "Quản lý nhóm quyền, quyền hạn và phân quyền theo vai trò",
-  permTabGroups: "Nhóm quyền",
-  permTabPermissions: "Quyền hạn",
-  permTabRolePermissions: "Phân quyền Role",
+  permTabGroups: "Menu Access",
+  permTabRole: "Role",
 
   // Nhóm quyền
   permGrpName: "Tên nhóm",
@@ -1970,4 +1969,9 @@ export default {
   rolePermEmpty: "Không có quyền nào cho vai trò này",
   permGroupOther: "Khác",
   permGroupEmpty: "Nhóm này chưa có quyền nào",
+
+  // Role Tab
+  roleName: "Tên vai trò",
+  roleSearch: "Tìm theo tên vai trò, mô tả...",
+  managePermissions: "Phân quyền",
 };
