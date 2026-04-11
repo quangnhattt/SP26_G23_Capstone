@@ -21,15 +21,23 @@ export interface IUnitUpdateRequest {
   isActive: boolean;
 }
 
-interface IUnitsResponse {
+export interface IUnitsParams {
+  SearchTerm?: string;
+  Type?: string;
+  PageIndex?: number;
+  PageSize?: number;
+  IsActive?: boolean;
+}
+
+export interface IUnitsResponse {
   items: IUnit[];
   totalCount: number;
   systemMessage: string | null;
 }
 
-export const getUnits = async (params?: { type?: string }): Promise<IUnit[]> => {
+export const getUnits = async (params?: IUnitsParams): Promise<IUnitsResponse> => {
   const { data } = await AxiosClient.get<IUnitsResponse>("/api/Units", { params });
-  return data.items;
+  return data;
 };
 
 export const createUnit = async (unit: IUnitCreateRequest): Promise<IUnit> => {

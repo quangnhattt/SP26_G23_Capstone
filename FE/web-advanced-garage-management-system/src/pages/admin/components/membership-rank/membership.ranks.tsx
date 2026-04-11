@@ -6,6 +6,7 @@ import {
   Table as AntTable,
   Switch,
   ConfigProvider,
+  Select as AntSelect,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -13,6 +14,7 @@ import {
   createMembershipRank,
   updateMembershipRank,
   updateMembershipRankStatus,
+  type IMembershipRanksQuery,
 } from "@/services/admin/membershipRankService";
 import type { IMembershipRank } from "@/services/admin/membershipRankService";
 import { toast } from "react-toastify";
@@ -27,9 +29,12 @@ interface MembershipRankFormData {
   isActive: boolean;
 }
 
+const PAGE_SIZE = 10;
+
 const MembershipRanksManager = () => {
   const { t } = useTranslation();
   const [ranks, setRanks] = useState<IMembershipRank[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,25 +48,46 @@ const MembershipRanksManager = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
+  const [pageIndex, setPageIndex] = useState(1);
   const [updatingRankId, setUpdatingRankId] = useState<number | null>(null);
 
   const fetchRanks = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getMembershipRanks();
-      setRanks(data);
+      const query: IMembershipRanksQuery = {
+        SearchTerm: searchTerm || undefined,
+        IsActive: isActiveFilter,
+        Page: pageIndex,
+        PageSize: PAGE_SIZE,
+      };
+      const data = await getMembershipRanks(query);
+      setRanks(data.items);
+      setTotalCount(data.totalCount);
     } catch (err) {
       console.error("Failed to fetch membership ranks:", err);
       setError(t("cannotLoadMembershipRanks"));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, searchTerm, isActiveFilter, pageIndex]);
 
   useEffect(() => {
     fetchRanks();
   }, [fetchRanks]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setPageIndex(1);
+  };
+
+  const handleIsActiveChange = (value: string | undefined) => {
+    if (value === "true") setIsActiveFilter(true);
+    else if (value === "false") setIsActiveFilter(false);
+    else setIsActiveFilter(undefined);
+    setPageIndex(1);
+  };
 
   const handleOpenCreateModal = () => {
     setEditingRank(null);
@@ -152,9 +178,6 @@ const MembershipRanksManager = () => {
     }
   };
 
-  const filteredRanks = ranks.filter((r) =>
-    r.rankName.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
 
   const columns: ColumnsType<IMembershipRank> = [
     {
@@ -242,11 +265,51 @@ const MembershipRanksManager = () => {
           <SearchInput
             placeholder={t("searchByRankName")}
             value={searchTerm}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setSearchTerm(e.target.value)
-            }
+            onChange={handleSearchChange}
           />
         </SearchWrapper>
+
+        <ConfigProvider
+          theme={{
+            token: { colorText: "#000", colorTextPlaceholder: "#000" },
+            components: {
+              Select: {
+                colorText: "#000",
+                colorTextPlaceholder: "#000",
+                colorBgContainer: "#fff",
+                optionSelectedColor: "#000",
+                colorTextDisabled: "#000",
+                colorTextQuaternary: "#000",
+              },
+            },
+          }}
+        >
+          <FilterSelect
+            className="membership-filter-select"
+            popupClassName="membership-filter-dropdown"
+            allowClear
+            placeholder={t("membershipRankStatusFilterLabel")}
+            value={
+              isActiveFilter === undefined
+                ? undefined
+                : isActiveFilter
+                ? "true"
+                : "false"
+            }
+            onChange={(v) => handleIsActiveChange(v as string | undefined)}
+            style={{ width: 180 }}
+            options={[
+              {
+                value: "true",
+                label: <span style={{ color: "#000" }}>{t("membershipRankStatusFilterActive")}</span>,
+              },
+              {
+                value: "false",
+                label: <span style={{ color: "#000" }}>{t("membershipRankStatusFilterInactive")}</span>,
+              },
+            ]}
+          />
+        </ConfigProvider>
       </Toolbar>
 
       <TableCard>
@@ -263,12 +326,15 @@ const MembershipRanksManager = () => {
         >
           <AntTable
             columns={columns}
-            dataSource={filteredRanks}
+            dataSource={ranks}
             rowKey="rankID"
             loading={loading}
             pagination={{
-              pageSize: 10,
+              current: pageIndex,
+              pageSize: PAGE_SIZE,
+              total: totalCount,
               showSizeChanger: false,
+              onChange: (page) => setPageIndex(page),
               showTotal: (total, range) =>
                 `${range[0]}–${range[1]} / ${total} ${t("membershipRank")}`,
             }}
@@ -355,7 +421,40 @@ const Toolbar = styled.div`
   align-items: center;
 `;
 
-const FilterSelectGlobalStyle = createGlobalStyle``;
+const FilterSelect = styled(AntSelect)`
+  &&& .ant-select-selector,
+  &&& .ant-select-selector .ant-select-selection-item,
+  &&& .ant-select-selector .ant-select-selection-item-content,
+  &&& .ant-select-selector .ant-select-selection-placeholder,
+  &&& .ant-select-selection-search-input,
+  &&& .ant-select-arrow,
+  &&& .ant-select-clear,
+  &&& .ant-select-selection-item-remove {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
+
+  &&&.ant-select-disabled .ant-select-selector,
+  &&&.ant-select-disabled .ant-select-selector .ant-select-selection-item,
+  &&&.ant-select-disabled
+    .ant-select-selector
+    .ant-select-selection-placeholder {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
+`;
+
+const FilterSelectGlobalStyle = createGlobalStyle`
+  .membership-filter-dropdown .ant-select-item,
+  .membership-filter-dropdown .ant-select-item-option-content,
+  .membership-filter-dropdown .ant-select-item-option-selected .ant-select-item-option-content,
+  .membership-filter-dropdown .ant-select-item-option-active .ant-select-item-option-content,
+  .membership-filter-dropdown .ant-empty-description {
+    color: #000 !important;
+  }
+`;
 
 const SearchWrapper = styled.label`
   display: flex;

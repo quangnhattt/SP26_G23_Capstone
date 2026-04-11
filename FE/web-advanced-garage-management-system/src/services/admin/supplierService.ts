@@ -29,8 +29,19 @@ export interface ISuppliersResponse {
   systemMessage: string | null;
 }
 
-export const getSuppliers = async (): Promise<ISuppliersResponse> => {
-  const { data } = await AxiosClient.get<ISuppliersResponse>("/api/Suppliers");
+export interface ISuppliersQuery {
+  SearchTerm?: string;
+  IsActive?: boolean;
+  Page?: number;
+  PageSize?: number;
+}
+
+export const getSuppliers = async (
+  params?: ISuppliersQuery,
+): Promise<ISuppliersResponse> => {
+  const { data } = await AxiosClient.get<ISuppliersResponse>("/api/Suppliers", {
+    params,
+  });
   return data;
 };
 

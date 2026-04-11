@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import styled from "styled-components";
+import styled, { createGlobalStyle } from "styled-components";
 import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
-import { Table as AntTable, Switch } from "antd";
+import { Table as AntTable, Switch, Select as AntSelect, ConfigProvider } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   getUnits,
@@ -22,9 +22,12 @@ interface UnitFormData {
   isActive: boolean;
 }
 
+const PAGE_SIZE = 10;
+
 const UnitPage = () => {
   const { t } = useTranslation();
   const [units, setUnits] = useState<IUnit[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,26 +39,56 @@ const UnitPage = () => {
     isActive: false,
   });
   const [submitting, setSubmitting] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const [updatingUnitId, setUpdatingUnitId] = useState<number | null>(null);
+
+  // Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
+  const [pageIndex, setPageIndex] = useState(1);
 
   const fetchUnits = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getUnits();
-      setUnits(data);
+      const data = await getUnits({
+        SearchTerm: searchTerm || undefined,
+        Type: typeFilter,
+        IsActive: isActiveFilter,
+        PageIndex: pageIndex,
+        PageSize: PAGE_SIZE,
+      });
+      setUnits(data.items);
+      setTotalCount(data.totalCount);
     } catch (err) {
       console.error("Failed to fetch units:", err);
       setError(t("unitCannotLoad"));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, searchTerm, typeFilter, isActiveFilter, pageIndex]);
 
   useEffect(() => {
     fetchUnits();
   }, [fetchUnits]);
+
+  // Reset to page 1 when filters change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setPageIndex(1);
+  };
+
+  const handleTypeChange = (value: string | undefined) => {
+    setTypeFilter(value);
+    setPageIndex(1);
+  };
+
+  const handleIsActiveChange = (value: string | undefined) => {
+    if (value === "true") setIsActiveFilter(true);
+    else if (value === "false") setIsActiveFilter(false);
+    else setIsActiveFilter(undefined);
+    setPageIndex(1);
+  };
 
   const handleOpenCreateModal = () => {
     setEditingUnit(null);
@@ -133,13 +166,6 @@ const UnitPage = () => {
     }
   };
 
-  const filteredUnits = units.filter(
-    (u) =>
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.description?.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
   const columns: ColumnsType<IUnit> = [
     {
       title: t("id"),
@@ -207,6 +233,7 @@ const UnitPage = () => {
 
   return (
     <Container>
+      <FilterSelectGlobalStyle />
       <Header>
         <div>
           <Title>{t("unitManagement")}</Title>
@@ -227,20 +254,85 @@ const UnitPage = () => {
             type="text"
             placeholder={t("unitSearchPlaceholder")}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
           />
         </SearchWrapper>
+
+        <ConfigProvider
+          theme={{
+            token: { colorText: "#000", colorTextPlaceholder: "#000" },
+            components: {
+              Select: {
+                colorText: "#000",
+                colorTextPlaceholder: "#000",
+                colorBgContainer: "#fff",
+                optionSelectedColor: "#000",
+                colorTextDisabled: "#000",
+                colorTextQuaternary: "#000",
+              },
+            },
+          }}
+        >
+          <FilterSelect
+            className="unit-filter-select"
+            popupClassName="unit-filter-dropdown"
+            allowClear
+            placeholder={t("unitTypeFilterPlaceholder")}
+            value={typeFilter}
+            onChange={handleTypeChange}
+            style={{ width: 160 }}
+            options={[
+              {
+                value: "PART",
+                label: <span style={{ color: "#000" }}>{t("unitTypePart")}</span>,
+              },
+              {
+                value: "SERVICE",
+                label: <span style={{ color: "#000" }}>{t("unitTypeService")}</span>,
+              },
+            ]}
+          />
+
+          <FilterSelect
+            className="unit-filter-select"
+            popupClassName="unit-filter-dropdown"
+            allowClear
+            placeholder={t("unitStatusFilterPlaceholder")}
+            value={
+              isActiveFilter === undefined
+                ? undefined
+                : isActiveFilter
+                ? "true"
+                : "false"
+            }
+            onChange={handleIsActiveChange}
+            style={{ width: 160 }}
+            options={[
+              {
+                value: "true",
+                label: <span style={{ color: "#000" }}>{t("active")}</span>,
+              },
+              {
+                value: "false",
+                label: <span style={{ color: "#000" }}>{t("inactive")}</span>,
+              },
+            ]}
+          />
+        </ConfigProvider>
       </Toolbar>
 
       <TableCard>
         <AntTable
           columns={columns}
-          dataSource={filteredUnits}
+          dataSource={units}
           rowKey="unitID"
           loading={loading}
           pagination={{
-            pageSize: 10,
+            current: pageIndex,
+            pageSize: PAGE_SIZE,
+            total: totalCount,
             showSizeChanger: false,
+            onChange: (page) => setPageIndex(page),
             showTotal: (total, range) =>
               `${range[0]}–${range[1]} / ${total} ${t("unit")}`,
           }}
@@ -398,7 +490,6 @@ const TypeBadge = styled.span<{ $type: string }>`
   display: inline-block;
 `;
 
-
 const DescriptionText = styled.div`
   max-width: 300px;
   overflow: hidden;
@@ -429,3 +520,39 @@ const EditButton = styled.button`
     color: #2563eb;
   }
 `;
+
+const FilterSelect = styled(AntSelect)`
+  &&& .ant-select-selector,
+  &&& .ant-select-selector .ant-select-selection-item,
+  &&& .ant-select-selector .ant-select-selection-item-content,
+  &&& .ant-select-selector .ant-select-selection-placeholder,
+  &&& .ant-select-selection-search-input,
+  &&& .ant-select-arrow,
+  &&& .ant-select-clear,
+  &&& .ant-select-selection-item-remove {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
+
+  &&&.ant-select-disabled .ant-select-selector,
+  &&&.ant-select-disabled .ant-select-selector .ant-select-selection-item,
+  &&&.ant-select-disabled
+    .ant-select-selector
+    .ant-select-selection-placeholder {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
+`;
+
+const FilterSelectGlobalStyle = createGlobalStyle`
+  .unit-filter-dropdown .ant-select-item,
+  .unit-filter-dropdown .ant-select-item-option-content,
+  .unit-filter-dropdown .ant-select-item-option-selected .ant-select-item-option-content,
+  .unit-filter-dropdown .ant-select-item-option-active .ant-select-item-option-content,
+  .unit-filter-dropdown .ant-empty-description {
+    color: #000 !important;
+  }
+`;
+
