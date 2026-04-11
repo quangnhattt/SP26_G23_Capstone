@@ -1939,9 +1939,8 @@ export default {
   // ── Permission Management ──────────────────────────────────────────────────
   permManagement: "Permission Management",
   permManagementSubtitle: "Manage permission groups, permissions and role assignments",
-  permTabGroups: "Permission Groups",
-  permTabPermissions: "Permissions",
-  permTabRolePermissions: "Role Permissions",
+  permTabGroups: "Menu Access",
+  permTabRole: "Role",
 
   // Permission Groups
   permGrpName: "Group Name",

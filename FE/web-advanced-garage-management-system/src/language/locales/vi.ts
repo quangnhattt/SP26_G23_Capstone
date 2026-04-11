@@ -1925,9 +1925,8 @@ export default {
   // ── Quản lý phân quyền ─────────────────────────────────────────────────────
   permManagement: "Quản lý phân quyền",
   permManagementSubtitle: "Quản lý nhóm quyền, quyền hạn và phân quyền theo vai trò",
-  permTabGroups: "Nhóm quyền",
-  permTabPermissions: "Quyền hạn",
-  permTabRolePermissions: "Phân quyền Role",
+  permTabGroups: "Menu Access",
+  permTabRole: "Role",
 
   // Nhóm quyền
   permGrpName: "Tên nhóm",
