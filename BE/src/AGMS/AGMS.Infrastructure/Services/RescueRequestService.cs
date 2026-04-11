@@ -909,25 +909,25 @@ public class RescueRequestService : IRescueRequestService
         }
         else
         {
-            // Tương thích ngược cho rescue cũ chỉ tạo Repair Order ở bước hoàn tất kéo xe.
-            await EnsureWorkshopRecordsCreatedAsync(
-                rescue,
-                saId,
-                "Tự động tạo Repair Order khi hoàn tất kéo xe.",
-                ct
-            );
-            maintenance =
-                await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID!.Value, ct)
-                ?? throw new InvalidOperationException("Không thể tạo Repair Order cho yêu cầu kéo xe.");
+            // // Tương thích ngược cho rescue cũ chỉ tạo Repair Order ở bước hoàn tất kéo xe.
+            // await EnsureWorkshopRecordsCreatedAsync(
+            //     rescue,
+            //     saId,
+            //     "Tự động tạo Repair Order khi hoàn tất kéo xe.",
+            //     ct
+            // );
+            // maintenance =
+            //     await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID!.Value, ct)
+            //     ?? throw new InvalidOperationException("Không thể tạo Repair Order cho yêu cầu kéo xe.");
         }
 
-        maintenance.Notes = AppendAuditNote(
-            maintenance.Notes,
-            string.IsNullOrWhiteSpace(request.RepairOrderNotes)
-                ? "[TOWING] Xe đã được kéo về xưởng."
-                : $"[TOWING] {request.RepairOrderNotes.Trim()}"
-        );
-        await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
+        // maintenance.Notes = AppendAuditNote(
+        //     maintenance.Notes,
+        //     string.IsNullOrWhiteSpace(request.RepairOrderNotes)
+        //         ? "[TOWING] Xe đã được kéo về xưởng."
+        //         : $"[TOWING] {request.RepairOrderNotes.Trim()}"
+        // );
+        // await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
 
         rescue.Status = RescueStatus.Towed;
         rescue.CompletedDate = now;
@@ -937,13 +937,13 @@ public class RescueRequestService : IRescueRequestService
         {
             RescueId = rescueId,
             Status = RescueStatus.Towed,
-            ResultingMaintenance = new TowingMaintenanceDto
-            {
-                MaintenanceId = maintenance.MaintenanceID,
-                MaintenanceType = maintenance.MaintenanceType,
-                Status = maintenance.Status,
-                CreatedDate = maintenance.CreatedDate
-            }
+            // ResultingMaintenance = new TowingMaintenanceDto
+            // {
+            //     MaintenanceId = maintenance.MaintenanceID,
+            //     MaintenanceType = maintenance.MaintenanceType,
+            //     Status = maintenance.Status,
+            //     CreatedDate = maintenance.CreatedDate
+            // }
         };
     }
 
