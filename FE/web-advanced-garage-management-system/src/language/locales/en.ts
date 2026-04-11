@@ -1935,4 +1935,53 @@ export default {
   historyTransferOrderDetailColNotes: "Notes",
   historyTransferOrderInventoryStatus_RESERVED: "Reserved",
   historyTransferOrderInventoryStatus_ISSUED: "Issued",
+
+  // ── Permission Management ──────────────────────────────────────────────────
+  permManagement: "Permission Management",
+  permManagementSubtitle: "Manage permission groups, permissions and role assignments",
+  permTabGroups: "Permission Groups",
+  permTabPermissions: "Permissions",
+  permTabRolePermissions: "Role Permissions",
+
+  // Permission Groups
+  permGrpName: "Group Name",
+  permGrpSearch: "Search by group name, description...",
+  permGrpAdd: "Add Group",
+  permGrpEdit: "Edit Group",
+  permGrpFilter: "Filter by group",
+  permGrpSelect: "Select group",
+  permGrpNamePlaceholder: "Enter group name",
+  permGrpDescPlaceholder: "Enter description",
+  permGrpCreateSuccess: "Permission group created successfully!",
+  permGrpUpdateSuccess: "Permission group updated successfully!",
+  permGrpDeleteSuccess: "Permission group deleted successfully!",
+  permGrpCannotLoad: "Cannot load permission group list",
+  permGrpConfirmDelete: "Are you sure you want to delete this permission group?",
+
+  // Permissions
+  permName: "Permission Name",
+  permUrl: "URL",
+  permGroup: "Group",
+  permSearch: "Search by name, URL...",
+  permAdd: "Add Permission",
+  permEdit: "Edit Permission",
+  permCancel: "Cancel",
+  permNamePlaceholder: "Enter permission name",
+  permUrlPlaceholder: "e.g. /api/Products",
+  permDescPlaceholder: "Enter description",
+  permCreateSuccess: "Permission created successfully!",
+  permUpdateSuccess: "Permission updated successfully!",
+  permDeleteSuccess: "Permission deleted successfully!",
+  permCannotLoad: "Cannot load permission list",
+  permConfirmDelete: "Are you sure you want to delete this permission?",
+
+  // Role Permissions
+  rolePermSelectRole: "Select role",
+  rolePermSelectHint: "Select a role to manage its permissions",
+  rolePermSave: "Save changes",
+  rolePermUpdateSuccess: "Role permissions updated successfully!",
+  rolePermCannotLoad: "Cannot load role permission matrix",
+  rolePermEmpty: "No permissions found for this role",
+  permGroupOther: "Other",
+  permGroupEmpty: "No permissions in this group yet",
 };

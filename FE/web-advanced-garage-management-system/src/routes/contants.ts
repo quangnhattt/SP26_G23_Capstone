@@ -30,5 +30,6 @@ export const ROUTER_PAGE = {
     maintenancePackage: "/admin/maintenance-package-management",
     assigned: "/admin/order-assigned-management",
     history: "/admin/history-transfer-order-management",
+    permission: "/admin/permission-management",
   },
 };

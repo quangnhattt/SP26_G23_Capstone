@@ -1921,4 +1921,53 @@ export default {
   historyTransferOrderDetailColNotes: "Ghi chú",
   historyTransferOrderInventoryStatus_RESERVED: "Đã giữ",
   historyTransferOrderInventoryStatus_ISSUED: "Đã xuất",
+
+  // ── Quản lý phân quyền ─────────────────────────────────────────────────────
+  permManagement: "Quản lý phân quyền",
+  permManagementSubtitle: "Quản lý nhóm quyền, quyền hạn và phân quyền theo vai trò",
+  permTabGroups: "Nhóm quyền",
+  permTabPermissions: "Quyền hạn",
+  permTabRolePermissions: "Phân quyền Role",
+
+  // Nhóm quyền
+  permGrpName: "Tên nhóm",
+  permGrpSearch: "Tìm theo tên nhóm, mô tả...",
+  permGrpAdd: "Thêm nhóm",
+  permGrpEdit: "Chỉnh sửa nhóm",
+  permGrpFilter: "Lọc theo nhóm",
+  permGrpSelect: "Chọn nhóm",
+  permGrpNamePlaceholder: "Nhập tên nhóm quyền",
+  permGrpDescPlaceholder: "Nhập mô tả",
+  permGrpCreateSuccess: "Tạo nhóm quyền thành công!",
+  permGrpUpdateSuccess: "Cập nhật nhóm quyền thành công!",
+  permGrpDeleteSuccess: "Xóa nhóm quyền thành công!",
+  permGrpCannotLoad: "Không thể tải danh sách nhóm quyền",
+  permGrpConfirmDelete: "Bạn có chắc chắn muốn xóa nhóm quyền này?",
+
+  // Quyền hạn
+  permName: "Tên quyền",
+  permUrl: "URL",
+  permGroup: "Nhóm",
+  permSearch: "Tìm theo tên, URL...",
+  permAdd: "Thêm quyền",
+  permEdit: "Chỉnh sửa quyền",
+  permCancel: "Hủy",
+  permNamePlaceholder: "Nhập tên quyền",
+  permUrlPlaceholder: "VD: /api/Products",
+  permDescPlaceholder: "Nhập mô tả",
+  permCreateSuccess: "Tạo quyền thành công!",
+  permUpdateSuccess: "Cập nhật quyền thành công!",
+  permDeleteSuccess: "Xóa quyền thành công!",
+  permCannotLoad: "Không thể tải danh sách quyền",
+  permConfirmDelete: "Bạn có chắc chắn muốn xóa quyền này?",
+
+  // Phân quyền Role
+  rolePermSelectRole: "Chọn vai trò",
+  rolePermSelectHint: "Chọn vai trò để quản lý quyền hạn của vai trò đó",
+  rolePermSave: "Lưu thay đổi",
+  rolePermUpdateSuccess: "Cập nhật phân quyền thành công!",
+  rolePermCannotLoad: "Không thể tải ma trận phân quyền",
+  rolePermEmpty: "Không có quyền nào cho vai trò này",
+  permGroupOther: "Khác",
+  permGroupEmpty: "Nhóm này chưa có quyền nào",
 };
