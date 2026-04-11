@@ -82,7 +82,13 @@ const EditPartsModal = ({
     );
   };
 
+  const ALLOWED_STATUSES: string[] = ["DIAGNOSING", "REPAIRING"];
+
   const handleSubmit = async () => {
+    if (!ALLOWED_STATUSES.includes(rescue.status)) {
+      toast.error(t("rescueTechRepairItemsInvalidStatus"));
+      return;
+    }
     if (selectedParts.length === 0) {
       toast.error(t("rescueTechRepairItemsRequired"));
       return;
