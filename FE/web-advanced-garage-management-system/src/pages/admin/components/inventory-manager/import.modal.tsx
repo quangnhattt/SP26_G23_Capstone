@@ -37,7 +37,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess, products }: ImportModalProps)
     setSupplierId("");
     setImportNote("");
     setImportItems([{ ...EMPTY_ITEM }]);
-    getSuppliers()
+    getSuppliers({ PageSize: 100, IsActive: true })
       .then((res) => setSuppliers(res.items))
       .catch(() => {});
   }, [isOpen]);

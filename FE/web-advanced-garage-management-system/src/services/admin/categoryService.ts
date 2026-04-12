@@ -27,6 +27,8 @@ export interface ICategoriesResponse {
 
 export const getCategories = async (params?: {
   type?: string;
+  pageSize?: number;
+  isActive?: boolean;
 }): Promise<ICategory[]> => {
   const { data } = await AxiosClient.get<ICategoriesResponse>(
     "/api/categories",
