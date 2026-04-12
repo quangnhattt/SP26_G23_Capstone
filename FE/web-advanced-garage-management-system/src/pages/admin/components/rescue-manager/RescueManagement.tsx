@@ -283,10 +283,10 @@ const RescueManagement = () => {
   };
 
   const handleCreateInvoice = async () => {
-    if (!selectedRescue) return; // TODO: bỏ guard !rescueServiceFee
+    if (!selectedRescue) return;
     try {
       await createRescueInvoice(selectedRescue.rescueId, {
-        // rescueServiceFee: Number(rescueServiceFee), // TODO: tạm ẩn phí dịch vụ cứu hộ
+        rescueServiceFee: Number(selectedRescue.serviceFee ?? 0),
         manualDiscount: Number(manualDiscount) || 0,
         notes: invoiceNotes.trim() || undefined,
       });
