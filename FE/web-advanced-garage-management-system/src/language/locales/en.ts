@@ -1359,6 +1359,12 @@ export default {
   appointmentsCreated: "Created",
   appointmentsQuote: "Quote",
   appointmentsCancelled: "Cancelled",
+  appointmentsRescueTab: "Rescue",
+  appointmentsAdditionalItemsTab: "Approve Add-ons",
+  appointmentsAdditionalEmpty: "No in-progress orders",
+  appointmentsAdditionalEmptyDesc: "In-progress orders with pending add-on items will appear here",
+  appointmentsAdditionalApproveBtn: "Approve add-on items",
+  appointmentsAdditionalNoMaintenance: "This order has no maintenance record yet",
 
   // Manager Appointment Page
   mgrAppointmentTitle: "Repair Request Management",
@@ -2038,4 +2044,8 @@ export default {
   homeCustomerApptEmpty: "No active appointments",
   homeCustomerRescueEmpty: "No active rescue requests",
   homeCustomerRescueFallback: "Rescue request",
+  homeCustomerAdditionalColTitle: "Approve Add-ons",
+  homeCustomerAdditionalViewAll: "View all",
+  homeCustomerAdditionalEmpty: "No orders awaiting approval",
+  homeCustomerAdditionalApproveBtn: "Approve",
 };
