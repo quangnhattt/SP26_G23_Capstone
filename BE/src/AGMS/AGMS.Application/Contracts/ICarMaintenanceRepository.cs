@@ -21,5 +21,6 @@ namespace AGMS.Application.Contracts
         Task<bool> ConfirmRepairOrderAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default);
         Task<bool> FinishRepairOrderAsync(int maintenanceId, int updatedByUserId, CancellationToken ct = default);
         Task<PartsExportListDto?> GetPartsToExportAsync(int maintenanceId, CancellationToken ct = default);
+        Task<bool> ProcessPaymentAsync(int maintenanceId, ProcessPaymentRequestDto request, int processedByUserId, CancellationToken ct = default);
     }
 }

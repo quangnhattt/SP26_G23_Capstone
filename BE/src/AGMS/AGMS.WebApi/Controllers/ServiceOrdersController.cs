@@ -273,5 +273,33 @@ public class ServiceOrdersController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpPost("{id:int}/pay")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ProcessPayment(int id, [FromBody] ProcessPaymentRequestDto request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var processedByUserId))
+            return Unauthorized(new { message = "Invalid or missing user id claim." });
+
+        try
+        {
+            var success = await _carMaintenanceService.ProcessPaymentAsync(id, request, processedByUserId, ct);
+            if (!success)
+                return NotFound(new { message = $"Không tìm thấy phiếu bảo dưỡng với ID = {id}." });
+
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }
 

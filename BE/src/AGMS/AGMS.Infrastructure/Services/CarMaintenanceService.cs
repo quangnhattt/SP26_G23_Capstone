@@ -69,5 +69,10 @@ public class CarMaintenanceService : ICarMaintenanceService
     {
         return await _repository.FinishRepairOrderAsync(maintenanceId, updatedByUserId, ct);
     }
+
+    public async Task<bool> ProcessPaymentAsync(int maintenanceId, ProcessPaymentRequestDto request, int processedByUserId, CancellationToken ct = default)
+    {
+        return await _repository.ProcessPaymentAsync(maintenanceId, request, processedByUserId, ct);
+    }
 }
 

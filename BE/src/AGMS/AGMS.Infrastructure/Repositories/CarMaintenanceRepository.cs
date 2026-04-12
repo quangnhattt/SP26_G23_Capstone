@@ -664,4 +664,75 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
 
         return exportList;
     }
+
+    public async Task<bool> ProcessPaymentAsync(int maintenanceId, ProcessPaymentRequestDto request, int processedByUserId, CancellationToken ct = default)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            var maintenance = await _db.CarMaintenances
+                .Include(m => m.Car).ThenInclude(c => c.Owner)
+                .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+
+            if (maintenance == null) return false;
+
+            if (maintenance.Status.ToUpperInvariant() != "WAITING_FOR_PAYMENT")
+                throw new InvalidOperationException("Chỉ có thể thanh toán khi phiếu sửa chữa đã chốt hóa đơn và đang chờ thanh toán (WAITING_FOR_PAYMENT).");
+
+            var amountToPay = maintenance.FinalAmount ?? (maintenance.TotalAmount - maintenance.DiscountAmount - maintenance.MemberDiscountAmount);
+
+            // 1. Ghi nhận giao dịch thanh toán
+            _db.PaymentTransactions.Add(new PaymentTransaction
+            {
+                MaintenanceID = maintenanceId,
+                PaymentMethod = request.PaymentMethod,
+                Amount = amountToPay,
+                PaymentDate = DateTime.UtcNow,
+                Status = "SUCCESS",
+                TransactionReference = request.TransactionReference,
+                Notes = request.Notes,
+                ProcessedBy = processedByUserId
+            });
+
+            // 2. Chuyển trạng thái Maintenance sang CLOSED
+            var oldStatus = maintenance.Status;
+            maintenance.Status = "CLOSED";
+            
+            _db.MaintenanceStatusLogs.Add(new MaintenanceStatusLog
+            {
+                MaintenanceID = maintenanceId,
+                OldStatus = oldStatus,
+                NewStatus = "CLOSED",
+                ChangedBy = processedByUserId,
+                ChangedDate = DateTime.UtcNow,
+                Note = $"Thanh toán thành công qua {request.PaymentMethod} và đóng phiếu."
+            });
+
+            // 3. Tích lũy điểm & Cập nhật thứ hạng thành viên
+            var owner = maintenance.Car?.Owner;
+            if (owner != null)
+            {
+                owner.TotalSpending += amountToPay;
+
+                var newRank = await _db.MembershipRanks
+                    .Where(r => r.IsActive && r.MinSpending <= owner.TotalSpending)
+                    .OrderByDescending(r => r.MinSpending)
+                    .FirstOrDefaultAsync(ct);
+
+                if (newRank != null && owner.CurrentRankID != newRank.RankID)
+                {
+                    owner.CurrentRankID = newRank.RankID;
+                }
+            }
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            return true;
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
+    }
 }
