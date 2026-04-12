@@ -368,8 +368,8 @@ const ManagermentAppointment = () => {
                     </>
                   )}
 
-                  {/* SA only: check-in button — only for CONFIRMED on today's date */}
-                  {isSA && item.status === "CONFIRMED" && appointmentIsToday && (
+                  {/* SA only: check-in button — available for all CONFIRMED appointments */}
+                  {isSA && item.status === "CONFIRMED" && (
                     <CheckInButton onClick={() => handleCheckIn(item.appointmentId)} disabled={isSubmitting}>
                       🔑 Tiếp nhận xe
                     </CheckInButton>
