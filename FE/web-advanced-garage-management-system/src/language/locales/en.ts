@@ -2002,4 +2002,25 @@ export default {
   roleName: "Role Name",
   roleSearch: "Search by role name, description...",
   managePermissions: "Manage Permissions",
+
+  // Appointment status labels
+  apptStatusPending: "Pending",
+  apptStatusConfirmed: "Confirmed",
+  apptStatusCheckedIn: "Checked In",
+  apptStatusDone: "Completed",
+  apptStatusCancelled: "Cancelled",
+
+  // Customer QuickView (home page widget)
+  homeCustomerRecentTitle: "Your Recent Activity",
+  homeCustomerViewAll: "View all",
+  homeCustomerEmptyText: "You have no active appointments or rescue requests.",
+  homeCustomerBookNow: "Book now",
+  homeCustomerCallRescue: "Call rescue",
+  homeCustomerApptColTitle: "Repair Appointments",
+  homeCustomerApptNewBtn: "New appointment",
+  homeCustomerRescueColTitle: "Rescue Requests",
+  homeCustomerRescueNewBtn: "New rescue",
+  homeCustomerApptEmpty: "No active appointments",
+  homeCustomerRescueEmpty: "No active rescue requests",
+  homeCustomerRescueFallback: "Rescue request",
 };

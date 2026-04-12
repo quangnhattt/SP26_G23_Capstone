@@ -1988,4 +1988,25 @@ export default {
   roleName: "Tên vai trò",
   roleSearch: "Tìm theo tên vai trò, mô tả...",
   managePermissions: "Phân quyền",
+
+  // Appointment status labels
+  apptStatusPending: "Chờ xác nhận",
+  apptStatusConfirmed: "Đã xác nhận",
+  apptStatusCheckedIn: "Đã nhận xe",
+  apptStatusDone: "Hoàn thành",
+  apptStatusCancelled: "Đã hủy",
+
+  // Customer QuickView (home page widget)
+  homeCustomerRecentTitle: "Hoạt động gần đây của bạn",
+  homeCustomerViewAll: "Xem tất cả",
+  homeCustomerEmptyText: "Bạn chưa có lịch hẹn hay yêu cầu cứu hộ nào đang diễn ra.",
+  homeCustomerBookNow: "Đặt lịch ngay",
+  homeCustomerCallRescue: "Gọi cứu hộ",
+  homeCustomerApptColTitle: "Đặt lịch sửa chữa",
+  homeCustomerApptNewBtn: "Đặt lịch mới",
+  homeCustomerRescueColTitle: "Yêu cầu cứu hộ",
+  homeCustomerRescueNewBtn: "Gọi cứu hộ mới",
+  homeCustomerApptEmpty: "Chưa có lịch hẹn đang diễn ra",
+  homeCustomerRescueEmpty: "Chưa có yêu cầu cứu hộ đang diễn ra",
+  homeCustomerRescueFallback: "Yêu cầu cứu hộ",
 };

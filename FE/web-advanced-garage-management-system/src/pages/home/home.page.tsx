@@ -1,6 +1,7 @@
 import styled, { keyframes } from "styled-components";
 import HeroSection from "./components/hero.section";
 import StatsSection from "./components/stats.section";
+import CustomerQuickView from "./components/customer.quickview";
 import FeaturesContainer from "./components/features.container";
 import PricingContainer from "./components/pricing.container";
 import TestimonialsContainer from "./components/testimonials.container";
@@ -39,6 +40,9 @@ const HomePage = () => {
     <PageContainer>
       {/* Hero Section */}
       <HeroSection />
+
+      {/* Customer quick view — only visible for roleId=4 */}
+      <CustomerQuickView />
 
       {/* Statistics Section */}
       <StatsSection />

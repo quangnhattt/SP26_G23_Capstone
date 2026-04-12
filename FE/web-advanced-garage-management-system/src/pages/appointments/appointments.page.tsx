@@ -1,5 +1,5 @@
-import { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useContext, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import { AuthContext } from "@/context/AuthContext";
 import { ROUTER_PAGE } from "@/routes/contants";
@@ -77,7 +77,9 @@ type MainTab = "BOOKING" | "RESCUE";
 const AppointmentsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useContext(AuthContext);
+  const autoOpenedRef = useRef(false);
   const [appointments, setAppointments] = useState<IAppointment[]>([]);
   const [rescueRequests, setRescueRequests] = useState<IRescueRequest[]>([]);
   const [activeTab, setActiveTab] = useState<MainTab>("BOOKING");
@@ -467,6 +469,27 @@ const AppointmentsPage = () => {
       setLoadingRescueDetail(false);
     }
   };
+
+  // Auto-open modal from URL params (e.g. ?openAppt=123 or ?openRescue=456&tab=RESCUE)
+  useEffect(() => {
+    if (autoOpenedRef.current) return;
+    const params = new URLSearchParams(location.search);
+    const openAppt = params.get("openAppt");
+    const openRescue = params.get("openRescue");
+    const tab = params.get("tab") as MainTab | null;
+    if (!openAppt && !openRescue) return;
+    autoOpenedRef.current = true;
+    if (tab) setActiveTab(tab);
+    if (openRescue) {
+      if (!tab) setActiveTab("RESCUE");
+      handleViewRescueDetail(Number(openRescue));
+    } else if (openAppt) {
+      handleViewDetail(Number(openAppt));
+    }
+    // Clean URL so back/refresh doesn't re-open
+    navigate(location.pathname, { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   return (
     <PageWrapper>
