@@ -65,14 +65,14 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
         ? Number(manualFee)
         : undefined;
 
-  // Auto-tính tiền đặt cọc = 20% tổng tiền đề xuất
+  // Auto-tính tiền đặt cọc = 50% tổng tiền đề xuất (chỉ khi requiresDeposit = true)
   useEffect(() => {
-    if (estimatedFee) {
+    if (rescue.requiresDeposit && estimatedFee) {
       setDepositAmount(Math.round(estimatedFee * 0.5).toString());
     } else {
       setDepositAmount("");
     }
-  }, [estimatedFee]);
+  }, [estimatedFee, rescue.requiresDeposit]);
 
   const toggleService = (svc: IService) => {
     setSelectedServices((prev) =>
@@ -121,7 +121,7 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
         rescueType: proposalType,
         proposalNotes: proposalNote.trim() || undefined,
         estimatedServiceFee: estimatedFee ?? 0,
-        depositAmount: depositAmount ? Number(depositAmount) : undefined,
+        depositAmount: rescue.requiresDeposit && depositAmount ? Number(depositAmount) : undefined,
         suggestedParts: suggestedParts.length > 0 ? suggestedParts : undefined,
       });
       toast.success(
@@ -171,91 +171,95 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
             </RadioGroup>
           </FormGroup>
 
-          {/* Services */}
-          <FormGroup>
-            <FormLabel>{t("rescueMgrProposalServicesLabel")}</FormLabel>
-            {loadingServices ? (
-              <HintText>{t("rescueMgrProposalServicesLoading")}</HintText>
-            ) : services.length === 0 ? (
-              <HintText>{t("rescueMgrProposalServicesEmpty")}</HintText>
-            ) : (
-              <CheckList>
-                {services.map((svc) => {
-                  const checked = selectedServices.some((s) => s.id === svc.id);
-                  return (
-                    <CheckItem
-                      key={svc.id}
-                      $checked={checked}
-                      onClick={() => toggleService(svc)}
-                    >
-                      <CheckBox $checked={checked}>{checked && "✓"}</CheckBox>
-                      <CheckItemInfo>
-                        <CheckItemName>{svc.name}</CheckItemName>
-                        <CheckItemPrice>
-                          {svc.price.toLocaleString()} VND
-                        </CheckItemPrice>
-                      </CheckItemInfo>
-                    </CheckItem>
-                  );
-                })}
-              </CheckList>
-            )}
-          </FormGroup>
+          {/* Services — chỉ hiện khi chọn Sửa tại chỗ */}
+          {proposalType === "ROADSIDE" && (
+            <FormGroup>
+              <FormLabel>{t("rescueMgrProposalServicesLabel")}</FormLabel>
+              {loadingServices ? (
+                <HintText>{t("rescueMgrProposalServicesLoading")}</HintText>
+              ) : services.length === 0 ? (
+                <HintText>{t("rescueMgrProposalServicesEmpty")}</HintText>
+              ) : (
+                <CheckList>
+                  {services.map((svc) => {
+                    const checked = selectedServices.some((s) => s.id === svc.id);
+                    return (
+                      <CheckItem
+                        key={svc.id}
+                        $checked={checked}
+                        onClick={() => toggleService(svc)}
+                      >
+                        <CheckBox $checked={checked}>{checked && "✓"}</CheckBox>
+                        <CheckItemInfo>
+                          <CheckItemName>{svc.name}</CheckItemName>
+                          <CheckItemPrice>
+                            {svc.price.toLocaleString()} VND
+                          </CheckItemPrice>
+                        </CheckItemInfo>
+                      </CheckItem>
+                    );
+                  })}
+                </CheckList>
+              )}
+            </FormGroup>
+          )}
 
-          {/* Parts / Accessories */}
-          <FormGroup>
-            <FormLabel>{t("rescueMgrProposalPartsLabel")}</FormLabel>
-            {loadingProducts ? (
-              <HintText>{t("rescueMgrProposalPartsLoading")}</HintText>
-            ) : products.length === 0 ? (
-              <HintText>{t("rescueMgrProposalPartsEmpty")}</HintText>
-            ) : (
-              <CheckList>
-                {products.map((product) => {
-                  const selected = selectedParts.find(
-                    (p) => p.product.id === product.id,
-                  );
-                  return (
-                    <CheckItem
-                      key={product.id}
-                      $checked={!!selected}
-                      onClick={() => togglePart(product)}
-                    >
-                      <CheckBox $checked={!!selected}>
-                        {selected && "✓"}
-                      </CheckBox>
-                      <CheckItemInfo>
-                        <CheckItemName>{product.name}</CheckItemName>
-                        <CheckItemPrice>
-                          {product.price.toLocaleString()} VND
-                        </CheckItemPrice>
-                      </CheckItemInfo>
-                      {selected && (
-                        <QtyControl onClick={(e) => e.stopPropagation()}>
-                          <QtyBtn
-                            onClick={() =>
-                              updatePartQty(product.id, selected.qty - 1)
-                            }
-                            disabled={selected.qty <= 1}
-                          >
-                            −
-                          </QtyBtn>
-                          <QtyValue>{selected.qty}</QtyValue>
-                          <QtyBtn
-                            onClick={() =>
-                              updatePartQty(product.id, selected.qty + 1)
-                            }
-                          >
-                            +
-                          </QtyBtn>
-                        </QtyControl>
-                      )}
-                    </CheckItem>
-                  );
-                })}
-              </CheckList>
-            )}
-          </FormGroup>
+          {/* Parts / Accessories — chỉ hiện khi chọn Sửa tại chỗ */}
+          {proposalType === "ROADSIDE" && (
+            <FormGroup>
+              <FormLabel>{t("rescueMgrProposalPartsLabel")}</FormLabel>
+              {loadingProducts ? (
+                <HintText>{t("rescueMgrProposalPartsLoading")}</HintText>
+              ) : products.length === 0 ? (
+                <HintText>{t("rescueMgrProposalPartsEmpty")}</HintText>
+              ) : (
+                <CheckList>
+                  {products.map((product) => {
+                    const selected = selectedParts.find(
+                      (p) => p.product.id === product.id,
+                    );
+                    return (
+                      <CheckItem
+                        key={product.id}
+                        $checked={!!selected}
+                        onClick={() => togglePart(product)}
+                      >
+                        <CheckBox $checked={!!selected}>
+                          {selected && "✓"}
+                        </CheckBox>
+                        <CheckItemInfo>
+                          <CheckItemName>{product.name}</CheckItemName>
+                          <CheckItemPrice>
+                            {product.price.toLocaleString()} VND
+                          </CheckItemPrice>
+                        </CheckItemInfo>
+                        {selected && (
+                          <QtyControl onClick={(e) => e.stopPropagation()}>
+                            <QtyBtn
+                              onClick={() =>
+                                updatePartQty(product.id, selected.qty - 1)
+                              }
+                              disabled={selected.qty <= 1}
+                            >
+                              −
+                            </QtyBtn>
+                            <QtyValue>{selected.qty}</QtyValue>
+                            <QtyBtn
+                              onClick={() =>
+                                updatePartQty(product.id, selected.qty + 1)
+                              }
+                            >
+                              +
+                            </QtyBtn>
+                          </QtyControl>
+                        )}
+                      </CheckItem>
+                    );
+                  })}
+                </CheckList>
+              )}
+            </FormGroup>
+          )}
 
           {/* Customer note */}
           <FormGroup>
@@ -287,18 +291,19 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
             )}
           </FormGroup>
 
-          {/* Deposit amount — 20% tổng tiền đề xuất */}
-          <FormGroup>
-            <FormLabel>{t("rescueMgrDepositAmountLabel")}</FormLabel>
-            <FormInput
-              type="number"
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-              placeholder="0"
-              readOnly={!!estimatedFee}
-            />
-            <DepositHint>{t("rescueMgrDepositAmountHint")}</DepositHint>
-          </FormGroup>
+          {rescue.requiresDeposit && (
+            <FormGroup>
+              <FormLabel>{t("rescueMgrDepositAmountLabel")}</FormLabel>
+              <FormInput
+                type="number"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                placeholder="0"
+                readOnly={!!estimatedFee}
+              />
+              <DepositHint>{t("rescueMgrDepositAmountHint")}</DepositHint>
+            </FormGroup>
+          )}
         </ModalBody>
         <ModalFooter>
           <ModalCancelBtn onClick={onClose} disabled={submitting}>
@@ -646,3 +651,4 @@ const DepositHint = styled.p`
   color: #d97706;
   font-style: italic;
 `;
+

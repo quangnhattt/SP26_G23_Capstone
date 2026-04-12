@@ -174,4 +174,13 @@ public class UserRepository : IUserRepository
         entity.TrustScore += 1;
         await _db.SaveChangesAsync(ct);
     }
+    public async Task DecrementTrustScoreAsync(int userId, CancellationToken ct)
+    {
+        var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
+        if (entity == null) return;
+
+        // Trừ điểm tin cậy khi khách hủy kéo xe sau khi xe kéo đã tới hiện trường.
+        entity.TrustScore = Math.Max(0, entity.TrustScore - 1);
+        await _db.SaveChangesAsync(ct);
+    }
 }

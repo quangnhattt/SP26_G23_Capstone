@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import styled from "styled-components";
+import styled, { createGlobalStyle } from "styled-components";
 import { HiPlus, HiPencil, HiSearch } from "react-icons/hi";
-import { Table as AntTable, Switch } from "antd";
+import { Table as AntTable, Switch, ConfigProvider, Select as AntSelect } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   getSuppliers,
@@ -12,6 +12,7 @@ import {
   type ISupplier,
   type ISupplierCreateRequest,
   type ISupplierUpdateRequest,
+  type ISuppliersQuery,
 } from "@/services/admin/supplierService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
@@ -26,15 +27,16 @@ interface SupplierFormData {
   isActive: boolean;
 }
 
+const PAGE_SIZE = 10;
+
 const SupplierPage = () => {
   const { t } = useTranslation();
   const [suppliers, setSuppliers] = useState<ISupplier[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState<ISupplier | null>(
-    null,
-  );
+  const [editingSupplier, setEditingSupplier] = useState<ISupplier | null>(null);
   const [formData, setFormData] = useState<SupplierFormData>({
     name: "",
     address: "",
@@ -45,27 +47,46 @@ const SupplierPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [updatingSupplierId, setUpdatingSupplierId] = useState<number | null>(
-    null,
-  );
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [updatingSupplierId, setUpdatingSupplierId] = useState<number | null>(null);
 
   const fetchSuppliers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getSuppliers();
+      const query: ISuppliersQuery = {
+        SearchTerm: searchTerm || undefined,
+        IsActive: isActiveFilter,
+        Page: pageIndex,
+        PageSize: PAGE_SIZE,
+      };
+      const response = await getSuppliers(query);
       setSuppliers(response.items || []);
+      setTotalCount(response.totalCount);
     } catch (err) {
       console.error("Failed to fetch suppliers:", err);
       setError(t("cannotLoadSuppliers"));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, searchTerm, isActiveFilter, pageIndex]);
 
   useEffect(() => {
     fetchSuppliers();
   }, [fetchSuppliers]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setPageIndex(1);
+  };
+
+  const handleIsActiveChange = (value: string | undefined) => {
+    if (value === "true") setIsActiveFilter(true);
+    else if (value === "false") setIsActiveFilter(false);
+    else setIsActiveFilter(undefined);
+    setPageIndex(1);
+  };
 
   const handleOpenCreateModal = () => {
     setEditingSupplier(null);
@@ -173,13 +194,6 @@ const SupplierPage = () => {
     }
   };
 
-  const filteredSuppliers = suppliers.filter(
-    (s) =>
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (s.phone && s.phone.includes(searchTerm)),
-  );
-
   const columns: ColumnsType<ISupplier> = [
     {
       title: t("name"),
@@ -258,6 +272,7 @@ const SupplierPage = () => {
 
   return (
     <Container>
+      <FilterSelectGlobalStyle />
       <Header>
         <div>
           <Title>{t("suppliersManagement")}</Title>
@@ -278,20 +293,65 @@ const SupplierPage = () => {
             type="text"
             placeholder={t("searchByNameEmailSupplier")}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
           />
         </SearchWrapper>
+
+        <ConfigProvider
+          theme={{
+            token: { colorText: "#000", colorTextPlaceholder: "#000" },
+            components: {
+              Select: {
+                colorText: "#000",
+                colorTextPlaceholder: "#000",
+                colorBgContainer: "#fff",
+                optionSelectedColor: "#000",
+                colorTextDisabled: "#000",
+                colorTextQuaternary: "#000",
+              },
+            },
+          }}
+        >
+          <FilterSelect
+            className="supplier-filter-select"
+            popupClassName="supplier-filter-dropdown"
+            allowClear
+            placeholder={t("supplierStatusFilterPlaceholder")}
+            value={
+              isActiveFilter === undefined
+                ? undefined
+                : isActiveFilter
+                ? "true"
+                : "false"
+            }
+            onChange={(v) => handleIsActiveChange(v as string | undefined)}
+            style={{ width: 160 }}
+            options={[
+              {
+                value: "true",
+                label: <span style={{ color: "#000" }}>{t("active")}</span>,
+              },
+              {
+                value: "false",
+                label: <span style={{ color: "#000" }}>{t("inactive")}</span>,
+              },
+            ]}
+          />
+        </ConfigProvider>
       </Toolbar>
 
       <TableCard>
         <AntTable
           columns={columns}
-          dataSource={filteredSuppliers}
+          dataSource={suppliers}
           rowKey="supplierID"
           loading={loading}
           pagination={{
-            pageSize: 10,
+            current: pageIndex,
+            pageSize: PAGE_SIZE,
+            total: totalCount,
             showSizeChanger: false,
+            onChange: (page) => setPageIndex(page),
             showTotal: (total, range) =>
               `${range[0]}–${range[1]} / ${total} ${t("supplier")}`,
           }}
@@ -432,6 +492,41 @@ const SearchInput = styled.input`
 
   &::placeholder {
     color: #9ca3af;
+  }
+`;
+
+const FilterSelect = styled(AntSelect)`
+  &&& .ant-select-selector,
+  &&& .ant-select-selector .ant-select-selection-item,
+  &&& .ant-select-selector .ant-select-selection-item-content,
+  &&& .ant-select-selector .ant-select-selection-placeholder,
+  &&& .ant-select-selection-search-input,
+  &&& .ant-select-arrow,
+  &&& .ant-select-clear,
+  &&& .ant-select-selection-item-remove {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
+
+  &&&.ant-select-disabled .ant-select-selector,
+  &&&.ant-select-disabled .ant-select-selector .ant-select-selection-item,
+  &&&.ant-select-disabled
+    .ant-select-selector
+    .ant-select-selection-placeholder {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+  }
+`;
+
+const FilterSelectGlobalStyle = createGlobalStyle`
+  .supplier-filter-dropdown .ant-select-item,
+  .supplier-filter-dropdown .ant-select-item-option-content,
+  .supplier-filter-dropdown .ant-select-item-option-selected .ant-select-item-option-content,
+  .supplier-filter-dropdown .ant-select-item-option-active .ant-select-item-option-content,
+  .supplier-filter-dropdown .ant-empty-description {
+    color: #000 !important;
   }
 `;
 

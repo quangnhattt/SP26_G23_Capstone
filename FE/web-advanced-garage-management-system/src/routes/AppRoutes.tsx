@@ -19,6 +19,7 @@ import MembershipRanksManager from "@/pages/admin/components/membership-rank/mem
 import MaintenancePackageManager from "@/pages/admin/components/maintenance-package/maintenance.package";
 import OrderAssignedManager from "@/pages/admin/components/order-assigned/order.assigned.manager";
 import HistoryTransferOrderManager from "@/pages/admin/components/history-transfer-order/history.transfer.order.manager";
+import PermissionManager from "@/pages/admin/components/permission/permission.manager";
 
 const HomePage = lazy(() => import("@/pages/home/home.page"));
 const ServicesPageHome = lazy(
@@ -93,6 +94,10 @@ const AppRoutesContent = () => {
             <Route
               path="history-transfer-order-management"
               element={<HistoryTransferOrderManager />}
+            />
+            <Route
+              path="permission-management"
+              element={<PermissionManager />}
             />
           </Route>
           <Route path={ROUTER_PAGE.profile} element={<ProfilePage />} />

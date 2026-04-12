@@ -95,7 +95,7 @@ const RescueDetailModal = ({ rescue, onClose }: RescueDetailModalProps) => {
               </DetailSection>
             )}
           </DetailGrid>
-          <RescueStepProgress status={rescue.status} />
+          <RescueStepProgress status={rescue.status} rescueType={rescue.rescueType} />
         </ModalBody>
         <ModalFooter>
           <Badge $color={statusInfo.color} $bg={statusInfo.bg}>

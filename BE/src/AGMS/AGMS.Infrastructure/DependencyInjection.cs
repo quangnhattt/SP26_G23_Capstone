@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddDbContext<CarServiceDbContext>(options =>
             options.UseSqlServer(connectionString));
 
+        services.AddScoped<ITransactionManager, TransactionManager>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -47,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<IMembershipRankRepository, MembershipRankRepository>();
         services.AddScoped<IMembershipRankService, MembershipRankService>();
         services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IPermissionGroupRepository, PermissionGroupRepository>();
         services.AddScoped<IPermissionRepository, PermissionRepository>();
         services.AddScoped<ICarMaintenanceIntakeRepository, CarMaintenanceIntakeRepository>();

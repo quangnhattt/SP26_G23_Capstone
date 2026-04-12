@@ -21,7 +21,7 @@ import {
 } from "react-icons/fa";
 import {
   getRescueRequests,
-  updateRescueStatus,
+  getRescueCustomerById,
   assignTechnician,
   cancelRescueRequest,
   markSpamRescueRequest,
@@ -33,10 +33,10 @@ import {
   dispatchTowing,
   completeTowing,
   confirmRescueDeposit,
+  confirmRescuePayment,
   getAvailableTechnicians,
   type IAvailableTechnician,
   type IRescueRequest,
-  type RescueStatus,
 } from "@/apis/rescue";
 import { rescueStatusStyle } from "@/pages/appointments/rescueStatusConfig";
 import { getUsers } from "@/services/admin/userService";
@@ -99,6 +99,7 @@ const RescueManagement = () => {
 
   // Invoice modal
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [loadingInvoiceDetail, setLoadingInvoiceDetail] = useState(false);
   const [rescueServiceFee, setRescueServiceFee] = useState("");
   const [manualDiscount, setManualDiscount] = useState("0");
   const [invoiceNotes, setInvoiceNotes] = useState("");
@@ -178,21 +179,6 @@ const RescueManagement = () => {
   }, [fetchRescues, fetchTechnicians]);
 
   // ─── Actions ─────────────────────────────────────────────
-  const handleUpdateStatus = async (
-    id: number,
-    status: RescueStatus,
-    note?: string,
-  ) => {
-    try {
-      await updateRescueStatus(id, { status, note });
-      toast.success(t("rescueMgrStatusUpdated"));
-      fetchRescues();
-      setShowDetailModal(false);
-    } catch (error) {
-      console.error("Error updating status:", error);
-      toast.error(t("rescueMgrStatusError"));
-    }
-  };
 
   const [assignSubmitting, setAssignSubmitting] = useState(false);
 
@@ -247,9 +233,13 @@ const RescueManagement = () => {
     fetchRescues();
   };
 
-  const handleArrive = async (id: number) => {
+  const handleArrive = async (rescue: IRescueRequest) => {
+    if (rescue.status !== "EN_ROUTE") {
+      toast.error(t("rescueMgrArriveInvalidStatus"));
+      return;
+    }
     try {
-      await arriveRescue(id);
+      await arriveRescue(rescue.rescueId);
       toast.success(t("rescueMgrArriveSuccess"));
       fetchRescues();
     } catch (error) {
@@ -377,6 +367,16 @@ const RescueManagement = () => {
     }
   };
 
+  const handleConfirmPayment = async (id: number) => {
+    try {
+      await confirmRescuePayment(id);
+      toast.success(t("rescueMgrPaymentConfirmSuccess"));
+      fetchRescues();
+    } catch {
+      toast.error(t("rescueMgrPaymentConfirmError"));
+    }
+  };
+
   const openAssignModal = async (rescue: IRescueRequest) => {
     setSelectedRescue(rescue);
     setEstimatedArrival("");
@@ -391,6 +391,25 @@ const RescueManagement = () => {
       toast.error(t("rescueMgrCannotLoadTechs"));
     } finally {
       setLoadingAvailableTechs(false);
+    }
+  };
+
+  const openInvoiceModal = async (rescue: IRescueRequest) => {
+    setRescueServiceFee("");
+    setManualDiscount("0");
+    setInvoiceNotes("");
+    setShowInvoiceModal(true);
+    setLoadingInvoiceDetail(true);
+    try {
+      const detail = await getRescueCustomerById(rescue.rescueId);
+      setSelectedRescue(detail);
+      setRescueServiceFee(detail.serviceFee ? String(detail.serviceFee) : "");
+    } catch {
+      // fallback: dùng dữ liệu list nếu API detail lỗi
+      setSelectedRescue(rescue);
+      setRescueServiceFee(rescue.serviceFee ? String(rescue.serviceFee) : "");
+    } finally {
+      setLoadingInvoiceDetail(false);
     }
   };
 
@@ -447,6 +466,7 @@ const RescueManagement = () => {
       "INVOICED",
       "INVOICE_SENT",
       "PAYMENT_PENDING",
+      "PAYMENT_SUBMITTED",
     ].includes(r.status),
   ).length;
   const towingCount = rescues.filter((r) =>
@@ -475,6 +495,7 @@ const RescueManagement = () => {
           "INVOICED",
           "INVOICE_SENT",
           "PAYMENT_PENDING",
+          "PAYMENT_SUBMITTED",
         ].includes(r.status);
       if (filterStatus === "TOWING")
         return ["TOWING_DISPATCHED", "TOWING_ACCEPTED", "TOWED"].includes(
@@ -528,48 +549,6 @@ const RescueManagement = () => {
       bg: "#f3f4f6",
       border: "#e5e7eb",
     };
-  };
-
-  const currentTechId = Number((user as { id?: number; userID?: number } | null)?.id ?? (user as { id?: number; userID?: number } | null)?.userID);
-
-  const isAssignedToCurrentTech = (rescue: IRescueRequest) => {
-    if (!isTech || !Number.isFinite(currentTechId)) return false;
-
-    const r = rescue as IRescueRequest & {
-      technicianId?: number | null;
-      technicianUserId?: number | null;
-      assignedTechnicianId?: number | null;
-      technician?: { id?: number; userId?: number; technicianId?: number } | null;
-      assignedTechnicians?: Array<number | { id?: number; userId?: number; technicianId?: number }>;
-    };
-
-    const candidateIds = new Set<number>();
-
-    if (r.technicianId != null) candidateIds.add(Number(r.technicianId));
-    if (r.technicianUserId != null) candidateIds.add(Number(r.technicianUserId));
-    if (r.assignedTechnicianId != null) candidateIds.add(Number(r.assignedTechnicianId));
-
-    if (r.technician) {
-      if (r.technician.id != null) candidateIds.add(Number(r.technician.id));
-      if (r.technician.userId != null) candidateIds.add(Number(r.technician.userId));
-      if (r.technician.technicianId != null) {
-        candidateIds.add(Number(r.technician.technicianId));
-      }
-    }
-
-    if (Array.isArray(r.assignedTechnicians)) {
-      r.assignedTechnicians.forEach((tech) => {
-        if (typeof tech === "number") {
-          candidateIds.add(Number(tech));
-          return;
-        }
-        if (tech.id != null) candidateIds.add(Number(tech.id));
-        if (tech.userId != null) candidateIds.add(Number(tech.userId));
-        if (tech.technicianId != null) candidateIds.add(Number(tech.technicianId));
-      });
-    }
-
-    return candidateIds.has(currentTechId);
   };
 
   // ─── Which actions are available per status (SA workflow) ─
@@ -645,27 +624,31 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ PROPOSAL_ACCEPTED: KH đã xác nhận → SA xác nhận cọc → điều KTV ═══
+      // ═══ PROPOSAL_ACCEPTED ═══
+      // Nhánh 1: Không cần cọc | Cọc đã xác nhận → điều KTV
+      // Nhánh 2: Cần cọc, KH đã trả, SA chưa xác nhận → xác nhận cọc
+      // Nhánh 3: Cần cọc, KH chưa trả → chờ KH (chỉ hiện huỷ)
       case "PROPOSAL_ACCEPTED":
         if (isSA) {
           const needsDeposit = rescue.requiresDeposit === true || (rescue.depositAmount != null && rescue.depositAmount > 0);
-          if (needsDeposit && !rescue.isDepositConfirmed) {
-            // Chưa xác nhận cọc → chỉ hiện nút xác nhận cọc
-            actions.push({
-              label: t("rescueMgrConfirmDeposit"),
-              icon: <FaMoneyBillWave size={12} />,
-              color: "#16a34a",
-              onClick: () => handleConfirmDeposit(rescue.rescueId),
-            });
-          } else {
-            // Đã xác nhận cọc (hoặc không cần cọc) → hiện nút điều KTV
+          if (!needsDeposit || rescue.isDepositConfirmed) {
+            // Không cần cọc hoặc đã xác nhận cọc → điều KTV
             actions.push({
               label: t("rescueMgrDispatchTech"),
               icon: <FaUserCog size={12} />,
               color: "#0891b2",
               onClick: () => openAssignModal(rescue),
             });
+          } else if (rescue.isDepositPaid && !rescue.isDepositConfirmed) {
+            // KH đã trả cọc, SA cần xác nhận
+            actions.push({
+              label: t("rescueMgrConfirmDeposit"),
+              icon: <FaMoneyBillWave size={12} />,
+              color: "#16a34a",
+              onClick: () => handleConfirmDeposit(rescue.rescueId),
+            });
           }
+          // Nhánh 3: KH chưa trả cọc → SA chỉ chờ, không có action ngoài huỷ
           actions.push({
             label: t("rescueMgrCancel"),
             icon: <FaTimes size={12} />,
@@ -677,12 +660,12 @@ const RescueManagement = () => {
 
       // ═══ EN_ROUTE: KTV xác nhận đến nơi ═══
       case "EN_ROUTE":
-        if (isTech && isAssignedToCurrentTech(rescue)) {
+        if (isTech) {
           actions.push({
             label: t("rescueMgrConfirmArrived"),
             icon: <FaMapMarkerAlt size={12} />,
             color: "#0d9488",
-            onClick: () => handleArrive(rescue.rescueId),
+            onClick: () => handleArrive(rescue),
           });
         }
         if (isSA) {
@@ -697,7 +680,7 @@ const RescueManagement = () => {
 
       // ═══ KTV: Tới hiện trường → bắt đầu chẩn đoán ═══
       case "ON_SITE":
-        if (isTech && isAssignedToCurrentTech(rescue)) {
+        if (isTech) {
           actions.push({
             label: t("rescueMgrStartDiagnosisAction"),
             icon: <FaTools size={12} />,
@@ -722,7 +705,7 @@ const RescueManagement = () => {
 
       // ═══ KTV: Ghi nhận vật tư → REPAIRING | SA: điều xe kéo nếu cần ═══
       case "DIAGNOSING":
-        if (isTech && isAssignedToCurrentTech(rescue)) {
+        if (isTech) {
           actions.push({
             label: t("rescueMgrEditPartsAction"),
             icon: <FaWrench size={12} />,
@@ -757,7 +740,7 @@ const RescueManagement = () => {
 
       // ═══ KTV: Sửa tại chỗ ═══
       case "REPAIRING":
-        if (isTech && isAssignedToCurrentTech(rescue)) {
+        if (isTech) {
           actions.push({
             label: t("rescueMgrCompleteRepairAction"),
             icon: <FaWrench size={12} />,
@@ -779,31 +762,14 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ SA + KTV: Chỉnh sửa phụ tùng, SA tạo hóa đơn ═══
+      // ═══ SA: Tạo hóa đơn ═══
       case "REPAIR_COMPLETE":
-        if (isSA || (isTech && isAssignedToCurrentTech(rescue))) {
-          actions.push({
-            label: t("rescueMgrEditPartsAction"),
-            icon: <FaWrench size={12} />,
-            color: "#2563eb",
-            onClick: () => {
-              setSelectedRescue(rescue);
-              setShowEditPartsModal(true);
-            },
-          });
-        }
         if (isSA) {
           actions.push({
             label: t("rescueMgrCreateInvoiceAction"),
             icon: <FaFileInvoiceDollar size={12} />,
             color: "#7c3aed",
-            onClick: () => {
-              setSelectedRescue(rescue);
-              setRescueServiceFee("");
-              setManualDiscount("0");
-              setInvoiceNotes("");
-              setShowInvoiceModal(true);
-            },
+            onClick: () => openInvoiceModal(rescue),
           });
           actions.push({
             label: t("rescueMgrCancel"),
@@ -854,13 +820,7 @@ const RescueManagement = () => {
             label: t("rescueMgrCreateInvoiceAction"),
             icon: <FaFileInvoiceDollar size={12} />,
             color: "#7c3aed",
-            onClick: () => {
-              setSelectedRescue(rescue);
-              setRescueServiceFee("");
-              setManualDiscount("0");
-              setInvoiceNotes("");
-              setShowInvoiceModal(true);
-            },
+            onClick: () => openInvoiceModal(rescue),
           });
           actions.push({
             label: t("rescueMgrCancel"),
@@ -889,14 +849,27 @@ const RescueManagement = () => {
         }
         break;
 
+      // ═══ SA: Chờ khách hàng thanh toán ═══
       case "INVOICE_SENT":
       case "PAYMENT_PENDING":
+        if (isSA) {
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
+        }
+        break;
+
+      // ═══ SA: Khách đã thanh toán → xác nhận đã nhận tiền ═══
+      case "PAYMENT_SUBMITTED":
         if (isSA) {
           actions.push({
             label: t("rescueMgrConfirmPaymentAction"),
             icon: <FaMoneyBillWave size={12} />,
             color: "#16a34a",
-            onClick: () => handleUpdateStatus(rescue.rescueId, "COMPLETED"),
+            onClick: () => handleConfirmPayment(rescue.rescueId),
           });
           actions.push({
             label: t("rescueMgrCancel"),
@@ -1045,7 +1018,7 @@ const RescueManagement = () => {
                     </CardInfoRow>
                   )}
 
-                  <RescueStepProgress status={item.status} />
+                  <RescueStepProgress status={item.status} rescueType={item.rescueType} />
                 </CardLeft>
 
                 <CardRight>
@@ -1281,7 +1254,7 @@ const RescueManagement = () => {
         <ModalOverlay onClick={() => setShowInvoiceModal(false)}>
           <ModalContent
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "500px" }}
+            style={{ maxWidth: "640px" }}
           >
             <ModalHeader>
               <ModalTitle>{t("rescueMgrCreateInvoiceModalTitle")}</ModalTitle>
@@ -1290,33 +1263,90 @@ const RescueManagement = () => {
               </CloseBtn>
             </ModalHeader>
             <ModalBody>
-              <FormGroup>
-                <FormLabel>{t("rescueMgrServiceFeeLabel")}</FormLabel>
-                <FormInput
-                  type="number"
-                  value={rescueServiceFee}
-                  onChange={(e) => setRescueServiceFee(e.target.value)}
-                  placeholder={t("rescueMgrServiceFeePlaceholder")}
-                />
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>{t("rescueMgrDiscountLabel")}</FormLabel>
-                <FormInput
-                  type="number"
-                  value={manualDiscount}
-                  onChange={(e) => setManualDiscount(e.target.value)}
-                  placeholder={t("zeroPlaceholder")}
-                />
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>{t("rescueMgrNote")}</FormLabel>
-                <FormTextarea
-                  value={invoiceNotes}
-                  onChange={(e) => setInvoiceNotes(e.target.value)}
-                  rows={3}
-                  placeholder={t("rescueMgrInvoiceNotesPlaceholder")}
-                />
-              </FormGroup>
+              {loadingInvoiceDetail ? (
+                <p style={{ fontSize: "0.8125rem", color: "#6b7280", margin: 0 }}>
+                  {t("loading")}
+                </p>
+              ) : (
+                <>
+                  {/* ─── Danh sách vật tư / dịch vụ đã sửa ─── */}
+                  <div>
+                    <FormLabel style={{ marginBottom: "0.5rem", display: "block" }}>
+                      {t("rescueMgrInvoicePartsTitle")}
+                    </FormLabel>
+                    {(!selectedRescue.repairItems || selectedRescue.repairItems.length === 0) ? (
+                      <p style={{ fontSize: "0.8125rem", color: "#9ca3af", margin: 0 }}>
+                        {t("rescueMgrInvoicePartsEmpty")}
+                      </p>
+                    ) : (
+                      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
+                          <thead>
+                            <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+                              <th style={{ padding: "0.5rem 0.75rem", textAlign: "left", fontWeight: 600, color: "#374151" }}>{t("rescueMgrInvoiceColName")}</th>
+                              <th style={{ padding: "0.5rem 0.5rem", textAlign: "center", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{t("rescueMgrInvoiceColQty")}</th>
+                              <th style={{ padding: "0.5rem 0.5rem", textAlign: "right", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{t("rescueMgrInvoiceColUnitPrice")}</th>
+                              <th style={{ padding: "0.5rem 0.75rem", textAlign: "right", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{t("rescueMgrInvoiceColTotal")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedRescue.repairItems.map((item, idx) => {
+                              const lineTotal = item.lineTotal ?? (item.unitPrice * item.quantity);
+                              return (
+                                <tr key={`${item.productId}-${idx}`} style={{ borderBottom: idx < (selectedRescue.repairItems?.length ?? 0) - 1 ? "1px solid #f3f4f6" : "none" }}>
+                                  <td style={{ padding: "0.5rem 0.75rem", color: "#111827" }}>
+                                    <div style={{ fontWeight: 500 }}>{item.productName ?? `ID ${item.productId}`}</div>
+                                    {item.productCode && <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{item.productCode}</div>}
+                                  </td>
+                                  <td style={{ padding: "0.5rem 0.5rem", textAlign: "center", color: "#374151" }}>{item.quantity}</td>
+                                  <td style={{ padding: "0.5rem 0.5rem", textAlign: "right", color: "#374151", whiteSpace: "nowrap" }}>{item.unitPrice.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem 0.75rem", textAlign: "right", color: "#111827", fontWeight: 500, whiteSpace: "nowrap" }}>{lineTotal.toLocaleString()}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                        <div style={{ padding: "0.5rem 0.75rem", background: "#f0fdf4", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.8125rem", color: "#374151" }}>{t("rescueMgrInvoiceSubtotal")}</span>
+                          <span style={{ fontWeight: 700, color: "#15803d", fontSize: "0.9375rem" }}>
+                            {selectedRescue.repairItems
+                              .reduce((sum, item) => sum + (item.lineTotal ?? (item.unitPrice * item.quantity)), 0)
+                              .toLocaleString()} VND
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <FormGroup>
+                    <FormLabel>{t("rescueMgrServiceFeeLabel")}</FormLabel>
+                    <FormInput
+                      type="number"
+                      value={rescueServiceFee}
+                      onChange={(e) => setRescueServiceFee(e.target.value)}
+                      placeholder={t("rescueMgrServiceFeePlaceholder")}
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <FormLabel>{t("rescueMgrDiscountLabel")}</FormLabel>
+                    <FormInput
+                      type="number"
+                      value={manualDiscount}
+                      onChange={(e) => setManualDiscount(e.target.value)}
+                      placeholder={t("zeroPlaceholder")}
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <FormLabel>{t("rescueMgrNote")}</FormLabel>
+                    <FormTextarea
+                      value={invoiceNotes}
+                      onChange={(e) => setInvoiceNotes(e.target.value)}
+                      rows={3}
+                      placeholder={t("rescueMgrInvoiceNotesPlaceholder")}
+                    />
+                  </FormGroup>
+                </>
+              )}
             </ModalBody>
             <ModalFooter>
               <ModalCancelBtn onClick={() => setShowInvoiceModal(false)}>

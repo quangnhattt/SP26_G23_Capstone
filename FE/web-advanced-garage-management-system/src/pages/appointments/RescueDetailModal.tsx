@@ -392,7 +392,7 @@ const RescueDetailModal = ({
             {/* Stepper */}
             <Section>
               <SectionTitle>{t("rescueProcessTitle")}</SectionTitle>
-              <RescueStepProgress status={data.status} />
+              <RescueStepProgress status={data.status} rescueType={data.rescueType} />
             </Section>
 
             {/* ── Hành động theo từng bước ── */}

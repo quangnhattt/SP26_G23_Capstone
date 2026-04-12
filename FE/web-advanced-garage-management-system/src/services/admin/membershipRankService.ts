@@ -23,11 +23,21 @@ export interface IMembershipRanksResponse {
   systemMessage: string | null;
 }
 
-export const getMembershipRanks = async (): Promise<IMembershipRank[]> => {
+export interface IMembershipRanksQuery {
+  SearchTerm?: string;
+  IsActive?: boolean;
+  Page?: number;
+  PageSize?: number;
+}
+
+export const getMembershipRanks = async (
+  params?: IMembershipRanksQuery,
+): Promise<IMembershipRanksResponse> => {
   const { data } = await AxiosClient.get<IMembershipRanksResponse>(
     "/api/MembershipRanks",
+    { params },
   );
-  return data.items;
+  return data;
 };
 
 export const createMembershipRank = async (

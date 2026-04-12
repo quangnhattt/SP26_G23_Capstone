@@ -18,7 +18,7 @@ public interface IRescueRequestRepository
     /// Lấy danh sách yêu cầu cứu hộ theo bộ lọc, trả về DTO projection để tối ưu truy vấn
     /// </summary>
     Task<IEnumerable<RescueRequestListItemDto>> GetListAsync(
-        string? status, string? rescueType, int? customerId,
+        string? status, string? rescueType, int? customerId, int? assignedTechnicianId,
         DateTime? fromDate, DateTime? toDate, CancellationToken ct);
 
     /// <summary>Tạo mới yêu cầu cứu hộ</summary>

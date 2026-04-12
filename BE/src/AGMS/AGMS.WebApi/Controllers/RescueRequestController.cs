@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Rescue;
@@ -147,7 +147,7 @@ public class RescueRequestController : ControllerBase
     // GET /api/rescue-requests
     /// <summary>
     /// Lấy danh sách yêu cầu cứu hộ (UC-RES-01 Step 3).
-    /// Customer chỉ thấy yêu cầu của mình (auto-filter theo token).
+    /// Customer chỉ thấy yêu cầu của mình, technician chỉ thấy đơn được phân công cho mình.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<RescueRequestListItemDto>), StatusCodes.Status200OK)]
@@ -167,14 +167,22 @@ public class RescueRequestController : ControllerBase
         if (err != null)
             return err;
 
+        int? assignedTechnicianId = null;
+
         // Customer chỉ được xem rescue của chính mình
         if (IsRole(Roles.Customer))
             customerId = userId;
+        else if (IsRole(Roles.Technician))
+        {
+            customerId = null;
+            assignedTechnicianId = userId;
+        }
 
         var result = await _rescueService.GetListAsync(
             status,
             rescueType,
             customerId,
+            assignedTechnicianId,
             fromDate,
             toDate,
             ct
@@ -661,13 +669,50 @@ public class RescueRequestController : ControllerBase
         }
     }
 
+    // PATCH /api/rescue-requests/{id}/towing-arrive
+    /// <summary>
+    /// Ghi nhận xe kéo đã tới hiện trường và bắt đầu kéo xe.
+    /// TOWING_DISPATCHED → TOWING_ARRIVED.
+    /// </summary>
+    [HttpPatch("{id:int}/towing-arrive")]
+    [Authorize(Roles = Roles.ServiceAdvisor)]
+    [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> TowingArrive(int id, CancellationToken ct)
+    {
+        var (userId, err) = ExtractUserId();
+        if (err != null)
+            return err;
+
+        try
+        {
+            var result = await _rescueService.TowingArriveAsync(id, userId, ct);
+            return Ok(new { data = result, message = "Đã ghi nhận xe kéo tới hiện trường và bắt đầu kéo xe." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
     // PATCH /api/rescue-requests/{id}/accept-towing
     /// <summary>
     /// Customer chấp nhận kéo xe (UC-RES-03 C2). Không cần body.
-    /// TOWING_DISPATCHED → TOWING_ACCEPTED. Từ chối → gọi /cancel.
+    /// TOWING_ARRIVED → TOWING_ACCEPTED.
     /// </summary>
     [HttpPatch("{id:int}/accept-towing")]
-    [Authorize]
+    [Authorize(Roles = Roles.Customer)]
     [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -683,6 +728,57 @@ public class RescueRequestController : ControllerBase
         {
             var result = await _rescueService.AcceptTowingAsync(id, userId, ct);
             return Ok(new { data = result, message = "Khách hàng đã chấp nhận dịch vụ kéo xe." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // PATCH /api/rescue-requests/{id}/reject-towing
+    /// <summary>
+    /// Customer hủy kéo xe sau khi xe kéo đã tới hiện trường.
+    /// TOWING_ARRIVED → CANCELLED và bị trừ 1 điểm tin cậy.
+    /// </summary>
+    [HttpPatch("{id:int}/reject-towing")]
+    [Authorize(Roles = Roles.Customer)]
+    [ProducesResponseType(typeof(CancelRescueResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RejectTowing(
+        int id,
+        [FromBody] RejectTowingDto request,
+        CancellationToken ct
+    )
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var (userId, err) = ExtractUserId();
+        if (err != null)
+            return err;
+
+        try
+        {
+            var result = await _rescueService.RejectTowingAsync(id, userId, request, ct);
+            return Ok(
+                new
+                {
+                    data = result,
+                    message = "Khách hàng đã hủy kéo xe sau khi xe kéo tới hiện trường. Điểm tin cậy đã được cập nhật."
+                }
+            );
         }
         catch (KeyNotFoundException ex)
         {
@@ -952,6 +1048,48 @@ public class RescueRequestController : ControllerBase
         }
     }
 
+    // PATCH /api/rescue-requests/{id}/invoice/payment/confirm
+    /// <summary>
+    /// SA xác nhận đã nhận tiền sau khi customer thanh toán. PAYMENT_SUBMITTED -> COMPLETED.
+    /// Chỉ sau bước này đơn cứu hộ mới được hoàn tất.
+    /// </summary>
+    [HttpPatch("{id:int}/invoice/payment/confirm")]
+    [Authorize(Roles = Roles.ServiceAdvisor)]
+    [ProducesResponseType(typeof(PaymentResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ConfirmPayment(int id, CancellationToken ct)
+    {
+        var (userId, err) = ExtractUserId();
+        if (err != null)
+            return err;
+
+        try
+        {
+            var result = await _rescueService.ConfirmPaymentAsync(id, userId, ct);
+            return Ok(
+                new
+                {
+                    data = result,
+                    message = "SA đã xác nhận nhận tiền. Đơn cứu hộ đã hoàn tất."
+                }
+            );
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
     // =========================================================================
     // UC-RES-05: Tranh chấp hóa đơn
     // =========================================================================
@@ -1177,7 +1315,8 @@ public class RescueRequestController : ControllerBase
 // REPAIRING: đang thực hiện sửa chữa tại chỗ.
 // REPAIR_COMPLETE: sửa tại chỗ xong.
 // TOWING_DISPATCHED: đã điều phối dịch vụ kéo xe.
-// TOWING_ACCEPTED: khách đã chấp nhận phương án kéo xe.
+// TOWING_ARRIVED: xe kéo đã tới hiện trường và bắt đầu kéo xe.
+// TOWING_ACCEPTED: khách đã xác nhận cho kéo xe sau khi xe kéo đã tới hiện trường.
 // TOWED: xe đã được kéo về xưởng.
 // INVOICED: đã tạo hóa đơn.
 // INVOICE_SENT: hóa đơn đã được gửi cho khách.

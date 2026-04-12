@@ -12,15 +12,28 @@ export interface IRescueInvoiceData {
 
 export interface IRescueSuggestedPartDetail {
   partId: number;
+  partCode?: string;
   partName?: string;
+  partType?: string;
   quantity: number;
   unitPrice?: number;
+  estimatedLineAmount?: number;
 }
 
 export interface IRescueSuggestedServiceDetail {
   serviceId: number;
   serviceName?: string;
   price?: number;
+}
+
+export interface IRepairItemDetail {
+  productId: number;
+  productCode?: string;
+  productName?: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal?: number;
+  notes?: string;
 }
 
 export interface IRescueRequest {
@@ -46,8 +59,12 @@ export interface IRescueRequest {
   isDepositPaid?: boolean;
   depositPaidDate?: string | null;
   isDepositConfirmed?: boolean;
+  depositConfirmedDate?: string | null;
+  depositConfirmedById?: number | null;
+  serviceFee?: number;
   suggestedParts?: IRescueSuggestedPartDetail[];
   suggestedServices?: IRescueSuggestedServiceDetail[];
+  repairItems?: IRepairItemDetail[];
   invoice?: IRescueInvoiceData;
 }
 
@@ -67,6 +84,7 @@ export type RescueStatus =
   | "INVOICED"
   | "INVOICE_SENT"
   | "PAYMENT_PENDING"
+  | "PAYMENT_SUBMITTED"
   | "COMPLETED"
   | "CANCELLED"
   | "SPAM";
@@ -403,7 +421,7 @@ export const confirmRescueDeposit = async (id: number) => {
   return data;
 };
 
-// Customer: Make payment → COMPLETED
+// Customer: Make payment → PAYMENT_SUBMITTED
 export const makeRescuePayment = async (
   id: number,
   payload: IRescuePaymentPayload,
@@ -411,6 +429,14 @@ export const makeRescuePayment = async (
   const { data } = await AxiosClient.post(
     `/api/rescue-requests/${id}/invoice/payment`,
     payload,
+  );
+  return data;
+};
+
+// SA: Confirm payment received → COMPLETED
+export const confirmRescuePayment = async (id: number) => {
+  const { data } = await AxiosClient.patch(
+    `/api/rescue-requests/${id}/invoice/payment/confirm`,
   );
   return data;
 };

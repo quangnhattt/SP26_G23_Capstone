@@ -9,11 +9,17 @@ namespace AGMS.Infrastructure.Services;
 public class RescueRequestService : IRescueRequestService
 {
     private readonly IRescueRequestRepository _rescueRepo;
+    private readonly ITransactionManager _transactionManager;
     private readonly IUserRepository _userRepo;
 
-    public RescueRequestService(IRescueRequestRepository rescueRepo, IUserRepository userRepo)
+    public RescueRequestService(
+        IRescueRequestRepository rescueRepo,
+        ITransactionManager transactionManager,
+        IUserRepository userRepo
+    )
     {
         _rescueRepo = rescueRepo;
+        _transactionManager = transactionManager;
         _userRepo = userRepo;
     }
 
@@ -185,11 +191,24 @@ public class RescueRequestService : IRescueRequestService
             );
 
         var now = DateTime.UtcNow;
-        rescue.ServiceAdvisorID ??= saId;
-        rescue.IsDepositConfirmed = true;
-        rescue.DepositConfirmedDate = now;
-        rescue.DepositConfirmedByID = saId;
-        await _rescueRepo.UpdateAsync(rescue, ct);
+        await _transactionManager.ExecuteInTransactionAsync(
+            async token =>
+            {
+                rescue.ServiceAdvisorID ??= saId;
+                rescue.IsDepositConfirmed = true;
+                rescue.DepositConfirmedDate = now;
+                rescue.DepositConfirmedByID = saId;
+                await _rescueRepo.UpdateAsync(rescue, token);
+
+                await EnsureWorkshopRecordsCreatedAsync(
+                    rescue,
+                    saId,
+                    "SA xác nhận đã nhận tiền cọc.",
+                    token
+                );
+            },
+            ct
+        );
 
         return new RescueDepositResultDto
         {
@@ -210,10 +229,20 @@ public class RescueRequestService : IRescueRequestService
         string? status,
         string? rescueType,
         int? customerId,
+        int? assignedTechnicianId,
         DateTime? fromDate,
         DateTime? toDate,
         CancellationToken ct
-    ) => await _rescueRepo.GetListAsync(status, rescueType, customerId, fromDate, toDate, ct);
+    ) =>
+        await _rescueRepo.GetListAsync(
+            status,
+            rescueType,
+            customerId,
+            assignedTechnicianId,
+            fromDate,
+            toDate,
+            ct
+        );
 
     /// <summary>Xem chi tiết yêu cầu cứu hộ (UC-RES-01 Step 3-4).</summary>
     public async Task<RescueRequestDetailDto> GetDetailAsync(int rescueId, CancellationToken ct)
@@ -329,8 +358,24 @@ public class RescueRequestService : IRescueRequestService
         if (rescue.CustomerID != customerId)
             throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
 
-        rescue.Status = RescueStatus.ProposalAccepted;
-        await _rescueRepo.UpdateAsync(rescue, ct);
+        await _transactionManager.ExecuteInTransactionAsync(
+            async token =>
+            {
+                rescue.Status = RescueStatus.ProposalAccepted;
+                await _rescueRepo.UpdateAsync(rescue, token);
+
+                if (!rescue.RequiresDeposit)
+                {
+                    await EnsureWorkshopRecordsCreatedAsync(
+                        rescue,
+                        customerId,
+                        "Khách hàng đã đồng ý đề xuất và yêu cầu không cần đặt cọc.",
+                        token
+                    );
+                }
+            },
+            ct
+        );
 
         var updated =
             await _rescueRepo.GetByIdAsync(rescueId, ct)
@@ -356,16 +401,16 @@ public class RescueRequestService : IRescueRequestService
                 $"Không thể assign kỹ thuật viên. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSAL_ACCEPTED."
             );
 
-        if (
-            !string.Equals(
-                rescue.RescueType,
-                RescueType.Roadside,
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
-            throw new InvalidOperationException(
-                "Yêu cầu này chưa được khách hàng chấp nhận theo phương án sửa tại chỗ."
-            );
+        //if (
+        //    !string.Equals(
+        //        rescue.RescueType,
+        //        RescueType.Roadside,
+        //        StringComparison.OrdinalIgnoreCase
+        //    )
+        //)
+        //    throw new InvalidOperationException(
+        //        "Yêu cầu này chưa được khách hàng chấp nhận theo phương án sửa tại chỗ."
+        //    );
 
         EnsureDepositPaid(rescue);
 
@@ -561,31 +606,36 @@ public class RescueRequestService : IRescueRequestService
             return await MapToDetailAsync(notFixed, ct);
         }
 
-        // Kiểm tra xe chưa có Repair Order active (BR-11)
-        if (await _rescueRepo.HasActiveMaintenanceForCarAsync(rescue.CarID, ct))
-            throw new InvalidOperationException(
-                "Xe đã có Repair Order đang xử lý. Không thể tạo thêm. (BR-11)"
-            );
-
-        // Tạo Repair Order mới cho sửa ven đường (BR-07)
-        var maintenance = new CarMaintenance
+        CarMaintenance maintenance;
+        if (rescue.ResultingMaintenanceID.HasValue)
         {
-            CarID = rescue.CarID,
-            MaintenanceType = RescueMaintenanceType.Roadside,
-            Status = CarMaintenanceStatus.Waiting,
-            Notes = request.DiagnosisNotes.Trim(),
-            CreatedBy = techId,
-            AssignedTechnicianID = techId,
-            TotalAmount = 0,
-            DiscountAmount = 0,
-            MemberDiscountAmount = 0,
-            MemberDiscountPercent = 0,
-            MaintenanceDate = DateTime.UtcNow,
-            CreatedDate = DateTime.UtcNow
-        };
-        var created = await _rescueRepo.CreateMaintenanceAsync(maintenance, ct);
+            maintenance =
+                await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID.Value, ct)
+                ?? throw new InvalidOperationException("Repair Order liên kết không tồn tại.");
+        }
+        else
+        {
+            // Tương thích ngược cho rescue cũ chưa được tạo hồ sơ workshop ở bước chấp nhận đề xuất.
+            await EnsureWorkshopRecordsCreatedAsync(
+                rescue,
+                techId,
+                "Tự động tạo Repair Order khi kỹ thuật viên bắt đầu chẩn đoán.",
+                ct
+            );
+            maintenance =
+                await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID!.Value, ct)
+                ?? throw new InvalidOperationException("Không thể tạo Repair Order cho yêu cầu cứu hộ.");
+        }
 
-        rescue.ResultingMaintenanceID = created.MaintenanceID;
+        maintenance.AssignedTechnicianID = techId;
+        maintenance.Notes = AppendAuditNote(
+            maintenance.Notes,
+            string.IsNullOrWhiteSpace(request.DiagnosisNotes)
+                ? "[DIAGNOSIS] Kỹ thuật viên bắt đầu chẩn đoán tại hiện trường."
+                : $"[DIAGNOSIS] {request.DiagnosisNotes.Trim()}"
+        );
+        await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
+
         rescue.Status = RescueStatus.Diagnosing;
         await _rescueRepo.UpdateAsync(rescue, ct);
 
@@ -779,7 +829,7 @@ public class RescueRequestService : IRescueRequestService
         rescue.EstimatedArrivalDateTime = request.EstimatedArrival;
         await _rescueRepo.UpdateAsync(rescue, ct);
 
-        // TowingNotes không persist vào entity — echo lại trong response
+        // TowingNotes không lưu vào entity; chỉ trả lại cho client trong response.
         return new TowingDispatchResultDto
         {
             RescueId = rescueId,
@@ -792,8 +842,46 @@ public class RescueRequestService : IRescueRequestService
     }
 
     /// <summary>
-    /// Customer chấp nhận kéo xe (UC-RES-03 C2). customerId từ token.
-    /// TOWING_DISPATCHED → TOWING_ACCEPTED.
+    /// Ghi nhận xe kéo đã tới hiện trường và bắt đầu kéo xe.
+    /// TOWING_DISPATCHED → TOWING_ARRIVED.
+    /// </summary>
+    public async Task<RescueRequestDetailDto> TowingArriveAsync(
+        int rescueId,
+        int saId,
+        CancellationToken ct
+    )
+    {
+        var rescue =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForTowingArrive.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể ghi nhận xe kéo đã tới hiện trường. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_DISPATCHED."
+            );
+
+        var sa =
+            await _userRepo.GetByIdAsync(saId, ct)
+            ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
+        if (sa.RoleID != UserRole.ServiceAdvisor)
+            throw new ArgumentException(
+                "Chỉ Service Advisor mới có quyền cập nhật trạng thái xe kéo."
+            );
+
+        rescue.Status = RescueStatus.TowingArrived;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        var updated =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new InvalidOperationException(
+                "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
+            );
+        return await MapToDetailAsync(updated, ct);
+    }
+
+    /// <summary>
+    /// Khách hàng chấp nhận kéo xe (UC-RES-03 C2). customerId từ token.
+    /// TOWING_ARRIVED → TOWING_ACCEPTED.
     /// </summary>
     public async Task<RescueRequestDetailDto> AcceptTowingAsync(
         int rescueId,
@@ -807,8 +895,11 @@ public class RescueRequestService : IRescueRequestService
 
         if (!RescueStatus.AllowedForAcceptTowing.Contains(rescue.Status))
             throw new InvalidOperationException(
-                $"Không thể chấp nhận kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_DISPATCHED."
+                $"Không thể chấp nhận kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_ARRIVED."
             );
+
+        if (rescue.CustomerID != customerId)
+            throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
 
         rescue.Status = RescueStatus.TowingAccepted;
         await _rescueRepo.UpdateAsync(rescue, ct);
@@ -817,8 +908,79 @@ public class RescueRequestService : IRescueRequestService
             await _rescueRepo.GetByIdAsync(rescueId, ct)
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
-            );
+        );
         return await MapToDetailAsync(updated, ct);
+    }
+
+    /// <summary>
+    /// Khách hàng hủy kéo xe sau khi xe kéo đã tới hiện trường.
+    /// TOWING_ARRIVED → CANCELLED và trừ 1 điểm tin cậy của khách.
+    /// </summary>
+    public async Task<CancelRescueResultDto> RejectTowingAsync(
+        int rescueId,
+        int customerId,
+        RejectTowingDto request,
+        CancellationToken ct
+    )
+    {
+        var rescue =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForRejectTowing.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể hủy kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_ARRIVED."
+            );
+
+        if (rescue.CustomerID != customerId)
+            throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
+
+        var now = DateTime.UtcNow;
+        await _transactionManager.ExecuteInTransactionAsync(
+            async token =>
+            {
+                if (rescue.AssignedTechnicianID.HasValue)
+                    await _userRepo.SetOnRescueMissionAsync(
+                        rescue.AssignedTechnicianID.Value,
+                        false,
+                        token
+                    );
+
+                if (rescue.ResultingMaintenanceID.HasValue)
+                {
+                    var maintenance = await _rescueRepo.GetMaintenanceByIdAsync(
+                        rescue.ResultingMaintenanceID.Value,
+                        token
+                    );
+                    if (maintenance != null && maintenance.Status != CarMaintenanceStatus.Completed)
+                    {
+                        var reasonNote = string.IsNullOrWhiteSpace(request.Reason)
+                            ? "[REJECT_TOWING] Khách hàng hủy kéo xe sau khi xe kéo đã tới hiện trường."
+                            : $"[REJECT_TOWING {now:yyyy-MM-dd HH:mm}] {request.Reason.Trim()}";
+
+                        maintenance.Status = CarMaintenanceStatus.Cancelled;
+                        maintenance.CompletedDate = now;
+                        maintenance.Notes = AppendAuditNote(maintenance.Notes, reasonNote);
+                        await _rescueRepo.UpdateMaintenanceAsync(maintenance, token);
+                    }
+                }
+
+                rescue.Status = RescueStatus.Cancelled;
+                rescue.CompletedDate = now;
+                await _rescueRepo.UpdateAsync(rescue, token);
+
+                await _userRepo.DecrementTrustScoreAsync(customerId, token);
+            },
+            ct
+        );
+
+        return new CancelRescueResultDto
+        {
+            RescueId = rescueId,
+            Status = RescueStatus.Cancelled,
+            CancelledAt = now,
+            Reason = request.Reason?.Trim()
+        };
     }
 
     /// <summary>
@@ -849,31 +1011,36 @@ public class RescueRequestService : IRescueRequestService
                 "Chỉ Service Advisor mới có quyền hoàn tất dịch vụ kéo xe."
             );
 
-        if (await _rescueRepo.HasActiveMaintenanceForCarAsync(rescue.CarID, ct))
-            throw new InvalidOperationException(
-                "Xe đã có Repair Order đang xử lý. Không thể tạo thêm. (BR-11)"
-            );
-
         var now = DateTime.UtcNow;
-        var maintenance = new CarMaintenance
+        CarMaintenance maintenance;
+        if (rescue.ResultingMaintenanceID.HasValue)
         {
-            CarID = rescue.CarID,
-            MaintenanceType = RescueMaintenanceType.Towing,
-            Status = CarMaintenanceStatus.Waiting,
-            Notes = string.IsNullOrWhiteSpace(request.RepairOrderNotes)
-                ? null
-                : request.RepairOrderNotes.Trim(),
-            CreatedBy = saId,
-            TotalAmount = 0,
-            DiscountAmount = 0,
-            MemberDiscountAmount = 0,
-            MemberDiscountPercent = 0,
-            MaintenanceDate = now,
-            CreatedDate = now
-        };
-        var created = await _rescueRepo.CreateMaintenanceAsync(maintenance, ct);
+            maintenance =
+                await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID.Value, ct)
+                ?? throw new InvalidOperationException("Repair Order liên kết không tồn tại.");
+        }
+        else
+        {
+            // // Tương thích ngược cho rescue cũ chỉ tạo Repair Order ở bước hoàn tất kéo xe.
+            await EnsureWorkshopRecordsCreatedAsyncV2(
+                rescue,
+                saId,
+                "Tự động tạo Repair Order khi hoàn tất kéo xe.",
+                ct
+            );
+            maintenance =
+                await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID!.Value, ct)
+                ?? throw new InvalidOperationException("Không thể tạo Repair Order cho yêu cầu kéo xe.");
+        }
 
-        rescue.ResultingMaintenanceID = created.MaintenanceID;
+        maintenance.Notes = AppendAuditNote(
+            maintenance.Notes,
+            string.IsNullOrWhiteSpace(request.RepairOrderNotes)
+                ? "[TOWING] Xe đã được kéo về xưởng."
+                : $"[TOWING] {request.RepairOrderNotes.Trim()}"
+        );
+        await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
+
         rescue.Status = RescueStatus.Towed;
         rescue.CompletedDate = now;
         await _rescueRepo.UpdateAsync(rescue, ct);
@@ -884,10 +1051,10 @@ public class RescueRequestService : IRescueRequestService
             Status = RescueStatus.Towed,
             ResultingMaintenance = new TowingMaintenanceDto
             {
-                MaintenanceId = created.MaintenanceID,
-                MaintenanceType = created.MaintenanceType,
-                Status = created.Status,
-                CreatedDate = created.CreatedDate
+                MaintenanceId = maintenance.MaintenanceID,
+                MaintenanceType = maintenance.MaintenanceType,
+                Status = maintenance.Status,
+                CreatedDate = maintenance.CreatedDate
             }
         };
     }
@@ -1090,7 +1257,7 @@ public class RescueRequestService : IRescueRequestService
 
     /// <summary>
     /// Customer thanh toán (UC-RES-04 D5). customerId từ token.
-    /// PAYMENT_PENDING → COMPLETED. BR-23. SMP03, SMP05.
+    /// PAYMENT_PENDING → PAYMENT_SUBMITTED. BR-23. SMP03, SMP05.
     /// </summary>
     public async Task<PaymentResultDto> ProcessPaymentAsync(
         int rescueId,
@@ -1153,22 +1320,14 @@ public class RescueRequestService : IRescueRequestService
         };
         var created = await _rescueRepo.CreatePaymentTransactionAsync(transaction, ct);
 
-        // Đóng Repair Order (BR-22)
-        maintenance.Status = CarMaintenanceStatus.Completed;
-        maintenance.CompletedDate = now;
-        await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
-
-        rescue.Status = RescueStatus.Completed;
-        rescue.CompletedDate = now;
+        rescue.Status = RescueStatus.PaymentSubmitted;
         await _rescueRepo.UpdateAsync(rescue, ct);
-        // Chỉ tăng điểm tin cậy khi ca cứu hộ đã hoàn tất và thanh toán thành công.
-        await _userRepo.IncrementTrustScoreAsync(customerId, ct);
 
         return new PaymentResultDto
         {
             RescueId = rescueId,
-            Status = RescueStatus.Completed,
-            CompletedDate = now,
+            Status = RescueStatus.PaymentSubmitted,
+            CompletedDate = null,
             DepositAppliedAmount = depositApplied,
             Payment = new PaymentInfoDto
             {
@@ -1178,6 +1337,94 @@ public class RescueRequestService : IRescueRequestService
                 TransactionReference = created.TransactionReference,
                 PaymentStatus = created.Status,
                 PaymentDate = created.PaymentDate
+            }
+        };
+    }
+
+    /// <summary>
+    /// SA xác nhận đã nhận tiền sau khi customer thanh toán.
+    /// PAYMENT_SUBMITTED → COMPLETED.
+    /// </summary>
+    public async Task<PaymentResultDto> ConfirmPaymentAsync(
+        int rescueId,
+        int saId,
+        CancellationToken ct
+    )
+    {
+        var rescue =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForConfirmPayment.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể xác nhận nhận tiền. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PAYMENT_SUBMITTED."
+            );
+
+        var sa =
+            await _userRepo.GetByIdAsync(saId, ct)
+            ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
+        if (sa.RoleID != UserRole.ServiceAdvisor)
+            throw new ArgumentException("Chỉ Service Advisor mới có quyền xác nhận nhận tiền.");
+
+        if (rescue.ServiceAdvisorID.HasValue && rescue.ServiceAdvisorID.Value != saId)
+            throw new ArgumentException(
+                "Chỉ Service Advisor đang xử lý yêu cầu này mới được xác nhận nhận tiền."
+            );
+
+        if (!rescue.ResultingMaintenanceID.HasValue)
+            throw new InvalidOperationException(
+                "Rescue không có Repair Order. Không thể xác nhận nhận tiền."
+            );
+
+        var maintenance =
+            await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID.Value, ct)
+            ?? throw new InvalidOperationException("Repair Order không tồn tại.");
+
+        var payment =
+            await _rescueRepo.GetPaymentByMaintenanceIdAsync(
+                rescue.ResultingMaintenanceID.Value,
+                ct
+            ) ?? throw new InvalidOperationException("Chưa có giao dịch thanh toán để xác nhận.");
+
+        if (
+            !string.Equals(
+                payment.Status,
+                PaymentStatus.Success,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+            throw new InvalidOperationException(
+                "Giao dịch thanh toán chưa thành công nên không thể xác nhận."
+            );
+
+        var now = DateTime.UtcNow;
+        var invoiceFinalAmount = maintenance.FinalAmount ?? rescue.ServiceFee;
+        var depositApplied = GetDepositAppliedAmount(rescue, invoiceFinalAmount);
+
+        maintenance.Status = CarMaintenanceStatus.Completed;
+        maintenance.CompletedDate = now;
+        await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
+
+        rescue.Status = RescueStatus.Completed;
+        rescue.CompletedDate = now;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        await _userRepo.IncrementTrustScoreAsync(rescue.CustomerID, ct);
+
+        return new PaymentResultDto
+        {
+            RescueId = rescueId,
+            Status = RescueStatus.Completed,
+            CompletedDate = now,
+            DepositAppliedAmount = depositApplied,
+            Payment = new PaymentInfoDto
+            {
+                TransactionId = payment.TransactionID,
+                PaymentMethod = payment.PaymentMethod,
+                Amount = payment.Amount,
+                TransactionReference = payment.TransactionReference,
+                PaymentStatus = payment.Status,
+                PaymentDate = payment.PaymentDate
             }
         };
     }
@@ -1492,6 +1739,152 @@ public class RescueRequestService : IRescueRequestService
     // Các hàm mapping nội bộ, giữ nhất quán với pattern UserService.MapToDetail()
     // =========================================================================
 
+    /// <summary>
+    /// Tạo hồ sơ workshop ngay khi rescue đủ điều kiện đi tiếp:
+    /// - khách không cần cọc: tạo khi khách đồng ý đề xuất;
+    /// - khách cần cọc: tạo khi SA xác nhận đã nhận tiền cọc.
+    /// Bước này chỉ mở hồ sơ CarMaintenance, chưa tự động tạo chứng từ kho để tránh ảnh hưởng flow vật tư hiện có.
+    /// </summary>
+    private async Task EnsureWorkshopRecordsCreatedAsync(
+        RescueRequest rescue,
+        int actorId,
+        string triggerReason,
+        CancellationToken ct
+    )
+    {
+        await _transactionManager.ExecuteInTransactionAsync(
+            async token =>
+            {
+                if (rescue.ResultingMaintenanceID.HasValue)
+                    return;
+
+                if (string.IsNullOrWhiteSpace(rescue.RescueType))
+                    throw new InvalidOperationException(
+                        "Yêu cầu cứu hộ chưa có phương án xử lý nên không thể tạo Repair Order."
+                    );
+
+                if (await _rescueRepo.HasActiveMaintenanceForCarAsync(rescue.CarID, token))
+                    throw new InvalidOperationException(
+                        "Xe đã có Repair Order đang xử lý. Không thể tạo thêm. (BR-11)"
+                    );
+
+                var workshopActorId = ResolveWorkshopActorId(rescue, actorId);
+                var now = DateTime.UtcNow;
+                var maintenance = new CarMaintenance
+                {
+                    CarID = rescue.CarID,
+                    MaintenanceType = ResolveMaintenanceType(rescue.RescueType),
+                    Status = CarMaintenanceStatus.Waiting,
+                    Notes = BuildInitialMaintenanceNotes(rescue, triggerReason),
+                    CreatedBy = workshopActorId,
+                    TotalAmount = 0,
+                    DiscountAmount = 0,
+                    MemberDiscountAmount = 0,
+                    MemberDiscountPercent = 0,
+                    MaintenanceDate = now,
+                    CreatedDate = now
+                };
+                var created = await _rescueRepo.CreateMaintenanceAsync(maintenance, token);
+
+                rescue.ResultingMaintenanceID = created.MaintenanceID;
+                await _rescueRepo.UpdateAsync(rescue, token);
+            },
+            ct
+        );
+    }
+
+    private async Task EnsureWorkshopRecordsCreatedAsyncV2(
+       RescueRequest rescue,
+       int actorId,
+       string triggerReason,
+       CancellationToken ct
+   )
+    {
+        await _transactionManager.ExecuteInTransactionAsync(
+            async token =>
+            {
+                if (rescue.ResultingMaintenanceID.HasValue)
+                    return;
+
+                if (string.IsNullOrWhiteSpace(rescue.RescueType))
+                    throw new InvalidOperationException(
+                        "Yêu cầu cứu hộ chưa có phương án xử lý nên không thể tạo Repair Order."
+                    );
+
+                if (await _rescueRepo.HasActiveMaintenanceForCarAsync(rescue.CarID, token))
+                    throw new InvalidOperationException(
+                        "Xe đã có Repair Order đang xử lý. Không thể tạo thêm. (BR-11)"
+                    );
+
+                var workshopActorId = ResolveWorkshopActorId(rescue, actorId);
+                var now = DateTime.UtcNow;
+                var maintenance = new CarMaintenance
+                {
+                    CarID = rescue.CarID,
+                    MaintenanceType = ResolveMaintenanceType(rescue.RescueType),
+                    Status = CarMaintenanceStatus.RECEIVED,
+                    Notes = BuildInitialMaintenanceNotes(rescue, triggerReason),
+                    CreatedBy = workshopActorId,
+                    TotalAmount = 0,
+                    DiscountAmount = 0,
+                    MemberDiscountAmount = 0,
+                    MemberDiscountPercent = 0,
+                    MaintenanceDate = now,
+                    CreatedDate = now
+                };
+                var created = await _rescueRepo.CreateMaintenanceAsync(maintenance, token);
+
+                rescue.ResultingMaintenanceID = created.MaintenanceID;
+                await _rescueRepo.UpdateAsync(rescue, token);
+            },
+            ct
+        );
+    }
+
+    private static int ResolveWorkshopActorId(RescueRequest rescue, int actorId)
+    {
+        if (rescue.ServiceAdvisorID.HasValue)
+            return rescue.ServiceAdvisorID.Value;
+
+        if (actorId == rescue.CustomerID)
+            throw new InvalidOperationException(
+                "Yêu cầu cứu hộ chưa có Service Advisor phụ trách nên không thể tạo hồ sơ workshop."
+            );
+
+        return actorId;
+    }
+
+    private static string ResolveMaintenanceType(string? rescueType) =>
+        string.Equals(rescueType, RescueType.Towing, StringComparison.OrdinalIgnoreCase)
+            ? RescueMaintenanceType.Towing
+            : RescueMaintenanceType.Roadside;
+
+    private static string BuildInitialMaintenanceNotes(
+        RescueRequest rescue,
+        string triggerReason
+    )
+    {
+        var notes = new List<string> { $"[RESCUE INIT] {triggerReason}" };
+
+        if (!string.IsNullOrWhiteSpace(rescue.ProblemDescription))
+            notes.Add($"Mô tả sự cố: {rescue.ProblemDescription.Trim()}");
+
+        if (!string.IsNullOrWhiteSpace(rescue.CurrentAddress))
+            notes.Add($"Địa điểm cứu hộ: {rescue.CurrentAddress.Trim()}");
+
+        return string.Join(Environment.NewLine, notes);
+    }
+
+    private static string AppendAuditNote(string? currentNotes, string note)
+    {
+        if (string.IsNullOrWhiteSpace(note))
+            return currentNotes ?? string.Empty;
+
+        return string.IsNullOrWhiteSpace(currentNotes)
+            ? note
+            : $"{currentNotes}{Environment.NewLine}{note}";
+    }
+
     /// <summary>Ánh xạ CarMaintenance sang InvoiceDetailDto.</summary>
     private static InvoiceDetailDto MapToInvoiceDetail(
         CarMaintenance m,
@@ -1522,6 +1915,15 @@ public class RescueRequestService : IRescueRequestService
     )
     {
         var suggestedParts = await DeserializeSuggestedPartsAsync(r.SuggestedPartsJson, ct);
+        var repairItems = Array.Empty<RepairItemResponseDto>();
+        decimal repairSubtotal = 0;
+
+        if (r.ResultingMaintenanceID.HasValue)
+        {
+            repairItems = (await _rescueRepo.GetRepairItemsAsync(r.ResultingMaintenanceID.Value, ct))
+                .ToArray();
+            repairSubtotal = repairItems.Sum(i => i.TotalPrice);
+        }
 
         return new RescueRequestDetailDto
         {
@@ -1535,6 +1937,8 @@ public class RescueRequestService : IRescueRequestService
             ImageEvidence = r.ImageEvidence,
             ServiceFee = r.ServiceFee,
             SuggestedParts = suggestedParts,
+            RepairItems = repairItems,
+            RepairSubtotal = repairSubtotal,
             RequiresDeposit = r.RequiresDeposit,
             DepositAmount = r.DepositAmount,
             IsDepositPaid = r.IsDepositPaid,
@@ -1595,11 +1999,11 @@ public class RescueRequestService : IRescueRequestService
                 ?? throw new KeyNotFoundException(
                     $"Phu tung ID={part.PartId} khong ton tai hoac khong con hoat dong."
                 );
-
-            if (!string.Equals(product.Type, "PART", StringComparison.OrdinalIgnoreCase))
-                throw new ArgumentException(
-                    $"San pham ID={part.PartId} khong phai phu tung nen khong the gan vao buoc de xuat."
-                );
+            // Tháo bỏ ràng buộc khi đề xuất
+            //if (!string.Equals(product.Type, "PART", StringComparison.OrdinalIgnoreCase))
+            //    throw new ArgumentException(
+            //        $"San pham ID={part.PartId} khong phai phu tung nen khong the gan vao buoc de xuat."
+            //    );
 
             snapshots.Add(
                 new SuggestedRescuePartDetailDto
