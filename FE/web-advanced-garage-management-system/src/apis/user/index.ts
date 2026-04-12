@@ -142,8 +142,9 @@ export const verifyEmailConfirm = async (
  */
 
 interface IChangePasswordPayload {
-  oldPassword: string;
+  currentPassword: string;
   newPassword: string;
+  confirmNewPassword: string;
 }
 
 interface IChangePasswordResponse {
@@ -153,8 +154,8 @@ interface IChangePasswordResponse {
 }
 
 export const changePassword = async (payload: IChangePasswordPayload) => {
-  const response = await AxiosClient.put<IChangePasswordResponse>(
-    "identity-service/v1/account/changePassword",
+  const response = await AxiosClient.post<IChangePasswordResponse>(
+    "api/auth/change-password",
     payload
   );
   return response.data;

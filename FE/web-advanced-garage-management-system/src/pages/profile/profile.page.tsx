@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import AddCarModal from "@/components/modals/AddCarModal";
 import EditProfileModal from "@/components/modals/EditProfileModal";
+import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
 import { carService } from "@/apis/cars";
 import type { ICar } from "@/apis/cars/types";
 
@@ -24,6 +25,7 @@ const ProfilePage = () => {
   const { user, isAuthenticated, logout, getUser } = useAuth();
   const [showAddCarModal, setShowAddCarModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [cars, setCars] = useState<ICar[]>([]);
   const [loadingCars, setLoadingCars] = useState(false);
 
@@ -104,7 +106,7 @@ const ProfilePage = () => {
           <InfoSection>
             <SectionTitle>{t("securitySettings")}</SectionTitle>
             <InfoGrid>
-              <InfoCard>
+              <InfoCard style={{ cursor: 'pointer' }} onClick={() => setShowChangePasswordModal(true)}>
                 <InfoIcon>
                   <IconLock size={20} />
                 </InfoIcon>
@@ -273,6 +275,11 @@ const ProfilePage = () => {
         <EditProfileModal
           onClose={() => setShowEditProfileModal(false)}
           onSuccess={handleEditProfileSuccess}
+        />
+      )}
+      {showChangePasswordModal && (
+        <ChangePasswordModal
+          onClose={() => setShowChangePasswordModal(false)}
         />
       )}
     </Container>
