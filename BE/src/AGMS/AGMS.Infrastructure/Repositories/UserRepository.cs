@@ -179,7 +179,7 @@ public class UserRepository : IUserRepository
         var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
         if (entity == null) return;
 
-        // Trừ điểm tin cậy khi khách hủy kéo xe sau khi xe kéo đã tới điểm hẹn.
+        // Trừ điểm tin cậy khi khách hủy kéo xe sau khi xe kéo đã tới hiện trường.
         entity.TrustScore = Math.Max(0, entity.TrustScore - 1);
         await _db.SaveChangesAsync(ct);
     }

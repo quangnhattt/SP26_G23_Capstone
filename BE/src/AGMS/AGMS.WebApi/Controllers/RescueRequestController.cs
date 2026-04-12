@@ -671,7 +671,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/towing-arrive
     /// <summary>
-    /// SA cập nhật xe kéo đã tới điểm hẹn với khách.
+    /// Ghi nhận xe kéo đã tới hiện trường và bắt đầu kéo xe.
     /// TOWING_DISPATCHED → TOWING_ARRIVED.
     /// </summary>
     [HttpPatch("{id:int}/towing-arrive")]
@@ -690,7 +690,7 @@ public class RescueRequestController : ControllerBase
         try
         {
             var result = await _rescueService.TowingArriveAsync(id, userId, ct);
-            return Ok(new { data = result, message = "Xe kéo đã tới điểm hẹn với khách." });
+            return Ok(new { data = result, message = "Đã ghi nhận xe kéo tới hiện trường và bắt đầu kéo xe." });
         }
         catch (KeyNotFoundException ex)
         {
@@ -745,7 +745,7 @@ public class RescueRequestController : ControllerBase
 
     // PATCH /api/rescue-requests/{id}/reject-towing
     /// <summary>
-    /// Customer hủy kéo xe sau khi xe kéo đã tới điểm hẹn.
+    /// Customer hủy kéo xe sau khi xe kéo đã tới hiện trường.
     /// TOWING_ARRIVED → CANCELLED và bị trừ 1 điểm tin cậy.
     /// </summary>
     [HttpPatch("{id:int}/reject-towing")]
@@ -776,7 +776,7 @@ public class RescueRequestController : ControllerBase
                 new
                 {
                     data = result,
-                    message = "Khách hàng đã hủy kéo xe sau khi xe kéo tới nơi. Điểm tin cậy đã được cập nhật."
+                    message = "Khách hàng đã hủy kéo xe sau khi xe kéo tới hiện trường. Điểm tin cậy đã được cập nhật."
                 }
             );
         }
@@ -1315,8 +1315,8 @@ public class RescueRequestController : ControllerBase
 // REPAIRING: đang thực hiện sửa chữa tại chỗ.
 // REPAIR_COMPLETE: sửa tại chỗ xong.
 // TOWING_DISPATCHED: đã điều phối dịch vụ kéo xe.
-// TOWING_ARRIVED: xe kéo đã tới điểm hẹn với khách.
-// TOWING_ACCEPTED: khách đã chấp nhận cho kéo xe sau khi xe kéo đã tới nơi.
+// TOWING_ARRIVED: xe kéo đã tới hiện trường và bắt đầu kéo xe.
+// TOWING_ACCEPTED: khách đã xác nhận cho kéo xe sau khi xe kéo đã tới hiện trường.
 // TOWED: xe đã được kéo về xưởng.
 // INVOICED: đã tạo hóa đơn.
 // INVOICE_SENT: hóa đơn đã được gửi cho khách.

@@ -17,7 +17,7 @@ public static class RescueStatus
     public const string Repairing = "REPAIRING"; // Đang sửa chữa tại chỗ.
     public const string RepairComplete = "REPAIR_COMPLETE"; // Đã hoàn tất sửa chữa tại chỗ.
     public const string TowingDispatched = "TOWING_DISPATCHED"; // Đã điều phối dịch vụ kéo xe.
-    public const string TowingArrived = "TOWING_ARRIVED"; // Xe kéo đã tới địa điểm của khách.
+    public const string TowingArrived = "TOWING_ARRIVED"; // Xe kéo đã tới hiện trường và bắt đầu kéo xe.
     public const string TowingAccepted = "TOWING_ACCEPTED"; // Khách đã đồng ý cho kéo xe.
     public const string Towed = "TOWED"; // Xe đã được kéo về xưởng.
     public const string Invoiced = "INVOICED"; // SA đã tạo hóa đơn.
@@ -92,19 +92,19 @@ public static class RescueStatus
         ProposalAccepted
     };
 
-    /// <summary>SA cập nhật xe kéo đã tới điểm hẹn với khách.</summary>
+    /// <summary>Ghi nhận xe kéo đã tới hiện trường và bắt đầu kéo xe.</summary>
     public static readonly IReadOnlySet<string> AllowedForTowingArrive = new HashSet<string>
     {
         TowingDispatched
     };
 
-    /// <summary>Khách hàng chấp nhận kéo xe sau khi xe kéo đã tới nơi.</summary>
+    /// <summary>Khách hàng xác nhận cho kéo xe sau khi xe kéo đã tới hiện trường.</summary>
     public static readonly IReadOnlySet<string> AllowedForAcceptTowing = new HashSet<string>
     {
         TowingArrived
     };
 
-    /// <summary>Khách hàng hủy kéo xe sau khi xe kéo đã tới nơi.</summary>
+    /// <summary>Khách hàng hủy kéo xe sau khi xe kéo đã tới hiện trường.</summary>
     public static readonly IReadOnlySet<string> AllowedForRejectTowing = new HashSet<string>
     {
         TowingArrived

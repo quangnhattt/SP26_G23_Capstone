@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace AGMS.Application.DTOs.Rescue;
 
 /// <summary>
-/// DTO khách hàng hủy kéo xe sau khi xe kéo đã tới điểm hẹn.
+/// DTO khách hàng hủy kéo xe sau khi xe kéo đã tới hiện trường.
 /// </summary>
 public class RejectTowingDto
 {

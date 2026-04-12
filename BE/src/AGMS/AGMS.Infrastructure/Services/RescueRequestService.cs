@@ -842,7 +842,7 @@ public class RescueRequestService : IRescueRequestService
     }
 
     /// <summary>
-    /// SA cập nhật xe kéo đã tới điểm hẹn với khách.
+    /// Ghi nhận xe kéo đã tới hiện trường và bắt đầu kéo xe.
     /// TOWING_DISPATCHED → TOWING_ARRIVED.
     /// </summary>
     public async Task<RescueRequestDetailDto> TowingArriveAsync(
@@ -857,7 +857,7 @@ public class RescueRequestService : IRescueRequestService
 
         if (!RescueStatus.AllowedForTowingArrive.Contains(rescue.Status))
             throw new InvalidOperationException(
-                $"Không thể cập nhật xe kéo đã tới nơi. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_DISPATCHED."
+                $"Không thể ghi nhận xe kéo đã tới hiện trường. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_DISPATCHED."
             );
 
         var sa =
@@ -913,7 +913,7 @@ public class RescueRequestService : IRescueRequestService
     }
 
     /// <summary>
-    /// Khách hàng hủy kéo xe sau khi xe kéo đã tới điểm hẹn.
+    /// Khách hàng hủy kéo xe sau khi xe kéo đã tới hiện trường.
     /// TOWING_ARRIVED → CANCELLED và trừ 1 điểm tin cậy của khách.
     /// </summary>
     public async Task<CancelRescueResultDto> RejectTowingAsync(
@@ -955,7 +955,7 @@ public class RescueRequestService : IRescueRequestService
                     if (maintenance != null && maintenance.Status != CarMaintenanceStatus.Completed)
                     {
                         var reasonNote = string.IsNullOrWhiteSpace(request.Reason)
-                            ? "[REJECT_TOWING] Khách hàng hủy kéo xe sau khi xe kéo đã tới điểm hẹn."
+                            ? "[REJECT_TOWING] Khách hàng hủy kéo xe sau khi xe kéo đã tới hiện trường."
                             : $"[REJECT_TOWING {now:yyyy-MM-dd HH:mm}] {request.Reason.Trim()}";
 
                         maintenance.Status = CarMaintenanceStatus.Cancelled;
