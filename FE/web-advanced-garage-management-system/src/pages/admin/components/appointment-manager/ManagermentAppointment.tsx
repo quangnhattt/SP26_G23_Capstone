@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import { FaCar, FaSearch, FaEye, FaCheck, FaTimes, FaUser, FaCalendarAlt } from "react-icons/fa";
-import { getAppointments, getAppointmentById, approveAppointment, rejectAppointment, type IAppointment, type IAppointmentDetail } from "@/apis/appointments";
+import { getAppointments, getAppointmentById, approveAppointment, rejectAppointment, proposeReschedule, type IAppointment, type IAppointmentDetail } from "@/apis/appointments";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import AppointmentDetailModal from "@/pages/appointments/AppointmentDetailModal";
@@ -13,6 +13,7 @@ const statusConfig: Record<string, { color: string; bg: string; border: string }
   CHECKED_IN: { color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
   DONE: { color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
   CANCELLED: { color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
+  RESCHEDULED: { color: "#b45309", bg: "#fef3c7", border: "#fcd34d" },
 };
 
 const ManagermentAppointment = () => {
@@ -33,6 +34,11 @@ const ManagermentAppointment = () => {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Propose Reschedule modal
+  const [showProposeModal, setShowProposeModal] = useState(false);
+  const [proposeAppointmentId, setProposeAppointmentId] = useState<number | null>(null);
+  const [proposeReason, setProposeReason] = useState("");
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -110,6 +116,33 @@ const ManagermentAppointment = () => {
     setShowRejectModal(false);
     setSelectedAppointmentId(null);
     setRejectionReason("");
+  };
+
+  const handleProposeClick = (id: number) => {
+    setProposeAppointmentId(id);
+    setProposeReason("");
+    setShowProposeModal(true);
+  };
+
+  const handleProposeConfirm = async () => {
+    if (!proposeAppointmentId) return;
+    if (!proposeReason.trim()) {
+      toast.warn("Vui lòng nhập lý do dời lịch.");
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      await proposeReschedule(proposeAppointmentId, proposeReason.trim());
+      toast.success("Đã gửi yêu cầu dời lịch cho khách hàng!");
+      setShowProposeModal(false);
+      setProposeAppointmentId(null);
+      setProposeReason("");
+      await fetchAppointments();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Đề xuất dời lịch thất bại!"));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Counts
@@ -300,6 +333,9 @@ const ManagermentAppointment = () => {
                         <FaTimes size={14} />
                         {t("mgrAppointmentReject")}
                       </RejectButton>
+                      <ProposeButton onClick={() => handleProposeClick(item.appointmentId)} disabled={isSubmitting}>
+                        📅 Dời lịch
+                      </ProposeButton>
                     </>
                   )}
                 </CardRight>
@@ -322,9 +358,7 @@ const ManagermentAppointment = () => {
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
               <ModalTitle>{t("mgrAppointmentRejectTitle")}</ModalTitle>
-              <CloseBtn onClick={closeRejectModal}>
-                <FaTimes />
-              </CloseBtn>
+              <CloseBtn onClick={closeRejectModal}><FaTimes /></CloseBtn>
             </ModalHeader>
             <ModalBody>
               <FormLabel>{t("mgrAppointmentRejectReason")}</FormLabel>
@@ -336,13 +370,40 @@ const ManagermentAppointment = () => {
               />
             </ModalBody>
             <ModalFooter>
-              <CancelButton onClick={closeRejectModal} disabled={isSubmitting}>
-                {t("cancel")}
-              </CancelButton>
+              <CancelButton onClick={closeRejectModal} disabled={isSubmitting}>{t("cancel")}</CancelButton>
               <ConfirmRejectButton onClick={handleRejectConfirm} disabled={isSubmitting}>
                 <FaTimes size={14} />
                 {isSubmitting ? t("processing") : t("mgrAppointmentReject")}
               </ConfirmRejectButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {showProposeModal && (
+        <ModalOverlay onClick={() => setShowProposeModal(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>📅 Đề xuất dời lịch</ModalTitle>
+              <CloseBtn onClick={() => setShowProposeModal(false)}><FaTimes /></CloseBtn>
+            </ModalHeader>
+            <ModalBody>
+              <FormLabel>Lý do yêu cầu dời lịch</FormLabel>
+              <FormTextarea
+                value={proposeReason}
+                onChange={(e) => setProposeReason(e.target.value)}
+                placeholder="Nhập lý do yêu cầu khách hàng dời lịch..."
+                rows={4}
+              />
+              <ProposeNote>
+                Khách hàng sẽ thấy lý do này và tự chọn lịch mới phù hợp.
+              </ProposeNote>
+            </ModalBody>
+            <ModalFooter>
+              <CancelButton onClick={() => setShowProposeModal(false)} disabled={isSubmitting}>Hủy</CancelButton>
+              <ProposeSendButton onClick={handleProposeConfirm} disabled={isSubmitting}>
+                {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
+              </ProposeSendButton>
             </ModalFooter>
           </ModalContent>
         </ModalOverlay>
@@ -799,3 +860,38 @@ const ConfirmRejectButton = styled.button`
     cursor: not-allowed;
   }
 `;
+
+const ProposeButton = styled(RejectButton)`
+  color: #b45309;
+  border-color: #fcd34d;
+  background: #fffbeb;
+  &:hover {
+    background: #fef3c7;
+  }
+`;
+
+const ProposeNote = styled.p`
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0.5rem 0 0;
+  line-height: 1.5;
+`;
+
+const ProposeSendButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  background: #d97706;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  &:hover { background: #b45309; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+// Re-export RejectButton to extend it above

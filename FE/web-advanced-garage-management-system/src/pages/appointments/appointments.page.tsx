@@ -37,6 +37,7 @@ import {
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import AppointmentDetailModal from "./AppointmentDetailModal";
+import RescheduleModal from "./RescheduleModal";
 import RescueDetailModal from "./RescueDetailModal";
 import { rescueStatusConfig } from "./rescueStatusConfig";
 import RescueStepProgress from "@/pages/admin/components/rescue-manager/RescueStepProgress";
@@ -50,6 +51,7 @@ const statusConfig: Record<
   CHECKED_IN: { label: "Đã nhận xe", color: "#7c3aed", bg: "#ede9fe" },
   DONE: { label: "Hoàn thành", color: "#16a34a", bg: "#dcfce7" },
   CANCELLED: { label: "Đã hủy", color: "#dc2626", bg: "#fee2e2" },
+  RESCHEDULED: { label: "Cần dời lịch", color: "#b45309", bg: "#fef3c7" },
 };
 
 const IN_PROGRESS_STATUSES = ["PENDING", "CONFIRMED", "CHECKED_IN"];
@@ -87,6 +89,9 @@ const AppointmentsPage = () => {
   const [detailData, setDetailData] = useState<IAppointmentDetail | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Reschedule modal
+  const [rescheduleAppointment, setRescheduleAppointment] = useState<{ id: number; reason?: string | null } | null>(null);
   const [rescueDetailData, setRescueDetailData] =
     useState<IRescueRequest | null>(null);
   const [showRescueModal, setShowRescueModal] = useState(false);
@@ -266,6 +271,14 @@ const AppointmentsPage = () => {
   const closeModal = () => {
     setShowModal(false);
     setDetailData(null);
+  };
+
+  const handleRescheduleSuccess = async () => {
+    setRescheduleAppointment(null);
+    try {
+      const data = await getAppointments();
+      setAppointments(data);
+    } catch { /* ignore */ }
   };
   const closeRescueModal = () => {
     setShowRescueModal(false);
@@ -577,6 +590,20 @@ const AppointmentsPage = () => {
                           <CardDesc>{appointment.notes}</CardDesc>
                         )}
 
+                        {/* Nút phản hồi dời lịch dành cho Customer */}
+                        {isCustomer && appointment.status === "RESCHEDULED" && (
+                          <RespondRescheduleBtn
+                            onClick={() =>
+                              setRescheduleAppointment({
+                                id: appointment.appointmentId,
+                                reason: appointment.rejectionReason,
+                              })
+                            }
+                          >
+                            📅 Phản hồi yêu cầu dời lịch
+                          </RespondRescheduleBtn>
+                        )}
+
                         <InfoRow>
                           <FaUser size={13} color="#9ca3af" />
                           <InfoText>{appointment.customerFullName}</InfoText>
@@ -812,6 +839,14 @@ const AppointmentsPage = () => {
           data={detailData}
           loading={loadingDetail}
           onClose={closeModal}
+        />
+      )}
+      {rescheduleAppointment && (
+        <RescheduleModal
+          appointmentId={rescheduleAppointment.id}
+          rejectionReason={rescheduleAppointment.reason}
+          onClose={() => setRescheduleAppointment(null)}
+          onSuccess={handleRescheduleSuccess}
         />
       )}
       {showRescueModal && (
@@ -1728,4 +1763,24 @@ const AcceptJobValue = styled.span`
   font-size: 0.875rem;
   color: #111827;
   line-height: 1.4;
+`;
+
+const RespondRescheduleBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 0.25rem;
+  &:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    box-shadow: 0 2px 8px rgba(180,83,9,0.3);
+  }
 `;

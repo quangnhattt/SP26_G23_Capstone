@@ -143,3 +143,24 @@ export const getAvailableTechnicians = async (
   );
   return data;
 };
+
+// === Reschedule ===
+
+export const proposeReschedule = async (id: number, reason: string) => {
+  const { data } = await AxiosClient.post(`/api/appointments/${id}/propose-reschedule`, {
+    reason,
+  });
+  return data;
+};
+
+export interface IRespondReschedulePayload {
+  accept: boolean;
+  newDate?: string;  // yyyy-MM-dd, bắt buộc nếu accept = true
+  newTime?: string;  // HH:mm, bắt buộc nếu accept = true
+  notes?: string;
+}
+
+export const respondReschedule = async (id: number, payload: IRespondReschedulePayload) => {
+  const { data } = await AxiosClient.post(`/api/appointments/${id}/respond-reschedule`, payload);
+  return data;
+};
