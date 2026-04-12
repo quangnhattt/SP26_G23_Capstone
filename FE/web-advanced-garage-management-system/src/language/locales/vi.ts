@@ -1004,6 +1004,7 @@ export default {
   rescueMgrStatusRepairComplete: "Sửa tại chỗ xong",
   rescueMgrStatusTowingDispatched: "Đã điều xe kéo",
   rescueMgrStatusTowingAccepted: "KH chấp nhận kéo xe",
+  rescueMgrStatusTowingArrived: "Xe kéo đến nơi – đang kéo xe",
   rescueMgrStatusTowed: "Đã kéo về xưởng",
   rescueMgrStatusInvoiced: "Đã tạo hóa đơn",
   rescueMgrStatusInvoiceSent: "Đã gửi hóa đơn",
@@ -1023,6 +1024,7 @@ export default {
   rescueMgrStartDiagnosisAction: "Bắt đầu chẩn đoán",
   rescueMgrCompleteRepairAction: "Hoàn tất sửa chữa",
   rescueMgrCreateInvoiceAction: "Tạo hóa đơn",
+  rescueMgrTowingArriveAction: "Xe kéo đến – Bắt đầu kéo xe",
   rescueMgrTowedToGarageAction: "Xe đã được kéo về xưởng",
   rescueMgrSendInvoiceAction: "Gửi hóa đơn cho KH",
   rescueMgrConfirmPaymentAction: "Xác nhận đã nhận tiền",
@@ -1032,6 +1034,8 @@ export default {
   rescueMgrAcceptJobError: "Nhận job thất bại!",
   rescueMgrArriveSuccess: "KTV đã xác nhận đến nơi!",
   rescueMgrArriveError: "Xác nhận đến nơi thất bại!",
+  rescueMgrTowingArriveSuccess: "Xe kéo đã đến – đang tiến hành kéo xe!",
+  rescueMgrTowingArriveError: "Ghi nhận xe kéo đến thất bại!",
   rescueMgrArriveInvalidStatus: "Không thể xác nhận đến nơi. Yêu cầu trạng thái: Đang di chuyển (EN_ROUTE).",
   rescueMgrSubmitDiagnosisSuccess: "Đã gửi kết quả chẩn đoán!",
   rescueMgrSubmitDiagnosisError: "Gửi chẩn đoán thất bại!",
@@ -1268,6 +1272,8 @@ export default {
   rescueCustomerAcceptTowingBtn: "Chấp nhận kéo xe",
   rescueCustomerTowingAcceptedInfo:
     "Bạn đã chấp nhận kéo xe. Xe đang được kéo về xưởng.",
+  rescueCustomerTowingArrivedInfo:
+    "Xe kéo đã đến nơi và đang tiến hành kéo xe. Xe của bạn đang trên đường về xưởng.",
   rescueCustomerTowedInfo: "Xe đã được kéo về xưởng. Đang chờ xử lý.",
   rescueCustomerNeedPaymentTitle: "Cần thanh toán",
   rescueCustomerNeedPaymentInfo:
@@ -1425,6 +1431,7 @@ export default {
   rescueStatusRepairComplete: "Sửa xong",
   rescueStatusTowingDispatched: "Đã điều xe kéo",
   rescueStatusTowingAccepted: "KH đồng ý kéo xe",
+  rescueStatusTowingArrived: "Xe kéo đến nơi",
   rescueStatusTowed: "Đã kéo về xưởng",
   rescueStatusInvoiced: "Đã xuất hóa đơn",
   rescueStatusInvoiceSent: "Đã gửi hóa đơn",
@@ -1631,6 +1638,7 @@ export default {
   serviceOrderType_REPAIR: "Sửa chữa",
   serviceOrderType_MAINTENANCE: "Bảo dưỡng",
   serviceOrderType_INSPECTION: "Kiểm định",
+  serviceOrderType_RESCUE: "Cứu hộ",
   // ── Service Order Detail Modal ─────────────────────────────────────────────
   serviceOrderDetailTitle: "Chi tiết đơn dịch vụ",
   serviceOrderDetailLoading: "Đang tải...",
@@ -1931,6 +1939,8 @@ export default {
   historyTransferOrderMaintenanceStatus_IN_PROGRESS: "Đang thực hiện",
   historyTransferOrderMaintenanceStatus_COMPLETED: "Hoàn thành",
   historyTransferOrderMaintenanceStatus_CANCELLED: "Đã hủy",
+  historyTransferOrderMaintenanceStatus_CLOSED: "Đã đóng",
+  historyTransferOrderMaintenanceStatus_WAITING_FOR_PAYMENT: "Chờ thanh toán",
   historyTransferOrderDetailColCode: "Mã sản phẩm",
   historyTransferOrderDetailColProduct: "Tên sản phẩm",
   historyTransferOrderDetailColQty: "SL",

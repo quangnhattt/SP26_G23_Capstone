@@ -47,6 +47,8 @@ const MAINTENANCE_STATUS_COLOR: Record<string, string> = {
   IN_PROGRESS: "blue",
   COMPLETED: "green",
   CANCELLED: "red",
+  CLOSED: "default",
+  WAITING_FOR_PAYMENT: "orange",
 };
 
 const INVENTORY_STATUS_COLOR: Record<string, string> = {

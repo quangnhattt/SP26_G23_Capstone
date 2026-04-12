@@ -380,10 +380,10 @@ const AppointmentsPage = () => {
         (s, i) => s + Number(i.lineTotal ?? i.unitPrice * i.quantity),
         0,
       );
-      const serviceFeeNum = Number(detail.serviceFee ?? 0);
+      // const serviceFeeNum = Number(detail.serviceFee ?? 0); // TODO: tạm ẩn
       const total = detail.invoice?.total != null
         ? Number(detail.invoice.total)
-        : serviceFeeNum + repairSubtotal;
+        : repairSubtotal;
       if (total > 0) setPaymentAmount(String(total));
     } catch (error) {
       toast.error(getApiErrorMessage(error, t("errorOccurred")));
@@ -1149,7 +1149,7 @@ const AppointmentsPage = () => {
                       </AcceptJobRow>
                     )}
                   </>
-                ) : !invoiceModalRescue.repairItems?.length && !(invoiceModalRescue.serviceFee ?? 0) ? (
+                ) : !invoiceModalRescue.repairItems?.length ? (
                   <AcceptJobRow>
                     <AcceptJobValue style={{ color: "#6b7280", fontStyle: "italic" }}>
                       Chưa có thông tin hoá đơn chi tiết
@@ -1175,10 +1175,10 @@ const AppointmentsPage = () => {
                       unitPrice: p.unitPrice ?? 0,
                       total: p.estimatedLineAmount ?? ((p.unitPrice ?? 0) * p.quantity),
                     }));
-                const serviceFeeAmt = invoiceModalRescue.serviceFee ?? 0;
+                // const serviceFeeAmt = invoiceModalRescue.serviceFee ?? 0; // TODO: tạm ẩn
                 const repairSubtotal = items.reduce((s, i) => s + i.total, 0);
-                const grandTotal = invoiceModalRescue.invoice?.total ?? (serviceFeeAmt + repairSubtotal);
-                if (items.length === 0 && serviceFeeAmt === 0) return null;
+                const grandTotal = invoiceModalRescue.invoice?.total ?? repairSubtotal;
+                if (items.length === 0) return null;
                 return (
                   <div style={{ marginTop: "1rem", border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem", tableLayout: "fixed" }}>
@@ -1208,7 +1208,8 @@ const AppointmentsPage = () => {
                             <td style={{ padding: "0.4rem 0.75rem", textAlign: "right", fontWeight: 600, color: "#111827", whiteSpace: "nowrap" }}>{item.total.toLocaleString()}</td>
                           </tr>
                         ))}
-                        {serviceFeeAmt > 0 && (
+                        {/* TODO: tạm ẩn hàng "Phí dịch vụ cứu hộ" */}
+                        {/* {serviceFeeAmt > 0 && (
                           <tr style={{ borderBottom: "1px solid #f3f4f6", background: "#fafafa" }}>
                             <td style={{ padding: "0.4rem 0.75rem", color: "#111827" }}>
                               <div style={{ fontWeight: 500, color: "#111827" }}>Phí dịch vụ cứu hộ</div>
@@ -1217,7 +1218,7 @@ const AppointmentsPage = () => {
                             <td style={{ padding: "0.4rem 0.4rem", textAlign: "right", color: "#374151", whiteSpace: "nowrap" }}>{serviceFeeAmt.toLocaleString()}</td>
                             <td style={{ padding: "0.4rem 0.75rem", textAlign: "right", fontWeight: 600, color: "#111827", whiteSpace: "nowrap" }}>{serviceFeeAmt.toLocaleString()}</td>
                           </tr>
-                        )}
+                        )} */}
                         <tr style={{ background: "#eff6ff", borderTop: "2px solid #bfdbfe" }}>
                           <td colSpan={3} style={{ padding: "0.5rem 0.75rem", fontWeight: 700, color: "#1d4ed8", textAlign: "right" }}>
                             Tổng cộng
