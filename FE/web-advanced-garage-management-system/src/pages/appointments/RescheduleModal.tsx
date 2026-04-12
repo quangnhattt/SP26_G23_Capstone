@@ -13,7 +13,7 @@ interface Props {
 }
 
 const RescheduleModal = ({ appointmentId, rejectionReason, onClose, onSuccess }: Props) => {
-  const [step, setStep] = useState<"choice" | "pick_slot">("choice");
+  const [step, setStep] = useState<"choice" | "pick_slot" | "pick_slot_decline">("choice");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [slots, setSlots] = useState<ISlotAvailability[]>([]);
