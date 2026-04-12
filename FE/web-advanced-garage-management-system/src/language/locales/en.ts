@@ -1257,6 +1257,10 @@ export default {
   rescueStepPaid: "Payment",
   rescueStepPaymentSubmitted: "SA confirm",
   rescueStepDone: "Done",
+  rescueStepTowingDispatch: "Dispatch Tow",
+  rescueStepTowingArrive: "Truck Arrived",
+  rescueStepTowingStart: "Start Tow",
+  rescueStepTowingComplete: "Tow Complete",
 
   // Rescue Detail Modal - Customer actions (post-dispatch)
   rescueCustomerDiagnosingTitle: "Technician has completed diagnosis",

@@ -761,7 +761,7 @@ const AppointmentsPage = () => {
                           <InfoText>{rescue.currentAddress}</InfoText>
                         </InfoRow>
 
-                        <RescueStepProgress status={rescue.status} />
+                        <RescueStepProgress status={rescue.status} rescueType={rescue.rescueType} />
 
                         {/* ── Technician actions ── */}
                         {isTechnician &&

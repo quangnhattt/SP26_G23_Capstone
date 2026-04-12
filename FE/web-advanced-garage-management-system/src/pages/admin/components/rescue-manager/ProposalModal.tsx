@@ -171,91 +171,95 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
             </RadioGroup>
           </FormGroup>
 
-          {/* Services */}
-          <FormGroup>
-            <FormLabel>{t("rescueMgrProposalServicesLabel")}</FormLabel>
-            {loadingServices ? (
-              <HintText>{t("rescueMgrProposalServicesLoading")}</HintText>
-            ) : services.length === 0 ? (
-              <HintText>{t("rescueMgrProposalServicesEmpty")}</HintText>
-            ) : (
-              <CheckList>
-                {services.map((svc) => {
-                  const checked = selectedServices.some((s) => s.id === svc.id);
-                  return (
-                    <CheckItem
-                      key={svc.id}
-                      $checked={checked}
-                      onClick={() => toggleService(svc)}
-                    >
-                      <CheckBox $checked={checked}>{checked && "✓"}</CheckBox>
-                      <CheckItemInfo>
-                        <CheckItemName>{svc.name}</CheckItemName>
-                        <CheckItemPrice>
-                          {svc.price.toLocaleString()} VND
-                        </CheckItemPrice>
-                      </CheckItemInfo>
-                    </CheckItem>
-                  );
-                })}
-              </CheckList>
-            )}
-          </FormGroup>
+          {/* Services — chỉ hiện khi chọn Sửa tại chỗ */}
+          {proposalType === "ROADSIDE" && (
+            <FormGroup>
+              <FormLabel>{t("rescueMgrProposalServicesLabel")}</FormLabel>
+              {loadingServices ? (
+                <HintText>{t("rescueMgrProposalServicesLoading")}</HintText>
+              ) : services.length === 0 ? (
+                <HintText>{t("rescueMgrProposalServicesEmpty")}</HintText>
+              ) : (
+                <CheckList>
+                  {services.map((svc) => {
+                    const checked = selectedServices.some((s) => s.id === svc.id);
+                    return (
+                      <CheckItem
+                        key={svc.id}
+                        $checked={checked}
+                        onClick={() => toggleService(svc)}
+                      >
+                        <CheckBox $checked={checked}>{checked && "✓"}</CheckBox>
+                        <CheckItemInfo>
+                          <CheckItemName>{svc.name}</CheckItemName>
+                          <CheckItemPrice>
+                            {svc.price.toLocaleString()} VND
+                          </CheckItemPrice>
+                        </CheckItemInfo>
+                      </CheckItem>
+                    );
+                  })}
+                </CheckList>
+              )}
+            </FormGroup>
+          )}
 
-          {/* Parts / Accessories */}
-          <FormGroup>
-            <FormLabel>{t("rescueMgrProposalPartsLabel")}</FormLabel>
-            {loadingProducts ? (
-              <HintText>{t("rescueMgrProposalPartsLoading")}</HintText>
-            ) : products.length === 0 ? (
-              <HintText>{t("rescueMgrProposalPartsEmpty")}</HintText>
-            ) : (
-              <CheckList>
-                {products.map((product) => {
-                  const selected = selectedParts.find(
-                    (p) => p.product.id === product.id,
-                  );
-                  return (
-                    <CheckItem
-                      key={product.id}
-                      $checked={!!selected}
-                      onClick={() => togglePart(product)}
-                    >
-                      <CheckBox $checked={!!selected}>
-                        {selected && "✓"}
-                      </CheckBox>
-                      <CheckItemInfo>
-                        <CheckItemName>{product.name}</CheckItemName>
-                        <CheckItemPrice>
-                          {product.price.toLocaleString()} VND
-                        </CheckItemPrice>
-                      </CheckItemInfo>
-                      {selected && (
-                        <QtyControl onClick={(e) => e.stopPropagation()}>
-                          <QtyBtn
-                            onClick={() =>
-                              updatePartQty(product.id, selected.qty - 1)
-                            }
-                            disabled={selected.qty <= 1}
-                          >
-                            −
-                          </QtyBtn>
-                          <QtyValue>{selected.qty}</QtyValue>
-                          <QtyBtn
-                            onClick={() =>
-                              updatePartQty(product.id, selected.qty + 1)
-                            }
-                          >
-                            +
-                          </QtyBtn>
-                        </QtyControl>
-                      )}
-                    </CheckItem>
-                  );
-                })}
-              </CheckList>
-            )}
-          </FormGroup>
+          {/* Parts / Accessories — chỉ hiện khi chọn Sửa tại chỗ */}
+          {proposalType === "ROADSIDE" && (
+            <FormGroup>
+              <FormLabel>{t("rescueMgrProposalPartsLabel")}</FormLabel>
+              {loadingProducts ? (
+                <HintText>{t("rescueMgrProposalPartsLoading")}</HintText>
+              ) : products.length === 0 ? (
+                <HintText>{t("rescueMgrProposalPartsEmpty")}</HintText>
+              ) : (
+                <CheckList>
+                  {products.map((product) => {
+                    const selected = selectedParts.find(
+                      (p) => p.product.id === product.id,
+                    );
+                    return (
+                      <CheckItem
+                        key={product.id}
+                        $checked={!!selected}
+                        onClick={() => togglePart(product)}
+                      >
+                        <CheckBox $checked={!!selected}>
+                          {selected && "✓"}
+                        </CheckBox>
+                        <CheckItemInfo>
+                          <CheckItemName>{product.name}</CheckItemName>
+                          <CheckItemPrice>
+                            {product.price.toLocaleString()} VND
+                          </CheckItemPrice>
+                        </CheckItemInfo>
+                        {selected && (
+                          <QtyControl onClick={(e) => e.stopPropagation()}>
+                            <QtyBtn
+                              onClick={() =>
+                                updatePartQty(product.id, selected.qty - 1)
+                              }
+                              disabled={selected.qty <= 1}
+                            >
+                              −
+                            </QtyBtn>
+                            <QtyValue>{selected.qty}</QtyValue>
+                            <QtyBtn
+                              onClick={() =>
+                                updatePartQty(product.id, selected.qty + 1)
+                              }
+                            >
+                              +
+                            </QtyBtn>
+                          </QtyControl>
+                        )}
+                      </CheckItem>
+                    );
+                  })}
+                </CheckList>
+              )}
+            </FormGroup>
+          )}
 
           {/* Customer note */}
           <FormGroup>

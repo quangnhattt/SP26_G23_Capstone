@@ -1242,6 +1242,10 @@ export default {
   rescueStepPaid: "Thanh toán",
   rescueStepPaymentSubmitted: "SA xác nhận",
   rescueStepDone: "Hoàn thành",
+  rescueStepTowingDispatch: "SA điều kéo xe",
+  rescueStepTowingArrive: "Xe kéo đến nơi",
+  rescueStepTowingStart: "Bắt đầu kéo",
+  rescueStepTowingComplete: "Kéo về hoàn tất",
 
   // Rescue Detail Modal - Customer actions (post-dispatch)
   rescueCustomerDiagnosingTitle: "Kỹ thuật viên đã hoàn tất chẩn đoán",

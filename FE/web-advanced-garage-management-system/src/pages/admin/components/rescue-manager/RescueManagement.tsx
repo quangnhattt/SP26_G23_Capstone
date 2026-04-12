@@ -1018,7 +1018,7 @@ const RescueManagement = () => {
                     </CardInfoRow>
                   )}
 
-                  <RescueStepProgress status={item.status} />
+                  <RescueStepProgress status={item.status} rescueType={item.rescueType} />
                 </CardLeft>
 
                 <CardRight>

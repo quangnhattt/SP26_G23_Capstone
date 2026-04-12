@@ -14,18 +14,19 @@ import {
   FaFlag,
   FaHandHoldingUsd,
   FaCheckDouble,
+  FaTruck,
 } from "react-icons/fa";
 import type { RescueStatus } from "@/apis/rescue";
 
-// ─── On-site repair flow steps ───────────────────────────────
-// Flow: SA đề xuất → KH xác nhận → SA điều KTV (KTV auto-nhận) → KTV đến nơi
-//       → Chẩn đoán → Sửa chữa → Sửa xong (SA/KTV edit phụ) → HĐ → Thanh toán
-const ON_SITE_STEPS: {
+type Step = {
   key: string;
   labelKey: string;
   icon: React.ReactNode;
   statuses: RescueStatus[];
-}[] = [
+};
+
+// ─── Roadside (Sửa tại chỗ) flow ─────────────────────────────
+const ON_SITE_STEPS: Step[] = [
   {
     key: "propose",
     labelKey: "rescueStepPropose",
@@ -36,7 +37,7 @@ const ON_SITE_STEPS: {
     key: "customer_confirm",
     labelKey: "rescueStepCustomerConfirm",
     icon: <FaUserCheck size={14} />,
-    statuses: ["PROPOSED_ROADSIDE", "PROPOSED_TOWING"],
+    statuses: ["PROPOSED_ROADSIDE"],
   },
   {
     key: "deposit",
@@ -106,50 +107,139 @@ const ON_SITE_STEPS: {
   },
 ];
 
-// Terminal / non-flow statuses
-const TERMINAL_STATUSES: RescueStatus[] = [
-  "CANCELLED",
-  "SPAM",
+// ─── Towing (Kéo xe về gara) flow ────────────────────────────
+// Flow: Đề xuất kéo xe → KH xác nhận (+ đặt cọc nếu cần) → SA điều kéo xe
+//       → Xe kéo đến nơi → Bắt đầu kéo → Kéo về hoàn tất
+//       → (dùng chung từ chẩn đoán trở đi như sửa tại chỗ)
+const TOWING_STEPS: Step[] = [
+  {
+    key: "propose",
+    labelKey: "rescueStepPropose",
+    icon: <FaClipboardCheck size={14} />,
+    statuses: ["PENDING", "PROPOSED_TOWING"],
+  },
+  {
+    key: "customer_confirm",
+    labelKey: "rescueStepCustomerConfirm",
+    icon: <FaUserCheck size={14} />,
+    statuses: ["PROPOSAL_ACCEPTED"],
+  },
+  {
+    key: "towing_dispatch",
+    labelKey: "rescueStepTowingDispatch",
+    icon: <FaTruck size={14} />,
+    statuses: ["TOWING_DISPATCHED", "EN_ROUTE"],
+  },
+  {
+    key: "towing_arrive",
+    labelKey: "rescueStepTowingArrive",
+    icon: <FaMapMarkerAlt size={14} />,
+    statuses: ["TOWING_ACCEPTED"],
+  },
+  {
+    key: "towing_start",
+    labelKey: "rescueStepTowingStart",
+    icon: <FaTruck size={14} />,
+    statuses: ["ON_SITE"],
+  },
+  {
+    key: "towing_complete",
+    labelKey: "rescueStepTowingComplete",
+    icon: <FaCheckCircle size={14} />,
+    statuses: ["TOWED"],
+  },
+  {
+    key: "diagnose",
+    labelKey: "rescueStepDiagnose",
+    icon: <FaTools size={14} />,
+    statuses: ["DIAGNOSING"],
+  },
+  {
+    key: "repair",
+    labelKey: "rescueStepRepair",
+    icon: <FaWrench size={14} />,
+    statuses: ["REPAIRING"],
+  },
+  {
+    key: "complete",
+    labelKey: "rescueStepComplete",
+    icon: <FaCheckCircle size={14} />,
+    statuses: ["REPAIR_COMPLETE"],
+  },
+  {
+    key: "invoice",
+    labelKey: "rescueStepInvoice",
+    icon: <FaFileInvoiceDollar size={14} />,
+    statuses: ["INVOICED"],
+  },
+  {
+    key: "send",
+    labelKey: "rescueStepSend",
+    icon: <FaPaperPlane size={14} />,
+    statuses: ["INVOICE_SENT"],
+  },
+  {
+    key: "paid",
+    labelKey: "rescueStepPaid",
+    icon: <FaMoneyBillWave size={14} />,
+    statuses: ["PAYMENT_PENDING"],
+  },
+  {
+    key: "payment_submitted",
+    labelKey: "rescueStepPaymentSubmitted",
+    icon: <FaCheckDouble size={14} />,
+    statuses: ["PAYMENT_SUBMITTED"],
+  },
+  {
+    key: "done",
+    labelKey: "rescueStepDone",
+    icon: <FaFlag size={14} />,
+    statuses: ["COMPLETED"],
+  },
 ];
 
-function getActiveStepIndex(status: RescueStatus): number {
-  for (let i = ON_SITE_STEPS.length - 1; i >= 0; i--) {
-    if (ON_SITE_STEPS[i].statuses.includes(status)) return i;
+// Terminal / non-flow statuses
+const TERMINAL_STATUSES: RescueStatus[] = ["CANCELLED", "SPAM"];
+
+// Statuses that unambiguously belong to the towing flow
+const TOWING_INDICATOR_STATUSES: RescueStatus[] = [
+  "PROPOSED_TOWING",
+  "TOWING_DISPATCHED",
+  "TOWING_ACCEPTED",
+  "TOWED",
+];
+
+function getActiveStepIndex(steps: Step[], status: RescueStatus): number {
+  for (let i = steps.length - 1; i >= 0; i--) {
+    if ((steps[i].statuses as string[]).includes(status)) return i;
   }
-  // Statuses that fall between defined step statuses
-  // Indices: 0=propose,1=customer_confirm,2=deposit,3=assign,4=arrive,5=diagnose,6=repair,7=complete,8=invoice,9=send,10=paid,11=payment_submitted,12=done
-  const statusOrder: Record<string, number> = {
-    TOWING_DISPATCHED: 3, // SA dispatches tow truck → assign-equivalent step
-    TOWING_ACCEPTED: 4,   // customer accepts towing → arrive-equivalent step
-    TOWED: 7,             // towing complete → repair_complete-equivalent step
-  };
-  return statusOrder[status] ?? -1;
+  return -1;
 }
 
 interface Props {
   status: RescueStatus;
+  rescueType?: string | null;
 }
 
-const RescueStepProgress = ({ status }: Props) => {
+const RescueStepProgress = ({ status, rescueType }: Props) => {
   const { t } = useTranslation();
   if (TERMINAL_STATUSES.includes(status)) return null;
 
-  const activeIdx = getActiveStepIndex(status);
+  const isTowing =
+    rescueType === "TOWING" || TOWING_INDICATOR_STATUSES.includes(status);
+  const steps = isTowing ? TOWING_STEPS : ON_SITE_STEPS;
+  const activeIdx = getActiveStepIndex(steps, status);
 
   return (
     <StepperWrapper>
-      {ON_SITE_STEPS.map((step, idx) => {
+      {steps.map((step, idx) => {
         const state: "done" | "active" | "pending" =
           idx < activeIdx ? "done" : idx === activeIdx ? "active" : "pending";
 
         return (
           <StepItem key={step.key}>
-            <StepDot $state={state}>
-              {step.icon}
-            </StepDot>
-            {idx < ON_SITE_STEPS.length - 1 && (
-              <StepLine $done={idx < activeIdx} />
-            )}
+            <StepDot $state={state}>{step.icon}</StepDot>
+            {idx < steps.length - 1 && <StepLine $done={idx < activeIdx} />}
             <StepLabel $state={state}>{t(step.labelKey)}</StepLabel>
           </StepItem>
         );
