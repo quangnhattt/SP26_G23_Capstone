@@ -203,7 +203,7 @@ public class AppointmentRepository : IAppointmentRepository
             // 2. Map ServiceType → MaintenanceType
             var maintenanceType = appointment.ServiceType == "MAINTENANCE" ? "MAINTENANCE" : "REPAIR";
 
-            // 3. Tạo bản ghi CarMaintenance mới với status WAITING
+            // 3. Tạo bản ghi CarMaintenance mới với status RECEIVED
             var maintenance = new CarMaintenance
             {
                 CarID = appointment.CarID,
@@ -220,7 +220,7 @@ public class AppointmentRepository : IAppointmentRepository
                 Notes = appointment.Notes,
                 BayID = null,
                 CreatedBy = checkedInByUserId,
-                AssignedTechnicianID = null,
+                AssignedTechnicianID = appointment.AssignedTechnicianID,
                 TechnicianHistory = null,
                 CreatedDate = DateTime.UtcNow,
                 CompletedDate = null
