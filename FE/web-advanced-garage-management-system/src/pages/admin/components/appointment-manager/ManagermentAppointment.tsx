@@ -1,26 +1,38 @@
-import { useState, useEffect, useCallback } from "react";
-import styled from "styled-components";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import styled, { keyframes } from "styled-components";
 import { useTranslation } from "react-i18next";
-import { FaCar, FaSearch, FaEye, FaCheck, FaTimes, FaUser, FaCalendarAlt, FaPhoneAlt } from "react-icons/fa";
-import { getAppointments, getAppointmentById, approveAppointment, rejectAppointment, proposeReschedule, checkInAppointment, type IAppointment, type IAppointmentDetail } from "@/apis/appointments";
+import {
+  FaCar, FaSearch, FaEye, FaCheck, FaTimes, FaUser,
+  FaCalendarAlt, FaPhoneAlt, FaTools, FaWrench, FaKey
+} from "react-icons/fa";
+import {
+  getAppointments, getAppointmentById, approveAppointment,
+  rejectAppointment, proposeReschedule, checkInAppointment,
+  type IAppointment, type IAppointmentDetail
+} from "@/apis/appointments";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import AppointmentDetailModal from "@/pages/appointments/AppointmentDetailModal";
 import useAuth from "@/hooks/useAuth";
 
-const statusConfig: Record<string, { color: string; bg: string; border: string }> = {
-  PENDING: { color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
-  CONFIRMED: { color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  CHECKED_IN: { color: "#2563eb", bg: "#dbeafe", border: "#93c5fd" },
-  DONE: { color: "#16a34a", bg: "#dcfce7", border: "#86efac" },
-  CANCELLED: { color: "#dc2626", bg: "#fee2e2", border: "#fca5a5" },
-  RESCHEDULED: { color: "#b45309", bg: "#fef3c7", border: "#fcd34d" },
+// ─── Status Config ──────────────────────────────────────────────────────────
+const statusConfig: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  PENDING:     { color: "#d97706", bg: "#fef3c7", border: "#fcd34d", label: "Chờ duyệt" },
+  CONFIRMED:   { color: "#16a34a", bg: "#dcfce7", border: "#86efac", label: "Đã xác nhận" },
+  CHECKED_IN:  { color: "#2563eb", bg: "#dbeafe", border: "#93c5fd", label: "Đã tiếp nhận" },
+  DONE:        { color: "#059669", bg: "#ecfdf5", border: "#6ee7b7", label: "Hoàn thành" },
+  CANCELLED:   { color: "#dc2626", bg: "#fee2e2", border: "#fca5a5", label: "Đã hủy" },
+  RESCHEDULED: { color: "#7c3aed", bg: "#f5f3ff", border: "#c4b5fd", label: "Đã dời lịch" },
 };
 
+const STATUSES = Object.keys(statusConfig);
+
+// ─── Component ──────────────────────────────────────────────────────────────
 const ManagermentAppointment = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const isSA = user?.roleID === 2;
+
   const [appointments, setAppointments] = useState<IAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,14 +62,13 @@ const ManagermentAppointment = () => {
       setAppointments(data);
     } catch (error) {
       console.error("Error fetching appointments:", error);
+      toast.error("Không thể tải danh sách lịch hẹn.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
+  useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
 
   const handleViewDetail = async (id: number) => {
     setLoadingDetail(true);
@@ -71,11 +82,6 @@ const ManagermentAppointment = () => {
     } finally {
       setLoadingDetail(false);
     }
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setDetailData(null);
   };
 
   const handleApprove = async (id: number) => {
@@ -115,7 +121,6 @@ const ManagermentAppointment = () => {
 
   const handleRejectConfirm = async () => {
     if (!selectedAppointmentId) return;
-
     try {
       setIsSubmitting(true);
       await rejectAppointment(selectedAppointmentId, rejectionReason.trim() || undefined);
@@ -131,12 +136,6 @@ const ManagermentAppointment = () => {
     }
   };
 
-  const closeRejectModal = () => {
-    setShowRejectModal(false);
-    setSelectedAppointmentId(null);
-    setRejectionReason("");
-  };
-
   const handleProposeClick = (id: number) => {
     if (!isSA) return;
     setProposeAppointmentId(id);
@@ -144,18 +143,9 @@ const ManagermentAppointment = () => {
     setShowProposeModal(true);
   };
 
-  const isToday = (dateStr: string) => {
-    if (!dateStr) return false;
-    const today = new Date().toISOString().split("T")[0];
-    return dateStr.startsWith(today);
-  };
-
   const handleProposeConfirm = async () => {
     if (!proposeAppointmentId) return;
-    if (!proposeReason.trim()) {
-      toast.warn("Vui lòng nhập lý do dời lịch.");
-      return;
-    }
+    if (!proposeReason.trim()) { toast.warn("Vui lòng nhập lý do dời lịch."); return; }
     try {
       setIsSubmitting(true);
       await proposeReschedule(proposeAppointmentId, proposeReason.trim());
@@ -171,277 +161,280 @@ const ManagermentAppointment = () => {
     }
   };
 
-  // Counts
-  const totalCount = appointments.length;
-  const pendingCount = appointments.filter((a) => a.status === "PENDING").length;
-  const checkedInCount = appointments.filter((a) => a.status === "CHECKED_IN").length;
-  const confirmedCount = appointments.filter((a) => a.status === "CONFIRMED").length;
-  const cancelledCount = appointments.filter((a) => a.status === "CANCELLED").length;
-
-  const filteredAppointments = appointments
-    .filter((a) => {
-      if (filterStatus === "all") return true;
-      return a.status === filterStatus;
-    })
-    .filter((a) => {
-      if (filterServiceType === "all") return true;
-      return a.serviceType?.toUpperCase() === filterServiceType;
-    })
-    .filter((a) => {
-      if (!searchTerm.trim()) return true;
-      const q = searchTerm.toLowerCase();
-      return (
-        a.customerFullName?.toLowerCase().includes(q) ||
-        a.licensePlate?.toLowerCase().includes(q) ||
-        a.phone?.toLowerCase().includes(q) ||
-        `${a.carBrand} ${a.carModel}`.toLowerCase().includes(q) ||
-        `appointment-${a.appointmentId}`.includes(q)
-      );
-    });
+  const isToday = (dateStr: string) => {
+    if (!dateStr) return false;
+    return dateStr.startsWith(new Date().toISOString().split("T")[0]);
+  };
 
   const formatDateTime = (dateStr: string) => {
     if (!dateStr) return "";
     try {
       const d = new Date(dateStr);
-      const time = d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-      const date = d.toLocaleDateString("vi-VN");
-      return `${time} ${date}`;
-    } catch {
-      return dateStr;
-    }
+      return d.toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
+    } catch { return dateStr; }
   };
 
-  const getStatusInfo = (status: string) =>
-    statusConfig[status] || { color: "#6b7280", bg: "#f3f4f6", border: "#e5e7eb" };
+  // ─── Stats ────────────────────────────────────────────────────────────
+  const stats = useMemo(() => ({
+    total:     appointments.length,
+    pending:   appointments.filter(a => a.status === "PENDING").length,
+    confirmed: appointments.filter(a => a.status === "CONFIRMED").length,
+    checkedIn: appointments.filter(a => a.status === "CHECKED_IN").length,
+    cancelled: appointments.filter(a => a.status === "CANCELLED").length,
+    today:     appointments.filter(a => isToday(a.appointmentDate)).length,
+  }), [appointments]);
 
-  const getServiceTypeLabel = (type: string) => {
-    switch (type?.toUpperCase()) {
-      case "REPAIR": return t("bookingServiceTypeRepair");
-      case "MAINTENANCE": return t("bookingServiceTypeMaintenance");
-      default: return type;
-    }
-  };
-
-  const getServiceTypeBadge = (type: string) => {
-    switch (type?.toUpperCase()) {
-      case "REPAIR": return { color: "#d97706", bg: "#fef3c7" };
-      case "MAINTENANCE": return { color: "#2563eb", bg: "#dbeafe" };
-      default: return { color: "#6b7280", bg: "#f3f4f6" };
-    }
-  };
+  const filteredAppointments = useMemo(() =>
+    appointments
+      .filter(a => filterStatus === "all" || a.status === filterStatus)
+      .filter(a => filterServiceType === "all" || a.serviceType?.toUpperCase() === filterServiceType)
+      .filter(a => {
+        if (!searchTerm.trim()) return true;
+        const q = searchTerm.toLowerCase();
+        return (
+          a.customerFullName?.toLowerCase().includes(q) ||
+          a.licensePlate?.toLowerCase().includes(q) ||
+          a.phone?.toLowerCase().includes(q) ||
+          `${a.carBrand} ${a.carModel}`.toLowerCase().includes(q)
+        );
+      }),
+  [appointments, filterStatus, filterServiceType, searchTerm]);
 
   return (
     <PageWrapper>
-      {/* Header */}
-      <Header>
-        <HeaderLeft>
-          <FaCar size={24} color="#1d4ed8" />
-          <div>
-            <HeaderTitle>{t("mgrAppointmentTitle")}</HeaderTitle>
-            <HeaderSubtitle>{t("mgrAppointmentSubtitle")}</HeaderSubtitle>
-          </div>
-        </HeaderLeft>
-      </Header>
+      {/* ── HEADER ── */}
+      <PageHeader>
+        <HeaderContent>
+          <HeaderIcon><FaCar size={28} /></HeaderIcon>
+          <HeaderText>
+            <PageTitle>{t("mgrAppointmentTitle")}</PageTitle>
+            <PageSubtitle>{t("mgrAppointmentSubtitle")}</PageSubtitle>
+          </HeaderText>
+        </HeaderContent>
+        <RolePill $isSA={isSA}>
+          {isSA ? "⚙️ Service Advisor" : "👁️ Xem toàn bộ (Admin)"}
+        </RolePill>
+      </PageHeader>
 
-      {/* Stats */}
-      <StatsRow>
-        <StatCard $borderColor="#e5e7eb" onClick={() => setFilterStatus("all")}>
-          <StatNumber $color="#111827">{totalCount}</StatNumber>
-          <StatLabel>{t("mgrAppointmentTotal")}</StatLabel>
+      {/* ── STATS ── */}
+      <StatsGrid>
+        <StatCard $accent="#6366f1" onClick={() => setFilterStatus("all")}>
+          <StatIconWrap $color="#6366f1"><FaCalendarAlt size={20} /></StatIconWrap>
+          <StatBody>
+            <StatNum>{stats.total}</StatNum>
+            <StatLbl>Tổng lịch hẹn</StatLbl>
+          </StatBody>
         </StatCard>
-        <StatCard $borderColor="#fcd34d" onClick={() => setFilterStatus("PENDING")}>
-          <StatNumber $color="#d97706">{pendingCount}</StatNumber>
-          <StatLabel>{t("mgrAppointmentPending")}</StatLabel>
+        <StatCard $accent="#f59e0b" onClick={() => setFilterStatus("PENDING")}>
+          <StatIconWrap $color="#f59e0b"><FaTools size={20} /></StatIconWrap>
+          <StatBody>
+            <StatNum $color="#f59e0b">{stats.pending}</StatNum>
+            <StatLbl>Chờ duyệt</StatLbl>
+          </StatBody>
         </StatCard>
-        <StatCard $borderColor="#93c5fd" onClick={() => setFilterStatus("CHECKED_IN")}>
-          <StatNumber $color="#2563eb">{checkedInCount}</StatNumber>
-          <StatLabel>{t("mgrAppointmentCheckedIn")}</StatLabel>
+        <StatCard $accent="#16a34a" onClick={() => setFilterStatus("CONFIRMED")}>
+          <StatIconWrap $color="#16a34a"><FaCheck size={20} /></StatIconWrap>
+          <StatBody>
+            <StatNum $color="#16a34a">{stats.confirmed}</StatNum>
+            <StatLbl>Đã xác nhận</StatLbl>
+          </StatBody>
         </StatCard>
-        <StatCard $borderColor="#86efac" onClick={() => setFilterStatus("CONFIRMED")}>
-          <StatNumber $color="#16a34a">{confirmedCount}</StatNumber>
-          <StatLabel>{t("mgrAppointmentConfirmed")}</StatLabel>
+        <StatCard $accent="#2563eb" onClick={() => setFilterStatus("CHECKED_IN")}>
+          <StatIconWrap $color="#2563eb"><FaKey size={20} /></StatIconWrap>
+          <StatBody>
+            <StatNum $color="#2563eb">{stats.checkedIn}</StatNum>
+            <StatLbl>Đã tiếp nhận</StatLbl>
+          </StatBody>
         </StatCard>
-        <StatCard $borderColor="#fca5a5" onClick={() => setFilterStatus("CANCELLED")}>
-          <StatNumber $color="#dc2626">{cancelledCount}</StatNumber>
-          <StatLabel>{t("mgrAppointmentCancelled")}</StatLabel>
+        <StatCard $accent="#06b6d4" onClick={() => setFilterStatus("all")}>
+          <StatIconWrap $color="#06b6d4"><FaCar size={20} /></StatIconWrap>
+          <StatBody>
+            <StatNum $color="#06b6d4">{stats.today}</StatNum>
+            <StatLbl>Lịch hôm nay</StatLbl>
+          </StatBody>
         </StatCard>
-      </StatsRow>
+        <StatCard $accent="#dc2626" onClick={() => setFilterStatus("CANCELLED")}>
+          <StatIconWrap $color="#dc2626"><FaTimes size={20} /></StatIconWrap>
+          <StatBody>
+            <StatNum $color="#dc2626">{stats.cancelled}</StatNum>
+            <StatLbl>Đã hủy</StatLbl>
+          </StatBody>
+        </StatCard>
+      </StatsGrid>
 
-      {/* Filters */}
-      <FilterRow>
+      {/* ── FILTERS ── */}
+      <FilterBar>
         <SearchBox>
-          <FaSearch size={14} color="#9ca3af" />
+          <FaSearch size={14} color="#94a3b8" />
           <SearchInput
-            placeholder={t("mgrAppointmentSearchPlaceholder")}
+            placeholder="Tìm biển số, khách hàng, SĐT..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
           />
         </SearchBox>
-        <FilterSelect value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="all">{t("appointmentsAll")}</option>
-          {Object.entries(statusConfig).map(([key]) => (
-            <option key={key} value={key}>
-              {t(`mgrAppointmentStatus_${key}`)}
-            </option>
+        <PillGroup>
+          <PillBtn $active={filterServiceType === "all"} onClick={() => setFilterServiceType("all")}>Tất cả</PillBtn>
+          <PillBtn $active={filterServiceType === "REPAIR"} onClick={() => setFilterServiceType("REPAIR")}>
+            <FaWrench size={11} /> Sửa chữa
+          </PillBtn>
+          <PillBtn $active={filterServiceType === "MAINTENANCE"} onClick={() => setFilterServiceType("MAINTENANCE")}>
+            <FaTools size={11} /> Bảo dưỡng
+          </PillBtn>
+        </PillGroup>
+        <StatusPills>
+          <PillBtn $active={filterStatus === "all"} onClick={() => setFilterStatus("all")}>Tất cả TT</PillBtn>
+          {STATUSES.map(s => (
+            <PillBtn key={s} $active={filterStatus === s} $statusColor={statusConfig[s].color}
+              onClick={() => setFilterStatus(s)}>
+              {statusConfig[s].label}
+            </PillBtn>
           ))}
-        </FilterSelect>
-        <FilterSelect value={filterServiceType} onChange={(e) => setFilterServiceType(e.target.value)}>
-          <option value="all">{t("appointmentsAll")}</option>
-          <option value="REPAIR">{t("bookingServiceTypeRepair")}</option>
-          <option value="MAINTENANCE">{t("bookingServiceTypeMaintenance")}</option>
-        </FilterSelect>
-      </FilterRow>
+        </StatusPills>
+      </FilterBar>
 
-      {/* List */}
-      <ListSection>
+      {/* ── LIST ── */}
+      <CardGrid>
         {loading ? (
-          <LoadingMessage>{t("loading")}</LoadingMessage>
+          <LoadingWrapper>
+            <Spinner />
+            <p>Đang tải dữ liệu...</p>
+          </LoadingWrapper>
         ) : filteredAppointments.length === 0 ? (
-          <EmptyMessage>{t("mgrAppointmentEmpty")}</EmptyMessage>
+          <EmptyWrapper>
+            <FaCalendarAlt size={48} color="#cbd5e1" />
+            <EmptyTitle>Không có lịch hẹn nào</EmptyTitle>
+            <EmptyDesc>Thay đổi bộ lọc hoặc thử tìm kiếm khác.</EmptyDesc>
+          </EmptyWrapper>
         ) : (
-          filteredAppointments.map((item) => {
-            const statusInfo = getStatusInfo(item.status);
-            const serviceTypeBadge = getServiceTypeBadge(item.serviceType);
-            const carName = `${item.carBrand} ${item.carModel}`;
+          filteredAppointments.map(item => {
+            const sc = statusConfig[item.status] || statusConfig.PENDING;
             const appointmentIsToday = isToday(item.appointmentDate);
-            return (
-              <RequestCard key={item.appointmentId} $borderColor={statusInfo.border}>
-                <CardLeft>
-                  <CardTopRow>
-                    <LicensePlate>{item.licensePlate}</LicensePlate>
-                    <BadgeGroup>
-                      <Badge $color={statusInfo.color} $bg={statusInfo.bg}>
-                        {t(`mgrAppointmentStatus_${item.status}`)}
-                      </Badge>
-                      <Badge $color={serviceTypeBadge.color} $bg={serviceTypeBadge.bg}>
-                        {getServiceTypeLabel(item.serviceType)}
-                      </Badge>
-                      {appointmentIsToday && (
-                        <TodayBadge>📅 Hôm nay</TodayBadge>
-                      )}
-                    </BadgeGroup>
-                  </CardTopRow>
+            const isRepair = item.serviceType?.toUpperCase() === "REPAIR";
 
-                  <CardInfoRow>
-                    <InfoChip>
-                      <FaUser size={12} />
-                      {item.customerFullName}
-                    </InfoChip>
-                    <InfoChip>
-                      <FaPhoneAlt size={12} />
-                      {item.phone}
-                    </InfoChip>
-                    <InfoChip>
+            return (
+              <AppCard key={item.appointmentId} $borderColor={sc.border}>
+                {/* Top strip */}
+                <CardStrip $color={sc.border} />
+
+                <CardBody>
+                  {/* Row 1: Plate + badges */}
+                  <CardRow1>
+                    <PlateTag>{item.licensePlate}</PlateTag>
+                    <BadgeRow>
+                      <StatusPill $color={sc.color} $bg={sc.bg}>{sc.label}</StatusPill>
+                      <ServicePill $isRepair={isRepair}>
+                        {isRepair ? <><FaWrench size={10} /> Sửa chữa</> : <><FaTools size={10} /> Bảo dưỡng</>}
+                      </ServicePill>
+                      {appointmentIsToday && <TodayPill>📅 Hôm nay</TodayPill>}
+                    </BadgeRow>
+                  </CardRow1>
+
+                  {/* Row 2: Customer info */}
+                  <CardRow2>
+                    <InfoItem><FaUser size={12} /><strong>{item.customerFullName}</strong></InfoItem>
+                    <InfoItem><FaPhoneAlt size={12} />{item.phone}</InfoItem>
+                  </CardRow2>
+
+                  {/* Row 3: Car + Date */}
+                  <CardRow3>
+                    <InfoItem>
                       <FaCar size={12} />
-                      {carName} • {item.carColor}
-                    </InfoChip>
+                      {item.carBrand} {item.carModel}
+                      {item.carColor && <ColorDot $color={item.carColor} title={item.carColor} />}
+                    </InfoItem>
                     {item.appointmentDate && (
-                      <InfoChip $highlight={appointmentIsToday}>
+                      <InfoItem $highlight={appointmentIsToday}>
                         <FaCalendarAlt size={12} />
                         {formatDateTime(item.appointmentDate)}
-                      </InfoChip>
+                      </InfoItem>
                     )}
-                  </CardInfoRow>
-                </CardLeft>
+                  </CardRow3>
 
-                <CardRight>
-                  <DateText>REQ-{item.appointmentId}</DateText>
-                  <ActionButton onClick={() => handleViewDetail(item.appointmentId)}>
-                    <FaEye size={14} />
-                    {t("appointmentsViewDetail")}
-                  </ActionButton>
+                  {/* Actions */}
+                  <ActionsRow>
+                    <IdLabel>REQ-{item.appointmentId}</IdLabel>
+                    <BtnGroup>
+                      <BtnView onClick={() => handleViewDetail(item.appointmentId)}>
+                        <FaEye size={13} /> Chi tiết
+                      </BtnView>
 
-                  {/* SA only: action buttons */}
-                  {isSA && item.status === "PENDING" && (
-                    <>
-                      <AcceptButton onClick={() => handleApprove(item.appointmentId)} disabled={isSubmitting}>
-                        <FaCheck size={14} />
-                        {t("mgrAppointmentAccept")}
-                      </AcceptButton>
-                      <RejectButton onClick={() => handleRejectClick(item.appointmentId)} disabled={isSubmitting}>
-                        <FaTimes size={14} />
-                        {t("mgrAppointmentReject")}
-                      </RejectButton>
-                      <ProposeButton onClick={() => handleProposeClick(item.appointmentId)} disabled={isSubmitting}>
-                        📅 Dời lịch
-                      </ProposeButton>
-                    </>
-                  )}
+                      {/* SA: Pending actions */}
+                      {isSA && item.status === "PENDING" && (
+                        <>
+                          <BtnApprove onClick={() => handleApprove(item.appointmentId)} disabled={isSubmitting}>
+                            <FaCheck size={13} /> Duyệt
+                          </BtnApprove>
+                          <BtnReject onClick={() => handleRejectClick(item.appointmentId)} disabled={isSubmitting}>
+                            <FaTimes size={13} /> Từ chối
+                          </BtnReject>
+                          <BtnPropose onClick={() => handleProposeClick(item.appointmentId)} disabled={isSubmitting}>
+                            📅 Dời lịch
+                          </BtnPropose>
+                        </>
+                      )}
 
-                  {/* SA only: check-in button — available for all CONFIRMED appointments */}
-                  {isSA && item.status === "CONFIRMED" && (
-                    <CheckInButton onClick={() => handleCheckIn(item.appointmentId)} disabled={isSubmitting}>
-                      🔑 Tiếp nhận xe
-                    </CheckInButton>
-                  )}
-                </CardRight>
-              </RequestCard>
+                      {/* SA: Check-in for confirmed */}
+                      {isSA && item.status === "CONFIRMED" && (
+                        <BtnCheckIn onClick={() => handleCheckIn(item.appointmentId)} disabled={isSubmitting}>
+                          <FaKey size={13} /> Tiếp nhận xe
+                        </BtnCheckIn>
+                      )}
+                    </BtnGroup>
+                  </ActionsRow>
+                </CardBody>
+              </AppCard>
             );
           })
         )}
-      </ListSection>
+      </CardGrid>
 
+      {/* ── MODALS ── */}
       {showModal && (
-        <AppointmentDetailModal
-          data={detailData}
-          loading={loadingDetail}
-          onClose={closeModal}
-        />
+        <AppointmentDetailModal data={detailData} loading={loadingDetail} onClose={() => { setShowModal(false); setDetailData(null); }} />
       )}
 
       {showRejectModal && (
-        <ModalOverlay onClick={closeRejectModal}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
+        <ModalOverlay onClick={() => setShowRejectModal(false)}>
+          <ModalBox onClick={e => e.stopPropagation()}>
+            <ModalHead>
               <ModalTitle>{t("mgrAppointmentRejectTitle")}</ModalTitle>
-              <CloseBtn onClick={closeRejectModal}><FaTimes /></CloseBtn>
-            </ModalHeader>
+              <CloseBtn onClick={() => setShowRejectModal(false)}><FaTimes /></CloseBtn>
+            </ModalHead>
             <ModalBody>
               <FormLabel>{t("mgrAppointmentRejectReason")}</FormLabel>
-              <FormTextarea
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder={t("mgrAppointmentRejectPlaceholder")}
-                rows={4}
-              />
+              <FormTextarea value={rejectionReason} onChange={e => setRejectionReason(e.target.value)}
+                placeholder={t("mgrAppointmentRejectPlaceholder")} rows={4} />
             </ModalBody>
-            <ModalFooter>
-              <CancelButton onClick={closeRejectModal} disabled={isSubmitting}>{t("cancel")}</CancelButton>
-              <ConfirmRejectButton onClick={handleRejectConfirm} disabled={isSubmitting}>
-                <FaTimes size={14} />
-                {isSubmitting ? t("processing") : t("mgrAppointmentReject")}
-              </ConfirmRejectButton>
-            </ModalFooter>
-          </ModalContent>
+            <ModalFoot>
+              <BtnCancel onClick={() => setShowRejectModal(false)} disabled={isSubmitting}>{t("cancel")}</BtnCancel>
+              <BtnConfirmReject onClick={handleRejectConfirm} disabled={isSubmitting}>
+                <FaTimes size={14} /> {isSubmitting ? t("processing") : t("mgrAppointmentReject")}
+              </BtnConfirmReject>
+            </ModalFoot>
+          </ModalBox>
         </ModalOverlay>
       )}
 
       {showProposeModal && (
         <ModalOverlay onClick={() => setShowProposeModal(false)}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalHeader>
+          <ModalBox onClick={e => e.stopPropagation()}>
+            <ModalHead>
               <ModalTitle>📅 Đề xuất dời lịch</ModalTitle>
               <CloseBtn onClick={() => setShowProposeModal(false)}><FaTimes /></CloseBtn>
-            </ModalHeader>
+            </ModalHead>
             <ModalBody>
               <FormLabel>Lý do yêu cầu dời lịch</FormLabel>
-              <FormTextarea
-                value={proposeReason}
-                onChange={(e) => setProposeReason(e.target.value)}
-                placeholder="Nhập lý do yêu cầu khách hàng dời lịch..."
-                rows={4}
-              />
-              <ProposeNote>
-                Khách hàng sẽ thấy lý do này và tự chọn lịch mới phù hợp.
-              </ProposeNote>
+              <FormTextarea value={proposeReason} onChange={e => setProposeReason(e.target.value)}
+                placeholder="Nhập lý do yêu cầu khách hàng dời lịch..." rows={4} />
+              <ProposeNote>Khách hàng sẽ thấy lý do này và tự chọn lịch mới phù hợp.</ProposeNote>
             </ModalBody>
-            <ModalFooter>
-              <CancelButton onClick={() => setShowProposeModal(false)} disabled={isSubmitting}>Hủy</CancelButton>
-              <ProposeSendButton onClick={handleProposeConfirm} disabled={isSubmitting}>
+            <ModalFoot>
+              <BtnCancel onClick={() => setShowProposeModal(false)} disabled={isSubmitting}>Hủy</BtnCancel>
+              <BtnProposeSend onClick={handleProposeConfirm} disabled={isSubmitting}>
                 {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
-              </ProposeSendButton>
-            </ModalFooter>
-          </ModalContent>
+              </BtnProposeSend>
+            </ModalFoot>
+          </ModalBox>
         </ModalOverlay>
       )}
     </PageWrapper>
@@ -450,505 +443,469 @@ const ManagermentAppointment = () => {
 
 export default ManagermentAppointment;
 
-// Styled Components
+// ─── Animations ──────────────────────────────────────────────────────────────
+const spin = keyframes`from { transform: rotate(0deg); } to { transform: rotate(360deg); }`;
+const pulse = keyframes`0%,100% { opacity:1; } 50% { opacity:0.65; }`;
+const fadeUp = keyframes`from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); }`;
+
+// ─── Layout ──────────────────────────────────────────────────────────────────
 const PageWrapper = styled.div`
-  padding: 1.5rem;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  background: #f1f5f9;
+  min-height: 100vh;
 `;
 
-const Header = styled.div`
+// ─── Header ──────────────────────────────────────────────────────────────────
+const PageHeader = styled.div`
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #1e3a5f 100%);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
+  box-shadow: 0 8px 24px rgba(15,23,42,0.25);
 `;
 
-const HeaderLeft = styled.div`
+const HeaderContent = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1.25rem;
 `;
 
-const HeaderTitle = styled.h1`
-  font-size: 1.5rem;
+const HeaderIcon = styled.div`
+  width: 56px;
+  height: 56px;
+  background: rgba(99,102,241,0.2);
+  border: 1px solid rgba(99,102,241,0.4);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #818cf8;
+`;
+
+const HeaderText = styled.div``;
+
+const PageTitle = styled.h1`
+  font-size: 1.625rem;
   font-weight: 800;
-  color: #111827;
+  color: #f8fafc;
   margin: 0;
+  letter-spacing: -0.3px;
 `;
 
-const HeaderSubtitle = styled.p`
+const PageSubtitle = styled.p`
   font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
+  color: #94a3b8;
+  margin: 0.25rem 0 0;
 `;
 
-const StatsRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-`;
-
-const StatCard = styled.div<{ $borderColor: string }>`
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-left: 4px solid ${({ $borderColor }) => $borderColor};
-  border-radius: 10px;
-  padding: 1.25rem;
-  text-align: center;
-  cursor: pointer;
-  transition: box-shadow 0.2s;
-
-  &:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  }
-`;
-
-const StatNumber = styled.div<{ $color: string }>`
-  font-size: 2rem;
-  font-weight: 800;
-  color: ${({ $color }) => $color};
-`;
-
-const StatLabel = styled.div`
+const RolePill = styled.span<{ $isSA: boolean }>`
+  padding: 0.5rem 1.25rem;
+  border-radius: 99px;
   font-size: 0.8125rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
+  font-weight: 700;
+  background: ${p => p.$isSA ? "rgba(34,197,94,0.15)" : "rgba(148,163,184,0.15)"};
+  color: ${p => p.$isSA ? "#4ade80" : "#94a3b8"};
+  border: 1px solid ${p => p.$isSA ? "rgba(34,197,94,0.3)" : "rgba(148,163,184,0.3)"};
 `;
 
-const FilterRow = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  background: white;
-  padding: 1rem;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
+// ─── Stats ────────────────────────────────────────────────────────────────────
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem;
+  @media (max-width: 1200px) { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 640px)  { grid-template-columns: repeat(2, 1fr); }
+`;
 
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: stretch;
-  }
+const StatCard = styled.div<{ $accent: string }>`
+  background: white;
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid ${p => p.$accent};
+  transition: all 0.2s;
+  animation: ${fadeUp} 0.3s ease both;
+  &:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+`;
+
+const StatIconWrap = styled.div<{ $color: string }>`
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: ${p => p.$color}18;
+  color: ${p => p.$color};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
+const StatBody = styled.div``;
+const StatNum = styled.div<{ $color?: string }>`
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: ${p => p.$color || "#0f172a"};
+  line-height: 1;
+`;
+const StatLbl = styled.div`
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-top: 0.2rem;
+`;
+
+// ─── Filter Bar ───────────────────────────────────────────────────────────────
+const FilterBar = styled.div`
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 1rem 1.25rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
 `;
 
 const SearchBox = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.625rem;
   flex: 1;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: white;
-
-  &:focus-within {
-    border-color: #1d4ed8;
-    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
-  }
+  min-width: 200px;
+  padding: 0.625rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.2s;
+  &:focus-within { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); background: white; }
 `;
 
 const SearchInput = styled.input`
   border: none;
+  background: transparent;
   outline: none;
   font-size: 0.875rem;
   width: 100%;
-  color: #111827;
-
-  &::placeholder {
-    color: #9ca3af;
-  }
+  color: #1e293b;
+  &::placeholder { color: #94a3b8; }
 `;
 
-const FilterSelect = styled.select`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #374151;
-  background: white;
-  min-width: 120px;
-  cursor: pointer;
-
-  &:focus {
-    outline: none;
-    border-color: #1d4ed8;
-  }
-`;
-
-const ListSection = styled.div`
+const PillGroup = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const LoadingMessage = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: #6b7280;
-`;
-
-const EmptyMessage = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: #6b7280;
-  background: white;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-`;
-
-const RequestCard = styled.div<{ $borderColor: string }>`
-  display: flex;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-left: 4px solid ${({ $borderColor }) => $borderColor};
-  border-radius: 10px;
-  overflow: hidden;
-
-  &:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  }
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-const CardLeft = styled.div`
-  flex: 1;
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const CardTopRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  gap: 0.375rem;
   flex-wrap: wrap;
 `;
 
-const LicensePlate = styled.span`
-  font-size: 1.0625rem;
-  font-weight: 900;
-  color: #1e293b;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 0.15rem 0.6rem;
-  letter-spacing: 0.5px;
-  font-family: monospace;
+const StatusPills = styled.div`
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
 `;
 
-const TodayBadge = styled.span`
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
+const PillBtn = styled.button<{ $active?: boolean; $statusColor?: string }>`
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.875rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid ${p => p.$active ? (p.$statusColor || "#6366f1") : "#e2e8f0"};
+  background: ${p => p.$active ? (p.$statusColor ? p.$statusColor + "18" : "#eef2ff") : "white"};
+  color: ${p => p.$active ? (p.$statusColor || "#6366f1") : "#64748b"};
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  &:hover { border-color: ${p => p.$statusColor || "#6366f1"}; color: ${p => p.$statusColor || "#6366f1"}; }
+`;
+
+// ─── Card Grid ────────────────────────────────────────────────────────────────
+const CardGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+`;
+
+const LoadingWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 4rem;
+  color: #64748b;
+  background: white;
+  border-radius: 14px;
+`;
+
+const Spinner = styled.div`
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+`;
+
+const EmptyWrapper = styled.div`
+  background: white;
+  border-radius: 14px;
+  padding: 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px dashed #cbd5e1;
+`;
+const EmptyTitle = styled.p`font-size:1.125rem;font-weight:700;color:#475569;margin:0;`;
+const EmptyDesc  = styled.p`font-size:0.875rem;color:#94a3b8;margin:0;`;
+
+// ─── Appointment Card ─────────────────────────────────────────────────────────
+const AppCard = styled.div<{ $borderColor: string }>`
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  display: flex;
+  transition: box-shadow 0.2s, transform 0.2s;
+  animation: ${fadeUp} 0.25s ease both;
+  &:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.07); transform: translateY(-1px); }
+`;
+
+const CardStrip = styled.div<{ $color: string }>`
+  width: 5px;
+  background: ${p => p.$color};
+  flex-shrink: 0;
+`;
+
+const CardBody = styled.div`
+  flex: 1;
+  padding: 1.125rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+`;
+
+const CardRow1 = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+`;
+
+const PlateTag = styled.span`
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.125rem;
+  font-weight: 900;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 2px solid #334155;
+  border-radius: 6px;
+  padding: 0.125rem 0.875rem;
+  letter-spacing: 1.5px;
+`;
+
+const BadgeRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+`;
+
+const StatusPill = styled.span<{ $color: string; $bg: string }>`
+  padding: 0.2rem 0.625rem;
+  border-radius: 99px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: ${p => p.$color};
+  background: ${p => p.$bg};
+`;
+
+const ServicePill = styled.span<{ $isRepair: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.625rem;
+  border-radius: 99px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: ${p => p.$isRepair ? "#fff7ed" : "#eff6ff"};
+  color: ${p => p.$isRepair ? "#c2410c" : "#1d4ed8"};
+`;
+
+const TodayPill = styled.span`
+  padding: 0.2rem 0.625rem;
+  border-radius: 99px;
   font-size: 0.6875rem;
   font-weight: 700;
   background: #dcfce7;
-  color: #16a34a;
-  white-space: nowrap;
-  animation: pulse 2s infinite;
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-  }
+  color: #15803d;
+  animation: ${pulse} 2s infinite;
 `;
 
-const BadgeGroup = styled.div`
+const CardRow2 = styled.div`
   display: flex;
-  gap: 0.375rem;
+  gap: 1.5rem;
   flex-wrap: wrap;
 `;
 
-const Badge = styled.span<{ $color: string; $bg: string }>`
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: ${({ $color }) => $color};
-  background: ${({ $bg }) => $bg};
-  white-space: nowrap;
-`;
-
-const CardInfoRow = styled.div`
+const CardRow3 = styled.div`
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
   flex-wrap: wrap;
-  margin-top: 0.25rem;
 `;
 
-const InfoChip = styled.span<{ $highlight?: boolean }>`
+const InfoItem = styled.span<{ $highlight?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.4rem;
   font-size: 0.8125rem;
-  color: ${({ $highlight }) => $highlight ? "#16a34a" : "#6b7280"};
-  font-weight: ${({ $highlight }) => $highlight ? "700" : "400"};
+  color: ${p => p.$highlight ? "#15803d" : "#475569"};
+  font-weight: ${p => p.$highlight ? "700" : "500"};
 `;
 
-const CardRight = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
-  padding: 1.25rem 1.5rem;
-  min-width: 160px;
-
-  @media (max-width: 768px) {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    padding: 0.75rem 1.25rem;
-    border-top: 1px solid #f3f4f6;
-  }
+const ColorDot = styled.span<{ $color: string }>`
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${p => p.$color};
+  border: 1px solid #e2e8f0;
+  margin-left: 2px;
 `;
 
-const DateText = styled.span`
-  font-size: 0.8125rem;
-  color: #9ca3af;
-  white-space: nowrap;
-`;
-
-const ActionButton = styled.button`
+const ActionsRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: white;
-  color: #374151;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-
-  &:hover {
-    background: #f9fafb;
-    border-color: #d1d5db;
-  }
-`;
-
-const AcceptButton = styled(ActionButton)`
-  color: #16a34a;
-  border-color: #86efac;
-
-  &:hover {
-    background: #f0fdf4;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const RejectButton = styled(ActionButton)`
-  color: #dc2626;
-  border-color: #fca5a5;
-
-  &:hover {
-    background: #fef2f2;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-// Modal styles
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-`;
-
-const ModalContent = styled.div`
-  background: white;
-  border-radius: 12px;
-  max-width: 500px;
-  width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 `;
 
-const ModalTitle = styled.h3`
-  font-size: 1.125rem;
+const IdLabel = styled.span`
+  font-size: 0.75rem;
+  color: #94a3b8;
   font-weight: 700;
-  color: #111827;
-  margin: 0;
+  font-family: monospace;
 `;
 
-const CloseBtn = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #6b7280;
-  padding: 0.25rem;
+const BtnGroup = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    color: #111827;
-  }
+  gap: 0.5rem;
+  flex-wrap: wrap;
 `;
 
-const ModalBody = styled.div`
-  padding: 1.5rem;
-`;
-
-const FormLabel = styled.label`
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
-`;
-
-const FormTextarea = styled.textarea`
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-family: inherit;
-  resize: vertical;
-  box-sizing: border-box;
-  color: #111827;
-
-  &:focus {
-    outline: none;
-    border-color: #1d4ed8;
-    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
-  }
-
-  &::placeholder {
-    color: #9ca3af;
-  }
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const CancelButton = styled.button`
-  padding: 0.5rem 1.25rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: white;
-  color: #374151;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.15s;
-
-  &:hover {
-    background: #f9fafb;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const ConfirmRejectButton = styled.button`
+const BaseBtn = styled.button`
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.5rem 1.25rem;
-  border: none;
+  padding: 0.4rem 0.875rem;
   border-radius: 8px;
-  background: #dc2626;
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
-
-  &:hover {
-    background: #b91c1c;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const ProposeButton = styled(RejectButton)`
-  color: #b45309;
-  border-color: #fcd34d;
-  background: #fffbeb;
-  &:hover {
-    background: #fef3c7;
-  }
-`;
-
-const ProposeNote = styled.p`
-  font-size: 0.8rem;
-  color: #6b7280;
-  margin: 0.5rem 0 0;
-  line-height: 1.5;
-`;
-
-const ProposeSendButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 1.25rem;
-  border: none;
-  border-radius: 8px;
-  background: #d97706;
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  &:hover { background: #b45309; }
+  border: 1.5px solid transparent;
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-// Re-export RejectButton to extend it above
+const BtnView = styled(BaseBtn)`
+  background: #f8fafc; color: #475569; border-color: #e2e8f0;
+  &:hover { background: #f1f5f9; border-color: #cbd5e1; }
+`;
+const BtnApprove = styled(BaseBtn)`
+  background: #dcfce7; color: #15803d; border-color: #86efac;
+  &:hover:not(:disabled) { background: #bbf7d0; }
+`;
+const BtnReject = styled(BaseBtn)`
+  background: #fee2e2; color: #dc2626; border-color: #fca5a5;
+  &:hover:not(:disabled) { background: #fecaca; }
+`;
+const BtnPropose = styled(BaseBtn)`
+  background: #fef3c7; color: #b45309; border-color: #fcd34d;
+  &:hover:not(:disabled) { background: #fde68a; }
+`;
+const BtnCheckIn = styled(BaseBtn)`
+  background: #eff6ff; color: #1d4ed8; border-color: #93c5fd;
+  font-size: 0.875rem;
+  &:hover:not(:disabled) { background: #dbeafe; }
+`;
 
-const CheckInButton = styled(ActionButton)`
-  color: #1d4ed8;
-  border-color: #93c5fd;
-  background: #eff6ff;
-  font-weight: 700;
+// ─── Modals ───────────────────────────────────────────────────────────────────
+const ModalOverlay = styled.div`
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,0.55);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 1rem;
+`;
 
-  &:hover {
-    background: #dbeafe;
-  }
+const ModalBox = styled.div`
+  background: white;
+  border-radius: 16px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+  overflow: hidden;
+`;
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+const ModalHead = styled.div`
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+`;
+const ModalTitle = styled.h3`
+  font-size: 1.125rem; font-weight: 800; color: #0f172a; margin: 0;
+`;
+const CloseBtn = styled.button`
+  background: #f1f5f9; border: none; border-radius: 8px;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #64748b;
+  &:hover { background: #e2e8f0; color: #0f172a; }
+`;
+const ModalBody = styled.div`padding: 1.5rem;`;
+const ModalFoot = styled.div`
+  display: flex; justify-content: flex-end; gap: 0.75rem;
+  padding: 1rem 1.5rem; border-top: 1px solid #f1f5f9;
+`;
+
+const FormLabel = styled.label`
+  display: block; font-size: 0.875rem; font-weight: 700;
+  color: #334155; margin-bottom: 0.625rem;
+`;
+const FormTextarea = styled.textarea`
+  width: 100%; box-sizing: border-box;
+  padding: 0.875rem; border: 1.5px solid #e2e8f0; border-radius: 10px;
+  font-size: 0.875rem; font-family: inherit; resize: vertical;
+  color: #1e293b; background: #f8fafc;
+  &:focus { outline: none; border-color: #6366f1; background: white; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+  &::placeholder { color: #94a3b8; }
+`;
+const ProposeNote = styled.p`
+  font-size: 0.8rem; color: #64748b; margin: 0.625rem 0 0; line-height: 1.5;
+`;
+
+const BtnCancel = styled(BaseBtn)`
+  background: white; color: #475569; border-color: #e2e8f0;
+  &:hover { background: #f8fafc; }
+`;
+const BtnConfirmReject = styled(BaseBtn)`
+  background: #dc2626; color: white; border-color: #dc2626;
+  &:hover:not(:disabled) { background: #b91c1c; }
+`;
+const BtnProposeSend = styled(BaseBtn)`
+  background: #6366f1; color: white; border-color: #6366f1;
+  &:hover:not(:disabled) { background: #4f46e5; }
 `;
