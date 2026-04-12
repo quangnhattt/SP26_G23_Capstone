@@ -107,11 +107,17 @@ const ProductModal = ({
                     required
                   >
                     <option value="">{t("selectUnit")}</option>
-                    {units.map((unit) => (
-                      <option key={unit.unitID} value={unit.unitID}>
-                        {unit.name}
-                      </option>
-                    ))}
+                    {units
+                      .filter(
+                        (unit) =>
+                          unit.isActive ||
+                          unit.unitID === formData.unitId,
+                      )
+                      .map((unit) => (
+                        <option key={unit.unitID} value={unit.unitID}>
+                          {unit.name}
+                        </option>
+                      ))}
                   </Select>
                 </FormGroup>
               </FormRow>
@@ -126,11 +132,17 @@ const ProductModal = ({
                     required
                   >
                     <option value="">{t("selectCategory")}</option>
-                    {categories.map((cat) => (
-                      <option key={cat.categoryID} value={cat.categoryID}>
-                        {cat.name}
-                      </option>
-                    ))}
+                    {categories
+                      .filter(
+                        (cat) =>
+                          cat.isActive ||
+                          cat.categoryID === formData.categoryId,
+                      )
+                      .map((cat) => (
+                        <option key={cat.categoryID} value={cat.categoryID}>
+                          {cat.name}
+                        </option>
+                      ))}
                   </Select>
                 </FormGroup>
 
