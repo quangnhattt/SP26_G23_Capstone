@@ -675,23 +675,6 @@ const Badge = styled.span<{ $color: string; $bg: string }>`
   white-space: nowrap;
 `;
 
-const CardTitle = styled.div`
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #111827;
-`;
-
-const CardDesc = styled.p`
-  font-size: 0.8125rem;
-  color: #6b7280;
-  margin: 0;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-`;
-
 const CardInfoRow = styled.div`
   display: flex;
   align-items: center;
