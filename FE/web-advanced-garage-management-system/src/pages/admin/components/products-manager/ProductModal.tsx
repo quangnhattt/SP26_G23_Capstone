@@ -35,6 +35,11 @@ interface ProductModalProps {
   ) => void;
 }
 
+const normalizeType = (value?: string | null) =>
+  value?.trim().replace(/\s+/g, "").toUpperCase() ?? "";
+
+const isPartType = (value?: string | null) => normalizeType(value) === "PART";
+
 const ProductModal = ({
   isOpen,
   editingProduct,
@@ -110,8 +115,8 @@ const ProductModal = ({
                     {units
                       .filter(
                         (unit) =>
-                          unit.isActive ||
-                          unit.unitID === formData.unitId,
+                          (unit.isActive || unit.unitID === formData.unitId) &&
+                          isPartType(unit.type),
                       )
                       .map((unit) => (
                         <option key={unit.unitID} value={unit.unitID}>
@@ -135,8 +140,9 @@ const ProductModal = ({
                     {categories
                       .filter(
                         (cat) =>
-                          cat.isActive ||
-                          cat.categoryID === formData.categoryId,
+                          (cat.isActive ||
+                            cat.categoryID === formData.categoryId) &&
+                          isPartType(cat.type),
                       )
                       .map((cat) => (
                         <option key={cat.categoryID} value={cat.categoryID}>

@@ -32,6 +32,16 @@ interface ProductFormData {
   isActive: boolean;
 }
 
+const UNIT_SELECT_PAGE_SIZE = 1000;
+
+const normalizeType = (value?: string | null) =>
+  value?.trim().replace(/\s+/g, "").toUpperCase() ?? "";
+
+const isPartType = (value?: string | null) => normalizeType(value) === "PART";
+
+const matchesByName = (left?: string | null, right?: string | null) =>
+  (left ?? "").trim().toLowerCase() === (right ?? "").trim().toLowerCase();
+
 const ProductsPage = () => {
   const { t } = useTranslation();
   const [products, setProducts] = useState<IProduct[]>([]);
@@ -69,7 +79,11 @@ const ProductsPage = () => {
 
   const fetchUnits = async () => {
     try {
-      const data = await getUnits({ Type: "PART" });
+      const data = await getUnits({
+        Type: "PART",
+        PageIndex: 1,
+        PageSize: UNIT_SELECT_PAGE_SIZE,
+      });
       setUnits(data.items);
     } catch (err) {
       console.error("Failed to fetch units:", err);
@@ -78,7 +92,7 @@ const ProductsPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const data = await getCategories({ type: "PART" });
+      const data = await getCategories();
       setCategories(data);
     } catch (err) {
       console.error("Failed to fetch categories:", err);
@@ -127,12 +141,22 @@ const ProductsPage = () => {
       image: "",
       isActive: false,
     });
-    await fetchCategories();
+    await Promise.all([fetchCategories(), fetchUnits()]);
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = async (product: IProduct) => {
-    await fetchCategories();
+    const [categoryData, unitData] = await Promise.all([
+      getCategories(),
+      getUnits({
+        Type: "PART",
+        PageIndex: 1,
+        PageSize: UNIT_SELECT_PAGE_SIZE,
+      }),
+    ]);
+
+    setCategories(categoryData);
+    setUnits(unitData.items);
     setEditingProduct(product);
     setIsModalOpen(true);
     setLoadingModal(true);
@@ -145,14 +169,15 @@ const ProductsPage = () => {
         price: productDetail.price,
         unitId:
           productDetail.unitId ??
-          units.find((u) => u.name === productDetail.unit)?.unitID ??
+          unitData.items.find(
+            (u) => matchesByName(u.name, productDetail.unit) && isPartType(u.type),
+          )?.unitID ??
           0,
         categoryId:
           productDetail.categoryId ??
-          categories.find(
+          categoryData.find(
             (c) =>
-              c.name === productDetail.category &&
-              c.type.toUpperCase() === "PART",
+              matchesByName(c.name, productDetail.category) && isPartType(c.type),
           )?.categoryID ??
           0,
         warranty: productDetail.warranty,
@@ -166,11 +191,14 @@ const ProductsPage = () => {
       setFormData({
         name: product.name,
         price: product.price,
-        unitId: units.find((u) => u.name === product.unit)?.unitID ?? 0,
+        unitId:
+          unitData.items.find(
+            (u) => matchesByName(u.name, product.unit) && isPartType(u.type),
+          )?.unitID ?? 0,
         categoryId:
-          categories.find(
+          categoryData.find(
             (c) =>
-              c.name === product.category && c.type.toUpperCase() === "PART",
+              matchesByName(c.name, product.category) && isPartType(c.type),
           )?.categoryID ?? 0,
         warranty: product.warranty,
         minStockLevel: product.minStockLevel,

@@ -33,6 +33,14 @@ interface ServiceModalProps {
   ) => void;
 }
 
+const normalizeType = (value?: string | null) =>
+  value?.trim().replace(/\s+/g, "").toUpperCase() ?? "";
+
+const isServiceType = (value?: string | null) => {
+  const normalized = normalizeType(value);
+  return normalized === "SERVICE" || normalized === "SERIVCE";
+};
+
 const ServiceModal = ({
   isOpen,
   editingService,
@@ -102,7 +110,11 @@ const ServiceModal = ({
                 >
                   <option value="">{t("selectUnit")}</option>
                   {units
-                    .filter((unit) => unit.type === "SERVICE")
+                    .filter(
+                      (unit) =>
+                        (unit.isActive || unit.unitID === formData.unitId) &&
+                        isServiceType(unit.type),
+                    )
                     .map((unit) => (
                       <option key={unit.unitID} value={unit.unitID}>
                         {unit.name}
@@ -123,7 +135,12 @@ const ServiceModal = ({
                 >
                   <option value="">{t("selectCategory")}</option>
                   {categories
-                    .filter((c) => c.type === "Service")
+                    .filter(
+                      (category) =>
+                        (category.isActive ||
+                          category.categoryID === formData.categoryID) &&
+                        isServiceType(category.type),
+                    )
                     .map((cat) => (
                       <option key={cat.categoryID} value={cat.categoryID}>
                         {cat.name}

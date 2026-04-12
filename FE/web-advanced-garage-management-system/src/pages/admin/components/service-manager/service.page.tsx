@@ -27,6 +27,19 @@ interface ServiceFormData {
   isActive: boolean;
 }
 
+const UNIT_SELECT_PAGE_SIZE = 1000;
+
+const normalizeType = (value?: string | null) =>
+  value?.trim().replace(/\s+/g, "").toUpperCase() ?? "";
+
+const isServiceType = (value?: string | null) => {
+  const normalized = normalizeType(value);
+  return normalized === "SERVICE" || normalized === "SERIVCE";
+};
+
+const matchesByName = (left?: string | null, right?: string | null) =>
+  (left ?? "").trim().toLowerCase() === (right ?? "").trim().toLowerCase();
+
 const ServicePage = () => {
   const { t } = useTranslation();
   const [services, setServices] = useState<IService[]>([]);
@@ -61,7 +74,10 @@ const ServicePage = () => {
 
   const fetchUnits = useCallback(async () => {
     try {
-      const data = await getUnits();
+      const data = await getUnits({
+        PageIndex: 1,
+        PageSize: UNIT_SELECT_PAGE_SIZE,
+      });
       setUnits(data.items);
     } catch (err) {
       console.error("Failed to fetch units:", err);
@@ -106,21 +122,33 @@ const ServicePage = () => {
       image: "",
       isActive: false,
     });
-    await fetchCategories();
+    await Promise.all([fetchCategories(), fetchUnits()]);
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = async (service: IService) => {
-    const data = await getCategories();
-    setCategories(data);
-    const matchedCategory = data.find(
-      (c) => c.name === service.category && c.type === "Service",
+    const [categoryData, unitData] = await Promise.all([
+      getCategories(),
+      getUnits({
+        PageIndex: 1,
+        PageSize: UNIT_SELECT_PAGE_SIZE,
+      }),
+    ]);
+
+    setCategories(categoryData);
+    setUnits(unitData.items);
+
+    const matchedCategory = categoryData.find(
+      (c) => matchesByName(c.name, service.category) && isServiceType(c.type),
+    );
+    const matchedUnit = unitData.items.find(
+      (u) => matchesByName(u.name, service.unit) && isServiceType(u.type),
     );
     setEditingService(service);
     setFormData({
       name: service.name,
       price: service.price,
-      unitId: 0,
+      unitId: matchedUnit?.unitID ?? 0,
       categoryID: matchedCategory?.categoryID ?? 0,
       estimatedDurationHours: service.estimatedDurationHours,
       description: service.description || "",
@@ -200,9 +228,10 @@ const ServicePage = () => {
   ) => {
     if (updatingStatusIds.includes(record.id)) return;
 
-    const matchedUnit = units.find((u) => u.name === record.unit);
+    const matchedUnit = units.find((u) => matchesByName(u.name, record.unit));
     const matchedCategory = categories.find(
-      (c) => c.name === record.category && c.type === "Service",
+      (c) =>
+        matchesByName(c.name, record.category) && isServiceType(c.type),
     );
 
     if (!matchedUnit?.unitID || !matchedCategory?.categoryID) {
