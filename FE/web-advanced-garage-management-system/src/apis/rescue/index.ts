@@ -61,7 +61,7 @@ export interface IRescueRequest {
   isDepositConfirmed?: boolean;
   depositConfirmedDate?: string | null;
   depositConfirmedById?: number | null;
-  serviceFee?: number;
+  // serviceFee?: number; // TODO: tạm ẩn - dùng repairSubtotal thay thế
   suggestedParts?: IRescueSuggestedPartDetail[];
   suggestedServices?: IRescueSuggestedServiceDetail[];
   repairItems?: IRepairItemDetail[];
@@ -80,6 +80,7 @@ export type RescueStatus =
   | "REPAIR_COMPLETE"
   | "TOWING_DISPATCHED"
   | "TOWING_ACCEPTED"
+  | "TOWING_ARRIVED"
   | "TOWED"
   | "INVOICED"
   | "INVOICE_SENT"
@@ -386,6 +387,14 @@ export const dispatchTowing = async (
 // Customer: Accept towing → TOWING_ACCEPTED
 export const acceptTowing = async (id: number) => {
   const { data } = await AxiosClient.patch(`/api/rescue-requests/${id}/accept-towing`);
+  return data;
+};
+
+// Technician: Ghi nhận xe kéo đã tới hiện trường và bắt đầu kéo xe → TOWING_ARRIVED
+export const towingArrive = async (id: number) => {
+  const { data } = await AxiosClient.patch(
+    `/api/rescue-requests/${id}/towing-arrive`,
+  );
   return data;
 };
 

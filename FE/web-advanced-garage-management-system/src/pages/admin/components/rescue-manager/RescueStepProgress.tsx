@@ -128,19 +128,19 @@ const TOWING_STEPS: Step[] = [
     key: "towing_dispatch",
     labelKey: "rescueStepTowingDispatch",
     icon: <FaTruck size={14} />,
-    statuses: ["TOWING_DISPATCHED", "EN_ROUTE"],
+    statuses: ["EN_ROUTE"],
   },
   {
     key: "towing_arrive",
     labelKey: "rescueStepTowingArrive",
     icon: <FaMapMarkerAlt size={14} />,
-    statuses: ["TOWING_ACCEPTED"],
+    statuses: ["ON_SITE"],
   },
   {
     key: "towing_start",
     labelKey: "rescueStepTowingStart",
     icon: <FaTruck size={14} />,
-    statuses: ["ON_SITE"],
+    statuses: ["TOWING_ARRIVED"],
   },
   {
     key: "towing_complete",
@@ -206,6 +206,7 @@ const TOWING_INDICATOR_STATUSES: RescueStatus[] = [
   "PROPOSED_TOWING",
   "TOWING_DISPATCHED",
   "TOWING_ACCEPTED",
+  "TOWING_ARRIVED",
   "TOWED",
 ];
 

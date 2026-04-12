@@ -727,6 +727,7 @@ const RescueDetailModal = ({
               [
                 "TOWING_DISPATCHED",
                 "TOWING_ACCEPTED",
+                "TOWING_ARRIVED",
                 "TOWED",
                 "INVOICED",
                 "INVOICE_SENT",
@@ -1082,16 +1083,18 @@ const RescueDetailModal = ({
               </>
             )}
 
-            {/* KH: Đã chấp nhận kéo / xe về xưởng */}
+            {/* KH: Đã chấp nhận kéo / xe đang kéo / xe về xưởng */}
             {isCustomer &&
-              ["TOWING_ACCEPTED", "TOWED"].includes(data.status as string) && (
+              ["TOWING_ACCEPTED", "TOWING_ARRIVED", "TOWED"].includes(data.status as string) && (
                 <>
                   <Divider />
                   <ActionCard>
                     <ActionInfo>
                       {data.status === "TOWING_ACCEPTED"
                         ? t("rescueCustomerTowingAcceptedInfo")
-                        : t("rescueCustomerTowedInfo")}
+                        : data.status === "TOWING_ARRIVED"
+                          ? t("rescueCustomerTowingArrivedInfo")
+                          : t("rescueCustomerTowedInfo")}
                     </ActionInfo>
                   </ActionCard>
                 </>

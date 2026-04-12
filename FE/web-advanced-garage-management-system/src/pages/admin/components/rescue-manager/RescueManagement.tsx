@@ -31,6 +31,7 @@ import {
   createRescueInvoice,
   sendRescueInvoice,
   dispatchTowing,
+  towingArrive,
   completeTowing,
   confirmRescueDeposit,
   confirmRescuePayment,
@@ -248,6 +249,17 @@ const RescueManagement = () => {
     }
   };
 
+  const handleTowingArrive = async (rescue: IRescueRequest) => {
+    try {
+      await towingArrive(rescue.rescueId);
+      toast.success(t("rescueMgrTowingArriveSuccess"));
+      fetchRescues();
+    } catch (error) {
+      console.error("Error towing arrive:", error);
+      toast.error(t("rescueMgrTowingArriveError"));
+    }
+  };
+
   const handleStartDiagnosis = async () => {
     if (!selectedRescue || canRepairOnSite === null) return;
     try {
@@ -284,9 +296,13 @@ const RescueManagement = () => {
 
   const handleCreateInvoice = async () => {
     if (!selectedRescue) return;
+    const repairSubtotal = (selectedRescue.repairItems ?? []).reduce(
+      (sum, item) => sum + (item.lineTotal ?? item.unitPrice * item.quantity),
+      0,
+    );
     try {
       await createRescueInvoice(selectedRescue.rescueId, {
-        rescueServiceFee: Number(selectedRescue.serviceFee ?? 0),
+        rescueServiceFee: repairSubtotal,
         manualDiscount: Number(manualDiscount) || 0,
         notes: invoiceNotes.trim() || undefined,
       });
@@ -601,20 +617,9 @@ const RescueManagement = () => {
         }
         break;
 
+      // ═══ SA: Chờ KH xác nhận đề xuất kéo xe ═══
       case "PROPOSED_TOWING":
         if (isSA) {
-          actions.push({
-            label: t("rescueMgrDispatchTowingAction"),
-            icon: <FaTruck size={12} />,
-            color: "#0891b2",
-            onClick: () => {
-              setSelectedRescue(rescue);
-              setTowingNotes("");
-              setTowingEstimatedArrival("");
-              setTowingServiceFee("");
-              setShowDispatchTowingModal(true);
-            },
-          });
           actions.push({
             label: t("rescueMgrCancel"),
             icon: <FaTimes size={12} />,
@@ -678,20 +683,31 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ KTV: Tới hiện trường → bắt đầu chẩn đoán ═══
+      // ═══ KTV: Tới hiện trường ═══
+      // Nhánh TOWING: KTV bấm "Bắt đầu kéo xe" → TOWING_ARRIVED
+      // Nhánh ROADSIDE: KTV bắt đầu chẩn đoán
       case "ON_SITE":
         if (isTech) {
-          actions.push({
-            label: t("rescueMgrStartDiagnosisAction"),
-            icon: <FaTools size={12} />,
-            color: "#ea580c",
-            onClick: () => {
-              setSelectedRescue(rescue);
-              setDiagnosisNotes("");
-              setCanRepairOnSite(null);
-              setShowStartDiagnosisModal(true);
-            },
-          });
+          if (rescue.rescueType === "TOWING") {
+            actions.push({
+              label: t("rescueMgrTowingArriveAction"),
+              icon: <FaTruck size={12} />,
+              color: "#0891b2",
+              onClick: () => handleTowingArrive(rescue),
+            });
+          } else {
+            actions.push({
+              label: t("rescueMgrStartDiagnosisAction"),
+              icon: <FaTools size={12} />,
+              color: "#ea580c",
+              onClick: () => {
+                setSelectedRescue(rescue);
+                setDiagnosisNotes("");
+                setCanRepairOnSite(null);
+                setShowStartDiagnosisModal(true);
+              },
+            });
+          }
         }
         if (isSA) {
           actions.push({
@@ -780,7 +796,29 @@ const RescueManagement = () => {
         }
         break;
 
-      // ═══ Kéo xe flow ═══
+      // ═══ KTV: Đã đến, đang kéo xe → SA hoàn tất kéo về xưởng ═══
+      case "TOWING_ARRIVED":
+        if (isSA) {
+          actions.push({
+            label: t("rescueMgrTowedToGarageAction"),
+            icon: <FaTruck size={12} />,
+            color: "#0d9488",
+            onClick: () => {
+              setSelectedRescue(rescue);
+              setRepairOrderNotes("");
+              setShowCompleteTowingModal(true);
+            },
+          });
+          actions.push({
+            label: t("rescueMgrCancel"),
+            icon: <FaTimes size={12} />,
+            color: "#dc2626",
+            onClick: () => openReasonModal("cancel", rescue),
+          });
+        }
+        break;
+
+      // ═══ Kéo xe flow (legacy) ═══
       case "TOWING_DISPATCHED":
         // Customer needs to accept-towing; SA only monitors
         if (isSA) {

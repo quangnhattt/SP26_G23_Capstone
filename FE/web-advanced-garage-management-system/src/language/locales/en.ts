@@ -1014,6 +1014,7 @@ export default {
   rescueMgrStatusRepairComplete: "On-site repair complete",
   rescueMgrStatusTowingDispatched: "Towing dispatched",
   rescueMgrStatusTowingAccepted: "Customer accepted towing",
+  rescueMgrStatusTowingArrived: "Tow truck arrived – towing in progress",
   rescueMgrStatusTowed: "Towed to garage",
   rescueMgrStatusInvoiced: "Invoice created",
   rescueMgrStatusInvoiceSent: "Invoice sent",
@@ -1033,6 +1034,7 @@ export default {
   rescueMgrStartDiagnosisAction: "Start diagnosis",
   rescueMgrCompleteRepairAction: "Complete repair",
   rescueMgrCreateInvoiceAction: "Create invoice",
+  rescueMgrTowingArriveAction: "Tow truck arrived – start towing",
   rescueMgrTowedToGarageAction: "Vehicle towed to garage",
   rescueMgrSendInvoiceAction: "Send invoice to customer",
   rescueMgrConfirmPaymentAction: "Confirm payment received",
@@ -1042,6 +1044,8 @@ export default {
   rescueMgrAcceptJobError: "Failed to accept job!",
   rescueMgrArriveSuccess: "Technician confirmed arrival on site!",
   rescueMgrArriveError: "Failed to confirm arrival!",
+  rescueMgrTowingArriveSuccess: "Tow truck arrived – towing in progress!",
+  rescueMgrTowingArriveError: "Failed to record tow truck arrival!",
   rescueMgrArriveInvalidStatus: "Cannot confirm arrival. Required status: EN_ROUTE.",
   rescueMgrSubmitDiagnosisSuccess: "Diagnosis submitted successfully!",
   rescueMgrSubmitDiagnosisError: "Failed to submit diagnosis!",
@@ -1283,6 +1287,8 @@ export default {
   rescueCustomerAcceptTowingBtn: "Accept towing",
   rescueCustomerTowingAcceptedInfo:
     "You have accepted towing. The vehicle is being towed to the garage.",
+  rescueCustomerTowingArrivedInfo:
+    "The tow truck has arrived and towing is in progress. Your vehicle is on its way to the garage.",
   rescueCustomerTowedInfo: "The vehicle has been towed to the garage. Awaiting processing.",
   rescueCustomerNeedPaymentTitle: "Payment required",
   rescueCustomerNeedPaymentInfo:
@@ -1440,6 +1446,7 @@ export default {
   rescueStatusRepairComplete: "Repair complete",
   rescueStatusTowingDispatched: "Towing dispatched",
   rescueStatusTowingAccepted: "Towing accepted",
+  rescueStatusTowingArrived: "Tow truck arrived",
   rescueStatusTowed: "Towed to garage",
   rescueStatusInvoiced: "Invoiced",
   rescueStatusInvoiceSent: "Invoice sent",
