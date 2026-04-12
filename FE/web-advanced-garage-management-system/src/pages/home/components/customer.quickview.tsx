@@ -36,9 +36,19 @@ const CustomerQuickView = () => {
 
   useEffect(() => {
     if (!user || user.roleID !== 4) return;
-    setLoading(true);
-    Promise.allSettled([getAppointments(), getRescueRequests()])
-      .then(([apptResult, rescueResult]) => {
+    let cancelled = false;
+
+    void (async () => {
+      // Defer setState out of the synchronous effect phase (react-hooks/set-state-in-effect)
+      await Promise.resolve();
+      if (cancelled) return;
+      setLoading(true);
+      try {
+        const [apptResult, rescueResult] = await Promise.allSettled([
+          getAppointments(),
+          getRescueRequests(),
+        ]);
+        if (cancelled) return;
         if (apptResult.status === "fulfilled") {
           const inProgress = apptResult.value
             .filter((a) => APPT_IN_PROGRESS.includes(a.status))
@@ -59,8 +69,14 @@ const CustomerQuickView = () => {
             );
           setRescues(inProgress.slice(0, 3));
         }
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   if (!user || user.roleID !== 4) return null;
