@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
-import { FaCar, FaSearch, FaEye, FaCheck, FaTimes, FaUser, FaCalendarAlt } from "react-icons/fa";
-import { getAppointments, getAppointmentById, approveAppointment, rejectAppointment, proposeReschedule, type IAppointment, type IAppointmentDetail } from "@/apis/appointments";
+import { FaCar, FaSearch, FaEye, FaCheck, FaTimes, FaUser, FaCalendarAlt, FaPhoneAlt } from "react-icons/fa";
+import { getAppointments, getAppointmentById, approveAppointment, rejectAppointment, proposeReschedule, checkInAppointment, type IAppointment, type IAppointmentDetail } from "@/apis/appointments";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import AppointmentDetailModal from "@/pages/appointments/AppointmentDetailModal";
+import useAuth from "@/hooks/useAuth";
 
 const statusConfig: Record<string, { color: string; bg: string; border: string }> = {
   PENDING: { color: "#d97706", bg: "#fef3c7", border: "#fcd34d" },
@@ -18,6 +19,8 @@ const statusConfig: Record<string, { color: string; bg: string; border: string }
 
 const ManagermentAppointment = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const isSA = user?.roleID === 2;
   const [appointments, setAppointments] = useState<IAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +79,7 @@ const ManagermentAppointment = () => {
   };
 
   const handleApprove = async (id: number) => {
+    if (!isSA) return;
     try {
       setIsSubmitting(true);
       await approveAppointment(id);
@@ -88,7 +92,22 @@ const ManagermentAppointment = () => {
     }
   };
 
+  const handleCheckIn = async (id: number) => {
+    if (!isSA) return;
+    try {
+      setIsSubmitting(true);
+      await checkInAppointment(id);
+      toast.success("Tiếp nhận xe thành công!");
+      await fetchAppointments();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Tiếp nhận xe thất bại!"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleRejectClick = (id: number) => {
+    if (!isSA) return;
     setSelectedAppointmentId(id);
     setRejectionReason("");
     setShowRejectModal(true);
@@ -119,9 +138,16 @@ const ManagermentAppointment = () => {
   };
 
   const handleProposeClick = (id: number) => {
+    if (!isSA) return;
     setProposeAppointmentId(id);
     setProposeReason("");
     setShowProposeModal(true);
+  };
+
+  const isToday = (dateStr: string) => {
+    if (!dateStr) return false;
+    const today = new Date().toISOString().split("T")[0];
+    return dateStr.startsWith(today);
   };
 
   const handleProposeConfirm = async () => {
@@ -276,28 +302,25 @@ const ManagermentAppointment = () => {
           filteredAppointments.map((item) => {
             const statusInfo = getStatusInfo(item.status);
             const serviceTypeBadge = getServiceTypeBadge(item.serviceType);
-            const carName = `${item.carBrand} ${item.carModel} ${item.carYear}`;
+            const carName = `${item.carBrand} ${item.carModel}`;
+            const appointmentIsToday = isToday(item.appointmentDate);
             return (
               <RequestCard key={item.appointmentId} $borderColor={statusInfo.border}>
                 <CardLeft>
                   <CardTopRow>
-                    <RequestCode>REQ-{item.appointmentId}</RequestCode>
+                    <LicensePlate>{item.licensePlate}</LicensePlate>
                     <BadgeGroup>
                       <Badge $color={statusInfo.color} $bg={statusInfo.bg}>
                         {t(`mgrAppointmentStatus_${item.status}`)}
                       </Badge>
-                      <Badge $color={serviceTypeBadge.color} $bg={serviceTypeBadge.bg}>{getServiceTypeLabel(item.serviceType)}</Badge>
+                      <Badge $color={serviceTypeBadge.color} $bg={serviceTypeBadge.bg}>
+                        {getServiceTypeLabel(item.serviceType)}
+                      </Badge>
+                      {appointmentIsToday && (
+                        <TodayBadge>📅 Hôm nay</TodayBadge>
+                      )}
                     </BadgeGroup>
                   </CardTopRow>
-
-                  {item.notes && (
-                    <>
-                      <CardTitle>{item.notes.split("\n")[0]}</CardTitle>
-                      {item.notes.split("\n").length > 1 && (
-                        <CardDesc>{item.notes.split("\n").slice(1).join(" ")}</CardDesc>
-                      )}
-                    </>
-                  )}
 
                   <CardInfoRow>
                     <InfoChip>
@@ -305,25 +328,31 @@ const ManagermentAppointment = () => {
                       {item.customerFullName}
                     </InfoChip>
                     <InfoChip>
+                      <FaPhoneAlt size={12} />
+                      {item.phone}
+                    </InfoChip>
+                    <InfoChip>
                       <FaCar size={12} />
-                      {carName} ({item.licensePlate})
+                      {carName} • {item.carColor}
                     </InfoChip>
                     {item.appointmentDate && (
-                      <InfoChip>
+                      <InfoChip $highlight={appointmentIsToday}>
                         <FaCalendarAlt size={12} />
-                        {t("mgrAppointmentPreferred")}: {formatDateTime(item.appointmentDate)}
+                        {formatDateTime(item.appointmentDate)}
                       </InfoChip>
                     )}
                   </CardInfoRow>
                 </CardLeft>
 
                 <CardRight>
-                  <DateText>{formatDateTime(item.createdDate)}</DateText>
+                  <DateText>REQ-{item.appointmentId}</DateText>
                   <ActionButton onClick={() => handleViewDetail(item.appointmentId)}>
                     <FaEye size={14} />
                     {t("appointmentsViewDetail")}
                   </ActionButton>
-                  {item.status === "PENDING" && (
+
+                  {/* SA only: action buttons */}
+                  {isSA && item.status === "PENDING" && (
                     <>
                       <AcceptButton onClick={() => handleApprove(item.appointmentId)} disabled={isSubmitting}>
                         <FaCheck size={14} />
@@ -337,6 +366,13 @@ const ManagermentAppointment = () => {
                         📅 Dời lịch
                       </ProposeButton>
                     </>
+                  )}
+
+                  {/* SA only: check-in button — only for CONFIRMED on today's date */}
+                  {isSA && item.status === "CONFIRMED" && appointmentIsToday && (
+                    <CheckInButton onClick={() => handleCheckIn(item.appointmentId)} disabled={isSubmitting}>
+                      🔑 Tiếp nhận xe
+                    </CheckInButton>
                   )}
                 </CardRight>
               </RequestCard>
@@ -596,10 +632,31 @@ const CardTopRow = styled.div`
   flex-wrap: wrap;
 `;
 
-const RequestCode = styled.span`
-  font-size: 0.9375rem;
-  font-weight: 800;
-  color: #111827;
+const LicensePlate = styled.span`
+  font-size: 1.0625rem;
+  font-weight: 900;
+  color: #1e293b;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.15rem 0.6rem;
+  letter-spacing: 0.5px;
+  font-family: monospace;
+`;
+
+const TodayBadge = styled.span`
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: #dcfce7;
+  color: #16a34a;
+  white-space: nowrap;
+  animation: pulse 2s infinite;
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
 `;
 
 const BadgeGroup = styled.div`
@@ -643,12 +700,13 @@ const CardInfoRow = styled.div`
   margin-top: 0.25rem;
 `;
 
-const InfoChip = styled.span`
+const InfoChip = styled.span<{ $highlight?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.375rem;
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: ${({ $highlight }) => $highlight ? "#16a34a" : "#6b7280"};
+  font-weight: ${({ $highlight }) => $highlight ? "700" : "400"};
 `;
 
 const CardRight = styled.div`
@@ -895,3 +953,19 @@ const ProposeSendButton = styled.button`
 `;
 
 // Re-export RejectButton to extend it above
+
+const CheckInButton = styled(ActionButton)`
+  color: #1d4ed8;
+  border-color: #93c5fd;
+  background: #eff6ff;
+  font-weight: 700;
+
+  &:hover {
+    background: #dbeafe;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;

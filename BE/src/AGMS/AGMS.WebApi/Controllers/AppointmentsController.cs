@@ -70,8 +70,10 @@ public class AppointmentsController : ControllerBase
         var (userId, error) = ExtractUserId();
         if (error != null) return error;
 
-        var isSA = await IsServiceAdvisorAsync(userId, ct);
-        var items = await _appointmentService.GetListAsync(userId, isSA, filter, ct);
+        var roleId = await _appointmentRepo.GetUserRoleIdAsync(userId, ct);
+        bool canSeeAll = (roleId == 1 || roleId == 2);
+
+        var items = await _appointmentService.GetListAsync(userId, canSeeAll, filter, ct);
         return Ok(items);
     }
 
@@ -85,8 +87,9 @@ public class AppointmentsController : ControllerBase
         var (userId, error) = ExtractUserId();
         if (error != null) return error;
 
-        var isSA = await IsServiceAdvisorAsync(userId, ct);
-        var detail = await _appointmentService.GetDetailAsync(id, userId, isSA, ct);
+        var roleId = await _appointmentRepo.GetUserRoleIdAsync(userId, ct);
+        bool canSeeAll = (roleId == 1 || roleId == 2);
+        var detail = await _appointmentService.GetDetailAsync(id, userId, canSeeAll, ct);
 
         if (detail == null)
             return NotFound(new { message = "Appointment not found or access denied." });

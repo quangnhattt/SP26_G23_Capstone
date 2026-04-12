@@ -164,3 +164,8 @@ export const respondReschedule = async (id: number, payload: IRespondRescheduleP
   const { data } = await AxiosClient.post(`/api/appointments/${id}/respond-reschedule`, payload);
   return data;
 };
+
+export const checkInAppointment = async (id: number) => {
+  const { data } = await AxiosClient.post(`/api/appointments/${id}/check-in`);
+  return data;
+};
