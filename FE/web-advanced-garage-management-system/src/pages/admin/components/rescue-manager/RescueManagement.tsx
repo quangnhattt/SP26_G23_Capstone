@@ -100,7 +100,7 @@ const RescueManagement = () => {
   // Invoice modal
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [loadingInvoiceDetail, setLoadingInvoiceDetail] = useState(false);
-  const [rescueServiceFee, setRescueServiceFee] = useState("");
+  // const [rescueServiceFee, setRescueServiceFee] = useState(""); // TODO: tạm ẩn phí dịch vụ cứu hộ
   const [manualDiscount, setManualDiscount] = useState("0");
   const [invoiceNotes, setInvoiceNotes] = useState("");
 
@@ -283,16 +283,16 @@ const RescueManagement = () => {
   };
 
   const handleCreateInvoice = async () => {
-    if (!selectedRescue || !rescueServiceFee) return;
+    if (!selectedRescue) return; // TODO: bỏ guard !rescueServiceFee
     try {
       await createRescueInvoice(selectedRescue.rescueId, {
-        rescueServiceFee: Number(rescueServiceFee),
+        // rescueServiceFee: Number(rescueServiceFee), // TODO: tạm ẩn phí dịch vụ cứu hộ
         manualDiscount: Number(manualDiscount) || 0,
         notes: invoiceNotes.trim() || undefined,
       });
       toast.success(t("rescueMgrCreateInvoiceSuccess"));
       setShowInvoiceModal(false);
-      setRescueServiceFee("");
+      // setRescueServiceFee(""); // TODO: tạm ẩn
       setManualDiscount("0");
       setInvoiceNotes("");
       fetchRescues();
@@ -395,7 +395,7 @@ const RescueManagement = () => {
   };
 
   const openInvoiceModal = async (rescue: IRescueRequest) => {
-    setRescueServiceFee("");
+    // setRescueServiceFee(""); // TODO: tạm ẩn phí dịch vụ cứu hộ
     setManualDiscount("0");
     setInvoiceNotes("");
     setShowInvoiceModal(true);
@@ -403,11 +403,11 @@ const RescueManagement = () => {
     try {
       const detail = await getRescueCustomerById(rescue.rescueId);
       setSelectedRescue(detail);
-      setRescueServiceFee(detail.serviceFee ? String(detail.serviceFee) : "");
+      // setRescueServiceFee(detail.serviceFee ? String(detail.serviceFee) : ""); // TODO: tạm ẩn
     } catch {
       // fallback: dùng dữ liệu list nếu API detail lỗi
       setSelectedRescue(rescue);
-      setRescueServiceFee(rescue.serviceFee ? String(rescue.serviceFee) : "");
+      // setRescueServiceFee(rescue.serviceFee ? String(rescue.serviceFee) : ""); // TODO: tạm ẩn
     } finally {
       setLoadingInvoiceDetail(false);
     }
@@ -1318,7 +1318,8 @@ const RescueManagement = () => {
                     )}
                   </div>
 
-                  <FormGroup>
+                  {/* TODO: tạm ẩn phí dịch vụ cứu hộ */}
+                  {/* <FormGroup>
                     <FormLabel>{t("rescueMgrServiceFeeLabel")}</FormLabel>
                     <FormInput
                       type="number"
@@ -1326,7 +1327,7 @@ const RescueManagement = () => {
                       onChange={(e) => setRescueServiceFee(e.target.value)}
                       placeholder={t("rescueMgrServiceFeePlaceholder")}
                     />
-                  </FormGroup>
+                  </FormGroup> */}
                   <FormGroup>
                     <FormLabel>{t("rescueMgrDiscountLabel")}</FormLabel>
                     <FormInput
@@ -1354,7 +1355,6 @@ const RescueManagement = () => {
               </ModalCancelBtn>
               <ModalConfirmBtn
                 onClick={handleCreateInvoice}
-                disabled={!rescueServiceFee}
               >
                 {t("rescueMgrCreateInvoiceBtn")}
               </ModalConfirmBtn>
