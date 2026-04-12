@@ -669,13 +669,50 @@ public class RescueRequestController : ControllerBase
         }
     }
 
+    // PATCH /api/rescue-requests/{id}/towing-arrive
+    /// <summary>
+    /// SA cập nhật xe kéo đã tới điểm hẹn với khách.
+    /// TOWING_DISPATCHED → TOWING_ARRIVED.
+    /// </summary>
+    [HttpPatch("{id:int}/towing-arrive")]
+    [Authorize(Roles = Roles.ServiceAdvisor)]
+    [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> TowingArrive(int id, CancellationToken ct)
+    {
+        var (userId, err) = ExtractUserId();
+        if (err != null)
+            return err;
+
+        try
+        {
+            var result = await _rescueService.TowingArriveAsync(id, userId, ct);
+            return Ok(new { data = result, message = "Xe kéo đã tới điểm hẹn với khách." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
     // PATCH /api/rescue-requests/{id}/accept-towing
     /// <summary>
     /// Customer chấp nhận kéo xe (UC-RES-03 C2). Không cần body.
-    /// TOWING_DISPATCHED → TOWING_ACCEPTED. Từ chối → gọi /cancel.
+    /// TOWING_ARRIVED → TOWING_ACCEPTED.
     /// </summary>
     [HttpPatch("{id:int}/accept-towing")]
-    [Authorize]
+    [Authorize(Roles = Roles.Customer)]
     [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -691,6 +728,57 @@ public class RescueRequestController : ControllerBase
         {
             var result = await _rescueService.AcceptTowingAsync(id, userId, ct);
             return Ok(new { data = result, message = "Khách hàng đã chấp nhận dịch vụ kéo xe." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return UnprocessableEntity(new { message = ex.Message });
+        }
+    }
+
+    // PATCH /api/rescue-requests/{id}/reject-towing
+    /// <summary>
+    /// Customer hủy kéo xe sau khi xe kéo đã tới điểm hẹn.
+    /// TOWING_ARRIVED → CANCELLED và bị trừ 1 điểm tin cậy.
+    /// </summary>
+    [HttpPatch("{id:int}/reject-towing")]
+    [Authorize(Roles = Roles.Customer)]
+    [ProducesResponseType(typeof(CancelRescueResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RejectTowing(
+        int id,
+        [FromBody] RejectTowingDto request,
+        CancellationToken ct
+    )
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var (userId, err) = ExtractUserId();
+        if (err != null)
+            return err;
+
+        try
+        {
+            var result = await _rescueService.RejectTowingAsync(id, userId, request, ct);
+            return Ok(
+                new
+                {
+                    data = result,
+                    message = "Khách hàng đã hủy kéo xe sau khi xe kéo tới nơi. Điểm tin cậy đã được cập nhật."
+                }
+            );
         }
         catch (KeyNotFoundException ex)
         {
@@ -1227,7 +1315,8 @@ public class RescueRequestController : ControllerBase
 // REPAIRING: đang thực hiện sửa chữa tại chỗ.
 // REPAIR_COMPLETE: sửa tại chỗ xong.
 // TOWING_DISPATCHED: đã điều phối dịch vụ kéo xe.
-// TOWING_ACCEPTED: khách đã chấp nhận phương án kéo xe.
+// TOWING_ARRIVED: xe kéo đã tới điểm hẹn với khách.
+// TOWING_ACCEPTED: khách đã chấp nhận cho kéo xe sau khi xe kéo đã tới nơi.
 // TOWED: xe đã được kéo về xưởng.
 // INVOICED: đã tạo hóa đơn.
 // INVOICE_SENT: hóa đơn đã được gửi cho khách.

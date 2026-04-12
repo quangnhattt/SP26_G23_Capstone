@@ -101,6 +101,7 @@ public interface IRescueRequestService
     /// saId lấy từ JWT token. PROPOSAL_ACCEPTED + TOWING → TOWING_DISPATCHED. SMC05, SMC11.
     /// </summary>
     Task<TowingDispatchResultDto> DispatchTowingAsync(int rescueId, int saId, DispatchTowingDto request, CancellationToken ct);
+    Task<RescueRequestDetailDto> TowingArriveAsync(int rescueId, int saId, CancellationToken ct);
 
     /// <summary>
     /// Customer chấp nhận dịch vụ kéo xe (UC-RES-03 C2).
@@ -108,6 +109,7 @@ public interface IRescueRequestService
     /// Từ chối → gọi cancel (UC-RES-06).
     /// </summary>
     Task<RescueRequestDetailDto> AcceptTowingAsync(int rescueId, int customerId, CancellationToken ct);
+    Task<CancelRescueResultDto> RejectTowingAsync(int rescueId, int customerId, RejectTowingDto request, CancellationToken ct);
 
     /// <summary>
     /// SA hoàn tất kéo xe — tạo Repair Order tự động (UC-RES-03 C3).

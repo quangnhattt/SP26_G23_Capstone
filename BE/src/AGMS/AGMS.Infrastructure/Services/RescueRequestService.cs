@@ -401,16 +401,16 @@ public class RescueRequestService : IRescueRequestService
                 $"Không thể assign kỹ thuật viên. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: PROPOSAL_ACCEPTED."
             );
 
-        if (
-            !string.Equals(
-                rescue.RescueType,
-                RescueType.Roadside,
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
-            throw new InvalidOperationException(
-                "Yêu cầu này chưa được khách hàng chấp nhận theo phương án sửa tại chỗ."
-            );
+        //if (
+        //    !string.Equals(
+        //        rescue.RescueType,
+        //        RescueType.Roadside,
+        //        StringComparison.OrdinalIgnoreCase
+        //    )
+        //)
+        //    throw new InvalidOperationException(
+        //        "Yêu cầu này chưa được khách hàng chấp nhận theo phương án sửa tại chỗ."
+        //    );
 
         EnsureDepositPaid(rescue);
 
@@ -829,7 +829,7 @@ public class RescueRequestService : IRescueRequestService
         rescue.EstimatedArrivalDateTime = request.EstimatedArrival;
         await _rescueRepo.UpdateAsync(rescue, ct);
 
-        // TowingNotes không persist vào entity — echo lại trong response
+        // TowingNotes không lưu vào entity; chỉ trả lại cho client trong response.
         return new TowingDispatchResultDto
         {
             RescueId = rescueId,
@@ -842,8 +842,46 @@ public class RescueRequestService : IRescueRequestService
     }
 
     /// <summary>
-    /// Customer chấp nhận kéo xe (UC-RES-03 C2). customerId từ token.
-    /// TOWING_DISPATCHED → TOWING_ACCEPTED.
+    /// SA cập nhật xe kéo đã tới điểm hẹn với khách.
+    /// TOWING_DISPATCHED → TOWING_ARRIVED.
+    /// </summary>
+    public async Task<RescueRequestDetailDto> TowingArriveAsync(
+        int rescueId,
+        int saId,
+        CancellationToken ct
+    )
+    {
+        var rescue =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForTowingArrive.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể cập nhật xe kéo đã tới nơi. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_DISPATCHED."
+            );
+
+        var sa =
+            await _userRepo.GetByIdAsync(saId, ct)
+            ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
+        if (sa.RoleID != UserRole.ServiceAdvisor)
+            throw new ArgumentException(
+                "Chỉ Service Advisor mới có quyền cập nhật trạng thái xe kéo."
+            );
+
+        rescue.Status = RescueStatus.TowingArrived;
+        await _rescueRepo.UpdateAsync(rescue, ct);
+
+        var updated =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new InvalidOperationException(
+                "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
+            );
+        return await MapToDetailAsync(updated, ct);
+    }
+
+    /// <summary>
+    /// Khách hàng chấp nhận kéo xe (UC-RES-03 C2). customerId từ token.
+    /// TOWING_ARRIVED → TOWING_ACCEPTED.
     /// </summary>
     public async Task<RescueRequestDetailDto> AcceptTowingAsync(
         int rescueId,
@@ -857,8 +895,11 @@ public class RescueRequestService : IRescueRequestService
 
         if (!RescueStatus.AllowedForAcceptTowing.Contains(rescue.Status))
             throw new InvalidOperationException(
-                $"Không thể chấp nhận kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_DISPATCHED."
+                $"Không thể chấp nhận kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_ARRIVED."
             );
+
+        if (rescue.CustomerID != customerId)
+            throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
 
         rescue.Status = RescueStatus.TowingAccepted;
         await _rescueRepo.UpdateAsync(rescue, ct);
@@ -867,8 +908,79 @@ public class RescueRequestService : IRescueRequestService
             await _rescueRepo.GetByIdAsync(rescueId, ct)
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
-            );
+        );
         return await MapToDetailAsync(updated, ct);
+    }
+
+    /// <summary>
+    /// Khách hàng hủy kéo xe sau khi xe kéo đã tới điểm hẹn.
+    /// TOWING_ARRIVED → CANCELLED và trừ 1 điểm tin cậy của khách.
+    /// </summary>
+    public async Task<CancelRescueResultDto> RejectTowingAsync(
+        int rescueId,
+        int customerId,
+        RejectTowingDto request,
+        CancellationToken ct
+    )
+    {
+        var rescue =
+            await _rescueRepo.GetByIdAsync(rescueId, ct)
+            ?? throw new KeyNotFoundException($"Yêu cầu cứu hộ ID={rescueId} không tồn tại.");
+
+        if (!RescueStatus.AllowedForRejectTowing.Contains(rescue.Status))
+            throw new InvalidOperationException(
+                $"Không thể hủy kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_ARRIVED."
+            );
+
+        if (rescue.CustomerID != customerId)
+            throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
+
+        var now = DateTime.UtcNow;
+        await _transactionManager.ExecuteInTransactionAsync(
+            async token =>
+            {
+                if (rescue.AssignedTechnicianID.HasValue)
+                    await _userRepo.SetOnRescueMissionAsync(
+                        rescue.AssignedTechnicianID.Value,
+                        false,
+                        token
+                    );
+
+                if (rescue.ResultingMaintenanceID.HasValue)
+                {
+                    var maintenance = await _rescueRepo.GetMaintenanceByIdAsync(
+                        rescue.ResultingMaintenanceID.Value,
+                        token
+                    );
+                    if (maintenance != null && maintenance.Status != CarMaintenanceStatus.Completed)
+                    {
+                        var reasonNote = string.IsNullOrWhiteSpace(request.Reason)
+                            ? "[REJECT_TOWING] Khách hàng hủy kéo xe sau khi xe kéo đã tới điểm hẹn."
+                            : $"[REJECT_TOWING {now:yyyy-MM-dd HH:mm}] {request.Reason.Trim()}";
+
+                        maintenance.Status = CarMaintenanceStatus.Cancelled;
+                        maintenance.CompletedDate = now;
+                        maintenance.Notes = AppendAuditNote(maintenance.Notes, reasonNote);
+                        await _rescueRepo.UpdateMaintenanceAsync(maintenance, token);
+                    }
+                }
+
+                rescue.Status = RescueStatus.Cancelled;
+                rescue.CompletedDate = now;
+                await _rescueRepo.UpdateAsync(rescue, token);
+
+                await _userRepo.DecrementTrustScoreAsync(customerId, token);
+            },
+            ct
+        );
+
+        return new CancelRescueResultDto
+        {
+            RescueId = rescueId,
+            Status = RescueStatus.Cancelled,
+            CancelledAt = now,
+            Reason = request.Reason?.Trim()
+        };
     }
 
     /// <summary>
