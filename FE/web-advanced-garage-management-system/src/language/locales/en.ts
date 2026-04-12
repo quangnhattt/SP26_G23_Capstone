@@ -1653,6 +1653,7 @@ export default {
   serviceOrderType_REPAIR: "Repair",
   serviceOrderType_MAINTENANCE: "Maintenance",
   serviceOrderType_INSPECTION: "Inspection",
+  serviceOrderType_RESCUE: "Rescue",
   // ── Service Order Detail Modal ─────────────────────────────────────────────
   serviceOrderDetailTitle: "Service Order Detail",
   serviceOrderDetailLoading: "Loading...",
@@ -1952,6 +1953,8 @@ export default {
   historyTransferOrderMaintenanceStatus_IN_PROGRESS: "In Progress",
   historyTransferOrderMaintenanceStatus_COMPLETED: "Completed",
   historyTransferOrderMaintenanceStatus_CANCELLED: "Cancelled",
+  historyTransferOrderMaintenanceStatus_CLOSED: "Closed",
+  historyTransferOrderMaintenanceStatus_WAITING_FOR_PAYMENT: "Waiting for Payment",
   historyTransferOrderDetailColCode: "Product Code",
   historyTransferOrderDetailColProduct: "Product Name",
   historyTransferOrderDetailColQty: "Qty",

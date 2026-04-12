@@ -1638,6 +1638,7 @@ export default {
   serviceOrderType_REPAIR: "Sửa chữa",
   serviceOrderType_MAINTENANCE: "Bảo dưỡng",
   serviceOrderType_INSPECTION: "Kiểm định",
+  serviceOrderType_RESCUE: "Cứu hộ",
   // ── Service Order Detail Modal ─────────────────────────────────────────────
   serviceOrderDetailTitle: "Chi tiết đơn dịch vụ",
   serviceOrderDetailLoading: "Đang tải...",
@@ -1938,6 +1939,8 @@ export default {
   historyTransferOrderMaintenanceStatus_IN_PROGRESS: "Đang thực hiện",
   historyTransferOrderMaintenanceStatus_COMPLETED: "Hoàn thành",
   historyTransferOrderMaintenanceStatus_CANCELLED: "Đã hủy",
+  historyTransferOrderMaintenanceStatus_CLOSED: "Đã đóng",
+  historyTransferOrderMaintenanceStatus_WAITING_FOR_PAYMENT: "Chờ thanh toán",
   historyTransferOrderDetailColCode: "Mã sản phẩm",
   historyTransferOrderDetailColProduct: "Tên sản phẩm",
   historyTransferOrderDetailColQty: "SL",
