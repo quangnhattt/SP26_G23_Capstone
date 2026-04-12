@@ -205,60 +205,39 @@ const ManagermentAppointment = () => {
       {/* ── HEADER ── */}
       <PageHeader>
         <HeaderContent>
-          <HeaderIcon><FaCar size={28} /></HeaderIcon>
+          <HeaderIcon><FaCar size={22} /></HeaderIcon>
           <HeaderText>
             <PageTitle>{t("mgrAppointmentTitle")}</PageTitle>
             <PageSubtitle>{t("mgrAppointmentSubtitle")}</PageSubtitle>
           </HeaderText>
         </HeaderContent>
-        <RolePill $isSA={isSA}>
-          {isSA ? "⚙️ Service Advisor" : "👁️ Xem toàn bộ (Admin)"}
-        </RolePill>
       </PageHeader>
 
       {/* ── STATS ── */}
       <StatsGrid>
-        <StatCard $accent="#6366f1" onClick={() => setFilterStatus("all")}>
-          <StatIconWrap $color="#6366f1"><FaCalendarAlt size={20} /></StatIconWrap>
-          <StatBody>
-            <StatNum>{stats.total}</StatNum>
-            <StatLbl>Tổng lịch hẹn</StatLbl>
-          </StatBody>
+        <StatCard $accent="#e5e7eb" onClick={() => setFilterStatus("all")}>
+          <StatNum>{stats.total}</StatNum>
+          <StatLbl>Tổng lịch hẹn</StatLbl>
         </StatCard>
-        <StatCard $accent="#f59e0b" onClick={() => setFilterStatus("PENDING")}>
-          <StatIconWrap $color="#f59e0b"><FaTools size={20} /></StatIconWrap>
-          <StatBody>
-            <StatNum $color="#f59e0b">{stats.pending}</StatNum>
-            <StatLbl>Chờ duyệt</StatLbl>
-          </StatBody>
+        <StatCard $accent="#fcd34d" onClick={() => setFilterStatus("PENDING")}>
+          <StatNum $color="#d97706">{stats.pending}</StatNum>
+          <StatLbl>Chờ duyệt</StatLbl>
         </StatCard>
-        <StatCard $accent="#16a34a" onClick={() => setFilterStatus("CONFIRMED")}>
-          <StatIconWrap $color="#16a34a"><FaCheck size={20} /></StatIconWrap>
-          <StatBody>
-            <StatNum $color="#16a34a">{stats.confirmed}</StatNum>
-            <StatLbl>Đã xác nhận</StatLbl>
-          </StatBody>
+        <StatCard $accent="#86efac" onClick={() => setFilterStatus("CONFIRMED")}>
+          <StatNum $color="#16a34a">{stats.confirmed}</StatNum>
+          <StatLbl>Đã xác nhận</StatLbl>
         </StatCard>
-        <StatCard $accent="#2563eb" onClick={() => setFilterStatus("CHECKED_IN")}>
-          <StatIconWrap $color="#2563eb"><FaKey size={20} /></StatIconWrap>
-          <StatBody>
-            <StatNum $color="#2563eb">{stats.checkedIn}</StatNum>
-            <StatLbl>Đã tiếp nhận</StatLbl>
-          </StatBody>
+        <StatCard $accent="#93c5fd" onClick={() => setFilterStatus("CHECKED_IN")}>
+          <StatNum $color="#2563eb">{stats.checkedIn}</StatNum>
+          <StatLbl>Đã tiếp nhận</StatLbl>
         </StatCard>
-        <StatCard $accent="#06b6d4" onClick={() => setFilterStatus("all")}>
-          <StatIconWrap $color="#06b6d4"><FaCar size={20} /></StatIconWrap>
-          <StatBody>
-            <StatNum $color="#06b6d4">{stats.today}</StatNum>
-            <StatLbl>Lịch hôm nay</StatLbl>
-          </StatBody>
+        <StatCard $accent="#6ee7b7" onClick={() => setFilterStatus("all")}>
+          <StatNum $color="#059669">{stats.today}</StatNum>
+          <StatLbl>Lịch hôm nay</StatLbl>
         </StatCard>
-        <StatCard $accent="#dc2626" onClick={() => setFilterStatus("CANCELLED")}>
-          <StatIconWrap $color="#dc2626"><FaTimes size={20} /></StatIconWrap>
-          <StatBody>
-            <StatNum $color="#dc2626">{stats.cancelled}</StatNum>
-            <StatLbl>Đã hủy</StatLbl>
-          </StatBody>
+        <StatCard $accent="#fca5a5" onClick={() => setFilterStatus("CANCELLED")}>
+          <StatNum $color="#dc2626">{stats.cancelled}</StatNum>
+          <StatLbl>Đã hủy</StatLbl>
         </StatCard>
       </StatsGrid>
 
@@ -272,24 +251,17 @@ const ManagermentAppointment = () => {
             onChange={e => setSearchTerm(e.target.value)}
           />
         </SearchBox>
-        <PillGroup>
-          <PillBtn $active={filterServiceType === "all"} onClick={() => setFilterServiceType("all")}>Tất cả</PillBtn>
-          <PillBtn $active={filterServiceType === "REPAIR"} onClick={() => setFilterServiceType("REPAIR")}>
-            <FaWrench size={11} /> Sửa chữa
-          </PillBtn>
-          <PillBtn $active={filterServiceType === "MAINTENANCE"} onClick={() => setFilterServiceType("MAINTENANCE")}>
-            <FaTools size={11} /> Bảo dưỡng
-          </PillBtn>
-        </PillGroup>
-        <StatusPills>
-          <PillBtn $active={filterStatus === "all"} onClick={() => setFilterStatus("all")}>Tất cả TT</PillBtn>
+        <FilterSelect value={filterServiceType} onChange={e => setFilterServiceType(e.target.value)}>
+          <option value="all">Tất cả loại</option>
+          <option value="REPAIR">Sửa chữa</option>
+          <option value="MAINTENANCE">Bảo dưỡng</option>
+        </FilterSelect>
+        <FilterSelect value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <option value="all">Tất cả trạng thái</option>
           {STATUSES.map(s => (
-            <PillBtn key={s} $active={filterStatus === s} $statusColor={statusConfig[s].color}
-              onClick={() => setFilterStatus(s)}>
-              {statusConfig[s].label}
-            </PillBtn>
+            <option key={s} value={s}>{statusConfig[s].label}</option>
           ))}
-        </StatusPills>
+        </FilterSelect>
       </FilterBar>
 
       {/* ── LIST ── */}
@@ -450,67 +422,50 @@ const fadeUp = keyframes`from { opacity:0; transform:translateY(8px); } to { opa
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 const PageWrapper = styled.div`
-  padding: 2rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  background: #f1f5f9;
+  gap: 1.25rem;
+  background: #f8fafc;
   min-height: 100vh;
 `;
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 const PageHeader = styled.div`
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #1e3a5f 100%);
-  border-radius: 16px;
-  padding: 1.75rem 2rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 8px 24px rgba(15,23,42,0.25);
 `;
 
 const HeaderContent = styled.div`
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.875rem;
 `;
 
 const HeaderIcon = styled.div`
-  width: 56px;
-  height: 56px;
-  background: rgba(99,102,241,0.2);
-  border: 1px solid rgba(99,102,241,0.4);
-  border-radius: 14px;
+  color: #1d4ed8;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #818cf8;
 `;
 
 const HeaderText = styled.div``;
 
 const PageTitle = styled.h1`
-  font-size: 1.625rem;
+  font-size: 1.375rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: #111827;
   margin: 0;
-  letter-spacing: -0.3px;
 `;
 
 const PageSubtitle = styled.p`
-  font-size: 0.875rem;
-  color: #94a3b8;
-  margin: 0.25rem 0 0;
-`;
-
-const RolePill = styled.span<{ $isSA: boolean }>`
-  padding: 0.5rem 1.25rem;
-  border-radius: 99px;
   font-size: 0.8125rem;
-  font-weight: 700;
-  background: ${p => p.$isSA ? "rgba(34,197,94,0.15)" : "rgba(148,163,184,0.15)"};
-  color: ${p => p.$isSA ? "#4ade80" : "#94a3b8"};
-  border: 1px solid ${p => p.$isSA ? "rgba(34,197,94,0.3)" : "rgba(148,163,184,0.3)"};
+  color: #6b7280;
+  margin: 0.1rem 0 0;
 `;
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
@@ -524,43 +479,28 @@ const StatsGrid = styled.div`
 
 const StatCard = styled.div<{ $accent: string }>`
   background: white;
-  border-radius: 14px;
-  padding: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  cursor: pointer;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
   border-top: 3px solid ${p => p.$accent};
-  transition: all 0.2s;
-  animation: ${fadeUp} 0.3s ease both;
-  &:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  border-radius: 10px;
+  padding: 1.125rem 1.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  &:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
 `;
 
-const StatIconWrap = styled.div<{ $color: string }>`
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: ${p => p.$color}18;
-  color: ${p => p.$color};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-`;
-
-const StatBody = styled.div``;
 const StatNum = styled.div<{ $color?: string }>`
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 800;
-  color: ${p => p.$color || "#0f172a"};
+  color: ${p => p.$color || "#111827"};
   line-height: 1;
 `;
+
 const StatLbl = styled.div`
   font-size: 0.75rem;
-  color: #64748b;
+  color: #6b7280;
   font-weight: 600;
-  margin-top: 0.2rem;
+  margin-top: 0.35rem;
 `;
 
 // ─── Filter Bar ───────────────────────────────────────────────────────────────
@@ -599,33 +539,22 @@ const SearchInput = styled.input`
   &::placeholder { color: #94a3b8; }
 `;
 
-const PillGroup = styled.div`
-  display: flex;
-  gap: 0.375rem;
-  flex-wrap: wrap;
-`;
-
-const StatusPills = styled.div`
-  display: flex;
-  gap: 0.375rem;
-  flex-wrap: wrap;
-`;
-
-const PillBtn = styled.button<{ $active?: boolean; $statusColor?: string }>`
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.4rem 0.875rem;
-  border-radius: 99px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  border: 1px solid ${p => p.$active ? (p.$statusColor || "#6366f1") : "#e2e8f0"};
-  background: ${p => p.$active ? (p.$statusColor ? p.$statusColor + "18" : "#eef2ff") : "white"};
-  color: ${p => p.$active ? (p.$statusColor || "#6366f1") : "#64748b"};
+const FilterSelect = styled.select`
+  padding: 0.625rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-size: 0.875rem;
+  outline: none;
   cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-  &:hover { border-color: ${p => p.$statusColor || "#6366f1"}; color: ${p => p.$statusColor || "#6366f1"}; }
+  min-width: 160px;
+  transition: all 0.2s;
+  &:focus {
+    border-color: #6366f1;
+    background-color: white;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+  }
 `;
 
 // ─── Card Grid ────────────────────────────────────────────────────────────────
