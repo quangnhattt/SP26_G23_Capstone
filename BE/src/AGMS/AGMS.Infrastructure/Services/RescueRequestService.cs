@@ -1039,6 +1039,8 @@ public class RescueRequestService : IRescueRequestService
                 ? "[TOWING] Xe đã được kéo về xưởng."
                 : $"[TOWING] {request.RepairOrderNotes.Trim()}"
         );
+        maintenance.Status = CarMaintenanceStatus.RECEIVED;
+
         await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
 
         rescue.Status = RescueStatus.Towed;
