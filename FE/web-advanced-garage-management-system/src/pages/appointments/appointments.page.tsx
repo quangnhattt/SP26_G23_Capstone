@@ -20,6 +20,7 @@ import {
   FaClipboardCheck,
 } from "react-icons/fa";
 import RespondAdditionalItemsModal from "@/pages/admin/components/service-order-manager/respond-additional-items.modal";
+import { getServiceOrderDetail } from "@/services/admin/serviceOrderService";
 import {
   getAppointments,
   getAppointmentById,
@@ -143,23 +144,23 @@ const AppointmentsPage = () => {
   const [loadingAdditionalId, setLoadingAdditionalId] = useState<number | null>(null);
 
 
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+      const data = await getAppointments();
+      setAppointments(data);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       navigate(ROUTER_PAGE.home);
       return;
     }
-
-    const fetchAppointments = async () => {
-      try {
-        setLoading(true);
-        const data = await getAppointments();
-        setAppointments(data);
-      } catch (error) {
-        console.error("Error fetching appointments:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
     const fetchRescueRequests = async () => {
       try {
@@ -334,16 +335,16 @@ const AppointmentsPage = () => {
   };
 
   // ─── Additional Items Approval ─────────────────────────────
-  const openAdditionalItemsModal = async (appointmentId: number) => {
+  const openAdditionalItemsModal = async (appointmentId: number, maintenanceId?: number | null) => {
     setLoadingAdditionalId(appointmentId);
     try {
-      const detail = await getAppointmentById(appointmentId);
-      if (detail.maintenance?.maintenanceId) {
-        setAdditionalMaintenanceId(detail.maintenance.maintenanceId);
-        setShowAdditionalModal(true);
-      } else {
+      if (!maintenanceId) {
         toast.info(t("appointmentsAdditionalNoMaintenance"));
+        return;
       }
+      const serviceOrder = await getServiceOrderDetail(maintenanceId);
+      setAdditionalMaintenanceId(serviceOrder.maintenanceId);
+      setShowAdditionalModal(true);
     } catch {
       toast.error(t("errorOccurred"));
     } finally {
@@ -634,7 +635,8 @@ const AppointmentsPage = () => {
           {activeTab === "ADDITIONAL_ITEMS" ? (
             (() => {
               const inProgressAppts = appointments.filter((a) =>
-                IN_PROGRESS_STATUSES.includes(a.status),
+                IN_PROGRESS_STATUSES.includes(a.status) &&
+                a.maintenanceStatus === "QUOTED",
               );
               if (loading) return <LoadingMessage>{t("loading")}</LoadingMessage>;
               if (inProgressAppts.length === 0)
@@ -687,7 +689,7 @@ const AppointmentsPage = () => {
                               {formatDate(appt.appointmentDate || appt.createdDate)}
                             </FooterItem>
                             <ApproveItemsBtn
-                              onClick={() => openAdditionalItemsModal(appt.appointmentId)}
+                              onClick={() => openAdditionalItemsModal(appt.appointmentId, appt.maintenanceId)}
                               disabled={isLoadingThis}
                             >
                               <FaClipboardCheck size={13} />
@@ -1097,6 +1099,7 @@ const AppointmentsPage = () => {
         onSuccess={() => {
           setShowAdditionalModal(false);
           setAdditionalMaintenanceId(null);
+          fetchAppointments();
         }}
       />
 

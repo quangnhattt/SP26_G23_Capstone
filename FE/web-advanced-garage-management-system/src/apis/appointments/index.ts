@@ -24,6 +24,8 @@ export interface IAppointment {
   packageName: string | null;
   packageCode: string | null;
   packageFinalPrice: number | null;
+  maintenanceId?: number | null;
+  maintenanceStatus?: string | null;
 }
 
 export interface IAppointmentDetail {
