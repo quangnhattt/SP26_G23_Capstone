@@ -4,24 +4,18 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AuthContext } from "@/context/AuthContext";
 import { ROUTER_PAGE } from "@/routes/contants";
-import { getAppointments, type IAppointment } from "@/apis/appointments";
+import { getAppointments, getAppointmentById, type IAppointment } from "@/apis/appointments";
 import { getRescueRequests, type IRescueRequest } from "@/apis/rescue";
 import { rescueStatusConfig } from "@/pages/appointments/rescueStatusConfig";
+import RespondAdditionalItemsModal from "@/pages/admin/components/service-order-manager/respond-additional-items.modal";
 import {
   FaCalendarAlt,
   FaPhoneAlt,
   FaChevronRight,
   FaPlus,
-  FaCar,
+  FaClipboardCheck,
 } from "react-icons/fa";
 
-const apptStatusStyle: Record<string, { labelKey: string; color: string; bg: string }> = {
-  PENDING:    { labelKey: "apptStatusPending",    color: "#d97706", bg: "#fef3c7" },
-  CONFIRMED:  { labelKey: "apptStatusConfirmed",  color: "#2563eb", bg: "#dbeafe" },
-  CHECKED_IN: { labelKey: "apptStatusCheckedIn",  color: "#7c3aed", bg: "#ede9fe" },
-  DONE:       { labelKey: "apptStatusDone",       color: "#16a34a", bg: "#dcfce7" },
-  CANCELLED:  { labelKey: "apptStatusCancelled",  color: "#dc2626", bg: "#fee2e2" },
-};
 
 const APPT_IN_PROGRESS = ["PENDING", "CONFIRMED", "CHECKED_IN"];
 const RESCUE_TERMINAL   = ["COMPLETED", "CANCELLED", "SPAM"];
@@ -33,6 +27,9 @@ const CustomerQuickView = () => {
   const [appointments, setAppointments] = useState<IAppointment[]>([]);
   const [rescues, setRescues] = useState<IRescueRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAdditionalModal, setShowAdditionalModal] = useState(false);
+  const [additionalMaintenanceId, setAdditionalMaintenanceId] = useState<number | null>(null);
+  const [loadingAdditionalId, setLoadingAdditionalId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user || user.roleID !== 4) return;
@@ -79,11 +76,35 @@ const CustomerQuickView = () => {
     };
   }, [user]);
 
+  const openAdditionalItemsModal = async (appointmentId: number) => {
+    setLoadingAdditionalId(appointmentId);
+    try {
+      const detail = await getAppointmentById(appointmentId);
+      if (detail.maintenance?.maintenanceId) {
+        setAdditionalMaintenanceId(detail.maintenance.maintenanceId);
+        setShowAdditionalModal(true);
+      } else {
+        navigate(`${ROUTER_PAGE.appointments}?tab=ADDITIONAL_ITEMS`);
+      }
+    } catch {
+      navigate(`${ROUTER_PAGE.appointments}?tab=ADDITIONAL_ITEMS`);
+    } finally {
+      setLoadingAdditionalId(null);
+    }
+  };
+
   if (!user || user.roleID !== 4) return null;
 
-  const hasAppt = appointments.length > 0;
   const hasRescue = rescues.length > 0;
-  const isEmpty = !hasAppt && !hasRescue && !loading;
+  const inProgressAppts = appointments.filter((a) =>
+    ["PENDING", "CONFIRMED", "CHECKED_IN"].includes(a.status),
+  );
+  const hasAppt = inProgressAppts.length > 0;
+
+  // Ẩn toàn bộ component nếu cả 3 đều không có data (và không đang loading)
+  if (!loading && !hasAppt && !hasRescue) return null;
+
+  const visibleCount = (hasAppt ? 1 : 0) + (hasRescue ? 1 : 0) + (hasAppt ? 1 : 0);
 
   return (
     <Section>
@@ -101,138 +122,135 @@ const CustomerQuickView = () => {
               <SkeletonCard key={i} />
             ))}
           </SkeletonRow>
-        ) : isEmpty ? (
-          <EmptyBox>
-            <FaCar size={32} color="#d1d5db" />
-            <EmptyText>{t("homeCustomerEmptyText")}</EmptyText>
-            <EmptyActions>
-              <ActionBtn $primary onClick={() => navigate(ROUTER_PAGE.booking)}>
-                <FaCalendarAlt size={13} /> {t("homeCustomerBookNow")}
-              </ActionBtn>
-              <ActionBtn onClick={() => navigate(ROUTER_PAGE.rescue)}>
-                <FaPhoneAlt size={13} /> {t("homeCustomerCallRescue")}
-              </ActionBtn>
-            </EmptyActions>
-          </EmptyBox>
         ) : (
-          <TwoCol>
-            {/* ── Appointments column ── */}
-            <ColCard>
-              <ColHeader>
-                <ColIcon $color="#2563eb">
-                  <FaCalendarAlt size={14} />
-                </ColIcon>
-                <ColTitle>{t("homeCustomerApptColTitle")}</ColTitle>
-                <AddBtn
-                  onClick={() => navigate(ROUTER_PAGE.booking)}
-                  title={t("homeCustomerApptNewBtn")}
-                >
-                  <FaPlus size={11} />
-                </AddBtn>
-              </ColHeader>
-
-              {hasAppt ? (
+          <ThreeCol $cols={visibleCount}>
+            {/* ── Appointments column — chỉ hiện khi có lịch đang xử lý ── */}
+            {hasAppt && (
+              <ColCard>
+                <ColHeader>
+                  <ColIcon $color="#2563eb">
+                    <FaCalendarAlt size={14} />
+                  </ColIcon>
+                  <ColTitle>{t("homeCustomerApptColTitle")}</ColTitle>
+                  <AddBtn
+                    onClick={() => navigate(ROUTER_PAGE.booking)}
+                    title={t("homeCustomerApptNewBtn")}
+                  >
+                    <FaPlus size={11} />
+                  </AddBtn>
+                </ColHeader>
                 <ItemList>
-                  {appointments.map((a) => {
-                    const st = apptStatusStyle[a.status] ?? {
-                      labelKey: a.status,
-                      color: "#6b7280",
-                      bg: "#f3f4f6",
-                    };
+                  {inProgressAppts.slice(0, 3).map((a) => {
+                    const st = {
+                      PENDING:    { color: "#d97706", bg: "#fef3c7", labelKey: "apptStatusPending" },
+                      CONFIRMED:  { color: "#2563eb", bg: "#dbeafe", labelKey: "apptStatusConfirmed" },
+                      CHECKED_IN: { color: "#7c3aed", bg: "#ede9fe", labelKey: "apptStatusCheckedIn" },
+                    }[a.status] ?? { color: "#6b7280", bg: "#f3f4f6", labelKey: a.status };
                     return (
                       <Item
                         key={a.appointmentId}
-                        onClick={() =>
-                          navigate(`${ROUTER_PAGE.appointments}?openAppt=${a.appointmentId}`)
-                        }
+                        onClick={() => navigate(`${ROUTER_PAGE.appointments}?openAppt=${a.appointmentId}`)}
                       >
                         <ItemLeft>
-                          <ItemTitle>
-                            {a.carBrand} {a.carModel}
-                          </ItemTitle>
+                          <ItemTitle>{a.carBrand} {a.carModel}</ItemTitle>
                           <ItemSub>
                             {a.licensePlate} &middot;{" "}
-                            {new Date(a.appointmentDate).toLocaleDateString("vi-VN")}
+                            {new Date(a.appointmentDate || a.createdDate).toLocaleDateString("vi-VN")}
                           </ItemSub>
                         </ItemLeft>
-                        <Badge $color={st.color} $bg={st.bg}>
-                          {t(st.labelKey)}
-                        </Badge>
+                        <Badge $color={st.color} $bg={st.bg}>{t(st.labelKey)}</Badge>
                       </Item>
                     );
                   })}
                 </ItemList>
-              ) : (
-                <ColEmpty>
-                  <ColEmptyText>{t("homeCustomerApptEmpty")}</ColEmptyText>
-                  <ColEmptyBtn onClick={() => navigate(ROUTER_PAGE.booking)}>
-                    {t("homeCustomerBookNow")}
-                  </ColEmptyBtn>
-                </ColEmpty>
-              )}
-            </ColCard>
+              </ColCard>
+            )}
 
-            {/* ── Rescue column ── */}
-            <ColCard>
-              <ColHeader>
-                <ColIcon $color="#dc2626">
-                  <FaPhoneAlt size={14} />
-                </ColIcon>
-                <ColTitle>{t("homeCustomerRescueColTitle")}</ColTitle>
-                <AddBtn
-                  $danger
-                  onClick={() => navigate(ROUTER_PAGE.rescue)}
-                  title={t("homeCustomerRescueNewBtn")}
-                >
-                  <FaPlus size={11} />
-                </AddBtn>
-              </ColHeader>
-
-              {hasRescue ? (
+            {/* ── Rescue column — chỉ hiện khi có yêu cầu cứu hộ ── */}
+            {hasRescue && (
+              <ColCard>
+                <ColHeader>
+                  <ColIcon $color="#dc2626">
+                    <FaPhoneAlt size={14} />
+                  </ColIcon>
+                  <ColTitle>{t("homeCustomerRescueColTitle")}</ColTitle>
+                  <AddBtn
+                    $danger
+                    onClick={() => navigate(ROUTER_PAGE.rescue)}
+                    title={t("homeCustomerRescueNewBtn")}
+                  >
+                    <FaPlus size={11} />
+                  </AddBtn>
+                </ColHeader>
                 <ItemList>
                   {rescues.map((r) => {
                     const cfg = rescueStatusConfig[r.status] ?? {
-                      color: "#6b7280",
-                      bg: "#f3f4f6",
-                      labelKey: r.status,
+                      color: "#6b7280", bg: "#f3f4f6", labelKey: r.status,
                     };
                     return (
                       <Item
                         key={r.rescueId}
-                        onClick={() =>
-                          navigate(
-                            `${ROUTER_PAGE.appointments}?tab=RESCUE&openRescue=${r.rescueId}`,
-                          )
-                        }
+                        onClick={() => navigate(`${ROUTER_PAGE.appointments}?tab=RESCUE&openRescue=${r.rescueId}`)}
                       >
                         <ItemLeft>
-                          <ItemTitle>
-                            {r.problemDescription || t("homeCustomerRescueFallback")}
-                          </ItemTitle>
+                          <ItemTitle>{r.problemDescription || t("homeCustomerRescueFallback")}</ItemTitle>
                           <ItemSub>
                             {r.licensePlate} &middot;{" "}
                             {new Date(r.createdDate).toLocaleDateString("vi-VN")}
                           </ItemSub>
                         </ItemLeft>
-                        <Badge $color={cfg.color} $bg={cfg.bg}>
-                          {t(cfg.labelKey)}
+                        <Badge $color={cfg.color} $bg={cfg.bg}>{t(cfg.labelKey)}</Badge>
+                      </Item>
+                    );
+                  })}
+                </ItemList>
+              </ColCard>
+            )}
+
+            {/* ── Additional Items column — chỉ hiện khi có lịch đang xử lý ── */}
+            {hasAppt && (
+              <ColCard>
+                <ColHeader>
+                  <ColIcon $color="#7c3aed">
+                    <FaClipboardCheck size={14} />
+                  </ColIcon>
+                  <ColTitle>{t("homeCustomerAdditionalColTitle")}</ColTitle>
+                </ColHeader>
+                <ItemList>
+                  {inProgressAppts.slice(0, 3).map((a) => {
+                    const isLoading = loadingAdditionalId === a.appointmentId;
+                    return (
+                      <Item
+                        key={a.appointmentId}
+                        onClick={() => openAdditionalItemsModal(a.appointmentId)}
+                        style={{ opacity: isLoading ? 0.6 : 1 }}
+                      >
+                        <ItemLeft>
+                          <ItemTitle>{a.carBrand} {a.carModel}</ItemTitle>
+                          <ItemSub>
+                            {a.licensePlate} &middot;{" "}
+                            {new Date(a.appointmentDate || a.createdDate).toLocaleDateString("vi-VN")}
+                          </ItemSub>
+                        </ItemLeft>
+                        <Badge $color="#7c3aed" $bg="#ede9fe">
+                          {isLoading ? "..." : t("homeCustomerAdditionalApproveBtn")}
                         </Badge>
                       </Item>
                     );
                   })}
                 </ItemList>
-              ) : (
-                <ColEmpty>
-                  <ColEmptyText>{t("homeCustomerRescueEmpty")}</ColEmptyText>
-                  <ColEmptyBtn $danger onClick={() => navigate(ROUTER_PAGE.rescue)}>
-                    {t("homeCustomerCallRescue")}
-                  </ColEmptyBtn>
-                </ColEmpty>
-              )}
-            </ColCard>
-          </TwoCol>
+              </ColCard>
+            )}
+          </ThreeCol>
         )}
       </Inner>
+
+      <RespondAdditionalItemsModal
+        isOpen={showAdditionalModal}
+        maintenanceId={additionalMaintenanceId}
+        onClose={() => { setShowAdditionalModal(false); setAdditionalMaintenanceId(null); }}
+        onSuccess={() => { setShowAdditionalModal(false); setAdditionalMaintenanceId(null); }}
+      />
     </Section>
   );
 };
@@ -288,13 +306,18 @@ const ViewAllBtn = styled.button`
   }
 `;
 
-const TwoCol = styled.div`
+const ThreeCol = styled.div<{ $cols: number }>`
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
 
   @media (min-width: 640px) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: ${({ $cols }) => ($cols === 1 ? "1fr" : "1fr 1fr")};
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: ${({ $cols }) =>
+      $cols === 1 ? "1fr" : $cols === 2 ? "1fr 1fr" : "1fr 1fr 1fr"};
   }
 `;
 
@@ -333,13 +356,16 @@ const ColTitle = styled.span`
   flex: 1;
 `;
 
-const AddBtn = styled.button<{ $danger?: boolean }>`
+const AddBtn = styled.button<{ $danger?: boolean; $purple?: boolean }>`
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  border: 1px solid ${({ $danger }) => ($danger ? "#fecaca" : "#dbeafe")};
-  background: ${({ $danger }) => ($danger ? "#fee2e2" : "#eff6ff")};
-  color: ${({ $danger }) => ($danger ? "#dc2626" : "#2563eb")};
+  border: 1px solid ${({ $danger, $purple }) =>
+    $danger ? "#fecaca" : $purple ? "#ddd6fe" : "#dbeafe"};
+  background: ${({ $danger, $purple }) =>
+    $danger ? "#fee2e2" : $purple ? "#ede9fe" : "#eff6ff"};
+  color: ${({ $danger, $purple }) =>
+    $danger ? "#dc2626" : $purple ? "#7c3aed" : "#2563eb"};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -347,7 +373,8 @@ const AddBtn = styled.button<{ $danger?: boolean }>`
   flex-shrink: 0;
 
   &:hover {
-    background: ${({ $danger }) => ($danger ? "#fecaca" : "#dbeafe")};
+    background: ${({ $danger, $purple }) =>
+      $danger ? "#fecaca" : $purple ? "#ddd6fe" : "#dbeafe"};
   }
 `;
 
@@ -406,74 +433,6 @@ const Badge = styled.span<{ $color: string; $bg: string }>`
   white-space: nowrap;
 `;
 
-const ColEmpty = styled.div`
-  padding: 1.5rem 1rem;
-  text-align: center;
-`;
-
-const ColEmptyText = styled.p`
-  font-size: 0.8rem;
-  color: #9ca3af;
-  margin: 0 0 0.75rem;
-`;
-
-const ColEmptyBtn = styled.button<{ $danger?: boolean }>`
-  font-size: 0.8125rem;
-  font-weight: 600;
-  padding: 0.4rem 0.875rem;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  background: ${({ $danger }) => ($danger ? "#dc2626" : "#2563eb")};
-  color: white;
-
-  &:hover {
-    opacity: 0.9;
-  }
-`;
-
-const EmptyBox = styled.div`
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 2.5rem 1rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-`;
-
-const EmptyText = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-`;
-
-const EmptyActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-  flex-wrap: wrap;
-`;
-
-const ActionBtn = styled.button<{ $primary?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  border: 1px solid ${({ $primary }) => ($primary ? "#2563eb" : "#e5e7eb")};
-  background: ${({ $primary }) => ($primary ? "#2563eb" : "white")};
-  color: ${({ $primary }) => ($primary ? "white" : "#374151")};
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    opacity: 0.9;
-  }
-`;
 
 const SkeletonRow = styled.div`
   display: grid;

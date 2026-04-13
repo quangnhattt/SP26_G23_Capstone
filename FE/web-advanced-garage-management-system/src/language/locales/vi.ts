@@ -1343,6 +1343,12 @@ export default {
   appointmentsCreated: "Ngày tạo",
   appointmentsQuote: "Báo giá",
   appointmentsCancelled: "Đã hủy",
+  appointmentsRescueTab: "Cứu hộ",
+  appointmentsAdditionalItemsTab: "Phê duyệt bổ sung",
+  appointmentsAdditionalEmpty: "Không có đơn nào đang xử lý",
+  appointmentsAdditionalEmptyDesc: "Các đơn đang xử lý sẽ hiển thị ở đây khi có hàng mục bổ sung cần duyệt",
+  appointmentsAdditionalApproveBtn: "Phê duyệt hàng mục bổ sung",
+  appointmentsAdditionalNoMaintenance: "Đơn này chưa có lệnh sửa chữa",
 
   // Manager Appointment Page
   mgrAppointmentTitle: "Quản lý yêu cầu sửa chữa",
@@ -2024,4 +2030,8 @@ export default {
   homeCustomerApptEmpty: "Chưa có lịch hẹn đang diễn ra",
   homeCustomerRescueEmpty: "Chưa có yêu cầu cứu hộ đang diễn ra",
   homeCustomerRescueFallback: "Yêu cầu cứu hộ",
+  homeCustomerAdditionalColTitle: "Phê duyệt bổ sung",
+  homeCustomerAdditionalViewAll: "Xem tất cả",
+  homeCustomerAdditionalEmpty: "Không có đơn đang chờ phê duyệt",
+  homeCustomerAdditionalApproveBtn: "Phê duyệt",
 };

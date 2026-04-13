@@ -95,7 +95,7 @@ public static class RescueStatus
     /// <summary>Ghi nhận xe kéo đã tới hiện trường và bắt đầu kéo xe.</summary>
     public static readonly IReadOnlySet<string> AllowedForTowingArrive = new HashSet<string>
     {
-        TowingDispatched
+        OnSite
     };
 
     /// <summary>Khách hàng xác nhận cho kéo xe sau khi xe kéo đã tới hiện trường.</summary>
@@ -113,7 +113,8 @@ public static class RescueStatus
     /// <summary>SA hoàn tất kéo xe sau khi khách đã chấp nhận kéo xe.</summary>
     public static readonly IReadOnlySet<string> AllowedForCompleteTowing = new HashSet<string>
     {
-        TowingAccepted
+        TowingAccepted,
+        TowingArrived
     };
 
     /// <summary>SA tạo hóa đơn sau khi sửa tại chỗ xong hoặc xe đã được kéo về xưởng.</summary>

@@ -17,7 +17,9 @@ import {
   FaMapMarkerAlt,
   FaTools,
   FaTimes,
+  FaClipboardCheck,
 } from "react-icons/fa";
+import RespondAdditionalItemsModal from "@/pages/admin/components/service-order-manager/respond-additional-items.modal";
 import {
   getAppointments,
   getAppointmentById,
@@ -74,7 +76,7 @@ const IN_PROGRESS_RESCUE_STATUSES = [
   "PAYMENT_PENDING",
   "PAYMENT_SUBMITTED",
 ];
-type MainTab = "BOOKING" | "RESCUE";
+type MainTab = "BOOKING" | "RESCUE" | "ADDITIONAL_ITEMS";
 
 const AppointmentsPage = () => {
   const { t } = useTranslation();
@@ -134,6 +136,11 @@ const AppointmentsPage = () => {
   const [techActionLoadingId, setTechActionLoadingId] = useState<number | null>(
     null,
   );
+
+  // Additional items approval
+  const [showAdditionalModal, setShowAdditionalModal] = useState(false);
+  const [additionalMaintenanceId, setAdditionalMaintenanceId] = useState<number | null>(null);
+  const [loadingAdditionalId, setLoadingAdditionalId] = useState<number | null>(null);
 
 
   useEffect(() => {
@@ -323,6 +330,24 @@ const AppointmentsPage = () => {
       } catch {
         // ignore
       }
+    }
+  };
+
+  // ─── Additional Items Approval ─────────────────────────────
+  const openAdditionalItemsModal = async (appointmentId: number) => {
+    setLoadingAdditionalId(appointmentId);
+    try {
+      const detail = await getAppointmentById(appointmentId);
+      if (detail.maintenance?.maintenanceId) {
+        setAdditionalMaintenanceId(detail.maintenance.maintenanceId);
+        setShowAdditionalModal(true);
+      } else {
+        toast.info(t("appointmentsAdditionalNoMaintenance"));
+      }
+    } catch {
+      toast.error(t("errorOccurred"));
+    } finally {
+      setLoadingAdditionalId(null);
     }
   };
 
@@ -535,11 +560,20 @@ const AppointmentsPage = () => {
               setFilterStatus("all");
             }}
           >
-            Cứu hộ
+            {t("appointmentsRescueTab")}
           </MainTabButton>
+          {isCustomer && (
+            <MainTabButton
+              $active={activeTab === "ADDITIONAL_ITEMS"}
+              onClick={() => setActiveTab("ADDITIONAL_ITEMS")}
+            >
+              <FaClipboardCheck size={13} style={{ marginRight: 5 }} />
+              {t("appointmentsAdditionalItemsTab")}
+            </MainTabButton>
+          )}
         </MainTabs>
 
-        <ToolBar>
+        <ToolBar style={{ display: activeTab === "ADDITIONAL_ITEMS" ? "none" : undefined }}>
           <FilterTabs>
             <FilterTab
               $active={filterStatus === "all"}
@@ -597,7 +631,79 @@ const AppointmentsPage = () => {
         </ToolBar>
 
         <ContentSection>
-          {activeTab === "BOOKING" && loading ? (
+          {activeTab === "ADDITIONAL_ITEMS" ? (
+            (() => {
+              const inProgressAppts = appointments.filter((a) =>
+                IN_PROGRESS_STATUSES.includes(a.status),
+              );
+              if (loading) return <LoadingMessage>{t("loading")}</LoadingMessage>;
+              if (inProgressAppts.length === 0)
+                return (
+                  <EmptyState>
+                    <FaClipboardCheck size={48} color="#d1d5db" />
+                    <EmptyTitle>{t("appointmentsAdditionalEmpty")}</EmptyTitle>
+                    <EmptyDesc>{t("appointmentsAdditionalEmptyDesc")}</EmptyDesc>
+                  </EmptyState>
+                );
+              return (
+                <AppointmentList>
+                  {inProgressAppts.map((appt) => {
+                    const statusInfo = getStatusInfo(appt.status);
+                    const carName = `${appt.carBrand} ${appt.carModel}`;
+                    const isLoadingThis = loadingAdditionalId === appt.appointmentId;
+                    return (
+                      <AppointmentCard key={appt.appointmentId}>
+                        <CardLeft>
+                          <CarIconWrapper>
+                            <FaCar size={22} color="#6b7280" />
+                          </CarIconWrapper>
+                          <CarInfo>
+                            <CarName>{carName}</CarName>
+                            <CarPlate>{appt.licensePlate}</CarPlate>
+                          </CarInfo>
+                        </CardLeft>
+                        <CardRight>
+                          <CardTitleRow>
+                            <CardTitle>
+                              {getServiceTypeLabel(appt.serviceType)}
+                            </CardTitle>
+                            <BadgeGroup>
+                              <StatusBadge $color={statusInfo.color} $bg={statusInfo.bg}>
+                                {statusInfo.label}
+                              </StatusBadge>
+                            </BadgeGroup>
+                          </CardTitleRow>
+                          <InfoRow>
+                            <FaUser size={13} color="#9ca3af" />
+                            <InfoText>{appt.customerFullName}</InfoText>
+                          </InfoRow>
+                          <CardFooter>
+                            <FooterItem>
+                              <FaFileAlt size={12} />
+                              #appointment-{appt.appointmentId}
+                            </FooterItem>
+                            <FooterItem>
+                              <FaClock size={12} />
+                              {formatDate(appt.appointmentDate || appt.createdDate)}
+                            </FooterItem>
+                            <ApproveItemsBtn
+                              onClick={() => openAdditionalItemsModal(appt.appointmentId)}
+                              disabled={isLoadingThis}
+                            >
+                              <FaClipboardCheck size={13} />
+                              {isLoadingThis
+                                ? t("loading")
+                                : t("appointmentsAdditionalApproveBtn")}
+                            </ApproveItemsBtn>
+                          </CardFooter>
+                        </CardRight>
+                      </AppointmentCard>
+                    );
+                  })}
+                </AppointmentList>
+              );
+            })()
+          ) : activeTab === "BOOKING" && loading ? (
             <LoadingMessage>{t("loading")}</LoadingMessage>
           ) : activeTab === "RESCUE" && loadingRescue ? (
             <LoadingMessage>{t("loading")}</LoadingMessage>
@@ -980,6 +1086,19 @@ const AppointmentsPage = () => {
           )}
         </ContentSection>
       </Container>
+
+      <RespondAdditionalItemsModal
+        isOpen={showAdditionalModal}
+        maintenanceId={additionalMaintenanceId}
+        onClose={() => {
+          setShowAdditionalModal(false);
+          setAdditionalMaintenanceId(null);
+        }}
+        onSuccess={() => {
+          setShowAdditionalModal(false);
+          setAdditionalMaintenanceId(null);
+        }}
+      />
 
       {showModal && (
         <AppointmentDetailModal
@@ -1867,6 +1986,31 @@ const CustomerActionBtn = styled.button<{ $color: string }>`
 
   &:disabled {
     opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const ApproveItemsBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  padding: 0.35rem 0.875rem;
+  border: 1.5px solid #2563eb;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #2563eb;
+    color: #fff;
+  }
+  &:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
   }
 `;
