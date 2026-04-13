@@ -54,6 +54,9 @@ public class AppointmentRepository : IAppointmentRepository
                 RejectionReason = a.RejectionReason,
                 CreatedBy = a.CreatedBy,
                 CreatedDate = a.CreatedDate,
+                MaintenanceStatus = a.CarMaintenances
+                    .Select(m => m.Status)
+                    .FirstOrDefault(),
                 LicensePlate = a.Car.LicensePlate,
                 CarBrand = a.Car.Brand,
                 CarModel = a.Car.Model,

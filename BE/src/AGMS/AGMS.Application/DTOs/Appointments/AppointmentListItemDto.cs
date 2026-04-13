@@ -14,6 +14,7 @@ public class AppointmentListItemDto
     public string? RejectionReason { get; set; }
     public int CreatedBy { get; set; }
     public DateTime CreatedDate { get; set; }
+    public string? MaintenanceStatus { get; set; }
 
     // Car
     public string LicensePlate { get; set; } = null!;
