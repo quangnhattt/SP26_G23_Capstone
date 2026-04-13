@@ -857,7 +857,7 @@ public class RescueRequestService : IRescueRequestService
 
         if (!RescueStatus.AllowedForTowingArrive.Contains(rescue.Status))
             throw new InvalidOperationException(
-                $"Không thể ghi nhận xe kéo đã tới hiện trường. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_DISPATCHED."
+                $"Không thể ghi nhận xe kéo đã tới hiện trường. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: OnSite."
             );
 
         var sa =
