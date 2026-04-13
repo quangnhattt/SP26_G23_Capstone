@@ -675,7 +675,7 @@ public class RescueRequestController : ControllerBase
     /// TOWING_DISPATCHED → TOWING_ARRIVED.
     /// </summary>
     [HttpPatch("{id:int}/towing-arrive")]
-    [Authorize(Roles = Roles.ServiceAdvisor)]
+    [Authorize]
     [ProducesResponseType(typeof(RescueRequestDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -749,7 +749,7 @@ public class RescueRequestController : ControllerBase
     /// TOWING_ARRIVED → CANCELLED và bị trừ 1 điểm tin cậy.
     /// </summary>
     [HttpPatch("{id:int}/reject-towing")]
-    [Authorize(Roles = Roles.Customer)]
+    [Authorize]
     [ProducesResponseType(typeof(CancelRescueResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

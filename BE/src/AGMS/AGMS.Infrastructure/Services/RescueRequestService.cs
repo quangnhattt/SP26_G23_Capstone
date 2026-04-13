@@ -863,10 +863,10 @@ public class RescueRequestService : IRescueRequestService
         var sa =
             await _userRepo.GetByIdAsync(saId, ct)
             ?? throw new KeyNotFoundException("Service Advisor không tồn tại.");
-        if (sa.RoleID != UserRole.ServiceAdvisor)
-            throw new ArgumentException(
-                "Chỉ Service Advisor mới có quyền cập nhật trạng thái xe kéo."
-            );
+        //if (sa.RoleID != UserRole.ServiceAdvisor)
+        //    throw new ArgumentException(
+        //        "Chỉ Service Advisor mới có quyền cập nhật trạng thái xe kéo."
+        //    );
 
         rescue.Status = RescueStatus.TowingArrived;
         await _rescueRepo.UpdateAsync(rescue, ct);
@@ -932,8 +932,8 @@ public class RescueRequestService : IRescueRequestService
                 $"Không thể hủy kéo xe. Trạng thái hiện tại: {rescue.Status}. Yêu cầu: TOWING_ARRIVED."
             );
 
-        if (rescue.CustomerID != customerId)
-            throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
+        //if (rescue.CustomerID != customerId)
+        //    throw new ArgumentException("Bạn không phải khách hàng của yêu cầu cứu hộ này.");
 
         var now = DateTime.UtcNow;
         await _transactionManager.ExecuteInTransactionAsync(
@@ -969,7 +969,7 @@ public class RescueRequestService : IRescueRequestService
                 rescue.CompletedDate = now;
                 await _rescueRepo.UpdateAsync(rescue, token);
 
-                await _userRepo.DecrementTrustScoreAsync(customerId, token);
+                await _userRepo.DecrementTrustScoreAsync(rescue.CustomerID, token);
             },
             ct
         );
