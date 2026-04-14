@@ -717,7 +717,7 @@ public class RescueRequestService : IRescueRequestService
                     UnitPrice = item.UnitPrice,
                     ItemStatus = "APPROVED",
                     IsAdditional = false,
-                    InventoryStatus = "PENDING",
+                    InventoryStatus = "ISSUED",
                     IssuedQuantity = 0,
                     FromPackage = false,
                     Notes = item.Notes?.Trim()
