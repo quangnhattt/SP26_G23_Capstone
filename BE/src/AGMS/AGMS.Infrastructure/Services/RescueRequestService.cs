@@ -689,6 +689,33 @@ public class RescueRequestService : IRescueRequestService
             var productType = NormalizeProductType(product.Type);
             if (productType == "SERVICE")
             {
+                // Nếu item đã được seed từ bước customer đồng ý đề xuất thì cập nhật lại dòng hiện có,
+                // tránh tạo trùng thêm một ServiceDetail mới.
+                var normalizedNote = BuildAcceptedProposalItemNote(item.Notes);
+                var existingService = await _rescueRepo.GetAcceptedServiceDetailAsync(
+                    maintenanceId,
+                    item.ProductId,
+                    AcceptedProposalSeedNotePrefix,
+                    ct
+                );
+
+                if (existingService != null)
+                {
+                    if (
+                        existingService.Quantity != item.Quantity
+                        || existingService.UnitPrice != item.UnitPrice
+                        || !string.Equals(existingService.Notes, normalizedNote, StringComparison.Ordinal)
+                    )
+                    {
+                        existingService.Quantity = item.Quantity;
+                        existingService.UnitPrice = item.UnitPrice;
+                        existingService.Notes = normalizedNote;
+                        await _rescueRepo.UpdateServiceDetailAsync(existingService, ct);
+                    }
+
+                    continue;
+                }
+
                 var serviceDetail = new ServiceDetail
                 {
                     MaintenanceID = maintenanceId,
@@ -708,17 +735,47 @@ public class RescueRequestService : IRescueRequestService
             if (productType == "PART")
             {
                 EnsureWholeNumberQuantity(item.Quantity, item.ProductId, "ghi nhận phụ tùng");
+                // Với phụ tùng, bước repair-items là lúc chốt usage thực tế nên InventoryStatus chuyển sang ISSUED.
+                var quantity = (int)item.Quantity;
+                var normalizedNote = BuildAcceptedProposalItemNote(item.Notes);
+                var existingPart = await _rescueRepo.GetAcceptedServicePartDetailAsync(
+                    maintenanceId,
+                    item.ProductId,
+                    AcceptedProposalSeedNotePrefix,
+                    ct
+                );
+
+                if (existingPart != null)
+                {
+                    if (
+                        existingPart.Quantity != quantity
+                        || existingPart.UnitPrice != item.UnitPrice
+                        || existingPart.InventoryStatus != "ISSUED"
+                        || existingPart.IssuedQuantity != quantity
+                        || !string.Equals(existingPart.Notes, normalizedNote, StringComparison.Ordinal)
+                    )
+                    {
+                        existingPart.Quantity = quantity;
+                        existingPart.UnitPrice = item.UnitPrice;
+                        existingPart.InventoryStatus = "ISSUED";
+                        existingPart.IssuedQuantity = quantity;
+                        existingPart.Notes = normalizedNote;
+                        await _rescueRepo.UpdateServicePartDetailAsync(existingPart, ct);
+                    }
+
+                    continue;
+                }
 
                 var partDetail = new ServicePartDetail
                 {
                     MaintenanceID = maintenanceId,
                     ProductID = item.ProductId,
-                    Quantity = (int)item.Quantity,
+                    Quantity = quantity,
                     UnitPrice = item.UnitPrice,
                     ItemStatus = "APPROVED",
                     IsAdditional = false,
                     InventoryStatus = "ISSUED",
-                    IssuedQuantity = 0,
+                    IssuedQuantity = quantity,
                     FromPackage = false,
                     Notes = item.Notes?.Trim()
                 };
@@ -2015,6 +2072,14 @@ public class RescueRequestService : IRescueRequestService
             throw new ArgumentException(
                 $"Sản phẩm ID={productId} là phụ tùng nên số lượng ở bước {actionName} phải là số nguyên."
             );
+    }
+
+    private static string BuildAcceptedProposalItemNote(string? note)
+    {
+        var trimmedNote = note?.Trim();
+        return string.IsNullOrWhiteSpace(trimmedNote)
+            ? AcceptedProposalSeedNotePrefix
+            : $"{AcceptedProposalSeedNotePrefix} {trimmedNote}";
     }
 
     private static string BuildInitialMaintenanceNotes(

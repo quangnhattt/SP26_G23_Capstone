@@ -66,6 +66,10 @@ public interface IRescueRequestRepository
     /// </summary>
     Task<ServiceDetail> AddServiceDetailAsync(ServiceDetail item, CancellationToken ct);
     Task<ServicePartDetail> AddServicePartDetailAsync(ServicePartDetail item, CancellationToken ct);
+    Task<ServiceDetail?> GetAcceptedServiceDetailAsync(int maintenanceId, int productId, string proposalNotePrefix, CancellationToken ct);
+    Task<ServicePartDetail?> GetAcceptedServicePartDetailAsync(int maintenanceId, int productId, string proposalNotePrefix, CancellationToken ct);
+    Task UpdateServiceDetailAsync(ServiceDetail item, CancellationToken ct);
+    Task UpdateServicePartDetailAsync(ServicePartDetail item, CancellationToken ct);
 
     /// <summary>
     /// Lấy toàn bộ vật tư/dịch vụ của một Repair Order theo maintenanceId

@@ -243,6 +243,56 @@ public class RescueRequestRepository : IRescueRequestRepository
         return item;
     }
 
+    /// <summary>Lấy dòng dịch vụ đã được seed từ bước customer đồng ý đề xuất.</summary>
+    public async Task<ServiceDetail?> GetAcceptedServiceDetailAsync(
+        int maintenanceId,
+        int productId,
+        string proposalNotePrefix,
+        CancellationToken ct
+    )
+    {
+        return await _db.ServiceDetails.FirstOrDefaultAsync(
+            sd =>
+                sd.MaintenanceID == maintenanceId
+                && sd.ProductID == productId
+                && sd.Notes != null
+                && sd.Notes.StartsWith(proposalNotePrefix),
+            ct
+        );
+    }
+
+    /// <summary>Lấy dòng phụ tùng đã được seed từ bước customer đồng ý đề xuất.</summary>
+    public async Task<ServicePartDetail?> GetAcceptedServicePartDetailAsync(
+        int maintenanceId,
+        int productId,
+        string proposalNotePrefix,
+        CancellationToken ct
+    )
+    {
+        return await _db.ServicePartDetails.FirstOrDefaultAsync(
+            spd =>
+                spd.MaintenanceID == maintenanceId
+                && spd.ProductID == productId
+                && spd.Notes != null
+                && spd.Notes.StartsWith(proposalNotePrefix),
+            ct
+        );
+    }
+
+    /// <summary>Cập nhật một dòng dịch vụ đã tồn tại trong Repair Order.</summary>
+    public async Task UpdateServiceDetailAsync(ServiceDetail item, CancellationToken ct)
+    {
+        _db.ServiceDetails.Update(item);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Cập nhật một dòng phụ tùng đã tồn tại trong Repair Order.</summary>
+    public async Task UpdateServicePartDetailAsync(ServicePartDetail item, CancellationToken ct)
+    {
+        _db.ServicePartDetails.Update(item);
+        await _db.SaveChangesAsync(ct);
+    }
+
     /// <summary>Lấy toàn bộ dịch vụ và phụ tùng đã ghi nhận của một Repair Order.</summary>
     public async Task<IEnumerable<RepairItemResponseDto>> GetRepairItemsAsync(
         int maintenanceId,
