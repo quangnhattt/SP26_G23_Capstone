@@ -1745,6 +1745,9 @@ public class RescueRequestService : IRescueRequestService
     /// Tạo hồ sơ workshop ngay khi rescue đủ điều kiện đi tiếp:
     /// - khách không cần cọc: tạo khi khách đồng ý đề xuất;
     /// - khách cần cọc: tạo khi SA xác nhận đã nhận tiền cọc.
+    /// Status khởi tạo của CarMaintenance đi theo loại cứu hộ:
+    /// - ROADSIDE -> PROCESS_ROADSIDE
+    /// - TOWING -> PROCESS_TOW
     /// Bước này chỉ mở hồ sơ CarMaintenance, chưa tự động tạo chứng từ kho để tránh ảnh hưởng flow vật tư hiện có.
     /// </summary>
     private async Task EnsureWorkshopRecordsCreatedAsync(
@@ -1776,7 +1779,7 @@ public class RescueRequestService : IRescueRequestService
                 {
                     CarID = rescue.CarID,
                     MaintenanceType = ResolveMaintenanceType(rescue.RescueType),
-                    Status = CarMaintenanceStatus.Waiting,
+                    Status = ResolveInitialMaintenanceStatus(rescue.RescueType),
                     Notes = BuildInitialMaintenanceNotes(rescue, triggerReason),
                     CreatedBy = workshopActorId,
                     TotalAmount = 0,
@@ -1855,6 +1858,11 @@ public class RescueRequestService : IRescueRequestService
 
         return actorId;
     }
+
+    private static string ResolveInitialMaintenanceStatus(string? rescueType) =>
+        string.Equals(rescueType, RescueType.Towing, StringComparison.OrdinalIgnoreCase)
+            ? CarMaintenanceStatus.ProcessTow
+            : CarMaintenanceStatus.ProcessRoadside;
 
     private static string ResolveMaintenanceType(string? rescueType) =>
         string.Equals(rescueType, RescueType.Towing, StringComparison.OrdinalIgnoreCase)

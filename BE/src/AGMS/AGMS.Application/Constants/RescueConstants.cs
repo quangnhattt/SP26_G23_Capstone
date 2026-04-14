@@ -208,6 +208,8 @@ public static class RescueMaintenanceType
 public static class CarMaintenanceStatus
 {
     public const string Waiting = "WAITING";
+    public const string ProcessRoadside = "PROCESS_ROADSIDE";
+    public const string ProcessTow = "PROCESS_TOW";
     public const string Completed = "COMPLETED";
     public const string Cancelled = "CANCELLED";
     public const string RECEIVED = "RECEIVED";
