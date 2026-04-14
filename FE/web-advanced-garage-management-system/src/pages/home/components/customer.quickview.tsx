@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AuthContext } from "@/context/AuthContext";
 import { ROUTER_PAGE } from "@/routes/contants";
-import { getAppointments, getAppointmentById, type IAppointment } from "@/apis/appointments";
+import { getAppointments, type IAppointment } from "@/apis/appointments";
+import { getServiceOrderDetail } from "@/services/admin/serviceOrderService";
 import { getRescueRequests, type IRescueRequest } from "@/apis/rescue";
 import { rescueStatusConfig } from "@/pages/appointments/rescueStatusConfig";
 import RespondAdditionalItemsModal from "@/pages/admin/components/service-order-manager/respond-additional-items.modal";
@@ -31,6 +32,22 @@ const CustomerQuickView = () => {
   const [additionalMaintenanceId, setAdditionalMaintenanceId] = useState<number | null>(null);
   const [loadingAdditionalId, setLoadingAdditionalId] = useState<number | null>(null);
 
+  const fetchAppointments = async () => {
+    try {
+      const data = await getAppointments();
+      const sorted = data
+        .filter((a) => APPT_IN_PROGRESS.includes(a.status))
+        .sort(
+          (a, b) =>
+            new Date(b.createdDate).getTime() -
+            new Date(a.createdDate).getTime(),
+        );
+      setAppointments(sorted.slice(0, 10));
+    } catch {
+      // silent
+    }
+  };
+
   useEffect(() => {
     if (!user || user.roleID !== 4) return;
     let cancelled = false;
@@ -54,7 +71,7 @@ const CustomerQuickView = () => {
                 new Date(b.createdDate).getTime() -
                 new Date(a.createdDate).getTime(),
             );
-          setAppointments(inProgress.slice(0, 3));
+          setAppointments(inProgress.slice(0, 10));
         }
         if (rescueResult.status === "fulfilled") {
           const inProgress = rescueResult.value
@@ -76,16 +93,16 @@ const CustomerQuickView = () => {
     };
   }, [user]);
 
-  const openAdditionalItemsModal = async (appointmentId: number) => {
+  const openAdditionalItemsModal = async (appointmentId: number, maintenanceId?: number | null) => {
     setLoadingAdditionalId(appointmentId);
     try {
-      const detail = await getAppointmentById(appointmentId);
-      if (detail.maintenance?.maintenanceId) {
-        setAdditionalMaintenanceId(detail.maintenance.maintenanceId);
-        setShowAdditionalModal(true);
-      } else {
+      if (!maintenanceId) {
         navigate(`${ROUTER_PAGE.appointments}?tab=ADDITIONAL_ITEMS`);
+        return;
       }
+      const serviceOrder = await getServiceOrderDetail(maintenanceId);
+      setAdditionalMaintenanceId(serviceOrder.maintenanceId);
+      setShowAdditionalModal(true);
     } catch {
       navigate(`${ROUTER_PAGE.appointments}?tab=ADDITIONAL_ITEMS`);
     } finally {
@@ -99,12 +116,16 @@ const CustomerQuickView = () => {
   const inProgressAppts = appointments.filter((a) =>
     ["PENDING", "CONFIRMED", "CHECKED_IN"].includes(a.status),
   );
+  const quotedAppts = appointments.filter(
+    (a) => a.maintenanceStatus === "QUOTED",
+  );
   const hasAppt = inProgressAppts.length > 0;
+  const hasQuoted = quotedAppts.length > 0;
 
   // Ẩn toàn bộ component nếu cả 3 đều không có data (và không đang loading)
-  if (!loading && !hasAppt && !hasRescue) return null;
+  if (!loading && !hasAppt && !hasRescue && !hasQuoted) return null;
 
-  const visibleCount = (hasAppt ? 1 : 0) + (hasRescue ? 1 : 0) + (hasAppt ? 1 : 0);
+  const visibleCount = (hasAppt ? 1 : 0) + (hasRescue ? 1 : 0) + (hasQuoted ? 1 : 0);
 
   return (
     <Section>
@@ -207,8 +228,8 @@ const CustomerQuickView = () => {
               </ColCard>
             )}
 
-            {/* ── Additional Items column — chỉ hiện khi có lịch đang xử lý ── */}
-            {hasAppt && (
+            {/* ── Additional Items column — chỉ hiện khi có đơn maintenanceStatus = QUOTED ── */}
+            {hasQuoted && (
               <ColCard>
                 <ColHeader>
                   <ColIcon $color="#7c3aed">
@@ -217,12 +238,12 @@ const CustomerQuickView = () => {
                   <ColTitle>{t("homeCustomerAdditionalColTitle")}</ColTitle>
                 </ColHeader>
                 <ItemList>
-                  {inProgressAppts.slice(0, 3).map((a) => {
+                  {quotedAppts.slice(0, 3).map((a) => {
                     const isLoading = loadingAdditionalId === a.appointmentId;
                     return (
                       <Item
                         key={a.appointmentId}
-                        onClick={() => openAdditionalItemsModal(a.appointmentId)}
+                        onClick={() => openAdditionalItemsModal(a.appointmentId, a.maintenanceId)}
                         style={{ opacity: isLoading ? 0.6 : 1 }}
                       >
                         <ItemLeft>
@@ -249,7 +270,7 @@ const CustomerQuickView = () => {
         isOpen={showAdditionalModal}
         maintenanceId={additionalMaintenanceId}
         onClose={() => { setShowAdditionalModal(false); setAdditionalMaintenanceId(null); }}
-        onSuccess={() => { setShowAdditionalModal(false); setAdditionalMaintenanceId(null); }}
+        onSuccess={() => { setShowAdditionalModal(false); setAdditionalMaintenanceId(null); fetchAppointments(); }}
       />
     </Section>
   );
