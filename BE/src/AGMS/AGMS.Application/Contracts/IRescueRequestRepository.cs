@@ -65,11 +65,13 @@ public interface IRescueRequestRepository
     /// Trả về entity đã load Product navigation để map sang DTO.
     /// </summary>
     Task<ServiceDetail> AddServiceDetailAsync(ServiceDetail item, CancellationToken ct);
+    Task<ServicePartDetail> AddServicePartDetailAsync(ServicePartDetail item, CancellationToken ct);
 
     /// <summary>
     /// Lấy toàn bộ vật tư/dịch vụ của một Repair Order theo maintenanceId
     /// </summary>
     Task<IEnumerable<RepairItemResponseDto>> GetRepairItemsAsync(int maintenanceId, CancellationToken ct);
+    Task<IEnumerable<SuggestedRescuePartDetailDto>> GetAcceptedProposalItemsAsync(int maintenanceId, string proposalNotePrefix, CancellationToken ct);
 
     /// <summary>
     /// Lấy thông tin sản phẩm để validate khi ghi vật tư (BR-20)

@@ -32,8 +32,9 @@ public class ProposeRescueDto
     public decimal? DepositAmount { get; set; }
 
     /// <summary>
-    /// Danh sách phụ tùng SA dự kiến có thể sử dụng cho phương án đang đề xuất.
-    /// Mỗi phụ tùng có số lượng riêng để không mất thông tin khi FE hiển thị/chốt phương án.
+    /// Danh sách sản phẩm SA dự kiến có thể sử dụng cho phương án đang đề xuất.
+    /// Product có thể là SERVICE hoặc PART; khi khách đồng ý đề xuất hệ thống sẽ lưu
+    /// vào ServiceDetail hoặc ServicePartDetail tương ứng theo Type của product.
     /// </summary>
     public List<SuggestedRescuePartDto> SuggestedParts { get; set; } = [];
 }

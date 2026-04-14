@@ -9,6 +9,8 @@ namespace AGMS.Infrastructure.Repositories;
 
 public class RescueRequestRepository : IRescueRequestRepository
 {
+    private const string AcceptedProposalSeedNotePrefix = "[RESCUE_PROPOSAL_ACCEPTED]";
+
     private readonly CarServiceDbContext _db;
 
     public RescueRequestRepository(CarServiceDbContext db)
@@ -17,7 +19,7 @@ public class RescueRequestRepository : IRescueRequestRepository
     }
 
     /// <summary>
-    /// Lấy yêu cầu cứu hộ kèm đầy đủ navigation properties để map sang DTO chi tiết
+    /// Lấy yêu cầu cứu hộ kèm đầy đủ navigation properties để map sang DTO chi tiết.
     /// </summary>
     public async Task<RescueRequest?> GetByIdAsync(int id, CancellationToken ct)
     {
@@ -32,7 +34,7 @@ public class RescueRequestRepository : IRescueRequestRepository
 
     /// <summary>
     /// Lấy danh sách yêu cầu cứu hộ theo bộ lọc.
-    /// Dùng projection (Select) trực tiếp sang DTO để tối ưu — không cần Include.
+    /// Dùng projection trực tiếp sang DTO để tối ưu, không cần Include.
     /// </summary>
     public async Task<IEnumerable<RescueRequestListItemDto>> GetListAsync(
         string? status, string? rescueType, int? customerId, int? assignedTechnicianId,
@@ -40,25 +42,25 @@ public class RescueRequestRepository : IRescueRequestRepository
     {
         var query = _db.RescueRequests.AsNoTracking().AsQueryable();
 
-        // Lọc theo trạng thái (hỗ trợ nhiều trạng thái phân cách bằng dấu phẩy, ví dụ: "PENDING,REVIEWING")
+        // Lọc theo trạng thái; hỗ trợ nhiều giá trị phân cách bằng dấu phẩy.
         if (!string.IsNullOrWhiteSpace(status))
         {
             var statuses = status.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             query = query.Where(r => statuses.Contains(r.Status));
         }
 
-        // Lọc theo loại cứu hộ
+        // Lọc theo loại cứu hộ.
         if (!string.IsNullOrWhiteSpace(rescueType))
             query = query.Where(r => r.RescueType == rescueType.ToUpperInvariant());
 
-        // Lọc theo khách hàng — cho phép customer chỉ xem rescue của mình
+        // Lọc theo khách hàng; customer chỉ thấy rescue của mình.
         if (customerId.HasValue)
             query = query.Where(r => r.CustomerID == customerId.Value);
 
         if (assignedTechnicianId.HasValue)
             query = query.Where(r => r.AssignedTechnicianID == assignedTechnicianId.Value);
 
-        // Lọc theo khoảng thời gian
+        // Lọc theo khoảng thời gian tạo yêu cầu.
         if (fromDate.HasValue)
             query = query.Where(r => r.CreatedDate >= fromDate.Value);
         if (toDate.HasValue)
@@ -94,7 +96,7 @@ public class RescueRequestRepository : IRescueRequestRepository
             .ToListAsync(ct);
     }
 
-    /// <summary>Tạo mới yêu cầu cứu hộ</summary>
+    /// <summary>Tạo mới yêu cầu cứu hộ.</summary>
     public async Task AddAsync(RescueRequest entity, CancellationToken ct)
     {
         _db.RescueRequests.Add(entity);
@@ -102,8 +104,8 @@ public class RescueRequestRepository : IRescueRequestRepository
     }
 
     /// <summary>
-    /// Cập nhật các trường thay đổi theo workflow — fetch tracked entity rồi gán tường minh
-    /// để tránh ghi đè các trường không liên quan (pattern nhất quán với UserRepository)
+    /// Cập nhật các trường thay đổi theo workflow bằng cách lấy tracked entity rồi gán tường minh.
+    /// Làm vậy để tránh ghi đè các trường không liên quan.
     /// </summary>
     public async Task UpdateAsync(RescueRequest rescue, CancellationToken ct)
     {
@@ -111,7 +113,7 @@ public class RescueRequestRepository : IRescueRequestRepository
             .FirstOrDefaultAsync(r => r.RescueID == rescue.RescueID, ct);
         if (entity == null) return;
 
-        // Chỉ cập nhật các trường có thể thay đổi theo workflow (không cập nhật CarID, CustomerID, địa chỉ)
+        // Chỉ cập nhật các trường có thể thay đổi theo workflow.
         entity.Status                   = rescue.Status;
         entity.RescueType               = rescue.RescueType;
         entity.SuggestedPartsJson       = rescue.SuggestedPartsJson;
@@ -156,14 +158,14 @@ public class RescueRequestRepository : IRescueRequestRepository
                 Phone             = u.Phone,
                 Skills            = u.Skills,
                 IsOnRescueMission = u.IsOnRescueMission,
-                // Đếm số Repair Order đang xử lý của kỹ thuật viên
+                // Đếm số Repair Order đang xử lý của kỹ thuật viên.
                 ActiveJobCount    = u.CarMaintenanceAssignedTechnicians
                                      .Count(cm => cm.Status != "COMPLETED" && cm.Status != "CANCELLED")
             })
             .ToListAsync(ct);
     }
 
-    /// <summary>Lấy thông tin xe để validate khi tạo yêu cầu cứu hộ</summary>
+    /// <summary>Lấy thông tin xe để validate khi tạo yêu cầu cứu hộ.</summary>
     public async Task<Car?> GetCarByIdAsync(int carId, CancellationToken ct)
     {
         return await _db.Cars
@@ -172,12 +174,12 @@ public class RescueRequestRepository : IRescueRequestRepository
     }
 
     // -------------------------------------------------------------------------
-    // UC-RES-02: Điều phối & Sửa ven đường
+    // UC-RES-02: Điều phối và sửa ven đường
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Tạo mới Repair Order (CarMaintenance) cho rescue roadside.
-    /// Gọi khi chẩn đoán xác nhận có thể sửa tại chỗ (BR-07, BR-19).
+    /// Tạo mới Repair Order (CarMaintenance) cho rescue.
+    /// Gọi khi workflow đã đến điểm cần mở hồ sơ sửa chữa tương ứng.
     /// </summary>
     public async Task<CarMaintenance> CreateMaintenanceAsync(CarMaintenance entity, CancellationToken ct)
     {
@@ -186,7 +188,7 @@ public class RescueRequestRepository : IRescueRequestRepository
         return entity;
     }
 
-    /// <summary>Lấy Repair Order theo ID để cập nhật trong các bước tiếp theo</summary>
+    /// <summary>Lấy Repair Order theo ID để cập nhật ở các bước tiếp theo.</summary>
     public async Task<CarMaintenance?> GetMaintenanceByIdAsync(int maintenanceId, CancellationToken ct)
     {
         return await _db.CarMaintenances
@@ -195,8 +197,8 @@ public class RescueRequestRepository : IRescueRequestRepository
     }
 
     /// <summary>
-    /// Cập nhật Repair Order: Notes, Status, tất cả trường tài chính và CompletedDate.
-    /// Mở rộng để phục vụ cả UC-RES-02 (TotalAmount) lẫn UC-RES-04 (invoice fields).
+    /// Cập nhật Repair Order: Notes, Status, các trường tài chính và CompletedDate.
+    /// Dùng chung cho cả flow rescue và flow hóa đơn.
     /// </summary>
     public async Task UpdateMaintenanceAsync(CarMaintenance maintenance, CancellationToken ct)
     {
@@ -212,7 +214,7 @@ public class RescueRequestRepository : IRescueRequestRepository
         entity.AssignedTechnicianID = maintenance.AssignedTechnicianID;
         entity.MaintenanceType      = maintenance.MaintenanceType;
 
-        // Trường tài chính — cập nhật khi tạo hóa đơn (UC-RES-04 D1, BR-24)
+        // Trường tài chính, cập nhật khi tạo hóa đơn.
         entity.DiscountAmount        = maintenance.DiscountAmount;
         entity.MemberDiscountAmount  = maintenance.MemberDiscountAmount;
         entity.MemberDiscountPercent = maintenance.MemberDiscountPercent;
@@ -222,43 +224,143 @@ public class RescueRequestRepository : IRescueRequestRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    /// <summary>
-    /// Thêm một dòng vật tư/dịch vụ vào Repair Order (BR-20).
-    /// Load Product navigation sau khi lưu để phục vụ mapping sang DTO.
-    /// </summary>
+    /// <summary>Thêm một dòng dịch vụ đã chốt vào Repair Order.</summary>
     public async Task<ServiceDetail> AddServiceDetailAsync(ServiceDetail item, CancellationToken ct)
     {
         _db.ServiceDetails.Add(item);
         await _db.SaveChangesAsync(ct);
-
-        // Load navigation để có ProductName cho response
-        await _db.Entry(item).Reference(sd => sd.Product).LoadAsync(ct);
         return item;
     }
 
-    /// <summary>
-    /// Lấy toàn bộ vật tư/dịch vụ của một Repair Order — dùng projection để tối ưu
-    /// </summary>
-    public async Task<IEnumerable<RepairItemResponseDto>> GetRepairItemsAsync(int maintenanceId, CancellationToken ct)
+    /// <summary>Thêm một dòng phụ tùng đã chốt vào Repair Order.</summary>
+    public async Task<ServicePartDetail> AddServicePartDetailAsync(
+        ServicePartDetail item,
+        CancellationToken ct
+    )
     {
-        return await _db.ServiceDetails
-            .AsNoTracking()
-            .Where(sd => sd.MaintenanceID == maintenanceId)
-            .Select(sd => new RepairItemResponseDto
-            {
-                ServiceDetailId = sd.ServiceDetailID,
-                ProductId       = sd.ProductID,
-                ProductName     = sd.Product.Name,
-                Quantity        = sd.Quantity,
-                UnitPrice       = sd.UnitPrice,
-                // TotalPrice là computed column; nếu null thì tính lại
-                TotalPrice      = sd.TotalPrice ?? (sd.Quantity * sd.UnitPrice),
-                Notes           = sd.Notes
-            })
-            .ToListAsync(ct);
+        _db.ServicePartDetails.Add(item);
+        await _db.SaveChangesAsync(ct);
+        return item;
     }
 
-    /// <summary>Validate sản phẩm tồn tại và đang active trước khi ghi vật tư (BR-20)</summary>
+    /// <summary>Lấy toàn bộ dịch vụ và phụ tùng đã ghi nhận của một Repair Order.</summary>
+    public async Task<IEnumerable<RepairItemResponseDto>> GetRepairItemsAsync(
+        int maintenanceId,
+        CancellationToken ct
+    )
+    {
+        var serviceItems = await _db.ServiceDetails
+            .AsNoTracking()
+            .Where(sd => sd.MaintenanceID == maintenanceId)
+            .Select(
+                sd => new RepairItemResponseDto
+                {
+                    ServiceDetailId = sd.ServiceDetailID,
+                    ProductId = sd.ProductID,
+                    ProductName = sd.Product.Name,
+                    Quantity = sd.Quantity,
+                    UnitPrice = sd.UnitPrice,
+                    TotalPrice = sd.TotalPrice ?? (sd.Quantity * sd.UnitPrice),
+                    Notes = sd.Notes
+                }
+            )
+            .ToListAsync(ct);
+
+        var partItems = await _db.ServicePartDetails
+            .AsNoTracking()
+            .Where(spd => spd.MaintenanceID == maintenanceId)
+            .Select(
+                spd => new RepairItemResponseDto
+                {
+                    // Giữ nguyên output contract cũ cho FE: dùng ServiceDetailId như line id chung.
+                    ServiceDetailId = spd.ServicePartDetailID,
+                    ProductId = spd.ProductID,
+                    ProductName = spd.Product.Name,
+                    Quantity = spd.Quantity,
+                    UnitPrice = spd.UnitPrice,
+                    TotalPrice = spd.TotalPrice ?? (spd.Quantity * spd.UnitPrice),
+                    Notes = spd.Notes
+                }
+            )
+            .ToListAsync(ct);
+
+        var items = serviceItems
+            .Concat(partItems)
+            .OrderBy(item => item.ProductName)
+            .ThenBy(item => item.ServiceDetailId)
+            .ToList();
+
+        foreach (var item in items)
+        {
+            if (item.Notes != null && item.Notes.StartsWith(AcceptedProposalSeedNotePrefix))
+            {
+                var cleanedNote = item.Notes[AcceptedProposalSeedNotePrefix.Length..].Trim();
+                item.Notes = string.IsNullOrWhiteSpace(cleanedNote) ? null : cleanedNote;
+            }
+        }
+
+        return items;
+    }
+
+    /// <summary>
+    /// Lấy danh sách dịch vụ/phụ tùng đã được chuyển từ đề xuất rescue sang Repair Order.
+    /// Dùng note prefix để phân biệt với vật tư phát sinh ở bước sửa chữa thực tế.
+    /// </summary>
+    public async Task<IEnumerable<SuggestedRescuePartDetailDto>> GetAcceptedProposalItemsAsync(
+        int maintenanceId,
+        string proposalNotePrefix,
+        CancellationToken ct
+    )
+    {
+        var serviceItems = await _db.ServiceDetails
+            .AsNoTracking()
+            .Where(
+                sd =>
+                    sd.MaintenanceID == maintenanceId
+                    && sd.Notes != null
+                    && sd.Notes.StartsWith(proposalNotePrefix)
+            )
+            .Select(
+                sd => new SuggestedRescuePartDetailDto
+                {
+                    PartId = sd.ProductID,
+                    PartCode = sd.Product.Code,
+                    PartName = sd.Product.Name,
+                    PartType = sd.Product.Type,
+                    Quantity = sd.Quantity,
+                    UnitPrice = sd.UnitPrice,
+                    EstimatedLineAmount = sd.TotalPrice ?? (sd.Quantity * sd.UnitPrice)
+                }
+            )
+            .ToListAsync(ct);
+
+        var partItems = await _db.ServicePartDetails
+            .AsNoTracking()
+            .Where(
+                spd =>
+                    spd.MaintenanceID == maintenanceId
+                    && spd.Notes != null
+                    && spd.Notes.StartsWith(proposalNotePrefix)
+            )
+            .Select(
+                spd => new SuggestedRescuePartDetailDto
+                {
+                    PartId = spd.ProductID,
+                    PartCode = spd.Product.Code,
+                    PartName = spd.Product.Name,
+                    PartType = spd.Product.Type,
+                    Quantity = spd.Quantity,
+                    UnitPrice = spd.UnitPrice,
+                    EstimatedLineAmount = spd.TotalPrice ?? (spd.Quantity * spd.UnitPrice)
+                }
+            )
+            .ToListAsync(ct);
+
+        return serviceItems.Concat(partItems).OrderBy(item => item.PartName).ToList();
+    }
+
+
+    /// <summary>Validate sản phẩm tồn tại và đang active trước khi ghi vật tư (BR-20).</summary>
     public async Task<Product?> GetProductByIdAsync(int productId, CancellationToken ct)
     {
         return await _db.Products
@@ -286,8 +388,8 @@ public class RescueRequestRepository : IRescueRequestRepository
     }
 
     /// <summary>
-    /// Kiểm tra xe có đang có Repair Order active không (BR-11: one active RO per vehicle).
-    /// Active = status không phải COMPLETED hoặc CANCELLED.
+    /// Kiểm tra xe có đang có Repair Order active hay không (BR-11: one active RO per vehicle).
+    /// Active là status khác COMPLETED và CANCELLED.
     /// </summary>
     public async Task<bool> HasActiveMaintenanceForCarAsync(int carId, CancellationToken ct)
     {
@@ -299,7 +401,7 @@ public class RescueRequestRepository : IRescueRequestRepository
     }
 
     // -------------------------------------------------------------------------
-    // UC-RES-04: Hóa đơn & Thanh toán
+    // UC-RES-04: Hóa đơn và thanh toán
     // -------------------------------------------------------------------------
 
     /// <summary>

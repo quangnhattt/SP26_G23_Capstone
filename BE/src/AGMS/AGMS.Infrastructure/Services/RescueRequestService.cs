@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Rescue;
@@ -8,6 +8,8 @@ namespace AGMS.Infrastructure.Services;
 
 public class RescueRequestService : IRescueRequestService
 {
+    private const string AcceptedProposalSeedNotePrefix = "[RESCUE_PROPOSAL_ACCEPTED]";
+
     private readonly IRescueRequestRepository _rescueRepo;
     private readonly ITransactionManager _transactionManager;
     private readonly IUserRepository _userRepo;
@@ -315,7 +317,9 @@ public class RescueRequestService : IRescueRequestService
 
         rescue.ServiceAdvisorID = saId;
         rescue.RescueType = request.RescueType.ToUpperInvariant();
-        // Luu danh sach phụ tùng dự kiến ngay ở bước đề xuất để FE có thể hiển thị trước khi đi tới chẩn đoán/sửa chữa.
+        // Tạm lưu danh sách sản phẩm đề xuất trước khi khách đồng ý.
+        // Khi proposal được chấp nhận và Repair Order được tạo, dữ liệu này sẽ được
+        // chuyển sang ServiceDetail/ServicePartDetail rồi xóa khỏi SuggestedPartsJson.
         rescue.SuggestedPartsJson = SerializeSuggestedParts(suggestedParts);
         rescue.ServiceFee = request.EstimatedServiceFee ?? rescue.ServiceFee;
         rescue.Status = newStatus;
@@ -673,27 +677,59 @@ public class RescueRequestService : IRescueRequestService
 
         var maintenanceId = rescue.ResultingMaintenanceID.Value;
 
-        // Validate và thêm từng vật tư (BR-20)
+        // Validate và thêm từng vật tư/dịch vụ đúng bảng chi tiết theo loại product.
         foreach (var item in request.Items)
         {
-            _ =
+            var product =
                 await _rescueRepo.GetProductByIdAsync(item.ProductId, ct)
                 ?? throw new KeyNotFoundException(
                     $"Sản phẩm ID={item.ProductId} không tồn tại hoặc không còn hoạt động."
                 );
 
-            var serviceDetail = new ServiceDetail
+            var productType = NormalizeProductType(product.Type);
+            if (productType == "SERVICE")
             {
-                MaintenanceID = maintenanceId,
-                ProductID = item.ProductId,
-                Quantity = item.Quantity,
-                UnitPrice = item.UnitPrice,
-                ItemStatus = "APPROVED",
-                IsAdditional = false,
-                FromPackage = false,
-                Notes = item.Notes?.Trim()
-            };
-            await _rescueRepo.AddServiceDetailAsync(serviceDetail, ct);
+                var serviceDetail = new ServiceDetail
+                {
+                    MaintenanceID = maintenanceId,
+                    ProductID = item.ProductId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    ItemStatus = "APPROVED",
+                    IsAdditional = false,
+                    FromPackage = false,
+                    Notes = item.Notes?.Trim()
+                };
+
+                await _rescueRepo.AddServiceDetailAsync(serviceDetail, ct);
+                continue;
+            }
+
+            if (productType == "PART")
+            {
+                EnsureWholeNumberQuantity(item.Quantity, item.ProductId, "ghi nhận phụ tùng");
+
+                var partDetail = new ServicePartDetail
+                {
+                    MaintenanceID = maintenanceId,
+                    ProductID = item.ProductId,
+                    Quantity = (int)item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    ItemStatus = "APPROVED",
+                    IsAdditional = false,
+                    InventoryStatus = "PENDING",
+                    IssuedQuantity = 0,
+                    FromPackage = false,
+                    Notes = item.Notes?.Trim()
+                };
+
+                await _rescueRepo.AddServicePartDetailAsync(partDetail, ct);
+                continue;
+            }
+
+            throw new ArgumentException(
+                $"Sản phẩm ID={item.ProductId} có loại '{product.Type}' không hợp lệ cho rescue. Chỉ hỗ trợ SERVICE hoặc PART."
+            );
         }
 
         // Lần đầu gọi (DIAGNOSING): chuyển sang REPAIRING
@@ -1761,7 +1797,14 @@ public class RescueRequestService : IRescueRequestService
             async token =>
             {
                 if (rescue.ResultingMaintenanceID.HasValue)
+                {
+                    await PersistAcceptedProposalItemsAsync(
+                        rescue,
+                        rescue.ResultingMaintenanceID.Value,
+                        token
+                    );
                     return;
+                }
 
                 if (string.IsNullOrWhiteSpace(rescue.RescueType))
                     throw new InvalidOperationException(
@@ -1792,24 +1835,31 @@ public class RescueRequestService : IRescueRequestService
                 var created = await _rescueRepo.CreateMaintenanceAsync(maintenance, token);
 
                 rescue.ResultingMaintenanceID = created.MaintenanceID;
-                await _rescueRepo.UpdateAsync(rescue, token);
+                await PersistAcceptedProposalItemsAsync(rescue, created.MaintenanceID, token);
             },
             ct
         );
     }
 
     private async Task EnsureWorkshopRecordsCreatedAsyncV2(
-       RescueRequest rescue,
-       int actorId,
-       string triggerReason,
-       CancellationToken ct
+        RescueRequest rescue,
+        int actorId,
+        string triggerReason,
+        CancellationToken ct
    )
     {
         await _transactionManager.ExecuteInTransactionAsync(
             async token =>
             {
                 if (rescue.ResultingMaintenanceID.HasValue)
+                {
+                    await PersistAcceptedProposalItemsAsync(
+                        rescue,
+                        rescue.ResultingMaintenanceID.Value,
+                        token
+                    );
                     return;
+                }
 
                 if (string.IsNullOrWhiteSpace(rescue.RescueType))
                     throw new InvalidOperationException(
@@ -1840,10 +1890,93 @@ public class RescueRequestService : IRescueRequestService
                 var created = await _rescueRepo.CreateMaintenanceAsync(maintenance, token);
 
                 rescue.ResultingMaintenanceID = created.MaintenanceID;
-                await _rescueRepo.UpdateAsync(rescue, token);
+                await PersistAcceptedProposalItemsAsync(rescue, created.MaintenanceID, token);
             },
             ct
         );
+    }
+
+    private async Task PersistAcceptedProposalItemsAsync(
+        RescueRequest rescue,
+        int maintenanceId,
+        CancellationToken ct
+    )
+    {
+        var acceptedItems = await DeserializeSuggestedPartsAsync(rescue.SuggestedPartsJson, ct);
+        if (acceptedItems.Count == 0)
+        {
+            await _rescueRepo.UpdateAsync(rescue, ct);
+            return;
+        }
+
+        var productIds = acceptedItems.Select(item => item.PartId).Distinct().ToList();
+        var products = await _rescueRepo.GetProductsByIdsAsync(productIds, ct);
+
+        foreach (var item in acceptedItems)
+        {
+            if (!products.TryGetValue(item.PartId, out var product) || !product.IsActive)
+                throw new KeyNotFoundException(
+                    $"Sản phẩm ID={item.PartId} không tồn tại hoặc không còn hoạt động."
+                );
+
+            var productType = NormalizeProductType(product.Type);
+            var unitPrice = item.UnitPrice ?? product.Price;
+
+            if (productType == "SERVICE")
+            {
+                var serviceDetail = new ServiceDetail
+                {
+                    MaintenanceID = maintenanceId,
+                    ProductID = item.PartId,
+                    Quantity = item.Quantity,
+                    UnitPrice = unitPrice,
+                    ItemStatus = "APPROVED",
+                    IsAdditional = false,
+                    FromPackage = false,
+                    Notes = AcceptedProposalSeedNotePrefix
+                };
+
+                await _rescueRepo.AddServiceDetailAsync(serviceDetail, ct);
+                continue;
+            }
+
+            if (productType == "PART")
+            {
+                EnsureWholeNumberQuantity(item.Quantity, item.PartId, "đồng ý đề xuất");
+
+                var servicePartDetail = new ServicePartDetail
+                {
+                    MaintenanceID = maintenanceId,
+                    ProductID = item.PartId,
+                    Quantity = (int)item.Quantity,
+                    UnitPrice = unitPrice,
+                    ItemStatus = "APPROVED",
+                    IsAdditional = false,
+                    InventoryStatus = "PENDING",
+                    IssuedQuantity = 0,
+                    FromPackage = false,
+                    Notes = AcceptedProposalSeedNotePrefix
+                };
+
+                await _rescueRepo.AddServicePartDetailAsync(servicePartDetail, ct);
+                continue;
+            }
+
+            throw new ArgumentException(
+                $"Sản phẩm ID={item.PartId} có loại '{product.Type}' không hợp lệ cho rescue. Chỉ hỗ trợ SERVICE hoặc PART."
+            );
+        }
+
+        var maintenance =
+            await _rescueRepo.GetMaintenanceByIdAsync(maintenanceId, ct)
+            ?? throw new InvalidOperationException("Repair Order liên kết không tồn tại.");
+
+        var allItems = (await _rescueRepo.GetRepairItemsAsync(maintenanceId, ct)).ToList();
+        maintenance.TotalAmount = allItems.Sum(item => item.TotalPrice);
+        await _rescueRepo.UpdateMaintenanceAsync(maintenance, ct);
+
+        rescue.SuggestedPartsJson = null;
+        await _rescueRepo.UpdateAsync(rescue, ct);
     }
 
     private static int ResolveWorkshopActorId(RescueRequest rescue, int actorId)
@@ -1868,6 +2001,21 @@ public class RescueRequestService : IRescueRequestService
         string.Equals(rescueType, RescueType.Towing, StringComparison.OrdinalIgnoreCase)
             ? RescueMaintenanceType.Towing
             : RescueMaintenanceType.Roadside;
+
+    private static string NormalizeProductType(string? productType) =>
+        productType?.Trim().ToUpperInvariant() ?? string.Empty;
+
+    private static void EnsureWholeNumberQuantity(
+        decimal quantity,
+        int productId,
+        string actionName
+    )
+    {
+        if (decimal.Truncate(quantity) != quantity)
+            throw new ArgumentException(
+                $"Sản phẩm ID={productId} là phụ tùng nên số lượng ở bước {actionName} phải là số nguyên."
+            );
+    }
 
     private static string BuildInitialMaintenanceNotes(
         RescueRequest rescue,
@@ -1924,15 +2072,30 @@ public class RescueRequestService : IRescueRequestService
         CancellationToken ct
     )
     {
-        var suggestedParts = await DeserializeSuggestedPartsAsync(r.SuggestedPartsJson, ct);
+        List<SuggestedRescuePartDetailDto> suggestedParts;
         var repairItems = Array.Empty<RepairItemResponseDto>();
         decimal repairSubtotal = 0;
 
         if (r.ResultingMaintenanceID.HasValue)
         {
+            suggestedParts = (
+                await _rescueRepo.GetAcceptedProposalItemsAsync(
+                    r.ResultingMaintenanceID.Value,
+                    AcceptedProposalSeedNotePrefix,
+                    ct
+                )
+            ).ToList();
+
+            if (suggestedParts.Count == 0)
+                suggestedParts = await DeserializeSuggestedPartsAsync(r.SuggestedPartsJson, ct);
+
             repairItems = (await _rescueRepo.GetRepairItemsAsync(r.ResultingMaintenanceID.Value, ct))
                 .ToArray();
             repairSubtotal = repairItems.Sum(i => i.TotalPrice);
+        }
+        else
+        {
+            suggestedParts = await DeserializeSuggestedPartsAsync(r.SuggestedPartsJson, ct);
         }
 
         return new RescueRequestDetailDto
@@ -1987,9 +2150,9 @@ public class RescueRequestService : IRescueRequestService
     {
         var incomingParts = suggestedParts?.ToList() ?? [];
         if (incomingParts.Any(p => p.PartId <= 0))
-            throw new ArgumentException("SuggestedParts chi duoc chua PartId lon hon 0.");
+            throw new ArgumentException("SuggestedParts chỉ được chứa PartId lớn hơn 0.");
         if (incomingParts.Any(p => p.Quantity <= 0))
-            throw new ArgumentException("SuggestedParts chi duoc chua Quantity lon hon 0.");
+            throw new ArgumentException("SuggestedParts chỉ được chứa Quantity lớn hơn 0.");
 
         var duplicatedPartIds = incomingParts
             .GroupBy(p => p.PartId)
@@ -1998,7 +2161,7 @@ public class RescueRequestService : IRescueRequestService
             .ToList();
         if (duplicatedPartIds.Count > 0)
             throw new ArgumentException(
-                $"SuggestedParts khong duoc trung PartId. Bi trung: {string.Join(", ", duplicatedPartIds)}."
+                $"SuggestedParts không được trùng PartId. Bị trùng: {string.Join(", ", duplicatedPartIds)}."
             );
 
         var snapshots = new List<SuggestedRescuePartDetailDto>(incomingParts.Count);
@@ -2007,13 +2170,16 @@ public class RescueRequestService : IRescueRequestService
             var product =
                 await _rescueRepo.GetProductByIdAsync(part.PartId, ct)
                 ?? throw new KeyNotFoundException(
-                    $"Phu tung ID={part.PartId} khong ton tai hoac khong con hoat dong."
+                    $"Sản phẩm ID={part.PartId} không tồn tại hoặc không còn hoạt động."
                 );
-            // Tháo bỏ ràng buộc khi đề xuất
-            //if (!string.Equals(product.Type, "PART", StringComparison.OrdinalIgnoreCase))
-            //    throw new ArgumentException(
-            //        $"San pham ID={part.PartId} khong phai phu tung nen khong the gan vao buoc de xuat."
-            //    );
+            var productType = NormalizeProductType(product.Type);
+            if (productType != "SERVICE" && productType != "PART")
+                throw new ArgumentException(
+                    $"Sản phẩm ID={part.PartId} có loại '{product.Type}' không hợp lệ cho rescue. Chỉ hỗ trợ SERVICE hoặc PART."
+                );
+
+            if (productType == "PART")
+                EnsureWholeNumberQuantity(part.Quantity, part.PartId, "đề xuất");
 
             snapshots.Add(
                 new SuggestedRescuePartDetailDto
