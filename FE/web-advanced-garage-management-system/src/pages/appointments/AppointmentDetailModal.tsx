@@ -226,7 +226,7 @@ const AppointmentDetailModal = ({ data, loading, onClose }: Props) => {
                   <SectionTitle>{t("bookingSymptomLabel")}</SectionTitle>
                   <TagRow>
                     {data.symptoms.map((s, i) => (
-                      <Tag key={i}>{s}</Tag>
+                      <Tag key={i}>{s.name || s.code}</Tag>
                     ))}
                   </TagRow>
                 </Section>

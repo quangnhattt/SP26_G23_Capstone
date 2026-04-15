@@ -85,6 +85,8 @@ public class AppointmentRepository : IAppointmentRepository
             .Include(a => a.CreatedByNavigation)
             .Include(a => a.RequestedPackage)
             .Include(a => a.CarMaintenances)
+            .Include(a => a.AppointmentSymptoms)
+                .ThenInclude(aps => aps.Symptom)
             .Where(a => a.AppointmentID == appointmentId);
 
         if (ownerUserId.HasValue)

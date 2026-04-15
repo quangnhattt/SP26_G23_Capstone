@@ -69,7 +69,12 @@ export interface IAppointmentDetail {
     finalAmount: number;
     status: string;
   } | null;
-  symptoms: string[];
+  symptoms: {
+    id: number;
+    code: string;
+    name: string;
+    description: string;
+  }[];
   suggestedParts: {
     productId: number;
     code: string;
