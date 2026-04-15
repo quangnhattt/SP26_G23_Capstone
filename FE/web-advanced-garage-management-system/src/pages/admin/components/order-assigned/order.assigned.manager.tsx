@@ -10,6 +10,7 @@ import {
   type ITransferOrderDetail,
 } from "@/services/admin/inventoryService";
 import { toast } from "react-toastify";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 
 const formatDate = (iso: string | null) => {
   if (!iso) return "—";
@@ -64,6 +65,7 @@ const OrderAssignedManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectFix = useSelectTextColorFix({ key: "order-assigned-filter" });
 
   const [issuingId, setIssuingId] = useState<number | null>(null);
   const [issueModalRecord, setIssueModalRecord] = useState<ITransferOrder | null>(null);
@@ -325,24 +327,11 @@ const OrderAssignedManager = () => {
             onChange={handleSearchChange}
           />
         </SearchWrapper>
-        <ConfigProvider
-          theme={{
-            token: { colorText: "#000", colorTextPlaceholder: "#000" },
-            components: {
-              Select: {
-                colorText: "#000",
-                colorTextPlaceholder: "#000",
-                colorBgContainer: "#fff",
-                optionSelectedColor: "#000",
-                colorTextDisabled: "#000",
-                colorTextQuaternary: "#000",
-              },
-            },
-          }}
-        >
+        <ConfigProvider theme={selectFix.configProviderTheme}>
           <FilterSelect
-            className="order-assigned-filter-select"
-            popupClassName="order-assigned-filter-dropdown"
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             allowClear
             placeholder={t("orderAssignedStatusFilter")}
             style={{ minWidth: 190 }}

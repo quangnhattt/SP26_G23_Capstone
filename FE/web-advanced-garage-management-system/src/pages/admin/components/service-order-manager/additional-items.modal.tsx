@@ -18,6 +18,7 @@ import {
 import { getServices, type IService } from "@/services/admin/serviceService";
 import { getProducts, type IProduct } from "@/services/admin/productService";
 import { toast } from "react-toastify";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 
 interface Props {
   isOpen: boolean;
@@ -49,44 +50,14 @@ type FlatItemRow = {
 type Row = { productId: number | null; quantity: number | null; notes: string };
 const emptyRow = (): Row => ({ productId: null, quantity: null, notes: "" });
 
-const dropdownGlobalStyle = `
-  .additional-items-dropdown .ant-select-item {
-    color: #111827 !important;
-  }
-  .additional-items-dropdown .ant-select-item-option-content {
-    color: #111827 !important;
-  }
-  .additional-items-dropdown .ant-select-item-option-selected {
-    background-color: #eff6ff !important;
-  }
-`;
-
-if (typeof document !== "undefined") {
-  const styleId = "additional-items-dropdown-style";
-  if (!document.getElementById(styleId)) {
-    const tag = document.createElement("style");
-    tag.id = styleId;
-    tag.innerHTML = dropdownGlobalStyle;
-    document.head.appendChild(tag);
-  }
-}
-
-const selectTheme = {
-  token: { colorText: "#111827", colorTextPlaceholder: "#6b7280" },
-  components: {
-    Select: {
-      colorText: "#111827",
-      colorTextPlaceholder: "#6b7280",
-      colorBgContainer: "#fff",
-      optionSelectedColor: "#111827",
-      colorTextDisabled: "#111827",
-      colorTextQuaternary: "#6b7280",
-    },
-  },
-};
-
 const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose, onSuccess }: Props) => {
   const { t } = useTranslation();
+  const selectFix = useSelectTextColorFix({
+    key: "additional-items",
+    textColor: "#111827",
+    placeholderColor: "#6b7280",
+    backgroundColor: "#fff",
+  });
   const [data, setData] = useState<IAdditionalItemsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -320,12 +291,14 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose, onSucces
                   </SectionLabel>
                   {serviceRows.map((row, idx) => (
                     <FormRow key={idx}>
-                      <ConfigProvider theme={selectTheme}>
+                      <ConfigProvider theme={selectFix.configProviderTheme}>
                         <Select
+                          className={selectFix.selectClassName}
                           showSearch
                           placeholder={t("additionalItemsSelectService")}
                           style={{ flex: 1, minWidth: 0 }}
-                          popupClassName="additional-items-dropdown"
+                          popupClassName={selectFix.popupClassName}
+                          getPopupContainer={selectFix.getPopupContainer}
                           value={row.productId ?? undefined}
                           onChange={(val) =>
                             updateRow(setServiceRows, idx, { productId: val })
@@ -393,12 +366,14 @@ const AdditionalItemsModal = ({ isOpen, maintenanceId, canAdd, onClose, onSucces
                   </SectionLabel>
                   {partRows.map((row, idx) => (
                     <FormRow key={idx}>
-                      <ConfigProvider theme={selectTheme}>
+                      <ConfigProvider theme={selectFix.configProviderTheme}>
                         <Select
+                          className={selectFix.selectClassName}
                           showSearch
                           placeholder={t("additionalItemsSelectPart")}
                           style={{ flex: 1, minWidth: 0 }}
-                          popupClassName="additional-items-dropdown"
+                          popupClassName={selectFix.popupClassName}
+                          getPopupContainer={selectFix.getPopupContainer}
                           value={row.productId ?? undefined}
                           onChange={(val) =>
                             updateRow(setPartRows, idx, { productId: val })

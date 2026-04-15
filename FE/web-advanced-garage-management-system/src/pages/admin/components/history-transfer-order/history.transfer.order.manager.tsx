@@ -9,6 +9,7 @@ import {
   type ITransferOrderHistoryDetail,
 } from "@/services/admin/inventoryService";
 import { toast } from "react-toastify";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ const HistoryTransferOrderManager = () => {
   const [searchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const selectFix = useSelectTextColorFix({ key: "history-to-filter" });
 
   const fetchOrders = useCallback(async (page = 1) => {
     try {
@@ -281,24 +283,11 @@ const HistoryTransferOrderManager = () => {
       </Header>
 
       <Toolbar>
-        <ConfigProvider
-          theme={{
-            token: { colorText: "#000", colorTextPlaceholder: "#000" },
-            components: {
-              Select: {
-                colorText: "#000",
-                colorTextPlaceholder: "#000",
-                colorBgContainer: "#fff",
-                optionSelectedColor: "#000",
-                colorTextDisabled: "#000",
-                colorTextQuaternary: "#000",
-              },
-            },
-          }}
-        >
+        <ConfigProvider theme={selectFix.configProviderTheme}>
           <FilterSelect
-            className="history-to-filter-select"
-            popupClassName="history-to-filter-dropdown"
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             allowClear
             placeholder={t("historyTransferOrderTypeFilter")}
             style={{ minWidth: 180 }}
@@ -326,8 +315,9 @@ const HistoryTransferOrderManager = () => {
             ]}
           />
           <FilterSelect
-            className="history-to-filter-select"
-            popupClassName="history-to-filter-dropdown"
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             allowClear
             placeholder={t("historyTransferOrderStatusFilter")}
             style={{ minWidth: 180 }}

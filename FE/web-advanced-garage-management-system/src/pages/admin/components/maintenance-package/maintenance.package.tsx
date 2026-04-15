@@ -25,6 +25,7 @@ import type {
 } from "@/services/admin/packageService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 import MaintenancePackageModal from "./MaintenancePackageModal";
 import type { PackageFormData } from "./MaintenancePackageModal";
 import PackageDetailModal from "./PackageDetailModal";
@@ -63,6 +64,7 @@ const MaintenancePackageManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [updatingPackageId, setUpdatingPackageId] = useState<number | null>(null);
+  const selectFix = useSelectTextColorFix({ key: "pkg-filter" });
 
   // Package modal
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
@@ -481,22 +483,11 @@ const MaintenancePackageManager = () => {
             }
           />
         </SearchWrapper>
-        <ConfigProvider
-          theme={{
-            token: { colorText: "#000", colorTextPlaceholder: "#000" },
-            components: {
-              Select: {
-                colorText: "#000",
-                colorTextPlaceholder: "#000",
-                colorBgContainer: "#fff",
-                optionSelectedColor: "#000",
-              },
-            },
-          }}
-        >
+        <ConfigProvider theme={selectFix.configProviderTheme}>
           <FilterSelect
-            className="pkg-filter-select"
-            classNames={{ popup: { root: "pkg-filter-dropdown" } }}
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             value={statusFilter}
             onChange={(val: unknown) => setStatusFilter(val as string)}
             style={{ minWidth: 160 }}

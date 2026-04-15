@@ -20,6 +20,7 @@ import {
   type IServiceOrder,
 } from "@/services/admin/serviceOrderService";
 import { toast } from "react-toastify";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 import { getTechnicians, type ITechnician } from "@/apis/technicians";
 import ServiceOrderDetailModal from "./service.order.detail.modal";
 import AdditionalItemsModal from "./additional-items.modal";
@@ -104,6 +105,7 @@ const ServiceOrderManager = () => {
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | null>(
     null,
   );
+  const selectFix = useSelectTextColorFix({ key: "service-order-filter" });
 
   const fetchOrders = useCallback(
     async (page: number, search?: string, status?: string, type?: string) => {
@@ -359,8 +361,9 @@ const ServiceOrderManager = () => {
 
         return (
           <AssignSelect
-            className="service-order-filter-select"
-            popupClassName="service-order-filter-dropdown"
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             style={{ width: "100%" }}
             placeholder={t("serviceOrderAssignTechPlaceholder")}
             loading={assigningIds.includes(record.maintenanceId)}
@@ -553,26 +556,11 @@ const ServiceOrderManager = () => {
             onChange={handleSearchChange}
           />
         </SearchWrapper>
-        <ConfigProvider
-          theme={{
-            token: { colorText: "#000", colorTextPlaceholder: "#000" },
-            components: {
-              Select: {
-                colorText: "#000",
-                colorTextPlaceholder: "#000",
-                colorBgContainer: "#fff",
-                optionSelectedColor: "#000",
-                // optionActiveColor: "#000",
-                colorTextDisabled: "#000",
-
-                colorTextQuaternary: "#000",
-              },
-            },
-          }}
-        >
+        <ConfigProvider theme={selectFix.configProviderTheme}>
           <FilterSelect
-            className="service-order-filter-select"
-            popupClassName="service-order-filter-dropdown"
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             allowClear
             placeholder={t("serviceOrderStatusFilter")}
             style={{ minWidth: 190 }}
@@ -646,8 +634,9 @@ const ServiceOrderManager = () => {
             ]}
           />
           <FilterSelect
-            className="service-order-filter-select"
-            popupClassName="service-order-filter-dropdown"
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             allowClear
             placeholder={t("serviceOrderTypeFilter")}
             style={{ minWidth: 190 }}

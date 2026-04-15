@@ -16,6 +16,7 @@ import {
 } from "@/services/admin/supplierService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 import SupplierModal from "./SupplierModal";
 
 interface SupplierFormData {
@@ -50,6 +51,7 @@ const SupplierPage = () => {
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
   const [pageIndex, setPageIndex] = useState(1);
   const [updatingSupplierId, setUpdatingSupplierId] = useState<number | null>(null);
+  const selectFix = useSelectTextColorFix({ key: "supplier-filter" });
 
   const fetchSuppliers = useCallback(async () => {
     try {
@@ -297,24 +299,11 @@ const SupplierPage = () => {
           />
         </SearchWrapper>
 
-        <ConfigProvider
-          theme={{
-            token: { colorText: "#000", colorTextPlaceholder: "#000" },
-            components: {
-              Select: {
-                colorText: "#000",
-                colorTextPlaceholder: "#000",
-                colorBgContainer: "#fff",
-                optionSelectedColor: "#000",
-                colorTextDisabled: "#000",
-                colorTextQuaternary: "#000",
-              },
-            },
-          }}
-        >
+        <ConfigProvider theme={selectFix.configProviderTheme}>
           <FilterSelect
-            className="supplier-filter-select"
-            popupClassName="supplier-filter-dropdown"
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             allowClear
             placeholder={t("supplierStatusFilterPlaceholder")}
             value={

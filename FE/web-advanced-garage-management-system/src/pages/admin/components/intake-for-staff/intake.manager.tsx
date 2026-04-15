@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 import {
   getIntakeList,
   getIntakeDetail,
@@ -46,31 +47,9 @@ const formatDate = (iso: string | null, fallback: string) => {
 
 const PAGE_SIZE = 20;
 
-// Global style for Select dropdown (renders outside DOM tree)
-const dropdownGlobalStyle = `
-  .intake-select-dropdown .ant-select-item {
-    color: #111827 !important;
-  }
-  .intake-select-dropdown .ant-select-item-option-content {
-    color: #111827 !important;
-  }
-  .intake-select-dropdown .ant-select-item-option-selected {
-    background-color: #eff6ff !important;
-  }
-`;
-
-if (typeof document !== "undefined") {
-  const styleId = "intake-dropdown-style";
-  if (!document.getElementById(styleId)) {
-    const tag = document.createElement("style");
-    tag.id = styleId;
-    tag.innerHTML = dropdownGlobalStyle;
-    document.head.appendChild(tag);
-  }
-}
-
 const IntakeManager = () => {
   const { t } = useTranslation();
+  const selectFix = useSelectTextColorFix({ key: "intake-select" });
   const [items, setItems] = useState<IIntakeItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
@@ -319,12 +298,14 @@ const IntakeManager = () => {
               style={{ width: 240 }}
             />
             <Select
+              className={selectFix.selectClassName}
+              popupClassName={selectFix.popupClassName}
+              getPopupContainer={selectFix.getPopupContainer}
               placeholder={t("intakeFilterAll")}
               allowClear
               value={maintenanceType}
               onChange={handleTypeChange}
               style={{ width: 150 }}
-              classNames={{ popup: { root: "intake-select-dropdown" } }}
               options={[
                 { value: "MAINTENANCE", label: t("intakeMaintenance") },
                 { value: "REPAIR", label: t("intakeRepair") },

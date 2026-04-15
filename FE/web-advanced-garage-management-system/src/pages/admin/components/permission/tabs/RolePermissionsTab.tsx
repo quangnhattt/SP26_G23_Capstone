@@ -1,8 +1,9 @@
 import styled, { createGlobalStyle } from "styled-components";
 import {  useState } from "react";
-import { Select as AntSelect } from "antd";
+import { ConfigProvider, Select as AntSelect } from "antd";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 import {
   getRolePermissionMatrix,
   updateRolePermissions,
@@ -40,6 +41,7 @@ const RolePermissionsTab = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [granted, setGranted] = useState<Set<number>>(new Set());
+  const selectFix = useSelectTextColorFix({ key: "role-perm" });
 
   // no useEffect needed — roles are static
 
@@ -102,14 +104,18 @@ const RolePermissionsTab = () => {
     <Wrapper>
       <DropdownGlobalStyle />
       <TopBar>
-        <StyledSelect
-          popupClassName="role-perm-dropdown"
-          style={{ width: 220 }}
-          placeholder={t("rolePermSelectRole")}
-          value={selectedRole ?? undefined}
-          onChange={(v) => handleRoleChange(v as number)}
-          options={ROLES.map((r) => ({ value: r.roleID, label: r.roleName }))}
-        />
+        <ConfigProvider theme={selectFix.configProviderTheme}>
+          <StyledSelect
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
+            style={{ width: 220 }}
+            placeholder={t("rolePermSelectRole")}
+            value={selectedRole ?? undefined}
+            onChange={(v) => handleRoleChange(v as number)}
+            options={ROLES.map((r) => ({ value: r.roleID, label: r.roleName }))}
+          />
+        </ConfigProvider>
         {selectedRole && (
           <SaveBtn onClick={() => void handleSave()} disabled={saving}>
             {saving ? t("saving") : t("rolePermSave")}

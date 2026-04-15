@@ -19,6 +19,7 @@ import {
 import type { IMembershipRank } from "@/services/admin/membershipRankService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 import MembershipRankModal from "./MembershipRankModal";
 
 interface MembershipRankFormData {
@@ -51,6 +52,7 @@ const MembershipRanksManager = () => {
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
   const [pageIndex, setPageIndex] = useState(1);
   const [updatingRankId, setUpdatingRankId] = useState<number | null>(null);
+  const selectFix = useSelectTextColorFix({ key: "membership-filter" });
 
   const fetchRanks = useCallback(async () => {
     try {
@@ -269,24 +271,11 @@ const MembershipRanksManager = () => {
           />
         </SearchWrapper>
 
-        <ConfigProvider
-          theme={{
-            token: { colorText: "#000", colorTextPlaceholder: "#000" },
-            components: {
-              Select: {
-                colorText: "#000",
-                colorTextPlaceholder: "#000",
-                colorBgContainer: "#fff",
-                optionSelectedColor: "#000",
-                colorTextDisabled: "#000",
-                colorTextQuaternary: "#000",
-              },
-            },
-          }}
-        >
+        <ConfigProvider theme={selectFix.configProviderTheme}>
           <FilterSelect
-            className="membership-filter-select"
-            popupClassName="membership-filter-dropdown"
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             allowClear
             placeholder={t("membershipRankStatusFilterLabel")}
             value={

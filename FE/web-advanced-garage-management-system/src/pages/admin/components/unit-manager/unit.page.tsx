@@ -13,6 +13,7 @@ import {
 } from "@/services/admin/unitService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 import UnitModal from "./UnitModal";
 
 interface UnitFormData {
@@ -46,6 +47,7 @@ const UnitPage = () => {
   const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
   const [pageIndex, setPageIndex] = useState(1);
+  const selectFix = useSelectTextColorFix({ key: "unit-filter" });
 
   const fetchUnits = useCallback(async () => {
     try {
@@ -258,24 +260,11 @@ const UnitPage = () => {
           />
         </SearchWrapper>
 
-        <ConfigProvider
-          theme={{
-            token: { colorText: "#000", colorTextPlaceholder: "#000" },
-            components: {
-              Select: {
-                colorText: "#000",
-                colorTextPlaceholder: "#000",
-                colorBgContainer: "#fff",
-                optionSelectedColor: "#000",
-                colorTextDisabled: "#000",
-                colorTextQuaternary: "#000",
-              },
-            },
-          }}
-        >
+        <ConfigProvider theme={selectFix.configProviderTheme}>
           <FilterSelect
-            className="unit-filter-select"
-            popupClassName="unit-filter-dropdown"
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             allowClear
             placeholder={t("unitTypeFilterPlaceholder")}
             value={typeFilter}
@@ -294,8 +283,9 @@ const UnitPage = () => {
           />
 
           <FilterSelect
-            className="unit-filter-select"
-            popupClassName="unit-filter-dropdown"
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             allowClear
             placeholder={t("unitStatusFilterPlaceholder")}
             value={

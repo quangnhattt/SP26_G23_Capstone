@@ -3,10 +3,10 @@ import { HiX } from "react-icons/hi";
 import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { Select as AntSelect, ConfigProvider, Spin } from "antd";
+import { ConfigProvider, Select as AntSelect, Spin } from "antd";
 import type { IPackageProduct } from "@/services/admin/packageService";
-import { getProducts } from "@/services/admin/productService";
 import { getServices } from "@/services/admin/serviceService";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 
 export interface DetailFormData {
   productId: number | null;
@@ -19,7 +19,6 @@ export interface DetailFormData {
 interface ProductOption {
   value: number;
   label: string;
-  type: string;
 }
 
 interface PackageDetailModalProps {
@@ -44,27 +43,28 @@ const PackageDetailModal = ({
   const { t } = useTranslation();
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
+  const selectFix = useSelectTextColorFix({
+    key: "package-detail",
+    textColor: "#000",
+    placeholderColor: "#000",
+    backgroundColor: "#fff",
+    popupZIndex: 1300,
+  });
 
   useEffect(() => {
     if (!isOpen) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingOptions(true);
-    Promise.all([
-      getProducts({ pageSize: 500 }).catch(() => ({ items: [] })),
-      getServices().catch(() => []),
-    ]).then(([partsRes, services]) => {
-      const parts = partsRes.items.map((p) => ({
-        value: p.id,
-        label: `[${t("categoryTypePart")}] ${p.name}`,
-        type: "Part",
-      }));
-      const svcs = services.map((s) => ({
-        value: s.id,
-        label: `[${t("categoryTypeService")}] ${s.name}`,
-        type: "Service",
-      }));
-      setProductOptions([...svcs, ...parts]);
-    }).finally(() => setLoadingOptions(false));
+    getServices()
+      .then((services) => {
+        const svcs = services.map((s) => ({
+          value: s.id,
+          label: s.name,
+        }));
+        setProductOptions(svcs);
+      })
+      .catch(() => setProductOptions([]))
+      .finally(() => setLoadingOptions(false));
   }, [isOpen, t]);
 
   if (!isOpen) return null;
@@ -99,33 +99,20 @@ const PackageDetailModal = ({
                   <Spin size="small" />
                 </SpinWrapper>
               ) : (
-                <ConfigProvider
-                  theme={{
-                    token: { colorText: "#1a1d2e", colorTextPlaceholder: "#9ca3bf" },
-                    components: {
-                      Select: {
-                        colorText: "#1a1d2e",
-                        colorBgContainer: "#fff",
-                        colorTextPlaceholder: "#9ca3bf",
-                      },
-                    },
-                  }}
-                >
+                <ConfigProvider theme={selectFix.configProviderTheme}>
                   <AntSelect
-                    showSearch
+                    className={selectFix.selectClassName}
+                    popupClassName={selectFix.popupClassName}
+                    showSearch={false}
                     style={{ width: "100%" }}
-                    value={formData.productId}
+                    value={formData.productId ?? undefined}
                     placeholder={t("selectProduct")}
-                    filterOption={(input, option) =>
-                      String(option?.label ?? "")
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
                     options={productOptions}
-                    onChange={(val: number) =>
-                      onFormDataChange({ productId: val })
+                    getPopupContainer={selectFix.getPopupContainer}
+                    onChange={(value) =>
+                      onFormDataChange({ productId: Number(value) })
                     }
-                    disabled={!!editingDetail}
+                    disabled={submitting || loadingOptions}
                   />
                 </ConfigProvider>
               )}

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import styled, { createGlobalStyle } from "styled-components";
+import styled from "styled-components";
 import { HiSearch, HiPlus, HiPencil } from "react-icons/hi";
 import {
   Table as AntTable,
@@ -18,6 +18,7 @@ import {
 import type { ICategory } from "@/services/admin/categoryService";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
+import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
 import CategoryModal from "./CategoryModal";
 
 interface CategoryFormData {
@@ -50,6 +51,12 @@ const CategoryPage = () => {
   const [updatingCategoryId, setUpdatingCategoryId] = useState<number | null>(
     null,
   );
+  const selectFix = useSelectTextColorFix({
+    key: "category-filter",
+    textColor: "#000",
+    placeholderColor: "#000",
+    backgroundColor: "#fff",
+  });
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -223,7 +230,6 @@ const CategoryPage = () => {
 
   return (
     <Container>
-      <FilterSelectGlobalStyle />
       <Header>
         <div>
           <Title>{t("categoriesManagement")}</Title>
@@ -248,24 +254,11 @@ const CategoryPage = () => {
             }
           />
         </SearchWrapper>
-        <ConfigProvider
-          theme={{
-            token: { colorText: "#000", colorTextPlaceholder: "#000" },
-            components: {
-              Select: {
-                colorText: "#000",
-                colorTextPlaceholder: "#000",
-                colorBgContainer: "#fff",
-                optionSelectedColor: "#000",
-                colorTextDisabled: "#000",
-                colorTextQuaternary: "#000",
-              },
-            },
-          }}
-        >
-          <FilterSelect
-            className="category-filter-select"
-            popupClassName="category-filter-dropdown"
+        <ConfigProvider theme={selectFix.configProviderTheme}>
+          <AntSelect
+            className={selectFix.selectClassName}
+            popupClassName={selectFix.popupClassName}
+            getPopupContainer={selectFix.getPopupContainer}
             value={typeFilter}
             onChange={(val: unknown) => setTypeFilter(val as string)}
             style={{ minWidth: 180 }}
@@ -387,40 +380,6 @@ const Toolbar = styled.div`
   margin-bottom: 20px;
   flex-wrap: wrap;
   align-items: center;
-
-  .category-filter-select .ant-select-selector,
-  .category-filter-select .ant-select-selector .ant-select-selection-item,
-  .category-filter-select
-    .ant-select-selector
-    .ant-select-selection-placeholder,
-  .category-filter-select .ant-select-arrow,
-  .category-filter-select .ant-select-clear {
-    color: #000 !important;
-    -webkit-text-fill-color: #000 !important;
-    opacity: 1 !important;
-  }
-`;
-
-const FilterSelectGlobalStyle = createGlobalStyle`
-  .category-filter-dropdown .ant-select-item,
-  .category-filter-dropdown .ant-select-item-option-content,
-  .category-filter-dropdown .ant-select-item-option-selected .ant-select-item-option-content,
-  .category-filter-dropdown .ant-select-item-option-active .ant-select-item-option-content,
-  .category-filter-dropdown .ant-empty-description {
-    color: #000 !important;
-  }
-`;
-
-const FilterSelect = styled(AntSelect)`
-  &&& .ant-select-selector,
-  &&& .ant-select-selector .ant-select-selection-item,
-  &&& .ant-select-selector .ant-select-selection-placeholder,
-  &&& .ant-select-arrow,
-  &&& .ant-select-clear {
-    color: #000 !important;
-    -webkit-text-fill-color: #000 !important;
-    opacity: 1 !important;
-  }
 `;
 
 const SearchWrapper = styled.label`
