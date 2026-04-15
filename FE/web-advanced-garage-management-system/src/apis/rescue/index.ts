@@ -27,12 +27,14 @@ export interface IRescueSuggestedServiceDetail {
 }
 
 export interface IRepairItemDetail {
+  serviceDetailId?: number;
   productId: number;
   productCode?: string;
   productName?: string;
   quantity: number;
   unitPrice: number;
   lineTotal?: number;
+  totalPrice?: number;
   notes?: string;
 }
 
@@ -41,19 +43,35 @@ export interface IRescueRequest {
   status: RescueStatus;
   rescueType: string | null;
   currentAddress: string;
+  latitude?: number | null;
+  longitude?: number | null;
   problemDescription: string;
+  imageEvidence?: string | null;
   customerId: number;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string | null;
+  customerTrustScore?: number | null;
+  membershipRank?: string | null;
   carId: number;
   licensePlate: string;
   brand: string;
   model: string;
+  year?: number | null;
+  color?: string | null;
   serviceAdvisorId: number | null;
   serviceAdvisorName: string | null;
+  assignedTechnicianId?: number | null;
+  assignedTechnicianName?: string | null;
+  assignedTechnicianPhone?: string | null;
+  resultingMaintenanceId?: number | null;
   createdDate: string;
+  estimatedArrivalDateTime?: string | null;
+  completedDate?: string | null;
   proposalNotes?: string;
   estimatedServiceFee?: number;
+  serviceFee?: number;
+  repairSubtotal?: number;
   depositAmount?: number;
   requiresDeposit?: boolean;
   isDepositPaid?: boolean;

@@ -71,6 +71,8 @@ const RescueManagement = () => {
   const [selectedRescue, setSelectedRescue] = useState<IRescueRequest | null>(
     null,
   );
+  const [detailRescue, setDetailRescue] = useState<IRescueRequest | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Action modals
@@ -426,6 +428,22 @@ const RescueManagement = () => {
       // setRescueServiceFee(rescue.serviceFee ? String(rescue.serviceFee) : ""); // TODO: tạm ẩn
     } finally {
       setLoadingInvoiceDetail(false);
+    }
+  };
+
+  const openDetailModal = async (rescue: IRescueRequest) => {
+    setShowDetailModal(true);
+    setDetailLoading(true);
+    setDetailRescue(null);
+    try {
+      const detail = await getRescueCustomerById(rescue.rescueId);
+      setDetailRescue(detail);
+    } catch (error) {
+      console.error("Error fetching rescue detail:", error);
+      toast.error(t("rescueMgrDetailLoadError"));
+      setDetailRescue(rescue);
+    } finally {
+      setDetailLoading(false);
     }
   };
 
@@ -1062,10 +1080,7 @@ const RescueManagement = () => {
                 <CardRight>
                   <DateText>{formatDateTime(item.createdDate)}</DateText>
                   <ActionButton
-                    onClick={() => {
-                      setSelectedRescue(item);
-                      setShowDetailModal(true);
-                    }}
+                    onClick={() => void openDetailModal(item)}
                   >
                     <FaEye size={14} />
                     {t("appointmentsViewDetail")}
@@ -1088,10 +1103,14 @@ const RescueManagement = () => {
       </ListSection>
 
       {/* ─── Detail Modal ─── */}
-      {showDetailModal && selectedRescue && (
+      {showDetailModal && (
         <RescueDetailModal
-          rescue={selectedRescue}
-          onClose={() => setShowDetailModal(false)}
+          rescue={detailRescue}
+          loading={detailLoading}
+          onClose={() => {
+            setShowDetailModal(false);
+            setDetailRescue(null);
+          }}
         />
       )}
 
@@ -1321,10 +1340,10 @@ const RescueManagement = () => {
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
                           <thead>
                             <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
-                              <th style={{ padding: "0.5rem 0.75rem", textAlign: "left", fontWeight: 600, color: "#374151" }}>{t("rescueMgrInvoiceColName")}</th>
-                              <th style={{ padding: "0.5rem 0.5rem", textAlign: "center", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{t("rescueMgrInvoiceColQty")}</th>
-                              <th style={{ padding: "0.5rem 0.5rem", textAlign: "right", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{t("rescueMgrInvoiceColUnitPrice")}</th>
-                              <th style={{ padding: "0.5rem 0.75rem", textAlign: "right", fontWeight: 600, color: "#374151", whiteSpace: "nowrap" }}>{t("rescueMgrInvoiceColTotal")}</th>
+                              <th style={{ padding: "0.5rem 0.75rem", textAlign: "left", fontWeight: 600, color: "#000000" }}>{t("rescueMgrInvoiceColName")}</th>
+                              <th style={{ padding: "0.5rem 0.5rem", textAlign: "center", fontWeight: 600, color: "#000000", whiteSpace: "nowrap" }}>{t("rescueMgrInvoiceColQty")}</th>
+                              <th style={{ padding: "0.5rem 0.5rem", textAlign: "right", fontWeight: 600, color: "#000000", whiteSpace: "nowrap" }}>{t("rescueMgrInvoiceColUnitPrice")}</th>
+                              <th style={{ padding: "0.5rem 0.75rem", textAlign: "right", fontWeight: 600, color: "#000000", whiteSpace: "nowrap" }}>{t("rescueMgrInvoiceColTotal")}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1333,11 +1352,13 @@ const RescueManagement = () => {
                               return (
                                 <tr key={`${item.productId}-${idx}`} style={{ borderBottom: idx < (selectedRescue.repairItems?.length ?? 0) - 1 ? "1px solid #f3f4f6" : "none" }}>
                                   <td style={{ padding: "0.5rem 0.75rem", color: "#111827" }}>
-                                    <div style={{ fontWeight: 500 }}>{item.productName ?? `ID ${item.productId}`}</div>
-                                    {item.productCode && <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>{item.productCode}</div>}
+                                    <div style={{ fontWeight: 500, color: "#000000", WebkitTextFillColor: "#000000" }}>
+                                      {item.productName ?? `ID ${item.productId}`}
+                                    </div>
+                                    {item.productCode && <div style={{ fontSize: "0.75rem", color: "#000000" }}>{item.productCode}</div>}
                                   </td>
-                                  <td style={{ padding: "0.5rem 0.5rem", textAlign: "center", color: "#374151" }}>{item.quantity}</td>
-                                  <td style={{ padding: "0.5rem 0.5rem", textAlign: "right", color: "#374151", whiteSpace: "nowrap" }}>{item.unitPrice.toLocaleString()}</td>
+                                  <td style={{ padding: "0.5rem 0.5rem", textAlign: "center", color: "#000000" }}>{item.quantity}</td>
+                                  <td style={{ padding: "0.5rem 0.5rem", textAlign: "right", color: "#000000", whiteSpace: "nowrap" }}>{item.unitPrice.toLocaleString()}</td>
                                   <td style={{ padding: "0.5rem 0.75rem", textAlign: "right", color: "#111827", fontWeight: 500, whiteSpace: "nowrap" }}>{lineTotal.toLocaleString()}</td>
                                 </tr>
                               );
@@ -1345,7 +1366,7 @@ const RescueManagement = () => {
                           </tbody>
                         </table>
                         <div style={{ padding: "0.5rem 0.75rem", background: "#f0fdf4", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: "0.8125rem", color: "#374151" }}>{t("rescueMgrInvoiceSubtotal")}</span>
+                          <span style={{ fontSize: "0.8125rem", color: "#000000" }}>{t("rescueMgrInvoiceSubtotal")}</span>
                           <span style={{ fontWeight: 700, color: "#15803d", fontSize: "0.9375rem" }}>
                             {selectedRescue.repairItems
                               .reduce((sum, item) => sum + (item.lineTotal ?? (item.unitPrice * item.quantity)), 0)
