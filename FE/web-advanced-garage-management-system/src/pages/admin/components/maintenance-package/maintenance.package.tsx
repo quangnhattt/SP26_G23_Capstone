@@ -391,16 +391,20 @@ const MaintenancePackageManager = () => {
       key: "action",
       align: "center",
       width: 80,
-      render: (_: unknown, record: IPackageProduct) => (
-        <EditButton
-          onClick={() =>
-            handleOpenEditDetailModal(record, record.packageID)
-          }
-          title="Edit"
-        >
-          <HiPencil size={16} />
-        </EditButton>
-      ),
+      render: (_: unknown, record: IPackageProduct) => {
+        const packageId = record.packageID;
+        return (
+          <EditButton
+            onClick={() => {
+              if (packageId == null) return;
+              handleOpenEditDetailModal(record, packageId);
+            }}
+            title="Edit"
+          >
+            <HiPencil size={16} />
+          </EditButton>
+        );
+      },
     },
   ];
 
