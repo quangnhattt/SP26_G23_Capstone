@@ -38,11 +38,11 @@ export interface IMaintenancePackage {
 
 export interface IPackageProduct {
   packageDetailID: number;
-  packageID: number;
+  packageID?: number;
   productID: number;
   productName: string;
   quantity: number;
-  isRequired: boolean;
+  isRequired?: boolean;
   productStatus: boolean;
   displayOrder: number;
   notes?: string | null;
@@ -139,6 +139,17 @@ export const updatePackageDetail = async (
   const { data } = await AxiosClient.put<IPackageProduct>(
     `/api/maintenance-packages/details/${detailId}`,
     detail,
+  );
+  return data;
+};
+
+export const updatePackageDetailStatus = async (
+  detailId: number,
+  isActive: boolean,
+): Promise<IPackageProduct> => {
+  const { data } = await AxiosClient.patch<IPackageProduct>(
+    `/api/maintenance-packages/details/${detailId}/status`,
+    { isActive },
   );
   return data;
 };

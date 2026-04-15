@@ -7,7 +7,6 @@ import {
   Switch,
   Select as AntSelect,
   ConfigProvider,
-  Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -18,6 +17,7 @@ import {
   updateMaintenancePackageStatus,
   addPackageDetail,
   updatePackageDetail,
+  updatePackageDetailStatus,
 } from "@/services/admin/packageService";
 import type {
   IMaintenancePackage,
@@ -47,9 +47,11 @@ const EMPTY_PACKAGE_FORM: PackageFormData = {
 };
 
 const EMPTY_DETAIL_FORM: DetailFormData = {
-  productId: null,
+  serviceId: null,
+  partId: null,
+  selectedProductId: null,
   quantity: 1,
-  isRequired: true,
+  isRequired: false,
   displayOrder: "",
   notes: "",
 };
@@ -88,6 +90,7 @@ const MaintenancePackageManager = () => {
   const [detailFormData, setDetailFormData] =
     useState<DetailFormData>(EMPTY_DETAIL_FORM);
   const [submittingDetail, setSubmittingDetail] = useState(false);
+  const [updatingDetailId, setUpdatingDetailId] = useState<number | null>(null);
 
   const fetchPackages = useCallback(async () => {
     try {
@@ -114,7 +117,11 @@ const MaintenancePackageManager = () => {
       const data = await getMaintenancePackageWithProducts(packageId);
       setExpandedProducts((prev) => ({
         ...prev,
-        [packageId]: data.products || [],
+        [packageId]:
+          (data.products || []).map((p) => ({
+            ...p,
+            packageID: packageId,
+          })) || [],
       }));
     } catch (err) {
       console.error("Error loading package products:", err);
@@ -246,9 +253,11 @@ const MaintenancePackageManager = () => {
     setCurrentPackageId(packageId);
     setEditingDetail(detail);
     setDetailFormData({
-      productId: detail.productID,
+      serviceId: detail.productID,
+      partId: detail.productID,
+      selectedProductId: detail.productID,
       quantity: detail.quantity,
-      isRequired: detail.isRequired,
+      isRequired: Boolean(detail.productStatus),
       displayOrder: detail.displayOrder,
       notes: detail.notes || "",
     });
@@ -257,11 +266,11 @@ const MaintenancePackageManager = () => {
 
   const handleDetailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!detailFormData.productId || !currentPackageId) return;
+    if (!detailFormData.selectedProductId || !currentPackageId) return;
     setSubmittingDetail(true);
     try {
       const payload = {
-        productId: detailFormData.productId,
+        productId: detailFormData.selectedProductId,
         quantity: Number(detailFormData.quantity) || 1,
         isRequired: detailFormData.isRequired,
         displayOrder:
@@ -288,6 +297,23 @@ const MaintenancePackageManager = () => {
       toast.error(getApiErrorMessage(err, t("errorSavingPackageDetail")));
     } finally {
       setSubmittingDetail(false);
+    }
+  };
+
+  const handleToggleDetailStatus = async (
+    detailId: number,
+    packageId: number,
+    isActive: boolean,
+  ) => {
+    setUpdatingDetailId(detailId);
+    try {
+      await updatePackageDetailStatus(detailId, isActive);
+      await loadPackageProducts(packageId);
+    } catch (err) {
+      console.error("Error updating package detail status:", err);
+      toast.error(getApiErrorMessage(err, t("errorSavingPackageDetail")));
+    } finally {
+      setUpdatingDetailId(null);
     }
   };
 
@@ -322,16 +348,28 @@ const MaintenancePackageManager = () => {
     },
     {
       title: t("isRequired"),
-      dataIndex: "isRequired",
-      key: "isRequired",
+      dataIndex: "productStatus",
+      key: "productStatus",
       align: "center",
       width: 100,
-      render: (val: boolean) =>
-        val ? (
-          <Tag color="blue">{t("yes")}</Tag>
-        ) : (
-          <Tag color="default">{t("no")}</Tag>
-        ),
+      render: (val: boolean, record: IPackageProduct) => {
+        const packageId = record.packageID ?? currentPackageId;
+        return (
+          <Switch
+            checked={val}
+            disabled={!packageId}
+            loading={updatingDetailId === record.packageDetailID}
+            onChange={(checked: boolean) => {
+              if (!packageId) return;
+              void handleToggleDetailStatus(
+                record.packageDetailID,
+                packageId,
+                checked,
+              );
+            }}
+          />
+        );
+      },
     },
     {
       title: t("displayOrder"),

@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiX } from "react-icons/hi";
 import { Switch } from "antd";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { ConfigProvider, Select as AntSelect, Spin } from "antd";
+import { Spin } from "antd";
 import type { IPackageProduct } from "@/services/admin/packageService";
 import { getServices } from "@/services/admin/serviceService";
-import useSelectTextColorFix from "@/hooks/useSelectTextColorFix";
+import { getProducts } from "@/services/admin/productService";
 
 export interface DetailFormData {
-  productId: number | null;
+  serviceId: number | null;
+  partId: number | null;
+  selectedProductId: number | null;
   quantity: number | "";
   isRequired: boolean;
   displayOrder: number | "";
@@ -41,31 +43,72 @@ const PackageDetailModal = ({
   onFormDataChange,
 }: PackageDetailModalProps) => {
   const { t } = useTranslation();
-  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
+  const [serviceOptions, setServiceOptions] = useState<ProductOption[]>([]);
+  const [partOptions, setPartOptions] = useState<ProductOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
-  const selectFix = useSelectTextColorFix({
-    key: "package-detail",
-    textColor: "#000",
-    placeholderColor: "#000",
-    backgroundColor: "#fff",
-    popupZIndex: 1300,
-  });
 
   useEffect(() => {
     if (!isOpen) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingOptions(true);
-    getServices()
-      .then((services) => {
-        const svcs = services.map((s) => ({
-          value: s.id,
-          label: s.name,
-        }));
-        setProductOptions(svcs);
+    Promise.allSettled([
+      getServices(),
+      getProducts({ page: 1, pageSize: 100 }),
+    ])
+      .then(([servicesRes, partsRes]) => {
+        if (servicesRes.status === "fulfilled") {
+          setServiceOptions(
+            servicesRes.value.map((s) => ({
+              value: s.id,
+              label: s.name,
+            })),
+          );
+        } else {
+          setServiceOptions([]);
+        }
+
+        if (partsRes.status === "fulfilled") {
+          setPartOptions(
+            partsRes.value.items.map((p) => ({
+              value: p.id,
+              label: p.name,
+            })),
+          );
+        } else {
+          setPartOptions([]);
+        }
       })
-      .catch(() => setProductOptions([]))
       .finally(() => setLoadingOptions(false));
   }, [isOpen, t]);
+
+  const selectableServices = useMemo(() => {
+    if (!formData.serviceId) return serviceOptions;
+    const hasCurrent = serviceOptions.some(
+      (p) => p.value === formData.serviceId,
+    );
+    if (hasCurrent) return serviceOptions;
+    // Keep current value visible in update mode even if API list excludes it
+    return [
+      {
+        value: formData.serviceId,
+        label: editingDetail?.productName || `#${formData.serviceId}`,
+      },
+      ...serviceOptions,
+    ];
+  }, [editingDetail?.productName, formData.serviceId, serviceOptions]);
+
+  const selectableParts = useMemo(() => {
+    if (!formData.partId) return partOptions;
+    const hasCurrent = partOptions.some((p) => p.value === formData.partId);
+    if (hasCurrent) return partOptions;
+    return [
+      {
+        value: formData.partId,
+        label: editingDetail?.productName || `#${formData.partId}`,
+      },
+      ...partOptions,
+    ];
+  }, [editingDetail?.productName, formData.partId, partOptions]);
 
   if (!isOpen) return null;
 
@@ -93,28 +136,60 @@ const PackageDetailModal = ({
         <ModalBody>
           <Form onSubmit={onSubmit}>
             <FormGroup>
-              <Label>{t("selectProduct")} *</Label>
+              <Label>Chọn dịch vụ *</Label>
               {loadingOptions ? (
                 <SpinWrapper>
                   <Spin size="small" />
                 </SpinWrapper>
               ) : (
-                <ConfigProvider theme={selectFix.configProviderTheme}>
-                  <AntSelect
-                    className={selectFix.selectClassName}
-                    popupClassName={selectFix.popupClassName}
-                    showSearch={false}
-                    style={{ width: "100%" }}
-                    value={formData.productId ?? undefined}
-                    placeholder={t("selectProduct")}
-                    options={productOptions}
-                    getPopupContainer={selectFix.getPopupContainer}
-                    onChange={(value) =>
-                      onFormDataChange({ productId: Number(value) })
-                    }
-                    disabled={submitting || loadingOptions}
-                  />
-                </ConfigProvider>
+                <Select
+                  value={formData.serviceId ?? ""}
+                  onChange={(e) =>
+                    onFormDataChange({
+                      serviceId: e.target.value ? Number(e.target.value) : null,
+                      selectedProductId: e.target.value
+                        ? Number(e.target.value)
+                        : formData.partId,
+                    })
+                  }
+                  disabled={submitting || loadingOptions}
+                >
+                  <option value="">Chọn dịch vụ</option>
+                  {selectableServices.map((product) => (
+                    <option key={product.value} value={product.value}>
+                      {product.label}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Chọn sản phẩm/phụ tùng</Label>
+              {loadingOptions ? (
+                <SpinWrapper>
+                  <Spin size="small" />
+                </SpinWrapper>
+              ) : (
+                <Select
+                  value={formData.partId ?? ""}
+                  onChange={(e) =>
+                    onFormDataChange({
+                      partId: e.target.value ? Number(e.target.value) : null,
+                      selectedProductId: e.target.value
+                        ? Number(e.target.value)
+                        : formData.serviceId,
+                    })
+                  }
+                  disabled={submitting || loadingOptions}
+                >
+                  <option value="">Chọn sản phẩm/phụ tùng</option>
+                  {selectableParts.map((product) => (
+                    <option key={product.value} value={product.value}>
+                      {product.label}
+                    </option>
+                  ))}
+                </Select>
               )}
             </FormGroup>
 
@@ -169,7 +244,7 @@ const PackageDetailModal = ({
               </CancelButton>
               <SubmitButton
                 type="submit"
-                disabled={submitting || !formData.productId}
+                disabled={submitting || !formData.selectedProductId}
               >
                 {submitting
                   ? t("saving")
@@ -293,6 +368,22 @@ const Input = styled.input`
 
   &::placeholder {
     color: #9ca3bf;
+  }
+`;
+
+const Select = styled.select`
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1a1d2e !important;
+  background: white !important;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 `;
 
