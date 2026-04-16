@@ -17,7 +17,11 @@ public class InventoryRepository : IInventoryRepository
 
     // NGHIỆP VỤ 1: XỬ LÝ GIAO DỊCH KHO (IN, OUT, ADJUST)
 
-    public async Task ProcessGoodsReceiptAsync(int createdByUserId, CreateGoodsReceiptDto request, CancellationToken ct)
+    public async Task ProcessGoodsReceiptAsync(
+        int createdByUserId,
+        CreateGoodsReceiptDto request,
+        CancellationToken ct
+    )
     {
         // 1. MỞ TRANSACTION BAO BỌC TOÀN BỘ QUÁ TRÌNH
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
@@ -43,14 +47,21 @@ public class InventoryRepository : IInventoryRepository
             foreach (var item in request.Items)
             {
                 // [CHỐT CHẶN 1]: Lấy thông tin Sản phẩm Gốc từ DB
-                var product = await _db.Products.FirstOrDefaultAsync(p => p.ProductID == item.ProductId, ct);
+                var product = await _db.Products.FirstOrDefaultAsync(
+                    p => p.ProductID == item.ProductId,
+                    ct
+                );
 
                 if (product == null)
-                    throw new Exception($"Thất bại: Sản phẩm có ID {item.ProductId} hoàn toàn chưa tồn tại trong Hệ thống danh mục.");
+                    throw new Exception(
+                        $"Thất bại: Sản phẩm có ID {item.ProductId} hoàn toàn chưa tồn tại trong Hệ thống danh mục."
+                    );
 
                 // [CHỐT CHẶN 2]: Tuyệt đối không cho phép nhập kho Dịch vụ
                 if (product.Type != "PART")
-                    throw new InvalidOperationException($"Lỗi nghiệp vụ: Không thể nhập kho cho '{product.Name}'. Vì đây là Dịch vụ/Công thợ, không phải Phụ tùng vật lý.");
+                    throw new InvalidOperationException(
+                        $"Lỗi nghiệp vụ: Không thể nhập kho cho '{product.Name}'. Vì đây là Dịch vụ/Công thợ, không phải Phụ tùng vật lý."
+                    );
 
                 // 3.1. Lưu chi tiết phiếu (Transfer_Order_Detail)
                 var toDetail = new TransferOrderDetail
@@ -64,8 +75,10 @@ public class InventoryRepository : IInventoryRepository
                 _db.TransferOrderDetails.Add(toDetail);
 
                 // 3.2. CẬP NHẬT KHO & TÍNH BÌNH QUÂN GIA QUYỀN (MAC)
-                var inventory = await _db.ProductInventories
-                    .FirstOrDefaultAsync(i => i.ProductID == item.ProductId, ct);
+                var inventory = await _db.ProductInventories.FirstOrDefaultAsync(
+                    i => i.ProductID == item.ProductId,
+                    ct
+                );
 
                 // [CHỐT CHẶN 3]: Tự động khởi tạo nếu là Phụ tùng mới tinh lần đầu nhập kho
                 if (inventory == null)
@@ -102,8 +115,12 @@ public class InventoryRepository : IInventoryRepository
                 if (request.SupplierId.HasValue)
                 {
                     // Kiểm tra xem đã có liên kết giữa NCC và Sản phẩm này chưa
-                    var supplierLink = await _db.SupplierProducts
-                        .FirstOrDefaultAsync(sp => sp.SupplierID == request.SupplierId.Value && sp.ProductID == item.ProductId, ct);
+                    var supplierLink = await _db.SupplierProducts.FirstOrDefaultAsync(
+                        sp =>
+                            sp.SupplierID == request.SupplierId.Value
+                            && sp.ProductID == item.ProductId,
+                        ct
+                    );
 
                     if (supplierLink == null)
                     {
@@ -155,7 +172,11 @@ public class InventoryRepository : IInventoryRepository
         }
     }
 
-    public async Task ProcessStockIssueAsync(int transferOrderId, int approvedByUserId, CancellationToken ct)
+    public async Task ProcessStockIssueAsync(
+        int transferOrderId,
+        int approvedByUserId,
+        CancellationToken ct
+    )
     {
         // 1. BẬT LÁ CHẮN TRANSACTION
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
@@ -173,17 +194,23 @@ public class InventoryRepository : IInventoryRepository
                 throw new Exception("Lỗi: Phiếu này đã được xuất kho rồi, không thể xuất lại!");
 
             if (transferOrder.Status != "DRAFT")
-                throw new Exception($"Lỗi: Trạng thái phiếu không hợp lệ ({transferOrder.Status}). Chỉ được xuất phiếu DRAFT.");
+                throw new Exception(
+                    $"Lỗi: Trạng thái phiếu không hợp lệ ({transferOrder.Status}). Chỉ được xuất phiếu DRAFT."
+                );
 
             // 3. VÒNG LẶP XỬ LÝ TỪNG MÓN HÀNG
             foreach (var detail in transferOrder.TransferOrderDetails)
             {
                 // 3.1. Trừ Tồn Kho (ProductInventory)
-                var inventory = await _db.ProductInventories
-                    .FirstOrDefaultAsync(i => i.ProductID == detail.ProductID, ct);
+                var inventory = await _db.ProductInventories.FirstOrDefaultAsync(
+                    i => i.ProductID == detail.ProductID,
+                    ct
+                );
 
                 if (inventory == null || inventory.Quantity < detail.Quantity)
-                    throw new Exception($"LỖI TỒN KHO: Sản phẩm ID {detail.ProductID} không đủ số lượng để xuất. (Cần xuất {detail.Quantity}, Tồn thực tế {inventory?.Quantity ?? 0})");
+                    throw new Exception(
+                        $"LỖI TỒN KHO: Sản phẩm ID {detail.ProductID} không đủ số lượng để xuất. (Cần xuất {detail.Quantity}, Tồn thực tế {inventory?.Quantity ?? 0})"
+                    );
 
                 inventory.Quantity -= detail.Quantity;
                 inventory.LastUpdated = DateTime.UtcNow;
@@ -208,15 +235,19 @@ public class InventoryRepository : IInventoryRepository
                 {
                     // Tìm dòng phụ tùng tương ứng trong Hóa đơn
                     var serviceParts = await _db.ServicePartDetails
-                        .Where(sp => sp.MaintenanceID == transferOrder.RelatedMaintenanceID.Value
-                                  && sp.ProductID == detail.ProductID)
+                        .Where(
+                            sp =>
+                                sp.MaintenanceID == transferOrder.RelatedMaintenanceID.Value
+                                && sp.ProductID == detail.ProductID
+                        )
                         .ToListAsync(ct);
 
                     // Dùng vòng lặp nhồi số lượng đã xuất vào Hóa đơn (Phòng trường hợp cùng 1 phụ tùng nhưng có 2 dòng trong hóa đơn)
                     decimal remainingToIssue = detail.Quantity;
                     foreach (var sp in serviceParts)
                     {
-                        if (remainingToIssue <= 0) break;
+                        if (remainingToIssue <= 0)
+                            break;
 
                         // Tính số lượng còn thiếu chưa xuất của dòng này
                         int needed = sp.Quantity - sp.IssuedQuantity;
@@ -256,14 +287,20 @@ public class InventoryRepository : IInventoryRepository
     }
 
     public async Task ExecuteInventoryMovementAsync(
-        int productId, int referenceId, string transactionType,
-        decimal quantityChange, decimal inputPrice, string note, CancellationToken ct)
+        int productId,
+        int referenceId,
+        string transactionType,
+        decimal quantityChange,
+        decimal inputPrice,
+        string note,
+        CancellationToken ct
+    )
     {
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
         try
         {
-            var inventory = await _db.ProductInventories
-                .FirstOrDefaultAsync(i => i.ProductID == productId, ct)
+            var inventory =
+                await _db.ProductInventories.FirstOrDefaultAsync(i => i.ProductID == productId, ct)
                 ?? throw new KeyNotFoundException("Product not found in inventory.");
 
             decimal currentQty = inventory.Quantity;
@@ -289,7 +326,12 @@ public class InventoryRepository : IInventoryRepository
                 inventory.Quantity -= quantityChange;
                 unitCostToRecord = currentMac; // Sổ cái lưu giá xuất = Giá MAC hiện hành
             }
-            else if (transactionType == "ADJUST" || transactionType == "ADJUST_IN" || transactionType == "ADJUST_OUT" || transactionType == "WRITE_OFF")
+            else if (
+                transactionType == "ADJUST"
+                || transactionType == "ADJUST_IN"
+                || transactionType == "ADJUST_OUT"
+                || transactionType == "WRITE_OFF"
+            )
             {
                 // quantityChange có thể là số âm (mất mát) hoặc dương (nhập dư)
                 inventory.Quantity += quantityChange;
@@ -320,7 +362,9 @@ public class InventoryRepository : IInventoryRepository
         {
             await tx.RollbackAsync(ct);
             // Đây là sức mạnh của cột [RowVersion]
-            throw new Exception("Lỗi đồng bộ: Dữ liệu kho vừa bị thay đổi bởi một nhân viên khác. Vui lòng tải lại trang và thử lại!");
+            throw new Exception(
+                "Lỗi đồng bộ: Dữ liệu kho vừa bị thay đổi bởi một nhân viên khác. Vui lòng tải lại trang và thử lại!"
+            );
         }
         catch
         {
@@ -330,22 +374,43 @@ public class InventoryRepository : IInventoryRepository
     }
 
     // NGHIỆP VỤ 2: ĐỐI SOÁT CHỨNG MINH TÍNH NHẤT QUÁN CỦA DB
-    public async Task<List<InventoryDiscrepancyDto>> GetInventoryDiscrepanciesAsync(CancellationToken ct)
+    public async Task<List<InventoryDiscrepancyDto>> GetInventoryDiscrepanciesAsync(
+        CancellationToken ct
+    )
     {
         // Truy vấn này lấy Số Tồn Snapshot đem so sánh với Tổng Lịch sử
         var discrepancies = await _db.ProductInventories
-            .Select(inv => new InventoryDiscrepancyDto
-            {
-                ProductID = inv.ProductID,
-                ProductCode = inv.Product.Code,
-                SnapshotQuantity = inv.Quantity,
-                LedgerQuantity = _db.InventoryTransactions
-                    .Where(t => t.ProductID == inv.ProductID)
-                    .Sum(t =>
-                        (t.TransactionType == "GOODS_RECEIPT" || t.TransactionType == "IN" || t.TransactionType == "RETURN" || t.TransactionType == "ADJUST_IN") ? t.Quantity :
-                        (t.TransactionType == "ISSUE" || t.TransactionType == "OUT" || t.TransactionType == "WRITE_OFF" || t.TransactionType == "ADJUST_OUT") ? -t.Quantity :
-                        t.TransactionType == "ADJUST" ? t.Quantity : 0)
-            })
+            .Select(
+                inv =>
+                    new InventoryDiscrepancyDto
+                    {
+                        ProductID = inv.ProductID,
+                        ProductCode = inv.Product.Code,
+                        SnapshotQuantity = inv.Quantity,
+                        LedgerQuantity = _db.InventoryTransactions
+                            .Where(t => t.ProductID == inv.ProductID)
+                            .Sum(
+                                t =>
+                                    (
+                                        t.TransactionType == "GOODS_RECEIPT"
+                                        || t.TransactionType == "IN"
+                                        || t.TransactionType == "RETURN"
+                                        || t.TransactionType == "ADJUST_IN"
+                                    )
+                                        ? t.Quantity
+                                        : (
+                                            t.TransactionType == "ISSUE"
+                                            || t.TransactionType == "OUT"
+                                            || t.TransactionType == "WRITE_OFF"
+                                            || t.TransactionType == "ADJUST_OUT"
+                                        )
+                                            ? -t.Quantity
+                                            : t.TransactionType == "ADJUST"
+                                                ? t.Quantity
+                                                : 0
+                            )
+                    }
+            )
             .Where(x => x.SnapshotQuantity != x.LedgerQuantity) // Chỉ lấy ra những mã hàng bị lệch (nếu có)
             .ToListAsync(ct);
 
@@ -355,7 +420,8 @@ public class InventoryRepository : IInventoryRepository
     public async Task<CreateIssueTransferOrderResultDto> CreateIssueTransferOrderFromServiceOrderAsync(
         int maintenanceId,
         int createdByUserId,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var maintenanceStatus = await _db.CarMaintenances
             .AsNoTracking()
@@ -364,23 +430,41 @@ public class InventoryRepository : IInventoryRepository
             .FirstOrDefaultAsync(ct);
 
         if (maintenanceStatus == null)
-            throw new KeyNotFoundException($"Không tìm thấy service order với ID = {maintenanceId}.");
+            throw new KeyNotFoundException(
+                $"Không tìm thấy service order với ID = {maintenanceId}."
+            );
 
-        if (maintenanceStatus.ToUpperInvariant() != "IN_PROGRESS")
-            throw new InvalidOperationException("Chỉ có thể tạo phiếu xuất phụ tùng dể sửa chữa khi đơn ở trạng thái Đang tiến hành (IN_PROGRESS).");
-        var hasPendingServiceItems = await _db.ServiceDetails.AnyAsync(sd => sd.MaintenanceID == maintenanceId && sd.ItemStatus == "PENDING", ct);
-        var hasPendingPartItems = await _db.ServicePartDetails.AnyAsync(spd => spd.MaintenanceID == maintenanceId && spd.ItemStatus == "PENDING", ct);
+        if (
+            maintenanceStatus.ToUpperInvariant() != "IN_PROGRESS"
+            && maintenanceStatus.ToUpperInvariant() != "PROCESS_ROADSIDE"
+            && maintenanceStatus.ToUpperInvariant() != "PROCESS_TOW"
+        )
+            throw new InvalidOperationException(
+                "Chỉ có thể tạo phiếu xuất phụ tùng dể sửa chữa khi đơn ở trạng thái Đang tiến hành (IN_PROGRESS)."
+            );
+        var hasPendingServiceItems = await _db.ServiceDetails.AnyAsync(
+            sd => sd.MaintenanceID == maintenanceId && sd.ItemStatus == "PENDING",
+            ct
+        );
+        var hasPendingPartItems = await _db.ServicePartDetails.AnyAsync(
+            spd => spd.MaintenanceID == maintenanceId && spd.ItemStatus == "PENDING",
+            ct
+        );
         if (hasPendingServiceItems || hasPendingPartItems)
         {
             throw new InvalidOperationException(
-                "Không thể tạo phiếu xuất khi còn hạng mục PENDING. Tất cả item phải ở trạng thái APPROVED hoặc REJECTED.");
+                "Không thể tạo phiếu xuất khi còn hạng mục PENDING. Tất cả item phải ở trạng thái APPROVED hoặc REJECTED."
+            );
         }
         var candidateParts = await _db.ServicePartDetails
-            .Where(spd => spd.MaintenanceID == maintenanceId
-                          && spd.ItemStatus == "APPROVED"
-                          && (spd.InventoryStatus == "PENDING" || spd.InventoryStatus == "RESERVED")
-                          && spd.ReservedTransferOrderID == null
-                          && spd.Quantity > spd.IssuedQuantity)
+            .Where(
+                spd =>
+                    spd.MaintenanceID == maintenanceId
+                    && spd.ItemStatus == "APPROVED"
+                    && (spd.InventoryStatus == "PENDING" || spd.InventoryStatus == "RESERVED")
+                    && spd.ReservedTransferOrderID == null
+                    && spd.Quantity > spd.IssuedQuantity
+            )
             .ToListAsync(ct);
 
         if (!candidateParts.Any())
@@ -408,14 +492,16 @@ public class InventoryRepository : IInventoryRepository
                 if (remainingQty <= 0)
                     continue;
 
-                _db.TransferOrderDetails.Add(new TransferOrderDetail
-                {
-                    TransferOrderID = transferOrder.TransferOrderID,
-                    ProductID = part.ProductID,
-                    Quantity = remainingQty,
-                    UnitPrice = part.UnitPrice,
-                    Notes = part.Notes
-                });
+                _db.TransferOrderDetails.Add(
+                    new TransferOrderDetail
+                    {
+                        TransferOrderID = transferOrder.TransferOrderID,
+                        ProductID = part.ProductID,
+                        Quantity = remainingQty,
+                        UnitPrice = part.UnitPrice,
+                        Notes = part.Notes
+                    }
+                );
 
                 part.ReservedTransferOrderID = transferOrder.TransferOrderID;
                 part.InventoryStatus = "RESERVED";
@@ -438,12 +524,13 @@ public class InventoryRepository : IInventoryRepository
         }
     }
 
-    public async Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(InventoryTransactionFilterDto filter, CancellationToken ct)
+    public async Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(
+        InventoryTransactionFilterDto filter,
+        CancellationToken ct
+    )
     {
         // 1. Khởi tạo Query (Nối bảng InventoryTransaction với bảng Product để lấy Tên & Mã)
-        var query = _db.InventoryTransactions
-            .Include(t => t.Product)
-            .AsQueryable();
+        var query = _db.InventoryTransactions.Include(t => t.Product).AsQueryable();
 
         // 2. Lọc động (Dynamic Filtering)
         if (filter.ProductId.HasValue)
@@ -466,20 +553,23 @@ public class InventoryRepository : IInventoryRepository
             .OrderByDescending(t => t.TransactionDate) // Luôn ưu tiên xếp giao dịch mới nhất lên đầu
             .Skip((filter.PageIndex - 1) * filter.PageSize)
             .Take(filter.PageSize)
-            .Select(t => new InventoryTransactionHistoryDto
-            {
-                TransactionID = t.TransactionID,
-                ProductID = t.ProductID,
-                ProductCode = t.Product != null ? t.Product.Code : "N/A",
-                ProductName = t.Product != null ? t.Product.Name : "N/A",
-                ReferenceID = t.ReferenceID,
-                TransactionType = t.TransactionType,
-                Quantity = t.Quantity,
-                Balance = t.Balance,
-                UnitCost = t.UnitCost,
-                TransactionDate = t.TransactionDate,
-                Note = t.Note
-            })
+            .Select(
+                t =>
+                    new InventoryTransactionHistoryDto
+                    {
+                        TransactionID = t.TransactionID,
+                        ProductID = t.ProductID,
+                        ProductCode = t.Product != null ? t.Product.Code : "N/A",
+                        ProductName = t.Product != null ? t.Product.Name : "N/A",
+                        ReferenceID = t.ReferenceID,
+                        TransactionType = t.TransactionType,
+                        Quantity = t.Quantity,
+                        Balance = t.Balance,
+                        UnitCost = t.UnitCost,
+                        TransactionDate = t.TransactionDate,
+                        Note = t.Note
+                    }
+            )
             .ToListAsync(ct);
 
         return new PaginatedResult<InventoryTransactionHistoryDto>
@@ -491,31 +581,44 @@ public class InventoryRepository : IInventoryRepository
         };
     }
 
-    public async Task AdjustStockAsync(int userId, InventoryAdjustmentDto request, CancellationToken ct)
+    public async Task AdjustStockAsync(
+        int userId,
+        InventoryAdjustmentDto request,
+        CancellationToken ct
+    )
     {
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
         try
         {
             if (request.ActualQuantity < 0)
-                throw new InvalidOperationException("Lỗi: Số lượng đếm thực tế (ActualQuantity) không thể là số âm.");
+                throw new InvalidOperationException(
+                    "Lỗi: Số lượng đếm thực tế (ActualQuantity) không thể là số âm."
+                );
 
             var user = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
             string fullName = user?.FullName ?? $"user {userId}";
 
-            var inventory = await _db.ProductInventories
-                .FirstOrDefaultAsync(i => i.ProductID == request.ProductId, ct);
+            var inventory = await _db.ProductInventories.FirstOrDefaultAsync(
+                i => i.ProductID == request.ProductId,
+                ct
+            );
 
             if (inventory == null)
-                throw new KeyNotFoundException($"Product with ID {request.ProductId} not found in inventory.");
+                throw new KeyNotFoundException(
+                    $"Product with ID {request.ProductId} not found in inventory."
+                );
 
             decimal currentQty = inventory.Quantity;
             decimal quantityChange = request.ActualQuantity - currentQty;
 
             if (quantityChange == 0)
-                throw new InvalidOperationException("Số lượng đếm thực tế bằng với số lượng hệ thống. Không có điều chỉnh nào được thực hiện.");
+                throw new InvalidOperationException(
+                    "Số lượng đếm thực tế bằng với số lượng hệ thống. Không có điều chỉnh nào được thực hiện."
+                );
 
             // 1. Tạo TransferOrder để lấy ReferenceID (tránh lỗi khóa ngoại FK ReferenceID)
-            string note = $"Kiểm kê vật lý bởi {fullName}. Điều chỉnh biên độ: {(quantityChange > 0 ? "+" : "")}{quantityChange}";
+            string note =
+                $"Kiểm kê vật lý bởi {fullName}. Điều chỉnh biên độ: {(quantityChange > 0 ? "+" : "")}{quantityChange}";
 
             var transferOrder = new TransferOrder
             {
@@ -530,14 +633,16 @@ public class InventoryRepository : IInventoryRepository
             await _db.SaveChangesAsync(ct); // Insert để lấy ID
 
             // 2. Lưu chi tiết phiếu (giúp minh bạch hơn)
-            _db.TransferOrderDetails.Add(new TransferOrderDetail
-            {
-                TransferOrderID = transferOrder.TransferOrderID,
-                ProductID = request.ProductId,
-                Quantity = Math.Abs(quantityChange), // Chi tiết phiếu lưu số lượng tuyệt đối
-                UnitPrice = inventory.AverageCost, // Lấy giá xuất bằng giá vốn bình quân (MAC)
-                Notes = note
-            });
+            _db.TransferOrderDetails.Add(
+                new TransferOrderDetail
+                {
+                    TransferOrderID = transferOrder.TransferOrderID,
+                    ProductID = request.ProductId,
+                    Quantity = Math.Abs(quantityChange), // Chi tiết phiếu lưu số lượng tuyệt đối
+                    UnitPrice = inventory.AverageCost, // Lấy giá xuất bằng giá vốn bình quân (MAC)
+                    Notes = note
+                }
+            );
 
             // 3. Cập nhật Tồn kho
             inventory.Quantity += quantityChange;
@@ -581,10 +686,27 @@ public class InventoryRepository : IInventoryRepository
             {
                 var ledgerSum = await _db.InventoryTransactions
                     .Where(t => t.ProductID == inv.ProductID)
-                    .SumAsync(t =>
-                        (t.TransactionType == "GOODS_RECEIPT" || t.TransactionType == "IN" || t.TransactionType == "RETURN" || t.TransactionType == "ADJUST_IN") ? t.Quantity :
-                        (t.TransactionType == "ISSUE" || t.TransactionType == "OUT" || t.TransactionType == "WRITE_OFF" || t.TransactionType == "ADJUST_OUT") ? -t.Quantity :
-                        t.TransactionType == "ADJUST" ? t.Quantity : 0, ct);
+                    .SumAsync(
+                        t =>
+                            (
+                                t.TransactionType == "GOODS_RECEIPT"
+                                || t.TransactionType == "IN"
+                                || t.TransactionType == "RETURN"
+                                || t.TransactionType == "ADJUST_IN"
+                            )
+                                ? t.Quantity
+                                : (
+                                    t.TransactionType == "ISSUE"
+                                    || t.TransactionType == "OUT"
+                                    || t.TransactionType == "WRITE_OFF"
+                                    || t.TransactionType == "ADJUST_OUT"
+                                )
+                                    ? -t.Quantity
+                                    : t.TransactionType == "ADJUST"
+                                        ? t.Quantity
+                                        : 0,
+                        ct
+                    );
 
                 if (inv.Quantity != ledgerSum)
                 {
@@ -608,56 +730,84 @@ public class InventoryRepository : IInventoryRepository
     // API 1: Kỹ thuật viên xem danh sách phiếu xuất kho của mình
     // Logic: Lọc TransferOrder qua RelatedMaintenance.AssignedTechnicianID == technicianUserId
     // ============================================================
-    public async Task<List<MyTransferOrderDto>> GetMyTransferOrdersAsync(int technicianUserId, CancellationToken ct)
+    public async Task<List<MyTransferOrderDto>> GetMyTransferOrdersAsync(
+        int technicianUserId,
+        CancellationToken ct
+    )
     {
         var result = await _db.TransferOrders
-            .Where(to => to.Type == "ISSUE"
-                      && to.RelatedMaintenanceID != null
-                      && to.RelatedMaintenance != null
-                      && to.RelatedMaintenance.AssignedTechnicianID == technicianUserId)
+            .Where(
+                to =>
+                    to.Type == "ISSUE"
+                    && to.RelatedMaintenanceID != null
+                    && to.RelatedMaintenance != null
+                    && to.RelatedMaintenance.AssignedTechnicianID == technicianUserId
+            )
             .Include(to => to.RelatedMaintenance)
-                .ThenInclude(m => m!.Car)
+            .ThenInclude(m => m!.Car)
             .Include(to => to.TransferOrderDetails)
-                .ThenInclude(d => d.Product)   // <<< Thêm để lấy Product.Code, Product.Name
+            .ThenInclude(d => d.Product) // <<< Thêm để lấy Product.Code, Product.Name
             .OrderByDescending(to => to.DocumentDate)
-            .Select(to => new MyTransferOrderDto
-            {
-                TransferOrderID   = to.TransferOrderID,
-                Status            = to.Status,
-                Note              = to.Note,
-                DocumentDate      = to.DocumentDate,
-                CreatedDate       = to.CreatedDate,
-                // Thông tin đơn sửa chữa
-                MaintenanceID     = to.RelatedMaintenanceID,
-                MaintenanceStatus = to.RelatedMaintenance != null ? to.RelatedMaintenance.Status : string.Empty,
-                // Thông tin xe
-                CarLicensePlate   = to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
-                                        ? to.RelatedMaintenance.Car.LicensePlate : null,
-                CarModel          = to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
-                                        ? to.RelatedMaintenance.Car.Model : null,
-                CarBrand          = to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
-                                        ? to.RelatedMaintenance.Car.Brand : null,
-                // Tổng số dòng (badge hiển thị nhanh)
-                ItemCount         = to.TransferOrderDetails.Count,
-                // Chi tiết từng linh kiện (tech cần biết xuất cái gì, số lượng bao nhiêu)
-                Details = to.TransferOrderDetails.Select(d => new TransferOrderDetailItemDto
-                {
-                    OrderDetailID = d.OrderDetailID,
-                    ProductID     = d.ProductID,
-                    ProductCode   = d.Product != null ? d.Product.Code : "N/A",
-                    ProductName   = d.Product != null ? d.Product.Name : "N/A",
-                    Quantity      = d.Quantity,
-                    UnitPrice     = d.UnitPrice,
-                    InventoryStatus = to.RelatedMaintenanceID.HasValue
-                        ? _db.ServicePartDetails
-                            .Where(sp => sp.MaintenanceID == to.RelatedMaintenanceID.Value && sp.ProductID == d.ProductID)
-                            .OrderByDescending(sp => sp.ServicePartDetailID)
-                            .Select(sp => sp.InventoryStatus)
-                            .FirstOrDefault()
-                        : null,
-                    Notes         = d.Notes
-                }).ToList()
-            })
+            .Select(
+                to =>
+                    new MyTransferOrderDto
+                    {
+                        TransferOrderID = to.TransferOrderID,
+                        Status = to.Status,
+                        Note = to.Note,
+                        DocumentDate = to.DocumentDate,
+                        CreatedDate = to.CreatedDate,
+                        // Thông tin đơn sửa chữa
+                        MaintenanceID = to.RelatedMaintenanceID,
+                        MaintenanceStatus =
+                            to.RelatedMaintenance != null
+                                ? to.RelatedMaintenance.Status
+                                : string.Empty,
+                        // Thông tin xe
+                        CarLicensePlate =
+                            to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
+                                ? to.RelatedMaintenance.Car.LicensePlate
+                                : null,
+                        CarModel =
+                            to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
+                                ? to.RelatedMaintenance.Car.Model
+                                : null,
+                        CarBrand =
+                            to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
+                                ? to.RelatedMaintenance.Car.Brand
+                                : null,
+                        // Tổng số dòng (badge hiển thị nhanh)
+                        ItemCount = to.TransferOrderDetails.Count,
+                        // Chi tiết từng linh kiện (tech cần biết xuất cái gì, số lượng bao nhiêu)
+                        Details = to.TransferOrderDetails
+                            .Select(
+                                d =>
+                                    new TransferOrderDetailItemDto
+                                    {
+                                        OrderDetailID = d.OrderDetailID,
+                                        ProductID = d.ProductID,
+                                        ProductCode = d.Product != null ? d.Product.Code : "N/A",
+                                        ProductName = d.Product != null ? d.Product.Name : "N/A",
+                                        Quantity = d.Quantity,
+                                        UnitPrice = d.UnitPrice,
+                                        InventoryStatus = to.RelatedMaintenanceID.HasValue
+                                            ? _db.ServicePartDetails
+                                                .Where(
+                                                    sp =>
+                                                        sp.MaintenanceID
+                                                            == to.RelatedMaintenanceID.Value
+                                                        && sp.ProductID == d.ProductID
+                                                )
+                                                .OrderByDescending(sp => sp.ServicePartDetailID)
+                                                .Select(sp => sp.InventoryStatus)
+                                                .FirstOrDefault()
+                                            : null,
+                                        Notes = d.Notes
+                                    }
+                            )
+                            .ToList()
+                    }
+            )
             .ToListAsync(ct);
 
         return result;
@@ -667,19 +817,20 @@ public class InventoryRepository : IInventoryRepository
     // API 2: Admin/SA xem toàn bộ Transfer Order kèm chi tiết linh kiện
     // Hỗ trợ filter theo Type, Status, MaintenanceId, TechnicianId và phân trang
     // ============================================================
-    public async Task<PaginatedResult<TransferOrderWithDetailsDto>> GetAllTransferOrdersWithDetailsAsync(
-        TransferOrderFilterDto filter, CancellationToken ct)
+    public async Task<
+        PaginatedResult<TransferOrderWithDetailsDto>
+    > GetAllTransferOrdersWithDetailsAsync(TransferOrderFilterDto filter, CancellationToken ct)
     {
         // 1. Khởi tạo query gốc với các Include cần thiết
         var query = _db.TransferOrders
             .Include(to => to.TransferOrderDetails)
-                .ThenInclude(d => d.Product)
+            .ThenInclude(d => d.Product)
             .Include(to => to.CreateByNavigation)
             .Include(to => to.ApprovedByNavigation)
             .Include(to => to.RelatedMaintenance)
-                .ThenInclude(m => m!.AssignedTechnician)
+            .ThenInclude(m => m!.AssignedTechnician)
             .Include(to => to.RelatedMaintenance)
-                .ThenInclude(m => m!.Car)
+            .ThenInclude(m => m!.Car)
             .AsQueryable();
 
         // 2. Lọc động theo filter
@@ -693,8 +844,11 @@ public class InventoryRepository : IInventoryRepository
             query = query.Where(to => to.RelatedMaintenanceID == filter.MaintenanceId.Value);
 
         if (filter.TechnicianId.HasValue)
-            query = query.Where(to => to.RelatedMaintenance != null
-                                   && to.RelatedMaintenance.AssignedTechnicianID == filter.TechnicianId.Value);
+            query = query.Where(
+                to =>
+                    to.RelatedMaintenance != null
+                    && to.RelatedMaintenance.AssignedTechnicianID == filter.TechnicianId.Value
+            );
 
         // 3. Đếm tổng (phục vụ phân trang)
         int totalCount = await query.CountAsync(ct);
@@ -704,59 +858,87 @@ public class InventoryRepository : IInventoryRepository
             .OrderByDescending(to => to.DocumentDate)
             .Skip((filter.PageIndex - 1) * filter.PageSize)
             .Take(filter.PageSize)
-            .Select(to => new TransferOrderWithDetailsDto
-            {
-                TransferOrderID   = to.TransferOrderID,
-                Type              = to.Type,
-                Status            = to.Status,
-                Note              = to.Note,
-                DocumentDate      = to.DocumentDate,
-                CreatedDate       = to.CreatedDate,
-                // Người tạo
-                CreateByUserId    = to.CreateBy,
-                CreatedByName     = to.CreateByNavigation != null ? to.CreateByNavigation.FullName : "N/A",
-                // Người duyệt (nếu có)
-                ApprovedByUserId  = to.ApprovedBy,
-                ApprovedByName    = to.ApprovedByNavigation != null ? to.ApprovedByNavigation.FullName : null,
-                // Thông tin đơn sửa chữa
-                MaintenanceID     = to.RelatedMaintenanceID,
-                MaintenanceStatus = to.RelatedMaintenance != null ? to.RelatedMaintenance.Status : null,
-                // Kỹ thuật viên
-                TechnicianID      = to.RelatedMaintenance != null ? to.RelatedMaintenance.AssignedTechnicianID : null,
-                TechnicianName    = to.RelatedMaintenance != null && to.RelatedMaintenance.AssignedTechnician != null
-                                        ? to.RelatedMaintenance.AssignedTechnician.FullName : null,
-                // Thông tin xe
-                CarLicensePlate   = to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
-                                        ? to.RelatedMaintenance.Car.LicensePlate : null,
-                CarModel          = to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
-                                        ? to.RelatedMaintenance.Car.Model : null,
-                // Chi tiết linh kiện
-                Details = to.TransferOrderDetails.Select(d => new TransferOrderDetailItemDto
-                {
-                    OrderDetailID = d.OrderDetailID,
-                    ProductID     = d.ProductID,
-                    ProductCode   = d.Product != null ? d.Product.Code : "N/A",
-                    ProductName   = d.Product != null ? d.Product.Name : "N/A",
-                    Quantity      = d.Quantity,
-                    UnitPrice     = d.UnitPrice,
-                    InventoryStatus = to.RelatedMaintenanceID.HasValue
-                        ? _db.ServicePartDetails
-                            .Where(sp => sp.MaintenanceID == to.RelatedMaintenanceID.Value && sp.ProductID == d.ProductID)
-                            .OrderByDescending(sp => sp.ServicePartDetailID)
-                            .Select(sp => sp.InventoryStatus)
-                            .FirstOrDefault()
-                        : null,
-                    Notes         = d.Notes
-                }).ToList()
-            })
+            .Select(
+                to =>
+                    new TransferOrderWithDetailsDto
+                    {
+                        TransferOrderID = to.TransferOrderID,
+                        Type = to.Type,
+                        Status = to.Status,
+                        Note = to.Note,
+                        DocumentDate = to.DocumentDate,
+                        CreatedDate = to.CreatedDate,
+                        // Người tạo
+                        CreateByUserId = to.CreateBy,
+                        CreatedByName =
+                            to.CreateByNavigation != null ? to.CreateByNavigation.FullName : "N/A",
+                        // Người duyệt (nếu có)
+                        ApprovedByUserId = to.ApprovedBy,
+                        ApprovedByName =
+                            to.ApprovedByNavigation != null
+                                ? to.ApprovedByNavigation.FullName
+                                : null,
+                        // Thông tin đơn sửa chữa
+                        MaintenanceID = to.RelatedMaintenanceID,
+                        MaintenanceStatus =
+                            to.RelatedMaintenance != null ? to.RelatedMaintenance.Status : null,
+                        // Kỹ thuật viên
+                        TechnicianID =
+                            to.RelatedMaintenance != null
+                                ? to.RelatedMaintenance.AssignedTechnicianID
+                                : null,
+                        TechnicianName =
+                            to.RelatedMaintenance != null
+                            && to.RelatedMaintenance.AssignedTechnician != null
+                                ? to.RelatedMaintenance.AssignedTechnician.FullName
+                                : null,
+                        // Thông tin xe
+                        CarLicensePlate =
+                            to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
+                                ? to.RelatedMaintenance.Car.LicensePlate
+                                : null,
+                        CarModel =
+                            to.RelatedMaintenance != null && to.RelatedMaintenance.Car != null
+                                ? to.RelatedMaintenance.Car.Model
+                                : null,
+                        // Chi tiết linh kiện
+                        Details = to.TransferOrderDetails
+                            .Select(
+                                d =>
+                                    new TransferOrderDetailItemDto
+                                    {
+                                        OrderDetailID = d.OrderDetailID,
+                                        ProductID = d.ProductID,
+                                        ProductCode = d.Product != null ? d.Product.Code : "N/A",
+                                        ProductName = d.Product != null ? d.Product.Name : "N/A",
+                                        Quantity = d.Quantity,
+                                        UnitPrice = d.UnitPrice,
+                                        InventoryStatus = to.RelatedMaintenanceID.HasValue
+                                            ? _db.ServicePartDetails
+                                                .Where(
+                                                    sp =>
+                                                        sp.MaintenanceID
+                                                            == to.RelatedMaintenanceID.Value
+                                                        && sp.ProductID == d.ProductID
+                                                )
+                                                .OrderByDescending(sp => sp.ServicePartDetailID)
+                                                .Select(sp => sp.InventoryStatus)
+                                                .FirstOrDefault()
+                                            : null,
+                                        Notes = d.Notes
+                                    }
+                            )
+                            .ToList()
+                    }
+            )
             .ToListAsync(ct);
 
         return new PaginatedResult<TransferOrderWithDetailsDto>
         {
-            TotalCount   = totalCount,
-            TotalPages   = (int)Math.Ceiling(totalCount / (double)filter.PageSize),
-            CurrentPage  = filter.PageIndex,
-            Items        = items
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)filter.PageSize),
+            CurrentPage = filter.PageIndex,
+            Items = items
         };
     }
 }
