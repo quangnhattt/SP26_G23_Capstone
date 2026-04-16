@@ -437,13 +437,34 @@ public class RescueRequestService : IRescueRequestService
         if (tech.IsOnRescueMission)
             throw new ArgumentException("Kỹ thuật viên đang trong một nhiệm vụ cứu hộ khác.");
 
-        rescue.AssignedTechnicianID = request.TechnicianId;
-        rescue.EstimatedArrivalDateTime = request.EstimatedArrivalDateTime;
-        rescue.Status = RescueStatus.EnRoute;
-        await _rescueRepo.UpdateAsync(rescue, ct);
+        await _transactionManager.ExecuteInTransactionAsync(
+            async token =>
+            {
+                rescue.AssignedTechnicianID = request.TechnicianId;
+                rescue.EstimatedArrivalDateTime = request.EstimatedArrivalDateTime;
+                rescue.Status = RescueStatus.EnRoute;
+                await _rescueRepo.UpdateAsync(rescue, token);
 
-        // Đặt trước kỹ thuật viên (SMC10)
-        await _userRepo.SetOnRescueMissionAsync(request.TechnicianId, true, ct);
+                if (rescue.ResultingMaintenanceID.HasValue)
+                {
+                    var maintenance =
+                        await _rescueRepo.GetMaintenanceByIdAsync(
+                            rescue.ResultingMaintenanceID.Value,
+                            token
+                        )
+                        ?? throw new InvalidOperationException(
+                            "Repair Order liên kết không tồn tại."
+                        );
+
+                    maintenance.AssignedTechnicianID = request.TechnicianId;
+                    await _rescueRepo.UpdateMaintenanceAsync(maintenance, token);
+                }
+
+                // Đặt trước kỹ thuật viên (SMC10)
+                await _userRepo.SetOnRescueMissionAsync(request.TechnicianId, true, token);
+            },
+            ct
+        );
 
         var updated =
             await _rescueRepo.GetByIdAsync(rescueId, ct)
