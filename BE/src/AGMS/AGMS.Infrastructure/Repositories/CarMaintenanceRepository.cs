@@ -24,10 +24,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             .AsNoTracking()
             .Include(m => m.Car).ThenInclude(c => c.Owner)
             .Include(m => m.AssignedTechnician)
-            .Where(m =>
-                m.Status != "RECEIVED" &&
-                m.Status != "PROCESS_ROADSIDE" &&
-                m.Status != "PROCESS_TOW")
+            .Where(m => m.Status != "RECEIVED")
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query.MaintenanceType))
