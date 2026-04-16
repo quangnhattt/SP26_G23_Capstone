@@ -22,7 +22,6 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<InventoryTransaction> InventoryTransactions { get; set; }
 
-    public virtual DbSet<MaintenanceMedium> MaintenanceMedia { get; set; }
 
     public virtual DbSet<MaintenancePackage> MaintenancePackages { get; set; }
 
@@ -34,7 +33,6 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<MembershipRank> MembershipRanks { get; set; }
 
-    public virtual DbSet<Notification> Notifications { get; set; }
 
     public virtual DbSet<PaymentTransaction> PaymentTransactions { get; set; }
 
@@ -46,7 +44,6 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<ProductInventory> ProductInventories { get; set; }
 
-    public virtual DbSet<ProductItem> ProductItems { get; set; }
 
     public virtual DbSet<RescueRequest> RescueRequests { get; set; }
 
@@ -56,14 +53,12 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<ServiceDetail> ServiceDetails { get; set; }
 
-    public virtual DbSet<ServiceEvaluation> ServiceEvaluations { get; set; }
 
     public virtual DbSet<ServicePartDetail> ServicePartDetails { get; set; }
 
     public virtual DbSet<Supplier> Suppliers { get; set; }
 
     public virtual DbSet<SupplierProduct> SupplierProducts { get; set; }
-
     public virtual DbSet<TokenForgetPassword> TokenForgetPasswords { get; set; }
 
     public virtual DbSet<TransferOrder> TransferOrders { get; set; }
@@ -76,7 +71,7 @@ public partial class CarServiceDbContext : DbContext
 
     public virtual DbSet<VerificationCode> VerificationCodes { get; set; }
 
-    public virtual DbSet<WarrantyClaim> WarrantyClaims { get; set; }
+
 
     public virtual DbSet<VehicleIntakeCondition> VehicleIntakeConditions { get; set; }
 
@@ -233,23 +228,6 @@ public partial class CarServiceDbContext : DbContext
                 .HasConstraintName("FK_InvTrans_TO");
         });
 
-        modelBuilder.Entity<MaintenanceMedium>(entity =>
-        {
-            entity.HasKey(e => e.MediaID).HasName("PK__Maintena__B2C2B5AF1F9E1C0F");
-
-            entity.Property(e => e.Description).HasMaxLength(255);
-            entity.Property(e => e.Type).HasMaxLength(50);
-            entity.Property(e => e.UploadedDate).HasDefaultValueSql("(sysutcdatetime())");
-
-            entity.HasOne(d => d.Maintenance).WithMany(p => p.MaintenanceMedia)
-                .HasForeignKey(d => d.MaintenanceID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Media_Maintenance");
-
-            entity.HasOne(d => d.UploadedByNavigation).WithMany(p => p.MaintenanceMedia)
-                .HasForeignKey(d => d.UploadedBy)
-                .HasConstraintName("FK_Media_Uploader");
-        });
 
         modelBuilder.Entity<MaintenancePackage>(entity =>
         {
@@ -355,19 +333,6 @@ public partial class CarServiceDbContext : DbContext
             entity.Property(e => e.RankName).HasMaxLength(50);
         });
 
-        modelBuilder.Entity<Notification>(entity =>
-        {
-            entity.HasKey(e => e.NotificationID).HasName("PK__Notifica__20CF2E3299AFE616");
-
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.Title).HasMaxLength(200);
-            entity.Property(e => e.Type).HasMaxLength(50);
-
-            entity.HasOne(d => d.User).WithMany(p => p.Notifications)
-                .HasForeignKey(d => d.UserID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Notifications_User");
-        });
 
         modelBuilder.Entity<PaymentTransaction>(entity =>
         {
@@ -506,17 +471,6 @@ public partial class CarServiceDbContext : DbContext
                 .HasConstraintName("FK_ProductInventory_Product");
         });
 
-        modelBuilder.Entity<ProductItem>(entity =>
-        {
-            entity.HasKey(e => e.ProductItemID).HasName("PK__ProductI__1373AD20C27C0679");
-            entity.ToTable("ProductItems");
-            entity.Property(e => e.SerialNumber).HasMaxLength(100);
-            entity.Property(e => e.Status).HasMaxLength(20);
-            entity.HasOne(d => d.Product).WithMany(p => p.ProductItems)
-                .HasForeignKey(d => d.ProductID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductItems_Product");
-        });
 
         modelBuilder.Entity<RescueRequest>(entity =>
         {
@@ -643,23 +597,6 @@ public partial class CarServiceDbContext : DbContext
                 .HasConstraintName("FK_Svc_Product");
         });
 
-        modelBuilder.Entity<ServiceEvaluation>(entity =>
-        {
-            entity.HasKey(e => e.EvaluationID).HasName("PK__ServiceE__36AE68D332289D6D");
-
-            entity.Property(e => e.Comments).HasMaxLength(1000);
-            entity.Property(e => e.CreatedDate).HasDefaultValueSql("(sysutcdatetime())");
-
-            entity.HasOne(d => d.Customer).WithMany(p => p.ServiceEvaluations)
-                .HasForeignKey(d => d.CustomerID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Eval_Customer");
-
-            entity.HasOne(d => d.Maintenance).WithMany(p => p.ServiceEvaluations)
-                .HasForeignKey(d => d.MaintenanceID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Eval_Maintenance");
-        });
 
         modelBuilder.Entity<ServicePartDetail>(entity =>
         {
@@ -866,43 +803,6 @@ public partial class CarServiceDbContext : DbContext
                 .HasMaxLength(20)
                 .HasDefaultValue("REGISTER");
         });
-
-        modelBuilder.Entity<WarrantyClaim>(entity =>
-        {
-            entity.HasKey(e => e.ClaimID).HasName("PK__Warranty__EF2E13BB013C0BAD");
-
-            entity.Property(e => e.ClaimDate).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.Status)
-                .HasMaxLength(50)
-                .HasDefaultValue("PENDING");
-
-            entity.HasOne(d => d.Advisor).WithMany(p => p.WarrantyClaims)
-                .HasForeignKey(d => d.AdvisorID)
-                .HasConstraintName("FK_WC_Advisor");
-
-            entity.HasOne(d => d.Car).WithMany(p => p.WarrantyClaims)
-                .HasForeignKey(d => d.CarID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WC_Car");
-
-            entity.HasOne(d => d.OriginalMaintenance).WithMany(p => p.WarrantyClaimOriginalMaintenances)
-                .HasForeignKey(d => d.OriginalMaintenanceID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_WC_OriginalMaintenance");
-
-            entity.HasOne(d => d.OriginalServiceDetail).WithMany(p => p.WarrantyClaims)
-                .HasForeignKey(d => d.OriginalServiceDetailID)
-                .HasConstraintName("FK_WC_ServiceDetail");
-
-            entity.HasOne(d => d.OriginalServicePartDetail).WithMany(p => p.WarrantyClaims)
-                .HasForeignKey(d => d.OriginalServicePartDetailID)
-                .HasConstraintName("FK_WC_ServicePartDetail");
-
-            entity.HasOne(d => d.ResultingMaintenance).WithMany(p => p.WarrantyClaimResultingMaintenances)
-                .HasForeignKey(d => d.ResultingMaintenanceID)
-                .HasConstraintName("FK_WC_ResultingMaintenance");
-        });
-
         modelBuilder.Entity<VehicleIntakeCondition>(entity =>
         {
             entity.ToTable("VehicleIntakeCondition");

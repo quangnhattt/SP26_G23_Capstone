@@ -28,16 +28,12 @@ public class CarMaintenance
     public virtual ServiceBay? Bay { get; set; }
     public virtual Car Car { get; set; } = null!;
     public virtual User CreatedByNavigation { get; set; } = null!;
-    public virtual ICollection<MaintenanceMedium> MaintenanceMedia { get; set; } = new List<MaintenanceMedium>();
     public virtual ICollection<MaintenancePackageUsage> MaintenancePackageUsages { get; set; } = new List<MaintenancePackageUsage>();
     public virtual ICollection<MaintenanceStatusLog> MaintenanceStatusLogs { get; set; } = new List<MaintenanceStatusLog>();
     public virtual ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
     public virtual ICollection<RescueRequest> RescueRequests { get; set; } = new List<RescueRequest>();
     public virtual ICollection<ServiceDetail> ServiceDetails { get; set; } = new List<ServiceDetail>();
-    public virtual ICollection<ServiceEvaluation> ServiceEvaluations { get; set; } = new List<ServiceEvaluation>();
     public virtual ICollection<ServicePartDetail> ServicePartDetails { get; set; } = new List<ServicePartDetail>();
     public virtual ICollection<TransferOrder> TransferOrders { get; set; } = new List<TransferOrder>();
     public virtual ICollection<VehicleIntakeCondition> VehicleIntakeConditions { get; set; } = new List<VehicleIntakeCondition>();
-    public virtual ICollection<WarrantyClaim> WarrantyClaimOriginalMaintenances { get; set; } = new List<WarrantyClaim>();
-    public virtual ICollection<WarrantyClaim> WarrantyClaimResultingMaintenances { get; set; } = new List<WarrantyClaim>();
 }

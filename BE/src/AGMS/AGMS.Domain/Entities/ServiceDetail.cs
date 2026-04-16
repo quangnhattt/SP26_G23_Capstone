@@ -17,5 +17,4 @@ public class ServiceDetail
     public virtual CarMaintenance Maintenance { get; set; } = null!;
     public virtual MaintenancePackage? Package { get; set; }
     public virtual Product Product { get; set; } = null!;
-    public virtual ICollection<WarrantyClaim> WarrantyClaims { get; set; } = new List<WarrantyClaim>();
 }
