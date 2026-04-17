@@ -13,16 +13,13 @@ namespace AGMS.WebApi.Controllers;
 public class AppointmentsController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
-    private readonly IAppointmentRepository _appointmentRepo;
     private readonly IRepairRequestService _repairRequestService;
 
     public AppointmentsController(
         IAppointmentService appointmentService,
-        IAppointmentRepository appointmentRepo,
         IRepairRequestService repairRequestService)
     {
         _appointmentService = appointmentService;
-        _appointmentRepo = appointmentRepo;
         _repairRequestService = repairRequestService;
     }
 
@@ -70,7 +67,7 @@ public class AppointmentsController : ControllerBase
         var (userId, error) = ExtractUserId();
         if (error != null) return error;
 
-        var roleId = await _appointmentRepo.GetUserRoleIdAsync(userId, ct);
+        var roleId = await _appointmentService.GetUserRoleIdAsync(userId, ct);
         bool canSeeAll = (roleId == 1 || roleId == 2);
 
         var items = await _appointmentService.GetListAsync(userId, canSeeAll, filter, ct);
@@ -87,7 +84,7 @@ public class AppointmentsController : ControllerBase
         var (userId, error) = ExtractUserId();
         if (error != null) return error;
 
-        var roleId = await _appointmentRepo.GetUserRoleIdAsync(userId, ct);
+        var roleId = await _appointmentService.GetUserRoleIdAsync(userId, ct);
         bool canSeeAll = (roleId == 1 || roleId == 2);
         var detail = await _appointmentService.GetDetailAsync(id, userId, canSeeAll, ct);
 
@@ -108,7 +105,7 @@ public class AppointmentsController : ControllerBase
     // RoleID == 2 → Service Advisor
     private async Task<bool> IsServiceAdvisorAsync(int userId, CancellationToken ct)
     {
-        var roleId = await _appointmentRepo.GetUserRoleIdAsync(userId, ct);
+        var roleId = await _appointmentService.GetUserRoleIdAsync(userId, ct);
         return roleId == 2;
     }
     [HttpPost("{id:int}/reject")]

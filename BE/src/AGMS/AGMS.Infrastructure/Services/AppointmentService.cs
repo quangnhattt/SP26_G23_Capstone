@@ -192,4 +192,8 @@ public class AppointmentService : IAppointmentService
 
         await _repo.CheckInAsync(appointmentId, currentUserId, ct);
     }
+    public async Task<int?> GetUserRoleIdAsync(int userId, CancellationToken ct)
+    {
+        return await _repo.GetUserRoleIdAsync(userId, ct);
+    }
 }
