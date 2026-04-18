@@ -763,7 +763,7 @@ public class InventoryRepository : IInventoryRepository
         }
     }
 
-    public async Task<List<int>> AutoDetectAndCreateSurplusReturnsAsync(int processedByUserId, CancellationToken ct)
+    public async Task<(List<int> DraftIds, List<string> Errors)> AutoDetectAndCreateSurplusReturnsAsync(int processedByUserId, CancellationToken ct)
     {
         // Chỉ lấy những ca đã có xuất kho thực sự để đối soát
         var candidateMaintenanceIdsFromParts = await _db.ServicePartDetails
@@ -805,12 +805,7 @@ public class InventoryRepository : IInventoryRepository
             }
         }
 
-        if (errors.Any() && !createdDraftIds.Any())
-        {
-            throw new Exception("Hệ thống quét không ra linh kiện dư được cấp phép do kẹt dữ liệu: " + string.Join(" | ", errors));
-        }
-
-        return createdDraftIds;
+        return (createdDraftIds, errors);
     }
 
     // ============================================================
