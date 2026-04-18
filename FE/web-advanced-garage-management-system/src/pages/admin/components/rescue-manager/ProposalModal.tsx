@@ -47,7 +47,6 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
   const [proposalType, setProposalType] = useState<
     "ROADSIDE" | "TOWING" | null
   >(null);
-  const [proposalNote, setProposalNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const [services, setServices] = useState<IService[]>([]);
