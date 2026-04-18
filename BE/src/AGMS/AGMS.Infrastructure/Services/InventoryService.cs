@@ -52,7 +52,7 @@ namespace AGMS.Infrastructure.Services
             return await _inventoryRepo.CreateSurplusReturnDraftAsync(maintenanceId, processedByUserId, ct);
         }
 
-        public async Task<List<int>> AutoDetectAndCreateSurplusReturnsAsync(int processedByUserId, CancellationToken ct)
+        public async Task<(List<int> DraftIds, List<string> Errors)> AutoDetectAndCreateSurplusReturnsAsync(int processedByUserId, CancellationToken ct)
         {
             return await _inventoryRepo.AutoDetectAndCreateSurplusReturnsAsync(processedByUserId, ct);
         }

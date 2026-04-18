@@ -248,16 +248,26 @@ namespace AGMS.WebApi.Controllers
                 if (!int.TryParse(userIdClaim, out int loggedInUserId))
                     return Unauthorized(new { message = "Token không hợp lệ." });
 
-                var transferOrderIds = await _inventoryService.AutoDetectAndCreateSurplusReturnsAsync(loggedInUserId, ct);
+                var scanResult = await _inventoryService.AutoDetectAndCreateSurplusReturnsAsync(loggedInUserId, ct);
 
-                if (!transferOrderIds.Any())
+                if (!scanResult.DraftIds.Any() && !scanResult.Errors.Any())
                 {
                     return Ok(new { message = "Hệ thống đã quét và không tìm thấy linh kiện nào dư thừa." });
                 }
 
+                if (!scanResult.DraftIds.Any() && scanResult.Errors.Any())
+                {
+                    return Ok(new { 
+                        message = "Không thể tạo phiếu nháp nào do dữ liệu hiện tại có bất thường.", 
+                        warning = "Có một số ca cứu hộ bị lỗi lệch dữ liệu thực tế so với sổ cái.",
+                        errors = scanResult.Errors
+                    });
+                }
+
                 return Ok(new { 
-                    message = $"Đã tự động lên {transferOrderIds.Count} phiếu nháp yêu cầu hoàn trả linh kiện dư!", 
-                    transferOrderIds
+                    message = $"Đã tự động lên {scanResult.DraftIds.Count} phiếu nháp yêu cầu hoàn trả linh kiện dư!", 
+                    transferOrderIds = scanResult.DraftIds,
+                    errors = scanResult.Errors.Any() ? scanResult.Errors : null
                 });
             }
             catch (Exception ex)
