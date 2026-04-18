@@ -406,11 +406,17 @@ const AppointmentsPage = () => {
         (s, i) => s + Number(i.lineTotal ?? i.unitPrice * i.quantity),
         0,
       );
-      // const serviceFeeNum = Number(detail.serviceFee ?? 0); // TODO: tạm ẩn
+      const serviceFeeNum = Number(detail.serviceFee ?? 0);
       const total = detail.invoice?.total != null
         ? Number(detail.invoice.total)
-        : repairSubtotal;
-      if (total > 0) setPaymentAmount(String(total));
+        : serviceFeeNum > 0
+          ? serviceFeeNum
+          : repairSubtotal;
+      const depositAmount = Number(detail.depositAmount ?? 0);
+      const requiresDeposit =
+        detail.requiresDeposit === true || depositAmount > 0;
+      const payable = requiresDeposit ? Math.max(total - depositAmount, 0) : total;
+      setPaymentAmount(String(payable));
     } catch (error) {
       toast.error(getApiErrorMessage(error, t("errorOccurred")));
     } finally {
@@ -1357,6 +1363,39 @@ const AppointmentsPage = () => {
 
               {/* ── Payment form ── */}
               <div style={{ borderTop: "2px dashed #e5e7eb", marginTop: "1.25rem", paddingTop: "1.25rem" }}>
+                {(() => {
+                  const repairSubtotal = (invoiceModalRescue.repairItems ?? []).reduce(
+                    (s, i) => s + Number(i.lineTotal ?? i.totalPrice ?? i.unitPrice * i.quantity),
+                    0,
+                  );
+                  const total = Number(
+                    invoiceModalRescue.invoice?.total ??
+                      invoiceModalRescue.serviceFee ??
+                      repairSubtotal,
+                  );
+                  const depositAmount = Number(invoiceModalRescue.depositAmount ?? 0);
+                  const requiresDeposit =
+                    invoiceModalRescue.requiresDeposit === true || depositAmount > 0;
+                  if (!requiresDeposit) return null;
+                  const refundAmount = Math.max(depositAmount - total, 0);
+                  const payableAmount = Math.max(total - depositAmount, 0);
+                  return (
+                    <div style={{ marginBottom: "0.875rem" }}>
+                      <FormLabel>{t("rescuePaymentDepositAmountLabel")}</FormLabel>
+                      <FormInput type="number" value={depositAmount} readOnly />
+                      <div style={{ marginTop: "0.375rem", fontSize: "0.8125rem", color: "#1d4ed8", fontWeight: 600 }}>
+                        {refundAmount > 0
+                          ? t("rescuePaymentRefundHint", {
+                              amount: refundAmount.toLocaleString("vi-VN"),
+                            })
+                          : t("rescuePaymentRemainingHint", {
+                              amount: payableAmount.toLocaleString("vi-VN"),
+                            })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Phương thức thanh toán */}
                 <div style={{ marginBottom: "0.875rem" }}>
                   <FormLabel>Phương thức thanh toán *</FormLabel>
@@ -1395,6 +1434,10 @@ const AppointmentsPage = () => {
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     placeholder="Nhập số tiền"
+                    readOnly={
+                      invoiceModalRescue.requiresDeposit === true ||
+                      Number(invoiceModalRescue.depositAmount ?? 0) > 0
+                    }
                   />
                 </div>
 

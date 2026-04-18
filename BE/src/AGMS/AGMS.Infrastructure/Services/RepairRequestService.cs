@@ -73,7 +73,7 @@ public class RepairRequestService : IRepairRequestService
     public async Task<RepairRequestPreviewResponse> PreviewAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
         var (car, technician, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
-        var customerPhone = await _repo.GetUserPhoneByIdAsync(userId, ct);
+        var customerPhone = await _repo.GetUserPhoneByIdAsync(car.OwnerID, ct);
 
         var (totalCost, totalMinutes) = GetEstimatedCostAndMinutes(appointmentServiceType);
 
@@ -89,7 +89,7 @@ public class RepairRequestService : IRepairRequestService
     public async Task<RepairRequestDetailDto> CreateAsync(RepairRequestCreateRequest request, int userId, CancellationToken ct)
     {
         var (car, technician, appointmentServiceType) = await ValidateAndLoadCoreDataAsync(request, userId, ct);
-        var customerPhone = await _repo.GetUserPhoneByIdAsync(userId, ct);
+        var customerPhone = await _repo.GetUserPhoneByIdAsync(car.OwnerID, ct);
 
         var preferredDate = ParsePreferredDate(request.PreferredDate);
         var preferredTime = ParsePreferredTime(request.PreferredTime);
@@ -251,8 +251,22 @@ public class RepairRequestService : IRepairRequestService
         if (normalizedType != "repair" && normalizedType != "maintenance")
             throw new ArgumentException("ServiceType must be 'REPAIR' or 'MAINTENANCE'.", nameof(request.ServiceType));
 
-        var car = await _repo.GetCarByIdAndOwnerAsync(request.CarId, userId, ct)
-            ?? throw new InvalidOperationException("Car not found or does not belong to current user.");
+        var roleId = await _repo.GetUserRoleIdAsync(userId, ct);
+        var isStaff = roleId == 1 || roleId == 2;
+
+        Car? car;
+        if (isStaff)
+        {
+            car = await _repo.GetCarByIdAsync(request.CarId, ct);
+            if (car == null)
+                throw new InvalidOperationException("Car not found.");
+        }
+        else
+        {
+            car = await _repo.GetCarByIdAndOwnerAsync(request.CarId, userId, ct);
+            if (car == null)
+                throw new InvalidOperationException("Car not found or does not belong to current user.");
+        }
 
         User? technician = null;
         if (request.TechnicianId.HasValue)

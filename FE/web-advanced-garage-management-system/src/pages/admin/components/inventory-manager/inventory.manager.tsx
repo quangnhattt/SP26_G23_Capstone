@@ -190,6 +190,12 @@ const InventoryManager = () => {
       render: (_: unknown, record: IInventoryTransaction) => record.productName,
     },
     {
+      title: t("serviceOrderColOrderId"),
+      key: "referenceID",
+      width: 150,
+      render: (_: unknown, record: IInventoryTransaction) => record.referenceID,
+    },
+    {
       title: t("inventoryTransactionType"),
       key: "transactionType",
       width: 130,

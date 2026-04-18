@@ -67,10 +67,10 @@ public class AppointmentService : IAppointmentService
             },
             Customer = new CustomerInfoDto
             {
-                UserId = appointment.CreatedByNavigation.UserID,
-                FullName = appointment.CreatedByNavigation.FullName,
-                Phone = appointment.CreatedByNavigation.Phone,
-                Email = appointment.CreatedByNavigation.Email
+                UserId = appointment.Car.Owner.UserID,
+                FullName = appointment.Car.Owner.FullName,
+                Phone = appointment.Car.Owner.Phone,
+                Email = appointment.Car.Owner.Email
             }
         };
 
@@ -191,5 +191,9 @@ public class AppointmentService : IAppointmentService
             throw new UnauthorizedAccessException("Chỉ Service Advisor (RoleID = 2) mới có thể check-in lịch hẹn.");
 
         await _repo.CheckInAsync(appointmentId, currentUserId, ct);
+    }
+    public async Task<int?> GetUserRoleIdAsync(int userId, CancellationToken ct)
+    {
+        return await _repo.GetUserRoleIdAsync(userId, ct);
     }
 }

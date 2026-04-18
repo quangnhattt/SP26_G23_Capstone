@@ -156,7 +156,6 @@ public class ProductRepository : IProductRepository
         var product = await _db.Products
             .Include(p => p.Unit)
             .Include(p => p.Category)
-            .Include(p => p.ProductItems)
             .Include(p=>p.ProductInventory)
             .FirstOrDefaultAsync(p => p.Type == "PART" && p.ProductID == id, ct);
 

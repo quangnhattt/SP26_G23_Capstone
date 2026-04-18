@@ -14,4 +14,5 @@ public interface IAppointmentService
     Task ProposeRescheduleAsync(int appointmentId, int currentUserId, string reason, CancellationToken ct);
     Task RespondRescheduleAsync(int appointmentId, int currentUserId, RespondRescheduleRequest request, CancellationToken ct);
     Task CheckInAsync(int appointmentId, int currentUserId, CancellationToken ct);
+    Task<int?> GetUserRoleIdAsync(int userId, CancellationToken ct);
 }

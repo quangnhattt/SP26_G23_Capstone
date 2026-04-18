@@ -18,6 +18,7 @@ import {
   FaClipboardCheck,
   FaTools,
   FaMoneyBillWave,
+  FaBoxes,
 } from "react-icons/fa";
 import {
   getRescueRequests,
@@ -48,6 +49,10 @@ import ProposalModal from "./ProposalModal";
 import EditPartsModal from "./EditPartsModal";
 import RescueStepProgress from "./RescueStepProgress";
 import { AuthContext } from "@/context/AuthContext";
+import {
+  getServiceOrders,
+  transferOrder,
+} from "@/services/admin/serviceOrderService";
 
 // ─── Common technician shape ──────────────────────────────────
 interface ITechEntry {
@@ -134,18 +139,66 @@ const RescueManagement = () => {
   }>(null);
   const [reasonInput, setReasonInput] = useState("");
   const [reasonSubmitting, setReasonSubmitting] = useState(false);
+  const [transferredRescueIds, setTransferredRescueIds] = useState<Set<number>>(
+    new Set(),
+  );
+
+  const syncTransferredButtons = useCallback(
+    async (rescueList: IRescueRequest[]) => {
+      const rescueByMaintenanceId = new Map<number, number>();
+      for (const rescue of rescueList) {
+        if (rescue.resultingMaintenanceId) {
+          rescueByMaintenanceId.set(
+            rescue.resultingMaintenanceId,
+            rescue.rescueId,
+          );
+        }
+      }
+      if (rescueByMaintenanceId.size === 0) return;
+
+      try {
+        let page = 1;
+        const pageSize = 200;
+        const transferredIds = new Set<number>();
+
+        while (true) {
+          const res = await getServiceOrders({ page, pageSize });
+          for (const so of res.items) {
+            if (!so.transferOrderId) continue;
+            const rescueId = rescueByMaintenanceId.get(so.maintenanceId);
+            if (rescueId) transferredIds.add(rescueId);
+          }
+
+          if (page * pageSize >= res.totalCount) break;
+          page += 1;
+        }
+
+        if (transferredIds.size > 0) {
+          setTransferredRescueIds((prev) => {
+            const next = new Set(prev);
+            for (const id of transferredIds) next.add(id);
+            return next;
+          });
+        }
+      } catch (error) {
+        console.error("Error syncing transfer-order state:", error);
+      }
+    },
+    [],
+  );
 
   const fetchRescues = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getRescueRequests();
       setRescues(data);
+      void syncTransferredButtons(data);
     } catch (error) {
       console.error("Error fetching rescue requests:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [syncTransferredButtons]);
 
   const fetchTechnicians = useCallback(async () => {
     try {
@@ -395,6 +448,35 @@ const RescueManagement = () => {
     }
   };
 
+  const handleTransferOrder = async (rescue: IRescueRequest) => {
+    const transferStatus =
+      rescue.rescueType === "TOWING" ? "PROCESS_TOW" : "PROCESS_ROADSIDE";
+
+    try {
+      const detail =
+        rescue.resultingMaintenanceId != null
+          ? rescue
+          : await getRescueCustomerById(rescue.rescueId);
+      const serviceOrderId = detail.resultingMaintenanceId;
+      if (!serviceOrderId) {
+        toast.error(t("rescueMgrTransferOrderMissingMaintenanceId"));
+        return;
+      }
+
+      await transferOrder(serviceOrderId, transferStatus);
+      toast.success(t("rescueMgrTransferOrderSuccess"));
+      setTransferredRescueIds((prev) => {
+        const next = new Set(prev);
+        next.add(rescue.rescueId);
+        return next;
+      });
+      fetchRescues();
+    } catch (error) {
+      console.error("Error creating transfer order:", error);
+      toast.error(t("rescueMgrTransferOrderError"));
+    }
+  };
+
   const openAssignModal = async (rescue: IRescueRequest) => {
     setSelectedRescue(rescue);
     setEstimatedArrival("");
@@ -444,6 +526,19 @@ const RescueManagement = () => {
       setDetailRescue(rescue);
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const openEditPartsModal = async (rescue: IRescueRequest) => {
+    try {
+      const detail = await getRescueCustomerById(rescue.rescueId);
+      setSelectedRescue(detail);
+    } catch {
+      // fallback: vẫn mở modal bằng dữ liệu list nếu API detail lỗi
+      setSelectedRescue(rescue);
+      toast.error(t("rescueMgrDetailLoadError"));
+    } finally {
+      setShowEditPartsModal(true);
     }
   };
 
@@ -692,6 +787,14 @@ const RescueManagement = () => {
           });
         }
         if (isSA) {
+          if (!transferredRescueIds.has(rescue.rescueId)) {
+            actions.push({
+              label: t("rescueMgrTransferOrderAction"),
+              icon: <FaBoxes size={12} />,
+              color: "#7c3aed",
+              onClick: () => void handleTransferOrder(rescue),
+            });
+          }
           actions.push({
             label: t("rescueMgrCancel"),
             icon: <FaTimes size={12} />,
@@ -744,10 +847,7 @@ const RescueManagement = () => {
             label: t("rescueMgrEditPartsAction"),
             icon: <FaWrench size={12} />,
             color: "#2563eb",
-            onClick: () => {
-              setSelectedRescue(rescue);
-              setShowEditPartsModal(true);
-            },
+            onClick: () => void openEditPartsModal(rescue),
           });
         }
         if (isSA) {
@@ -1074,7 +1174,10 @@ const RescueManagement = () => {
                     </CardInfoRow>
                   )}
 
-                  <RescueStepProgress status={item.status} rescueType={item.rescueType} />
+                  <RescueStepProgress
+                    status={item.status}
+                    rescueType={item.rescueType}
+                  />
                 </CardLeft>
 
                 <CardRight>
@@ -1396,6 +1499,17 @@ const RescueManagement = () => {
                       placeholder={t("zeroPlaceholder")}
                     />
                   </FormGroup>
+                  {selectedRescue.requiresDeposit && (
+                    <FormGroup>
+                      <FormLabel>{t("rescueMgrDepositAmountInfo")} (VND)</FormLabel>
+                      <FormInput
+                        type="number"
+                        value={selectedRescue.depositAmount ?? 0}
+                        readOnly
+                        disabled
+                      />
+                    </FormGroup>
+                  )}
                   <FormGroup>
                     <FormLabel>{t("rescueMgrNote")}</FormLabel>
                     <FormTextarea

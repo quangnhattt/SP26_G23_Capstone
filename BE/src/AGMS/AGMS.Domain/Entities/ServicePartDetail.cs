@@ -25,5 +25,4 @@ public class ServicePartDetail
     public virtual MaintenancePackage? Package { get; set; }
     public virtual Product Product { get; set; } = null!;
     public virtual TransferOrder? ReservedTransferOrder { get; set; }
-    public virtual ICollection<WarrantyClaim> WarrantyClaims { get; set; } = new List<WarrantyClaim>();
 }
