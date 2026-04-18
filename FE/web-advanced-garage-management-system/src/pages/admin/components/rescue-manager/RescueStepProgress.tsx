@@ -1,3 +1,4 @@
+import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import {
@@ -17,6 +18,7 @@ import {
   FaTruck,
 } from "react-icons/fa";
 import type { RescueStatus } from "@/apis/rescue";
+import { AuthContext } from "@/context/AuthContext";
 
 type Step = {
   key: string;
@@ -224,12 +226,28 @@ interface Props {
 
 const RescueStepProgress = ({ status, rescueType }: Props) => {
   const { t } = useTranslation();
+  const { user } = useContext(AuthContext);
   if (TERMINAL_STATUSES.includes(status)) return null;
 
   const isTowing =
     rescueType === "TOWING" || TOWING_INDICATOR_STATUSES.includes(status);
-  const steps = isTowing ? TOWING_STEPS : ON_SITE_STEPS;
-  const activeIdx = getActiveStepIndex(steps, status);
+  const isSAOrTech = user?.roleID === 2 || user?.roleID === 3;
+
+  const baseSteps = isTowing ? TOWING_STEPS : ON_SITE_STEPS;
+  const shouldCutAtTowingComplete = isTowing && isSAOrTech;
+  const towingCompleteIdx = TOWING_STEPS.findIndex(
+    (step) => step.key === "towing_complete",
+  );
+  const steps =
+    shouldCutAtTowingComplete && towingCompleteIdx >= 0
+      ? TOWING_STEPS.slice(0, towingCompleteIdx + 1)
+      : baseSteps;
+
+  const fullActiveIdx = getActiveStepIndex(baseSteps, status);
+  const activeIdx =
+    shouldCutAtTowingComplete && fullActiveIdx >= steps.length
+      ? steps.length - 1
+      : getActiveStepIndex(steps, status);
 
   return (
     <StepperWrapper>

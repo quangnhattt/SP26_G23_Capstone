@@ -447,6 +447,19 @@ const RescueManagement = () => {
     }
   };
 
+  const openEditPartsModal = async (rescue: IRescueRequest) => {
+    try {
+      const detail = await getRescueCustomerById(rescue.rescueId);
+      setSelectedRescue(detail);
+    } catch {
+      // fallback: vẫn mở modal bằng dữ liệu list nếu API detail lỗi
+      setSelectedRescue(rescue);
+      toast.error(t("rescueMgrDetailLoadError"));
+    } finally {
+      setShowEditPartsModal(true);
+    }
+  };
+
   const openReasonModal = (type: "spam" | "cancel", rescue: IRescueRequest) => {
     setReasonModal({ type, rescue });
     setReasonInput("");
@@ -744,10 +757,7 @@ const RescueManagement = () => {
             label: t("rescueMgrEditPartsAction"),
             icon: <FaWrench size={12} />,
             color: "#2563eb",
-            onClick: () => {
-              setSelectedRescue(rescue);
-              setShowEditPartsModal(true);
-            },
+            onClick: () => void openEditPartsModal(rescue),
           });
         }
         if (isSA) {
@@ -1074,7 +1084,10 @@ const RescueManagement = () => {
                     </CardInfoRow>
                   )}
 
-                  <RescueStepProgress status={item.status} rescueType={item.rescueType} />
+                  <RescueStepProgress
+                    status={item.status}
+                    rescueType={item.rescueType}
+                  />
                 </CardLeft>
 
                 <CardRight>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { FaTimes } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
@@ -41,7 +41,71 @@ const EditPartsModal = ({
       .finally(() => setLoadingProducts(false));
   }, []);
 
-  const filtered = products.filter(
+  const suggestedProducts = useMemo<IProduct[]>(
+    () =>
+      (rescue.suggestedParts ?? []).map((part) => ({
+        id: part.partId,
+        code: part.partCode ?? `PART-${part.partId}`,
+        name: part.partName ?? `Part #${part.partId}`,
+        price: part.unitPrice ?? 0,
+        unit: part.partType ?? null,
+        category: "",
+        warranty: 0,
+        minStockLevel: 0,
+        stockQty: 0,
+        description: "",
+        image: null,
+        isActive: true,
+      })),
+    [rescue.suggestedParts],
+  );
+
+  const selectableProducts = useMemo<IProduct[]>(() => {
+    const productById = new Map<number, IProduct>();
+    for (const p of products) productById.set(p.id, p);
+    for (const p of suggestedProducts) {
+      if (!productById.has(p.id)) productById.set(p.id, p);
+    }
+    return Array.from(productById.values());
+  }, [products, suggestedProducts]);
+
+  useEffect(() => {
+    if (selectedParts.length > 0) return;
+    if (!rescue.suggestedParts || rescue.suggestedParts.length === 0) return;
+
+    const byId = new Map<number, IProduct>();
+    for (const p of selectableProducts) byId.set(p.id, p);
+
+    const initialSelected: SelectedPart[] = rescue.suggestedParts.map((part) => {
+      const product =
+        byId.get(part.partId) ??
+        ({
+          id: part.partId,
+          code: part.partCode ?? `PART-${part.partId}`,
+          name: part.partName ?? `Part #${part.partId}`,
+          price: part.unitPrice ?? 0,
+          unit: part.partType ?? null,
+          category: "",
+          warranty: 0,
+          minStockLevel: 0,
+          stockQty: 0,
+          description: "",
+          image: null,
+          isActive: true,
+        } as IProduct);
+
+      return {
+        product,
+        qty: part.quantity > 0 ? part.quantity : 1,
+        unitPrice: part.unitPrice ?? product.price ?? 0,
+        notes: "",
+      };
+    });
+
+    setSelectedParts(initialSelected);
+  }, [rescue.suggestedParts, selectableProducts, selectedParts.length]);
+
+  const filtered = selectableProducts.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.code.toLowerCase().includes(search.toLowerCase()),

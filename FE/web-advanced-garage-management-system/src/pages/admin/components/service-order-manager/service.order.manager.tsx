@@ -43,6 +43,7 @@ const formatDate = (iso: string | null) => {
 };
 
 const PAGE_SIZE = 20;
+const RESCUE_MAINTENANCE_TYPE = "RESCUE";
 
 const STATUS_COLOR: Record<string, string> = {
   PENDING: "default",
@@ -61,6 +62,9 @@ const TYPE_COLOR: Record<string, string> = {
   MAINTENANCE: "cyan",
   INSPECTION: "purple",
 };
+
+const isRescueServiceOrder = (maintenanceType?: string | null) =>
+  (maintenanceType ?? "").toUpperCase() === RESCUE_MAINTENANCE_TYPE;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -351,6 +355,7 @@ const ServiceOrderManager = () => {
       key: "technicianName",
       width: 220,
       render: (_: unknown, record: IServiceOrder) => {
+        const isRescueRecord = isRescueServiceOrder(record.maintenanceType);
         const normalizedTechnicianName = (record.technicianName ?? "").trim();
         const hasTechnician =
           normalizedTechnicianName.length > 0 &&
@@ -358,6 +363,7 @@ const ServiceOrderManager = () => {
             normalizedTechnicianName,
           );
         if (hasTechnician) return record.technicianName;
+        if (isRescueRecord) return "—";
 
         return (
           <AssignSelect
@@ -395,11 +401,14 @@ const ServiceOrderManager = () => {
       title: t("serviceOrderColStatus"),
       key: "status",
       width: 150,
-      render: (_: unknown, record: IServiceOrder) => (
-        <Tag color={STATUS_COLOR[record.status] ?? "default"}>
-          {t(`serviceOrderStatus_${record.status}`) || record.status}
-        </Tag>
-      ),
+      render: (_: unknown, record: IServiceOrder) =>
+        isRescueServiceOrder(record.maintenanceType) ? (
+          <span>—</span>
+        ) : (
+          <Tag color={STATUS_COLOR[record.status] ?? "default"}>
+            {t(`serviceOrderStatus_${record.status}`) || record.status}
+          </Tag>
+        ),
     },
     {
       title: t("serviceOrderColReceiveDate"),
@@ -421,119 +430,126 @@ const ServiceOrderManager = () => {
       width: 150,
       align: "center",
       fixed: "right" as const,
-      render: (_: unknown, record: IServiceOrder) => (
-        <ActionGroup>
-          <Tooltip title={t("serviceOrderTooltipView")}>
-            <ActionBtn onClick={() => handleViewDetail(record.maintenanceId)}>
-              <HiEye size={17} />
-            </ActionBtn>
-          </Tooltip>
-
-          {record.status === "WAITING" && (
-            <Tooltip title={t("serviceOrderTooltipStartDiagnosis")}>
-              <ActionBtn
-                $color="green"
-                onClick={() => handleStartDiagnosis(record.maintenanceId)}
-                disabled={startingDiagnosisIds.includes(record.maintenanceId)}
-              >
-                <HiPlay size={17} />
+      render: (_: unknown, record: IServiceOrder) => {
+        const isRescueRecord = isRescueServiceOrder(record.maintenanceType);
+        return (
+          <ActionGroup>
+            <Tooltip title={t("serviceOrderTooltipView")}>
+              <ActionBtn onClick={() => handleViewDetail(record.maintenanceId)}>
+                <HiEye size={17} />
               </ActionBtn>
             </Tooltip>
-          )}
 
-          {isTech && (record.status === "IN_DIAGNOSIS" || record.status === "QUOTED") && (
-            <Tooltip title={t("serviceOrderTooltipAdditional")}>
-              <ActionBtn
-                $color="orange"
-                onClick={() => handleOpenAdditional(record)}
-              >
-                <HiPlusCircle size={17} />
-              </ActionBtn>
-            </Tooltip>
-          )}
+            {!isRescueRecord && (
+              <>
+                {record.status === "WAITING" && (
+                  <Tooltip title={t("serviceOrderTooltipStartDiagnosis")}>
+                    <ActionBtn
+                      $color="green"
+                      onClick={() => handleStartDiagnosis(record.maintenanceId)}
+                      disabled={startingDiagnosisIds.includes(record.maintenanceId)}
+                    >
+                      <HiPlay size={17} />
+                    </ActionBtn>
+                  </Tooltip>
+                )}
 
-          {record.status === "QUOTED" && !isTech && !respondedIds.includes(record.maintenanceId) && (
-            <Tooltip title={t("serviceOrderTooltipApprove")}>
-              <ActionBtn
-                $color="green"
-                onClick={() => handleOpenRespond(record.maintenanceId)}
-              >
-                <HiClipboardCheck size={17} />
-              </ActionBtn>
-            </Tooltip>
-          )}
+                {isTech && (record.status === "IN_DIAGNOSIS" || record.status === "QUOTED") && (
+                  <Tooltip title={t("serviceOrderTooltipAdditional")}>
+                    <ActionBtn
+                      $color="orange"
+                      onClick={() => handleOpenAdditional(record)}
+                    >
+                      <HiPlusCircle size={17} />
+                    </ActionBtn>
+                  </Tooltip>
+                )}
 
-          {record.status === "IN_DIAGNOSIS" && isTech && (
-            <Tooltip title={t("serviceOrderTooltipConfirmRepair")}>
-              <ActionBtn
-                $color="green"
-                onClick={() => handleConfirmRepair(record.maintenanceId)}
-                disabled={confirmingRepairIds.includes(record.maintenanceId)}
-              >
-                <HiArrowNarrowRight size={17} />
-              </ActionBtn>
-            </Tooltip>
-          )}
+                {record.status === "QUOTED" && !isTech && !respondedIds.includes(record.maintenanceId) && (
+                  <Tooltip title={t("serviceOrderTooltipApprove")}>
+                    <ActionBtn
+                      $color="green"
+                      onClick={() => handleOpenRespond(record.maintenanceId)}
+                    >
+                      <HiClipboardCheck size={17} />
+                    </ActionBtn>
+                  </Tooltip>
+                )}
 
-          {record.status === "IN_PROGRESS" && !isTech && !transferredIds.includes(record.maintenanceId) && (
-            <Tooltip title={t("serviceOrderTooltipTransferOrder")}>
-              <ActionBtn
-                $color="blue"
-                onClick={() => handleTransferOrder(record.maintenanceId)}
-                disabled={transferringIds.includes(record.maintenanceId)}
-              >
-                <HiArchive size={17} />
-              </ActionBtn>
-            </Tooltip>
-          )}
+                {record.status === "IN_DIAGNOSIS" && isTech && (
+                  <Tooltip title={t("serviceOrderTooltipConfirmRepair")}>
+                    <ActionBtn
+                      $color="green"
+                      onClick={() => handleConfirmRepair(record.maintenanceId)}
+                      disabled={confirmingRepairIds.includes(record.maintenanceId)}
+                    >
+                      <HiArrowNarrowRight size={17} />
+                    </ActionBtn>
+                  </Tooltip>
+                )}
 
-          {record.status === "IN_PROGRESS" && isTech && (
-            <Tooltip title={t("serviceOrderTooltipFinishRepair")}>
-              <ActionBtn
-                $color="green"
-                onClick={() => handleFinishRepair(record.maintenanceId)}
-                disabled={finishingRepairIds.includes(record.maintenanceId)}
-              >
-                <HiCheckCircle size={17} />
-              </ActionBtn>
-            </Tooltip>
-          )}
+                {record.status === "IN_PROGRESS" && !isTech && !transferredIds.includes(record.maintenanceId) && (
+                  <Tooltip title={t("serviceOrderTooltipTransferOrder")}>
+                    <ActionBtn
+                      $color="blue"
+                      onClick={() => handleTransferOrder(record.maintenanceId)}
+                      disabled={transferringIds.includes(record.maintenanceId)}
+                    >
+                      <HiArchive size={17} />
+                    </ActionBtn>
+                  </Tooltip>
+                )}
 
-          {record.status === "COMPLETED" && !isTech && (
-            <Tooltip title={t("serviceOrderTooltipCreateInvoice")}>
-              <ActionBtn
-                $color="purple"
-                onClick={() => handleOpenInvoice(record.maintenanceId, "create")}
-              >
-                <HiDocumentText size={17} />
-              </ActionBtn>
-            </Tooltip>
-          )}
+                {record.status === "IN_PROGRESS" && isTech && (
+                  <Tooltip title={t("serviceOrderTooltipFinishRepair")}>
+                    <ActionBtn
+                      $color="green"
+                      onClick={() => handleFinishRepair(record.maintenanceId)}
+                      disabled={finishingRepairIds.includes(record.maintenanceId)}
+                    >
+                      <HiCheckCircle size={17} />
+                    </ActionBtn>
+                  </Tooltip>
+                )}
 
-          {(record.status === "WAITING_FOR_PAYMENT" || record.status === "CLOSED") && (
-            <Tooltip title={t("serviceOrderTooltipInvoice")}>
-              <ActionBtn
-                $color="purple"
-                onClick={() => handleOpenInvoice(record.maintenanceId, "view")}
-              >
-                <HiDocumentText size={17} />
-              </ActionBtn>
-            </Tooltip>
-          )}
+                {record.status === "COMPLETED" && !isTech && (
+                  <Tooltip title={t("serviceOrderTooltipCreateInvoice")}>
+                    <ActionBtn
+                      $color="purple"
+                      onClick={() => handleOpenInvoice(record.maintenanceId, "create")}
+                    >
+                      <HiDocumentText size={17} />
+                    </ActionBtn>
+                  </Tooltip>
+                )}
 
-          {record.status === "WAITING_FOR_PAYMENT" && !isTech && (
-            <Tooltip title={t("serviceOrderTooltipProcessPayment")}>
-              <ActionBtn
-                $color="green"
-                onClick={() => openPaymentModal(record.maintenanceId)}
-                disabled={processingPaymentIds.includes(record.maintenanceId)}
-              >
-                <HiCheckCircle size={17} />
-              </ActionBtn>
-            </Tooltip>
-          )}
-        </ActionGroup>
-      ),
+                {(record.status === "WAITING_FOR_PAYMENT" || record.status === "CLOSED") && (
+                  <Tooltip title={t("serviceOrderTooltipInvoice")}>
+                    <ActionBtn
+                      $color="purple"
+                      onClick={() => handleOpenInvoice(record.maintenanceId, "view")}
+                    >
+                      <HiDocumentText size={17} />
+                    </ActionBtn>
+                  </Tooltip>
+                )}
+
+                {record.status === "WAITING_FOR_PAYMENT" && !isTech && (
+                  <Tooltip title={t("serviceOrderTooltipProcessPayment")}>
+                    <ActionBtn
+                      $color="green"
+                      onClick={() => openPaymentModal(record.maintenanceId)}
+                      disabled={processingPaymentIds.includes(record.maintenanceId)}
+                    >
+                      <HiCheckCircle size={17} />
+                    </ActionBtn>
+                  </Tooltip>
+                )}
+              </>
+            )}
+          </ActionGroup>
+        );
+      },
     },
   ];
 

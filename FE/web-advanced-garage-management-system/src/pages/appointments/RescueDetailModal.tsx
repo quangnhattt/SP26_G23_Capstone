@@ -314,6 +314,14 @@ const RescueDetailModal = ({
                   <Label>{t("phoneNumber")}</Label>
                   <Value>{data.customerPhone}</Value>
                 </Field>
+                <Field>
+                  <Label>{t("rescueMgrAssignedTechnician")}</Label>
+                  <Value>{data.assignedTechnicianName || "-"}</Value>
+                </Field>
+                <Field>
+                  <Label>{t("rescueMgrAssignedTechnicianPhone")}</Label>
+                  <Value>{data.assignedTechnicianPhone || "-"}</Value>
+                </Field>
               </Grid>
             </Section>
 
