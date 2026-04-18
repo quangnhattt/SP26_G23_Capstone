@@ -15,7 +15,7 @@ public class AppointmentRepository : IAppointmentRepository
         _db = db;
     }
 
-    public async Task<IEnumerable<AppointmentListItemDto>> GetListAsync(int? ownerUserId, AppointmentFilterDto filter, CancellationToken ct)
+    public async Task<AppointmentPagedResultDto<AppointmentListItemDto>> GetListAsync(int? ownerUserId, AppointmentFilterDto filter, CancellationToken ct)
     {
         var query = _db.Appointments.AsNoTracking().AsQueryable();
 
@@ -27,7 +27,17 @@ public class AppointmentRepository : IAppointmentRepository
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Status))
-            query = query.Where(a => a.Status == filter.Status);
+        {
+            if (filter.Status == "IN_PROGRESS")
+            {
+                var inProgressStatuses = new[] { "PENDING", "CONFIRMED", "CHECKED_IN", "RESCHEDULED" };
+                query = query.Where(a => inProgressStatuses.Contains(a.Status));
+            }
+            else
+            {
+                query = query.Where(a => a.Status == filter.Status);
+            }
+        }
         if (!string.IsNullOrWhiteSpace(filter.ServiceType))
             query = query.Where(a => a.ServiceType == filter.ServiceType);
         if (filter.FromDate.HasValue)
@@ -38,9 +48,25 @@ public class AppointmentRepository : IAppointmentRepository
             query = query.Where(a => a.CarID == filter.CarId.Value);
         if (filter.CustomerId.HasValue)
             query = query.Where(a => a.CreatedBy == filter.CustomerId.Value);
+            
+        if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+        {
+            var q = filter.SearchTerm.ToLower();
+            query = query.Where(a => 
+                (a.Car.Owner.FullName != null && a.Car.Owner.FullName.ToLower().Contains(q)) ||
+                (a.Car.Owner.Phone != null && a.Car.Owner.Phone.ToLower().Contains(q)) ||
+                a.Car.LicensePlate.ToLower().Contains(q) ||
+                a.Car.Brand.ToLower().Contains(q) ||
+                a.Car.Model.ToLower().Contains(q)
+            );
+        }
 
-        return await query
+        int totalCount = await query.CountAsync(ct);
+
+        var items = await query
             .OrderByDescending(a => a.AppointmentDate)
+            .Skip((filter.Page - 1) * filter.PageSize)
+            .Take(filter.PageSize)
             .Select(a => new AppointmentListItemDto
             {
                 AppointmentId = a.AppointmentID,
@@ -75,6 +101,14 @@ public class AppointmentRepository : IAppointmentRepository
                 PackageFinalPrice = a.RequestedPackage != null ? a.RequestedPackage.FinalPrice : null
             })
             .ToListAsync(ct);
+
+        return new AppointmentPagedResultDto<AppointmentListItemDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = filter.Page,
+            PageSize = filter.PageSize
+        };
     }
 
     public async Task<Appointment?> GetByIdAsync(int appointmentId, int? ownerUserId, CancellationToken ct)

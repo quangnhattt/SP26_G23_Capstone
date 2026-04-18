@@ -1,4 +1,5 @@
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
+import { Pagination } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import { AuthContext } from "@/context/AuthContext";
@@ -144,17 +145,27 @@ const AppointmentsPage = () => {
   const [loadingAdditionalId, setLoadingAdditionalId] = useState<number | null>(null);
 
 
-  const fetchAppointments = async () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getAppointments();
-      setAppointments(data);
+      const data = await getAppointments({
+        page: currentPage,
+        pageSize: pageSize,
+        status: filterStatus !== "all" ? filterStatus : undefined,
+        searchTerm: searchTerm.trim() || undefined,
+      });
+      setAppointments(data.items);
+      setTotalCount(data.totalCount);
     } catch (error) {
       console.error("Error fetching appointments:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, filterStatus, searchTerm]);
 
   useEffect(() => {
     if (!user) {
@@ -174,10 +185,8 @@ const AppointmentsPage = () => {
       }
     };
 
-    fetchAppointments();
     fetchRescueRequests();
 
-    // Auto-refresh rescue list when another tab (SA/KTV/Customer) updates localStorage
     const onStorageChange = (e: StorageEvent) => {
       if (e.key === "sp26_rescue_mock_v1") {
         fetchRescueRequests();
@@ -187,26 +196,13 @@ const AppointmentsPage = () => {
     return () => window.removeEventListener("storage", onStorageChange);
   }, [user, navigate]);
 
-  const filteredAppointments = appointments
-    .filter((a) => {
-      if (filterStatus === "all") return true;
-      if (filterStatus === "IN_PROGRESS") {
-        return IN_PROGRESS_STATUSES.includes(a.status);
-      }
-      return a.status === filterStatus;
-    })
-    .filter((a) => {
-      if (!searchTerm.trim()) return true;
-      const q = searchTerm.toLowerCase();
-      const carName = `${a.carBrand} ${a.carModel}`.toLowerCase();
-      return (
-        carName.includes(q) ||
-        a.licensePlate?.toLowerCase().includes(q) ||
-        a.notes?.toLowerCase().includes(q) ||
-        a.customerFullName?.toLowerCase().includes(q) ||
-        a.phone?.toLowerCase().includes(q)
-      );
-    });
+  useEffect(() => {
+    if (user && activeTab !== "RESCUE") {
+      fetchAppointments();
+    }
+  }, [fetchAppointments, user, activeTab]);
+
+  const filteredAppointments = appointments;
 
   const inProgressCount = appointments.filter((a) =>
     IN_PROGRESS_STATUSES.includes(a.status),
@@ -1085,6 +1081,19 @@ const AppointmentsPage = () => {
                   );
                 })}
             </AppointmentList>
+          )}
+
+          {/* ── PAGINATION (BOOKING TAB ONLY) ── */}
+          {activeTab === "BOOKING" && !loading && totalCount > 0 && (
+            <PaginationWrapper>
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={totalCount}
+                showSizeChanger={false}
+                onChange={(page) => setCurrentPage(page)}
+              />
+            </PaginationWrapper>
           )}
         </ContentSection>
       </Container>
@@ -2227,5 +2236,17 @@ const RespondRescheduleBtn = styled.button`
   &:hover {
     background: linear-gradient(135deg, #d97706, #b45309);
     box-shadow: 0 2px 8px rgba(180,83,9,0.3);
+  }
+`;
+
+const PaginationWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding: 1rem 0;
+  
+  .ant-pagination {
+    font-family: inherit;
   }
 `;

@@ -9,4 +9,7 @@ public class AppointmentFilterDto
     public string? ServiceType { get; set; }
     public int? CarId { get; set; }
     public int? CustomerId { get; set; } // SA-only
+    public string? SearchTerm { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
 }

@@ -35,7 +35,7 @@ const CustomerQuickView = () => {
   const fetchAppointments = async () => {
     try {
       const data = await getAppointments();
-      const sorted = data
+      const sorted = data.items
         .filter((a) => APPT_IN_PROGRESS.includes(a.status))
         .sort(
           (a, b) =>
@@ -64,7 +64,7 @@ const CustomerQuickView = () => {
         ]);
         if (cancelled) return;
         if (apptResult.status === "fulfilled") {
-          const inProgress = apptResult.value
+          const inProgress = apptResult.value.items
             .filter((a) => APPT_IN_PROGRESS.includes(a.status))
             .sort(
               (a, b) =>

@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
 import AppointmentDetailModal from "@/pages/appointments/AppointmentDetailModal";
 import useAuth from "@/hooks/useAuth";
+import { Pagination } from "antd";
 
 // ─── Status Config ──────────────────────────────────────────────────────────
 const statusConfig: Record<string, { color: string; bg: string; border: string; label: string }> = {
@@ -39,6 +40,10 @@ const ManagermentAppointment = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterServiceType, setFilterServiceType] = useState("all");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
   // Detail modal
   const [detailData, setDetailData] = useState<IAppointmentDetail | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -58,17 +63,30 @@ const ManagermentAppointment = () => {
   const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getAppointments();
-      setAppointments(data);
+      const data = await getAppointments({
+        page: currentPage,
+        pageSize: pageSize,
+        status: filterStatus !== "all" ? filterStatus : undefined,
+        serviceType: filterServiceType !== "all" ? filterServiceType : undefined,
+        searchTerm: searchTerm.trim() || undefined,
+      });
+      setAppointments(data.items);
+      setTotalCount(data.totalCount);
     } catch (error) {
       console.error("Error fetching appointments:", error);
       toast.error("Không thể tải danh sách lịch hẹn.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, pageSize, filterStatus, filterServiceType, searchTerm]);
 
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
+
+  // Handle Search Input directly on Enter key or debounce (here we just use button if they had one, or useEffect)
+  // To avoid refetching on every keystroke, let's keep useEffect but use a timeout debounce if needed, or just let users click it.
+  // Actually, since it triggers on [searchTerm], we can debounce it natively or let it fetch.
+  // For simplicity since we added searchTerm as dependency it will fetch on every stroke. Let's rely on standard debounce later if needed.
+  // In the current layout, it searches on render.
 
   const handleViewDetail = async (id: number) => {
     setLoadingDetail(true);
@@ -184,21 +202,7 @@ const ManagermentAppointment = () => {
     today:     appointments.filter(a => isToday(a.appointmentDate)).length,
   }), [appointments]);
 
-  const filteredAppointments = useMemo(() =>
-    appointments
-      .filter(a => filterStatus === "all" || a.status === filterStatus)
-      .filter(a => filterServiceType === "all" || a.serviceType?.toUpperCase() === filterServiceType)
-      .filter(a => {
-        if (!searchTerm.trim()) return true;
-        const q = searchTerm.toLowerCase();
-        return (
-          a.customerFullName?.toLowerCase().includes(q) ||
-          a.licensePlate?.toLowerCase().includes(q) ||
-          a.phone?.toLowerCase().includes(q) ||
-          `${a.carBrand} ${a.carModel}`.toLowerCase().includes(q)
-        );
-      }),
-  [appointments, filterStatus, filterServiceType, searchTerm]);
+  const filteredAppointments = appointments;
 
   return (
     <PageWrapper>
@@ -359,6 +363,19 @@ const ManagermentAppointment = () => {
           })
         )}
       </CardGrid>
+
+      {/* ── PAGINATION ── */}
+      {!loading && totalCount > 0 && (
+        <PaginationWrapper>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            showSizeChanger={false}
+            onChange={(page) => setCurrentPage(page)}
+          />
+        </PaginationWrapper>
+      )}
 
       {/* ── MODALS ── */}
       {showModal && (
@@ -837,4 +854,16 @@ const BtnConfirmReject = styled(BaseBtn)`
 const BtnProposeSend = styled(BaseBtn)`
   background: #6366f1; color: white; border-color: #6366f1;
   &:hover:not(:disabled) { background: #4f46e5; }
+`;
+
+const PaginationWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding: 1rem 0;
+  
+  .ant-pagination {
+    font-family: inherit;
+  }
 `;

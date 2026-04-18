@@ -84,8 +84,36 @@ export interface IAppointmentDetail {
   }[];
 }
 
-export const getAppointments = async (): Promise<IAppointment[]> => {
-  const { data } = await AxiosClient.get<IAppointment[]>("/api/appointments");
+export interface IAppointmentPagedResult {
+  items: IAppointment[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface IAppointmentFilter {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  serviceType?: string;
+  searchTerm?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export const getAppointments = async (filter?: IAppointmentFilter): Promise<IAppointmentPagedResult> => {
+  const queryParams = new URLSearchParams();
+  if (filter) {
+    if (filter.page) queryParams.append("page", filter.page.toString());
+    if (filter.pageSize) queryParams.append("pageSize", filter.pageSize.toString());
+    if (filter.status && filter.status !== "all") queryParams.append("status", filter.status);
+    if (filter.serviceType && filter.serviceType !== "all") queryParams.append("serviceType", filter.serviceType);
+    if (filter.searchTerm) queryParams.append("searchTerm", filter.searchTerm);
+    if (filter.fromDate) queryParams.append("fromDate", filter.fromDate);
+    if (filter.toDate) queryParams.append("toDate", filter.toDate);
+  }
+
+  const { data } = await AxiosClient.get<IAppointmentPagedResult>(`/api/appointments?${queryParams.toString()}`);
   return data;
 };
 

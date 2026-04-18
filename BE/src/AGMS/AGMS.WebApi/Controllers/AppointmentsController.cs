@@ -60,7 +60,7 @@ public class AppointmentsController : ControllerBase
 
     // GET /api/appointments — Customer: chỉ thấy của mình. SA (RoleID=2): thấy tất cả
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<AppointmentListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AppointmentPagedResultDto<AppointmentListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetList([FromQuery] AppointmentFilterDto filter, CancellationToken ct)
     {

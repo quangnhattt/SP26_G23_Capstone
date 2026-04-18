@@ -20,7 +20,7 @@ public class AppointmentService : IAppointmentService
         _repairRequestService = repairRequestService;
     }
 
-    public async Task<IEnumerable<AppointmentListItemDto>> GetListAsync(int currentUserId, bool isServiceAdvisor, AppointmentFilterDto filter, CancellationToken ct)
+    public async Task<AppointmentPagedResultDto<AppointmentListItemDto>> GetListAsync(int currentUserId, bool isServiceAdvisor, AppointmentFilterDto filter, CancellationToken ct)
     {
         // Customer: ownerUserId để repo lọc. SA: null để trả tất cả
         int? ownerUserId = isServiceAdvisor ? null : currentUserId;
