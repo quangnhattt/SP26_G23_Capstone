@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { Fragment, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import {
@@ -232,9 +232,10 @@ const RescueStepProgress = ({ status, rescueType }: Props) => {
   const isTowing =
     rescueType === "TOWING" || TOWING_INDICATOR_STATUSES.includes(status);
   const isSAOrTech = user?.roleID === 2 || user?.roleID === 3;
+  const isCustomer = user?.roleID === 4;
 
   const baseSteps = isTowing ? TOWING_STEPS : ON_SITE_STEPS;
-  const shouldCutAtTowingComplete = isTowing && isSAOrTech;
+  const shouldCutAtTowingComplete = isTowing && (isSAOrTech || isCustomer);
   const towingCompleteIdx = TOWING_STEPS.findIndex(
     (step) => step.key === "towing_complete",
   );
@@ -256,11 +257,17 @@ const RescueStepProgress = ({ status, rescueType }: Props) => {
           idx < activeIdx ? "done" : idx === activeIdx ? "active" : "pending";
 
         return (
-          <StepItem key={step.key}>
-            <StepDot $state={state}>{step.icon}</StepDot>
-            {idx < steps.length - 1 && <StepLine $done={idx < activeIdx} />}
-            <StepLabel $state={state}>{t(step.labelKey)}</StepLabel>
-          </StepItem>
+          <Fragment key={step.key}>
+            <StepIconBlock>
+              <StepDot $state={state}>{step.icon}</StepDot>
+              <StepLabel $state={state}>{t(step.labelKey)}</StepLabel>
+            </StepIconBlock>
+            {idx < steps.length - 1 && (
+              <StepLineTrack>
+                <StepLine $done={idx < activeIdx} />
+              </StepLineTrack>
+            )}
+          </Fragment>
         );
       })}
     </StepperWrapper>
@@ -286,16 +293,22 @@ const StepperWrapper = styled.div`
   }
 `;
 
-const StepItem = styled.div`
+const StepIconBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0.375rem;
+  max-width: 5.5rem;
+`;
+
+const StepLineTrack = styled.div`
+  flex: 1;
+  min-width: 0.75rem;
   display: flex;
   align-items: center;
-  position: relative;
-  flex: 1;
-  min-width: 0;
-
-  &:last-child {
-    flex: 0 0 auto;
-  }
+  align-self: flex-start;
+  height: 32px;
 `;
 
 const StepDot = styled.div<{ $state: "done" | "active" | "pending" }>`
@@ -322,19 +335,15 @@ const StepDot = styled.div<{ $state: "done" | "active" | "pending" }>`
 `;
 
 const StepLine = styled.div<{ $done: boolean }>`
-  flex: 1;
+  width: 100%;
   height: 2px;
-  min-width: 12px;
   background: ${({ $done }) => ($done ? "#16a34a" : "#e5e7eb")};
   transition: background 0.3s;
 `;
 
 const StepLabel = styled.span<{ $state: "done" | "active" | "pending" }>`
-  position: absolute;
-  top: 36px;
-  left: 50%;
-  transform: translateX(-50%);
   font-size: 0.625rem;
+  line-height: 1.2;
   font-weight: ${({ $state }) => ($state === "active" ? 700 : 500)};
   color: ${({ $state }) =>
     $state === "done"
@@ -342,7 +351,8 @@ const StepLabel = styled.span<{ $state: "done" | "active" | "pending" }>`
       : $state === "active"
         ? "#dc2626"
         : "#9ca3af"};
-  white-space: nowrap;
   text-align: center;
-  width: max-content;
+  width: 100%;
+  word-break: break-word;
+  hyphens: auto;
 `;

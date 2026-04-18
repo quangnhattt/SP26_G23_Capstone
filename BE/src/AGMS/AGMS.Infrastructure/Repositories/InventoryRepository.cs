@@ -380,37 +380,18 @@ public class InventoryRepository : IInventoryRepository
     {
         // Truy vấn này lấy Số Tồn Snapshot đem so sánh với Tổng Lịch sử
         var discrepancies = await _db.ProductInventories
-            .Select(
-                inv =>
-                    new InventoryDiscrepancyDto
-                    {
-                        ProductID = inv.ProductID,
-                        ProductCode = inv.Product.Code,
-                        SnapshotQuantity = inv.Quantity,
-                        LedgerQuantity = _db.InventoryTransactions
-                            .Where(t => t.ProductID == inv.ProductID)
-                            .Sum(
-                                t =>
-                                    (
-                                        t.TransactionType == "GOODS_RECEIPT"
-                                        || t.TransactionType == "IN"
-                                        || t.TransactionType == "RETURN"
-                                        || t.TransactionType == "ADJUST_IN"
-                                    )
-                                        ? t.Quantity
-                                        : (
-                                            t.TransactionType == "ISSUE"
-                                            || t.TransactionType == "OUT"
-                                            || t.TransactionType == "WRITE_OFF"
-                                            || t.TransactionType == "ADJUST_OUT"
-                                        )
-                                            ? -t.Quantity
-                                            : t.TransactionType == "ADJUST"
-                                                ? t.Quantity
-                                                : 0
-                            )
-                    }
-            )
+            .Select(inv => new InventoryDiscrepancyDto
+            {
+                ProductID = inv.ProductID,
+                ProductCode = inv.Product.Code,
+                SnapshotQuantity = inv.Quantity,
+                LedgerQuantity = _db.InventoryTransactions
+                    .Where(t => t.ProductID == inv.ProductID)
+                    .Sum(t =>
+                        (t.TransactionType == "GOODS_RECEIPT" || t.TransactionType == "IN" || t.TransactionType == "RETURN" || t.TransactionType == "ADJUST_IN" || t.TransactionType == "RETURN_FROM_RESCUE") ? t.Quantity :
+                        (t.TransactionType == "ISSUE" || t.TransactionType == "OUT" || t.TransactionType == "WRITE_OFF" || t.TransactionType == "ADJUST_OUT") ? -t.Quantity :
+                        t.TransactionType == "ADJUST" ? t.Quantity : 0)
+            })
             .Where(x => x.SnapshotQuantity != x.LedgerQuantity) // Chỉ lấy ra những mã hàng bị lệch (nếu có)
             .ToListAsync(ct);
 

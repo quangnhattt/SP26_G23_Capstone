@@ -12,6 +12,30 @@ interface SelectedPart {
   qty: number;
 }
 
+type RoadsideDraft = {
+  selectedServices: IService[];
+  selectedParts: SelectedPart[];
+  manualFee: string;
+  proposalNote: string;
+};
+
+type TowingDraft = {
+  manualFee: string;
+  proposalNote: string;
+};
+
+const emptyRoadsideDraft = (): RoadsideDraft => ({
+  selectedServices: [],
+  selectedParts: [],
+  manualFee: "",
+  proposalNote: "",
+});
+
+const emptyTowingDraft = (): TowingDraft => ({
+  manualFee: "",
+  proposalNote: "",
+});
+
 interface ProposalModalProps {
   rescue: IRescueRequest;
   onClose: () => void;
@@ -23,16 +47,14 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
   const [proposalType, setProposalType] = useState<
     "ROADSIDE" | "TOWING" | null
   >(null);
-  const [proposalNote, setProposalNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const [services, setServices] = useState<IService[]>([]);
   const [products, setProducts] = useState<IProduct[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const [selectedServices, setSelectedServices] = useState<IService[]>([]);
-  const [selectedParts, setSelectedParts] = useState<SelectedPart[]>([]);
-  const [manualFee, setManualFee] = useState("");
+  const [roadsideDraft, setRoadsideDraft] = useState<RoadsideDraft>(emptyRoadsideDraft);
+  const [towingDraft, setTowingDraft] = useState<TowingDraft>(emptyTowingDraft);
   const [depositAmount, setDepositAmount] = useState("");
 
   useEffect(() => {
@@ -49,21 +71,33 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
       .finally(() => setLoadingProducts(false));
   }, []);
 
-  const calculatedFee = useMemo(() => {
+  const roadsideCalculatedFee = useMemo(() => {
+    const { selectedServices, selectedParts } = roadsideDraft;
     const serviceFee = selectedServices.reduce((sum, s) => sum + s.price, 0);
     const partFee = selectedParts.reduce(
       (sum, p) => sum + p.product.price * p.qty,
       0,
     );
     return serviceFee + partFee;
-  }, [selectedServices, selectedParts]);
+  }, [roadsideDraft]);
 
-  const estimatedFee =
-    calculatedFee > 0
-      ? calculatedFee
-      : manualFee
-        ? Number(manualFee)
-        : undefined;
+  const estimatedFee = useMemo(() => {
+    if (proposalType === "ROADSIDE") {
+      if (roadsideCalculatedFee > 0) return roadsideCalculatedFee;
+      const m = roadsideDraft.manualFee;
+      return m ? Number(m) : undefined;
+    }
+    if (proposalType === "TOWING") {
+      const m = towingDraft.manualFee;
+      return m ? Number(m) : undefined;
+    }
+    return undefined;
+  }, [
+    proposalType,
+    roadsideCalculatedFee,
+    roadsideDraft.manualFee,
+    towingDraft.manualFee,
+  ]);
 
   // Auto-tính tiền đặt cọc = 50% tổng tiền đề xuất (chỉ khi requiresDeposit = true)
   useEffect(() => {
@@ -74,55 +108,77 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
     }
   }, [estimatedFee, rescue.requiresDeposit]);
 
+  const patchRoadside = (patch: Partial<RoadsideDraft>) => {
+    setRoadsideDraft((d) => ({ ...d, ...patch }));
+  };
+
   const toggleService = (svc: IService) => {
-    setSelectedServices((prev) =>
-      prev.some((s) => s.id === svc.id)
+    setRoadsideDraft((d) => {
+      const prev = d.selectedServices;
+      const next = prev.some((s) => s.id === svc.id)
         ? prev.filter((s) => s.id !== svc.id)
-        : [...prev, svc],
-    );
+        : [...prev, svc];
+      return { ...d, selectedServices: next };
+    });
   };
 
   const togglePart = (product: IProduct) => {
-    setSelectedParts((prev) => {
+    setRoadsideDraft((d) => {
+      const prev = d.selectedParts;
       if (prev.some((p) => p.product.id === product.id)) {
-        return prev.filter((p) => p.product.id !== product.id);
+        return {
+          ...d,
+          selectedParts: prev.filter((p) => p.product.id !== product.id),
+        };
       }
-      return [...prev, { product, qty: 1 }];
+      return { ...d, selectedParts: [...prev, { product, qty: 1 }] };
     });
   };
 
   const updatePartQty = (productId: number, qty: number) => {
     if (qty < 1) return;
-    setSelectedParts((prev) =>
-      prev.map((p) => (p.product.id === productId ? { ...p, qty } : p)),
-    );
+    setRoadsideDraft((d) => ({
+      ...d,
+      selectedParts: d.selectedParts.map((p) =>
+        p.product.id === productId ? { ...p, qty } : p,
+      ),
+    }));
   };
 
   const handleSubmit = async () => {
     if (!proposalType) return;
     try {
       setSubmitting(true);
-      const selectedServiceAsParts: IRescueSuggestedPart[] = selectedServices.map(
-        (s) => ({
-          partId: s.id,
-          quantity: 1,
-        }),
-      );
-      const selectedPartsPayload: IRescueSuggestedPart[] = selectedParts.map((p) => ({
-        partId: p.product.id,
-        quantity: p.qty,
-      }));
-      const suggestedParts: IRescueSuggestedPart[] = [
-        ...selectedServiceAsParts,
-        ...selectedPartsPayload,
-      ];
+      const noteForSubmit =
+        proposalType === "ROADSIDE"
+          ? roadsideDraft.proposalNote.trim()
+          : towingDraft.proposalNote.trim();
+
+      let suggestedParts: IRescueSuggestedPart[] | undefined;
+      if (proposalType === "ROADSIDE") {
+        const { selectedServices, selectedParts } = roadsideDraft;
+        const selectedServiceAsParts: IRescueSuggestedPart[] = selectedServices.map(
+          (s) => ({
+            partId: s.id,
+            quantity: 1,
+          }),
+        );
+        const selectedPartsPayload: IRescueSuggestedPart[] = selectedParts.map(
+          (p) => ({
+            partId: p.product.id,
+            quantity: p.qty,
+          }),
+        );
+        const merged = [...selectedServiceAsParts, ...selectedPartsPayload];
+        suggestedParts = merged.length > 0 ? merged : undefined;
+      }
 
       await proposeRescueToCustomer(rescue.rescueId, {
         rescueType: proposalType,
-        proposalNotes: proposalNote.trim() || undefined,
+        proposalNotes: noteForSubmit || undefined,
         estimatedServiceFee: estimatedFee ?? 0,
         depositAmount: rescue.requiresDeposit && depositAmount ? Number(depositAmount) : undefined,
-        suggestedParts: suggestedParts.length > 0 ? suggestedParts : undefined,
+        suggestedParts,
       });
       toast.success(
         proposalType === "ROADSIDE"
@@ -182,7 +238,9 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
               ) : (
                 <CheckList>
                   {services.map((svc) => {
-                    const checked = selectedServices.some((s) => s.id === svc.id);
+                    const checked = roadsideDraft.selectedServices.some(
+                      (s) => s.id === svc.id,
+                    );
                     return (
                       <CheckItem
                         key={svc.id}
@@ -215,7 +273,7 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
               ) : (
                 <CheckList>
                   {products.map((product) => {
-                    const selected = selectedParts.find(
+                    const selected = roadsideDraft.selectedParts.find(
                       (p) => p.product.id === product.id,
                     );
                     return (
@@ -265,31 +323,55 @@ const ProposalModal = ({ rescue, onClose, onSuccess }: ProposalModalProps) => {
           <FormGroup>
             <FormLabel>{t("rescueMgrCustomerNoteLabel")}</FormLabel>
             <FormTextarea
-              value={proposalNote}
-              onChange={(e) => setProposalNote(e.target.value)}
+              value={
+                proposalType === "ROADSIDE"
+                  ? roadsideDraft.proposalNote
+                  : proposalType === "TOWING"
+                    ? towingDraft.proposalNote
+                    : ""
+              }
+              onChange={(e) => {
+                const v = e.target.value;
+                if (proposalType === "ROADSIDE") patchRoadside({ proposalNote: v });
+                else if (proposalType === "TOWING")
+                  setTowingDraft((d) => ({ ...d, proposalNote: v }));
+              }}
               rows={3}
               placeholder={t("rescueMgrCustomerNotePlaceholder")}
             />
           </FormGroup>
 
           {/* Estimated fee */}
-          <FormGroup>
-            <FormLabel>{t("rescueMgrProposalEstFeeLabel")}</FormLabel>
-            {calculatedFee > 0 ? (
-              <FeeAutoBox>
-                <FeeAutoAmount>
-                  {calculatedFee.toLocaleString()} VND
-                </FeeAutoAmount>
-              </FeeAutoBox>
-            ) : (
-              <FormInput
-                type="number"
-                value={manualFee}
-                onChange={(e) => setManualFee(e.target.value)}
-                placeholder={t("rescueMgrProposalEstFeeManual")}
-              />
-            )}
-          </FormGroup>
+          {proposalType && (
+            <FormGroup>
+              <FormLabel>{t("rescueMgrProposalEstFeeLabel")}</FormLabel>
+              {proposalType === "ROADSIDE" &&
+                (roadsideCalculatedFee > 0 ? (
+                  <FeeAutoBox>
+                    <FeeAutoAmount>
+                      {roadsideCalculatedFee.toLocaleString()} VND
+                    </FeeAutoAmount>
+                  </FeeAutoBox>
+                ) : (
+                  <FormInput
+                    type="number"
+                    value={roadsideDraft.manualFee}
+                    onChange={(e) => patchRoadside({ manualFee: e.target.value })}
+                    placeholder={t("rescueMgrProposalEstFeeManual")}
+                  />
+                ))}
+              {proposalType === "TOWING" && (
+                <FormInput
+                  type="number"
+                  value={towingDraft.manualFee}
+                  onChange={(e) =>
+                    setTowingDraft((d) => ({ ...d, manualFee: e.target.value }))
+                  }
+                  placeholder={t("rescueMgrProposalEstFeeManual")}
+                />
+              )}
+            </FormGroup>
+          )}
 
           {rescue.requiresDeposit && (
             <FormGroup>
