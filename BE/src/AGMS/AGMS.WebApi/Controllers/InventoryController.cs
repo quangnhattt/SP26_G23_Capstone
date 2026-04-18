@@ -289,5 +289,32 @@ namespace AGMS.WebApi.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        // ============================================================
+        // API 12: XEM DANH SÁCH CÁC PHIẾU HOÀN TRẢ LINH KIỆN
+        // Trả về danh sách các phiếu RETURN (nháp hoặc đã duyệt)
+        // ============================================================
+        [HttpGet("returns")]
+        [Authorize(Roles = Roles.Admin + "," + Roles.ServiceAdvisor)]
+        public async Task<IActionResult> GetAllReturnTransferOrders(
+            [FromQuery] TransferOrderFilterDto filter, CancellationToken ct)
+        {
+            try
+            {
+                // Bắt buộc filter Type = "RETURN" để chỉ lấy các phiếu do Auto Detect tạo ra
+                filter.Type = "RETURN";
+                var result = await _inventoryService.GetAllTransferOrdersWithDetailsAsync(filter, ct);
+
+                return Ok(new
+                {
+                    message = "Lấy danh sách phiếu hoàn trả linh kiện dư thành công.",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }
