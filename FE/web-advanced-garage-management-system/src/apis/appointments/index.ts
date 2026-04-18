@@ -84,11 +84,21 @@ export interface IAppointmentDetail {
   }[];
 }
 
+export interface IAppointmentStatusSummary {
+  total: number;
+  pending: number;
+  confirmed: number;
+  checkedIn: number;
+  cancelled: number;
+  today: number;
+}
+
 export interface IAppointmentPagedResult {
   items: IAppointment[];
   totalCount: number;
   page: number;
   pageSize: number;
+  summary: IAppointmentStatusSummary;
 }
 
 export interface IAppointmentFilter {

@@ -17,14 +17,35 @@ public class AppointmentRepository : IAppointmentRepository
 
     public async Task<AppointmentPagedResultDto<AppointmentListItemDto>> GetListAsync(int? ownerUserId, AppointmentFilterDto filter, CancellationToken ct)
     {
-        var query = _db.Appointments.AsNoTracking().AsQueryable();
+        var baseQuery = _db.Appointments.AsNoTracking().AsQueryable();
 
         // Row-level security: Customer chỉ thấy appointment của mình
         if (ownerUserId.HasValue)
         {
             var uid = ownerUserId.Value;
-            query = query.Where(a => a.CreatedBy == uid || a.Car.OwnerID == uid);
+            baseQuery = baseQuery.Where(a => a.CreatedBy == uid || a.Car.OwnerID == uid);
         }
+
+        // ── Summary counts (unfiltered - chỉ scope ownership) ──────────────
+        var today = DateTime.UtcNow.Date;
+        var statusGroups = await baseQuery
+            .GroupBy(a => a.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+        var todayCount = await baseQuery.CountAsync(a => a.AppointmentDate.Date == today, ct);
+
+        var summary = new AppointmentStatusSummary
+        {
+            Total     = statusGroups.Sum(g => g.Count),
+            Pending   = statusGroups.FirstOrDefault(g => g.Status == "PENDING")?.Count ?? 0,
+            Confirmed = statusGroups.FirstOrDefault(g => g.Status == "CONFIRMED")?.Count ?? 0,
+            CheckedIn = statusGroups.FirstOrDefault(g => g.Status == "CHECKED_IN")?.Count ?? 0,
+            Cancelled = statusGroups.FirstOrDefault(g => g.Status == "CANCELLED")?.Count ?? 0,
+            Today     = todayCount,
+        };
+
+        // ── Apply filters ──────────────────────────────────────────────────
+        var query = baseQuery;
 
         if (!string.IsNullOrWhiteSpace(filter.Status))
         {
@@ -107,7 +128,8 @@ public class AppointmentRepository : IAppointmentRepository
             Items = items,
             TotalCount = totalCount,
             Page = filter.Page,
-            PageSize = filter.PageSize
+            PageSize = filter.PageSize,
+            Summary = summary
         };
     }
 

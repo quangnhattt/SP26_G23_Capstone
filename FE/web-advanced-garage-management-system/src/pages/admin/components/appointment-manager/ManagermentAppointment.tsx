@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { useTranslation } from "react-i18next";
 import {
@@ -8,7 +8,7 @@ import {
 import {
   getAppointments, getAppointmentById, approveAppointment,
   rejectAppointment, proposeReschedule, checkInAppointment,
-  type IAppointment, type IAppointmentDetail
+  type IAppointment, type IAppointmentDetail, type IAppointmentStatusSummary
 } from "@/apis/appointments";
 import { toast } from "react-toastify";
 import { getApiErrorMessage } from "@/utils/getApiErrorMessage";
@@ -43,6 +43,9 @@ const ManagermentAppointment = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+  const [summary, setSummary] = useState<IAppointmentStatusSummary>({
+    total: 0, pending: 0, confirmed: 0, checkedIn: 0, cancelled: 0, today: 0
+  });
 
   // Detail modal
   const [detailData, setDetailData] = useState<IAppointmentDetail | null>(null);
@@ -72,6 +75,7 @@ const ManagermentAppointment = () => {
       });
       setAppointments(data.items);
       setTotalCount(data.totalCount);
+      setSummary(data.summary);
     } catch (error) {
       console.error("Error fetching appointments:", error);
       toast.error("Không thể tải danh sách lịch hẹn.");
@@ -192,15 +196,8 @@ const ManagermentAppointment = () => {
     } catch { return dateStr; }
   };
 
-  // ─── Stats ────────────────────────────────────────────────────────────
-  const stats = useMemo(() => ({
-    total:     appointments.length,
-    pending:   appointments.filter(a => a.status === "PENDING").length,
-    confirmed: appointments.filter(a => a.status === "CONFIRMED").length,
-    checkedIn: appointments.filter(a => a.status === "CHECKED_IN").length,
-    cancelled: appointments.filter(a => a.status === "CANCELLED").length,
-    today:     appointments.filter(a => isToday(a.appointmentDate)).length,
-  }), [appointments]);
+  // ─── Stats (from API summary — always shows totals across ALL pages) ──────
+  const stats = summary;
 
   const filteredAppointments = appointments;
 
