@@ -108,6 +108,15 @@ public class RepairRequestRepository : IRepairRequestRepository
             .FirstOrDefaultAsync(ct);
     }
 
+    public async Task<int> GetUserRoleIdAsync(int userId, CancellationToken ct)
+    {
+        return await _db.Users
+            .AsNoTracking()
+            .Where(u => u.UserID == userId)
+            .Select(u => u.RoleID)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task AddAppointmentAsync(Appointment appointment, CancellationToken ct)
     {
         _db.Appointments.Add(appointment);

@@ -24,9 +24,9 @@ public interface IRepairRequestRepository
     // Lấy danh sách kỹ thuật viên (RoleID = 3, IsActive)
     Task<IEnumerable<TechnicianListItemDto>> GetActiveTechniciansAsync(CancellationToken ct);
 
-    // Lấy kỹ thuật viên theo ID (RoleID = 3, IsActive)
     Task<User?> GetActiveTechnicianByIdAsync(int technicianId, CancellationToken ct);
     Task<string?> GetUserPhoneByIdAsync(int userId, CancellationToken ct);
+    Task<int> GetUserRoleIdAsync(int userId, CancellationToken ct);
 
     // Thêm Appointment mới
     Task AddAppointmentAsync(Appointment appointment, CancellationToken ct);
