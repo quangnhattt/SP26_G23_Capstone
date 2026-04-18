@@ -239,10 +239,17 @@ export const confirmRepair = async (id: number): Promise<void> => {
   await AxiosClient.patch(`/api/service-orders/${id}/confirm-repair`, {});
 };
 
+export type ITransferOrderStatus = "PROCESS_ROADSIDE" | "PROCESS_TOW";
+
 /** POST /api/Inventory/service-orders/{id}/transfer-order
  *  Chuyển báo giá sang phiếu xuất kho */
-export const transferOrder = async (id: number): Promise<void> => {
-  await AxiosClient.post(`/api/Inventory/service-orders/${id}/transfer-order`);
+export const transferOrder = async (
+  id: number,
+  status: ITransferOrderStatus
+): Promise<void> => {
+  await AxiosClient.post(`/api/Inventory/service-orders/${id}/transfer-order`, {
+    status,
+  });
 };
 
 /** POST /api/Inventory/issue/{transferOrderId}

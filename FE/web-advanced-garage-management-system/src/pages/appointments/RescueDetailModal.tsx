@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useTranslation } from "react-i18next";
 import {
@@ -87,6 +87,32 @@ const RescueDetailModal = ({
 
   const TERMINAL_STATUSES = ["COMPLETED", "CANCELLED", "SPAM"];
   const canCancel = data ? !TERMINAL_STATUSES.includes(data.status) : false;
+
+  const serviceFee = useMemo(() => {
+    if (!data) return 0;
+    return data.serviceFee ?? 0;
+  }, [data]);
+
+  const depositAmount = data?.depositAmount ?? 0;
+  const requiresDepositRaw = (data as { requiresDeposit?: unknown } | null)
+    ?.requiresDeposit;
+  const requiresDeposit =
+    requiresDepositRaw === true ||
+    requiresDepositRaw === "true" ||
+    requiresDepositRaw === 1 ||
+    Number(depositAmount) > 0;
+  const remainingAmount = requiresDeposit
+    ? Math.max(serviceFee - depositAmount, 0)
+    : serviceFee;
+  const refundAmount =
+    requiresDeposit && depositAmount > serviceFee
+      ? depositAmount - serviceFee
+      : 0;
+
+  useEffect(() => {
+    if (!showPayment) return;
+    setPaymentAmount(String(Math.round(remainingAmount)));
+  }, [showPayment, remainingAmount]);
 
   const handleAcceptProposal = async () => {
     if (!data) return;
@@ -286,6 +312,16 @@ const RescueDetailModal = ({
       bg: "#f3f4f6",
     };
 
+  const formatMoney = (value?: number | null) => {
+    if (value == null) return "—";
+    return `${value.toLocaleString("vi-VN")} đ`;
+  };
+
+  const formatVnd = (value?: number | null) => {
+    if (value == null) return "—";
+    return `${value.toLocaleString()} VND`;
+  };
+
   return (
     <Overlay onClick={onClose}>
       <Card onClick={(e) => e.stopPropagation()}>
@@ -397,6 +433,84 @@ const RescueDetailModal = ({
 
             <Divider />
 
+
+
+            {(data.suggestedParts?.length || 0) > 0 && (
+              <>
+                <Divider />
+                <Section>
+                  <SectionTitle>
+                    <FaBoxOpen size={16} />
+                    {t("rescueProposalPartsTitle")}
+                  </SectionTitle>
+                  <InfoList>
+                    {data.suggestedParts?.map((part, idx) => (
+                      <InfoListItem key={`${part.partId}-${idx}`}>
+                        <InfoListMain>
+                          {part.partName || `${t("rescuePartFallback")} #${part.partId}`}
+                          {part.partCode ? ` (${part.partCode})` : ""}
+                        </InfoListMain>
+                        <InfoListMeta>
+                          {part.partType || "—"} | {t("quantity")}: {part.quantity} |{" "}
+                          {t("price")}: {formatMoney(part.unitPrice)} |{" "}
+                          {t("rescueMgrEstimatedAmount")}: {formatMoney(part.estimatedLineAmount)}
+                        </InfoListMeta>
+                      </InfoListItem>
+                    ))}
+                  </InfoList>
+                </Section>
+              </>
+            )}
+
+            {(data.repairItems?.length || 0) > 0 && (
+              <>
+                <Divider />
+                <Section>
+                  <SectionTitle>
+                    <FaTools size={16} />
+                    {t("rescueMgrRepairItems")}
+                  </SectionTitle>
+                  <InfoList>
+                    {data.repairItems?.map((item, idx) => (
+                      <InfoListItem key={`${item.serviceDetailId ?? item.productId}-${idx}`}>
+                        <InfoListMain>{item.productName || `#${item.productId}`}</InfoListMain>
+                        <InfoListMeta>
+                          {t("quantity")}: {item.quantity} | {t("price")}:{" "}
+                          {formatMoney(item.unitPrice)} | {t("rescueMgrLineTotal")}:{" "}
+                          {formatMoney(item.totalPrice ?? item.lineTotal)}
+                        </InfoListMeta>
+                      </InfoListItem>
+                    ))}
+                  </InfoList>
+                </Section>
+              </>
+            )}
+
+            <Section>
+              <SectionTitle>
+                <FaMoneyBillWave size={16} />
+                {t("rescueMgrCostInfo")}
+              </SectionTitle>
+              <Grid>
+                <Field>
+                  <Label>{t("rescueMgrServiceFee")}</Label>
+                  <Value>{formatMoney(data.serviceFee)}</Value>
+                </Field>
+                <Field>
+                  <Label>{t("rescueMgrDepositRequired")}</Label>
+                  <Value>{data.requiresDeposit ? t("yes") : t("no")}</Value>
+                </Field>
+                <Field>
+                  <Label>{t("rescueMgrDepositAmountInfo")}</Label>
+                  <Value>{formatMoney(data.depositAmount)}</Value>
+                </Field>
+                <Field>
+                  <Label>{t("rescueMgrDepositPaid")}</Label>
+                  <Value>{data.isDepositPaid ? t("yes") : t("no")}</Value>
+                </Field>
+              </Grid>
+            </Section>
+
             {/* Stepper */}
             <Section>
               <SectionTitle>{t("rescueProcessTitle")}</SectionTitle>
@@ -409,29 +523,29 @@ const RescueDetailModal = ({
 
             {/* KTV: Đã được phân công / đang trên đường — xác nhận đến nơi */}
             {isTechnician && data.status === "EN_ROUTE" && (
-                <>
-                  <Divider />
-                  <ActionCard $highlight>
-                    <ActionCardTitle>
-                      {t("rescueTechEnRouteTitle")}
-                    </ActionCardTitle>
-                    <ActionInfo>
-                      {t("rescueTechEnRouteInfo")}
-                    </ActionInfo>
-                    <ActionBtnRow>
-                      <ActionBtn
-                        $color="#0d9488"
-                        onClick={handleTechArrive}
-                        disabled={techLoading}
-                      >
-                        {techLoading
-                          ? t("rescueTechProcessing")
-                          : t("rescueTechConfirmArrivalBtn")}
-                      </ActionBtn>
-                    </ActionBtnRow>
-                  </ActionCard>
-                </>
-              )}
+              <>
+                <Divider />
+                <ActionCard $highlight>
+                  <ActionCardTitle>
+                    {t("rescueTechEnRouteTitle")}
+                  </ActionCardTitle>
+                  <ActionInfo>
+                    {t("rescueTechEnRouteInfo")}
+                  </ActionInfo>
+                  <ActionBtnRow>
+                    <ActionBtn
+                      $color="#0d9488"
+                      onClick={handleTechArrive}
+                      disabled={techLoading}
+                    >
+                      {techLoading
+                        ? t("rescueTechProcessing")
+                        : t("rescueTechConfirmArrivalBtn")}
+                    </ActionBtn>
+                  </ActionBtnRow>
+                </ActionCard>
+              </>
+            )}
 
             {/* KTV: Chẩn đoán */}
             {isTechnician &&
@@ -766,9 +880,10 @@ const RescueDetailModal = ({
 
             {/* KH: SA đề xuất phương án — xem phiếu đề xuất đầy đủ & xác nhận */}
             {isCustomer &&
-              ["PROPOSED_ROADSIDE", "PROPOSED_TOWING"].includes(
-                data.status as string,
-              ) && (
+              [
+                "PROPOSED_ROADSIDE",
+                "PROPOSED_TOWING",
+              ].includes(data.status as string) && (
                 <>
                   <Divider />
                   {/* ── Phiếu đề xuất ── */}
@@ -801,6 +916,18 @@ const RescueDetailModal = ({
                     </ProposalDocHeader>
 
                     <ProposalDocBody>
+                      {/* Tổng tiền đơn */}
+                      {data.serviceFee != null && (
+                        <ProposalTotalBlock>
+                          <ProposalTotalLabel>
+                            <FaMoneyBillWave size={13} /> {t("rescueMgrServiceFee")}
+                          </ProposalTotalLabel>
+                          <ProposalTotalAmount>
+                            {formatVnd(data.serviceFee)}
+                          </ProposalTotalAmount>
+                        </ProposalTotalBlock>
+                      )}
+
                       {/* Phí ước tính */}
                       {data.estimatedServiceFee != null &&
                         data.estimatedServiceFee > 0 && (
@@ -839,7 +966,7 @@ const RescueDetailModal = ({
                       {data.proposalNotes && (
                         <ProposalSection>
                           <ProposalSectionTitle>
-                              <FaStickyNote size={12} /> {t("rescueProposalWorkshopNote")}
+                            <FaStickyNote size={12} /> {t("rescueProposalWorkshopNote")}
                           </ProposalSectionTitle>
                           <ProposalNoteText>
                             {data.proposalNotes}
@@ -992,15 +1119,15 @@ const RescueDetailModal = ({
 
             {/* KH: Đã đồng ý — KTV đã được phân công tự động */}
             {isCustomer && data.status === "EN_ROUTE" && (
-                <>
-                  <Divider />
-                  <ActionCard>
-                    <ActionInfo>
-                      {t("rescueCustomerKtvEnRoute")}
-                    </ActionInfo>
-                  </ActionCard>
-                </>
-              )}
+              <>
+                <Divider />
+                <ActionCard>
+                  <ActionInfo>
+                    {t("rescueCustomerKtvEnRoute")}
+                  </ActionInfo>
+                </ActionCard>
+              </>
+            )}
 
             {/* KH: KTV đến nơi — chờ chẩn đoán */}
             {isCustomer && data.status === "ON_SITE" && (
@@ -1149,6 +1276,24 @@ const RescueDetailModal = ({
                 <Divider />
                 <ActionCard $highlight>
                   <ActionCardTitle>{t("rescueCustomerPaymentInfoTitle")}</ActionCardTitle>
+                  {requiresDeposit && (
+                    <FormGroup>
+                      <FormLabel>Tiền đặt cọc (VND)</FormLabel>
+                      <FormInput value={String(Math.round(depositAmount))} readOnly />
+                    </FormGroup>
+                  )}
+                  {refundAmount > 0 && (
+                    <ActionInfo style={{ color: "#1d4ed8", fontWeight: 600 }}>
+                      Bạn sẽ nhận lại {Math.round(refundAmount).toLocaleString()} VND.
+                      Vui lòng xác nhận thanh toán để hoàn tất.
+                    </ActionInfo>
+                  )}
+                  {requiresDeposit && refundAmount === 0 && (
+                    <ActionInfo style={{ color: "#1d4ed8", fontWeight: 600 }}>
+                      Số tiền còn phải thanh toán:{" "}
+                      {Math.round(remainingAmount).toLocaleString()} VND.
+                    </ActionInfo>
+                  )}
                   <FormGroup>
                     <FormLabel>{t("rescueCustomerPaymentMethodLabel")}</FormLabel>
                     <FormSelect
@@ -1173,6 +1318,7 @@ const RescueDetailModal = ({
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
                       placeholder={t("rescueCustomerAmountPlaceholder")}
+                      readOnly={requiresDeposit}
                     />
                   </FormGroup>
                   {paymentMethod === "TRANSFER" && (
@@ -1409,6 +1555,32 @@ const Value = styled.span`
   line-height: 1.4;
 `;
 
+const InfoList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+`;
+
+const InfoListItem = styled.div`
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 0.75rem 0.875rem;
+`;
+
+const InfoListMain = styled.div`
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+`;
+
+const InfoListMeta = styled.div`
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.5;
+`;
+
 const StatusBadge = styled.span<{ $color: string; $bg: string }>`
   padding: 0.2rem 0.625rem;
   border-radius: 6px;
@@ -1550,7 +1722,7 @@ const ActionCard = styled.div<{ $highlight?: boolean; $danger?: boolean }>`
     $danger ? "#fef2f2" : $highlight ? "#eff6ff" : "#f9fafb"};
   border: 1px solid
     ${({ $danger, $highlight }) =>
-      $danger ? "#fecaca" : $highlight ? "#bfdbfe" : "#e5e7eb"};
+    $danger ? "#fecaca" : $highlight ? "#bfdbfe" : "#e5e7eb"};
 `;
 
 const ActionCardTitle = styled.div`
@@ -1697,6 +1869,30 @@ const ProposalDocBody = styled.div`
   flex-direction: column;
   gap: 0.875rem;
   background: white;
+`;
+
+const ProposalTotalBlock = styled.div`
+  background: #eff6ff;
+  border: 1.5px solid #93c5fd;
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+`;
+
+const ProposalTotalLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  color: #1d4ed8;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+`;
+
+const ProposalTotalAmount = styled.div`
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: #1e40af;
+  letter-spacing: -0.5px;
 `;
 
 const ProposalFeeBlock = styled.div`

@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { FaTimes } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import { addRepairItems, type IRescueRequest } from "@/apis/rescue";
-import { getProducts, type IProduct } from "@/services/admin/productService";
+import type { IProduct } from "@/services/admin/productService";
 import { toast } from "react-toastify";
 
 interface SelectedPart {
@@ -27,19 +27,9 @@ const EditPartsModal = ({
   onSuccess,
 }: EditPartsModalProps) => {
   const { t } = useTranslation();
-  const [products, setProducts] = useState<IProduct[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
   const [selectedParts, setSelectedParts] = useState<SelectedPart[]>([]);
   const [search, setSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    setLoadingProducts(true);
-    getProducts({ pageSize: 200 })
-      .then((res) => setProducts(res.items.filter((p) => p.isActive)))
-      .catch(() => {})
-      .finally(() => setLoadingProducts(false));
-  }, []);
 
   const suggestedProducts = useMemo<IProduct[]>(
     () =>
@@ -60,21 +50,12 @@ const EditPartsModal = ({
     [rescue.suggestedParts],
   );
 
-  const selectableProducts = useMemo<IProduct[]>(() => {
-    const productById = new Map<number, IProduct>();
-    for (const p of products) productById.set(p.id, p);
-    for (const p of suggestedProducts) {
-      if (!productById.has(p.id)) productById.set(p.id, p);
-    }
-    return Array.from(productById.values());
-  }, [products, suggestedProducts]);
-
   useEffect(() => {
     if (selectedParts.length > 0) return;
     if (!rescue.suggestedParts || rescue.suggestedParts.length === 0) return;
 
     const byId = new Map<number, IProduct>();
-    for (const p of selectableProducts) byId.set(p.id, p);
+    for (const p of suggestedProducts) byId.set(p.id, p);
 
     const initialSelected: SelectedPart[] = rescue.suggestedParts.map((part) => {
       const product =
@@ -103,25 +84,13 @@ const EditPartsModal = ({
     });
 
     setSelectedParts(initialSelected);
-  }, [rescue.suggestedParts, selectableProducts, selectedParts.length]);
+  }, [rescue.suggestedParts, suggestedProducts, selectedParts.length]);
 
-  const filtered = selectableProducts.filter(
+  const filtered = selectedParts.filter(
     (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.code.toLowerCase().includes(search.toLowerCase()),
+      p.product.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.product.code.toLowerCase().includes(search.toLowerCase()),
   );
-
-  const togglePart = (product: IProduct) => {
-    setSelectedParts((prev) => {
-      if (prev.some((p) => p.product.id === product.id)) {
-        return prev.filter((p) => p.product.id !== product.id);
-      }
-      return [
-        ...prev,
-        { product, qty: 1, unitPrice: product.price, notes: "" },
-      ];
-    });
-  };
 
   const updateQty = (productId: number, qty: number) => {
     if (qty < 1) return;
@@ -199,26 +168,19 @@ const EditPartsModal = ({
             onChange={(e) => setSearch(e.target.value)}
           />
 
-          {/* Product list */}
-          {loadingProducts ? (
-            <EmptyText>{t("rescueMgrProposalPartsLoading")}</EmptyText>
-          ) : filtered.length === 0 ? (
+          {/* Product list: chỉ hiển thị phụ tùng đã có trên đơn */}
+          {filtered.length === 0 ? (
             <EmptyText>{t("rescueMgrProposalPartsEmpty")}</EmptyText>
           ) : (
             <CheckList>
-              {filtered.map((product) => {
-                const selected = selectedParts.find(
-                  (p) => p.product.id === product.id,
-                );
+              {filtered.map((selected) => {
+                const product = selected.product;
                 return (
                   <CheckItem
                     key={product.id}
-                    $checked={!!selected}
-                    onClick={() => togglePart(product)}
+                    $checked={true}
                   >
-                    <CheckBox $checked={!!selected}>
-                      {selected && "✓"}
-                    </CheckBox>
+                    <CheckBox $checked={true}>✓</CheckBox>
                     <CheckItemInfo>
                       <CheckItemName>{product.name}</CheckItemName>
                       <CheckItemMeta>
@@ -229,53 +191,40 @@ const EditPartsModal = ({
                       </CheckItemMeta>
                     </CheckItemInfo>
 
-                    {selected && (
-                      <SelectedControls
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {/* Qty */}
-                        <QtyControl>
-                          <QtyBtn
-                            onClick={() =>
-                              updateQty(product.id, selected.qty - 1)
-                            }
-                            disabled={selected.qty <= 1}
-                          >
-                            −
-                          </QtyBtn>
-                          <QtyValue>{selected.qty}</QtyValue>
-                          <QtyBtn
-                            onClick={() =>
-                              updateQty(product.id, selected.qty + 1)
-                            }
-                          >
-                            +
-                          </QtyBtn>
-                        </QtyControl>
+                    <SelectedControls onClick={(e) => e.stopPropagation()}>
+                      {/* Qty: chỉ cho phép giảm, không cho tăng */}
+                      <QtyControl>
+                        <QtyBtn
+                          onClick={() => updateQty(product.id, selected.qty - 1)}
+                          disabled={selected.qty <= 1}
+                        >
+                          −
+                        </QtyBtn>
+                        <QtyValue>{selected.qty}</QtyValue>
+                      </QtyControl>
 
-                        {/* Unit price */}
-                        <PriceInput
-                          type="number"
-                          value={selected.unitPrice}
-                          onChange={(e) =>
-                            updateUnitPrice(
-                              product.id,
-                              Number(e.target.value),
-                            )
-                          }
-                          placeholder={t("rescueTechUnitPricePlaceholder")}
-                        />
+                      {/* Unit price */}
+                      <PriceInput
+                        type="number"
+                        value={selected.unitPrice}
+                        onChange={(e) =>
+                          updateUnitPrice(
+                            product.id,
+                            Number(e.target.value),
+                          )
+                        }
+                        placeholder={t("rescueTechUnitPricePlaceholder")}
+                      />
 
-                        {/* Notes */}
-                        <NotesInput
-                          value={selected.notes}
-                          onChange={(e) =>
-                            updateNotes(product.id, e.target.value)
-                          }
-                          placeholder={t("rescueTechNotesPlaceholder")}
-                        />
-                      </SelectedControls>
-                    )}
+                      {/* Notes */}
+                      <NotesInput
+                        value={selected.notes}
+                        onChange={(e) =>
+                          updateNotes(product.id, e.target.value)
+                        }
+                        placeholder={t("rescueTechNotesPlaceholder")}
+                      />
+                    </SelectedControls>
                   </CheckItem>
                 );
               })}
