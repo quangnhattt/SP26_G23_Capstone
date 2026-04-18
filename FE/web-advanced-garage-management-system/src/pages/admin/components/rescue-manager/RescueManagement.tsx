@@ -787,7 +787,10 @@ const RescueManagement = () => {
           });
         }
         if (isSA) {
-          if (!transferredRescueIds.has(rescue.rescueId)) {
+          if (
+            rescue.rescueType === "ROADSIDE" &&
+            !transferredRescueIds.has(rescue.rescueId)
+          ) {
             actions.push({
               label: t("rescueMgrTransferOrderAction"),
               icon: <FaBoxes size={12} />,
@@ -971,20 +974,6 @@ const RescueManagement = () => {
         break;
 
       case "TOWED":
-        if (isSA) {
-          actions.push({
-            label: t("rescueMgrCreateInvoiceAction"),
-            icon: <FaFileInvoiceDollar size={12} />,
-            color: "#7c3aed",
-            onClick: () => openInvoiceModal(rescue),
-          });
-          actions.push({
-            label: t("rescueMgrCancel"),
-            icon: <FaTimes size={12} />,
-            color: "#dc2626",
-            onClick: () => openReasonModal("cancel", rescue),
-          });
-        }
         break;
 
       // ═══ SA: Gửi hóa đơn ═══

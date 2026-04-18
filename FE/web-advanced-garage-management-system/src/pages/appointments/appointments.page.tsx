@@ -21,7 +21,11 @@ import {
   FaClipboardCheck,
 } from "react-icons/fa";
 import RespondAdditionalItemsModal from "@/pages/admin/components/service-order-manager/respond-additional-items.modal";
-import { getServiceOrderDetail } from "@/services/admin/serviceOrderService";
+import {
+  getAdditionalItems,
+  getServiceOrders,
+  type IServiceOrder,
+} from "@/services/admin/serviceOrderService";
 import {
   getAppointments,
   getAppointmentById,
@@ -143,6 +147,8 @@ const AppointmentsPage = () => {
   const [showAdditionalModal, setShowAdditionalModal] = useState(false);
   const [additionalMaintenanceId, setAdditionalMaintenanceId] = useState<number | null>(null);
   const [loadingAdditionalId, setLoadingAdditionalId] = useState<number | null>(null);
+  const [additionalPendingOrders, setAdditionalPendingOrders] = useState<IServiceOrder[]>([]);
+  const [loadingAdditionalTab, setLoadingAdditionalTab] = useState(false);
 
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -197,10 +203,36 @@ const AppointmentsPage = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    if (user && activeTab !== "RESCUE") {
+    if (user && activeTab === "BOOKING") {
       fetchAppointments();
     }
   }, [fetchAppointments, user, activeTab]);
+
+  const fetchAdditionalPendingTab = useCallback(async () => {
+    try {
+      setLoadingAdditionalTab(true);
+      const res = await getServiceOrders({
+        page: 1,
+        pageSize: 50,
+        status: "QUOTED",
+      });
+      setAdditionalPendingOrders(
+        (res.items ?? []).filter((order) => order.status === "QUOTED"),
+      );
+    } catch (error) {
+      console.error("Error fetching additional items queue:", error);
+      toast.error(t("additionalItemsLoadError"));
+      setAdditionalPendingOrders([]);
+    } finally {
+      setLoadingAdditionalTab(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    if (user && isCustomer && activeTab === "ADDITIONAL_ITEMS") {
+      void fetchAdditionalPendingTab();
+    }
+  }, [user, isCustomer, activeTab, fetchAdditionalPendingTab]);
 
   const filteredAppointments = appointments;
 
@@ -328,15 +360,18 @@ const AppointmentsPage = () => {
   };
 
   // ─── Additional Items Approval ─────────────────────────────
-  const openAdditionalItemsModal = async (appointmentId: number, maintenanceId?: number | null) => {
-    setLoadingAdditionalId(appointmentId);
+  const openAdditionalItemsModal = async (maintenanceId: number) => {
+    setLoadingAdditionalId(maintenanceId);
     try {
-      if (!maintenanceId) {
-        toast.info(t("appointmentsAdditionalNoMaintenance"));
+      const additional = await getAdditionalItems(maintenanceId);
+      const hasPending =
+        (additional.services ?? []).some((s) => s.itemStatus === "PENDING") ||
+        (additional.parts ?? []).some((p) => p.itemStatus === "PENDING");
+      if (!hasPending) {
+        toast.info(t("respondAdditionalEmpty"));
         return;
       }
-      const serviceOrder = await getServiceOrderDetail(maintenanceId);
-      setAdditionalMaintenanceId(serviceOrder.maintenanceId);
+      setAdditionalMaintenanceId(maintenanceId);
       setShowAdditionalModal(true);
     } catch {
       toast.error(t("errorOccurred"));
@@ -633,12 +668,9 @@ const AppointmentsPage = () => {
         <ContentSection>
           {activeTab === "ADDITIONAL_ITEMS" ? (
             (() => {
-              const inProgressAppts = appointments.filter((a) =>
-                IN_PROGRESS_STATUSES.includes(a.status) &&
-                a.maintenanceStatus === "QUOTED",
-              );
-              if (loading) return <LoadingMessage>{t("loading")}</LoadingMessage>;
-              if (inProgressAppts.length === 0)
+              if (loadingAdditionalTab)
+                return <LoadingMessage>{t("loading")}</LoadingMessage>;
+              if (additionalPendingOrders.length === 0)
                 return (
                   <EmptyState>
                     <FaClipboardCheck size={48} color="#d1d5db" />
@@ -648,47 +680,55 @@ const AppointmentsPage = () => {
                 );
               return (
                 <AppointmentList>
-                  {inProgressAppts.map((appt) => {
-                    const statusInfo = getStatusInfo(appt.status);
-                    const carName = `${appt.carBrand} ${appt.carModel}`;
-                    const isLoadingThis = loadingAdditionalId === appt.appointmentId;
+                  {additionalPendingOrders.map((order) => {
+                    const isLoadingThis = loadingAdditionalId === order.maintenanceId;
+                    const quotedBadge = {
+                      label: t("serviceOrderStatus_QUOTED"),
+                      color: "#b45309",
+                      bg: "#fef3c7",
+                    };
                     return (
-                      <AppointmentCard key={appt.appointmentId}>
+                      <AppointmentCard key={order.maintenanceId}>
                         <CardLeft>
                           <CarIconWrapper>
                             <FaCar size={22} color="#6b7280" />
                           </CarIconWrapper>
                           <CarInfo>
-                            <CarName>{carName}</CarName>
-                            <CarPlate>{appt.licensePlate}</CarPlate>
+                            <CarName>{order.carInfo}</CarName>
+                            {order.technicianName ? (
+                              <CarPlate>{order.technicianName}</CarPlate>
+                            ) : null}
                           </CarInfo>
                         </CardLeft>
                         <CardRight>
                           <CardTitleRow>
                             <CardTitle>
-                              {getServiceTypeLabel(appt.serviceType)}
+                              {getServiceTypeLabel(order.maintenanceType)}
                             </CardTitle>
                             <BadgeGroup>
-                              <StatusBadge $color={statusInfo.color} $bg={statusInfo.bg}>
-                                {statusInfo.label}
+                              <StatusBadge
+                                $color={quotedBadge.color}
+                                $bg={quotedBadge.bg}
+                              >
+                                {quotedBadge.label}
                               </StatusBadge>
                             </BadgeGroup>
                           </CardTitleRow>
                           <InfoRow>
                             <FaUser size={13} color="#9ca3af" />
-                            <InfoText>{appt.customerFullName}</InfoText>
+                            <InfoText>{order.customerName}</InfoText>
                           </InfoRow>
                           <CardFooter>
                             <FooterItem>
                               <FaFileAlt size={12} />
-                              #appointment-{appt.appointmentId}
+                              #service-order-{order.maintenanceId}
                             </FooterItem>
                             <FooterItem>
                               <FaClock size={12} />
-                              {formatDate(appt.appointmentDate || appt.createdDate)}
+                              {formatDate(order.maintenanceDate)}
                             </FooterItem>
                             <ApproveItemsBtn
-                              onClick={() => openAdditionalItemsModal(appt.appointmentId, appt.maintenanceId)}
+                              onClick={() => openAdditionalItemsModal(order.maintenanceId)}
                               disabled={isLoadingThis}
                             >
                               <FaClipboardCheck size={13} />
@@ -1111,7 +1151,8 @@ const AppointmentsPage = () => {
         onSuccess={() => {
           setShowAdditionalModal(false);
           setAdditionalMaintenanceId(null);
-          fetchAppointments();
+          void fetchAdditionalPendingTab();
+          void fetchAppointments();
         }}
       />
 
