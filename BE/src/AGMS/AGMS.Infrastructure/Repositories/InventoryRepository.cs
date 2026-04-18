@@ -606,6 +606,213 @@ public class InventoryRepository : IInventoryRepository
         }
     }
 
+    public async Task<int> CreateSurplusReturnDraftAsync(int maintenanceId, int processedByUserId, CancellationToken ct)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            var maintenance = await _db.CarMaintenances.FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+            if (maintenance == null) throw new KeyNotFoundException($"Không tìm thấy ca bảo dưỡng #{maintenanceId}.");
+
+            // 1. Kiểm tra chống double run
+            bool alreadyHasReturn = await _db.TransferOrders.AnyAsync(to => 
+                to.RelatedMaintenanceID == maintenanceId 
+                && to.Type == "RETURN" 
+                && (to.Status == "APPROVED" || to.Status == "DRAFT" || to.Status == "PENDING"), ct);
+            
+            if (alreadyHasReturn) throw new InvalidOperationException("Hệ thống đã ghi nhận một phiếu hoàn trả cho ca cứu hộ này. Không thể tạo thêm.");
+
+            // 2. Truy vấn Sổ cái (Ledger): Group theo ProductId
+            var ledgerIssues = await _db.InventoryTransactions
+                .Where(t => t.Reference.RelatedMaintenanceID == maintenanceId && t.TransactionType == "ISSUE")
+                .GroupBy(t => t.ProductID)
+                .Select(g => new { ProductID = g.Key, TotalIssued = g.Sum(x => x.Quantity) })
+                .ToListAsync(ct);
+
+            // 3. Truy vấn Thực dùng từ ServicePartDetail
+            var actualUsages = await _db.ServicePartDetails
+                .Include(sp => sp.Product)
+                .Where(sp => sp.MaintenanceID == maintenanceId)
+                .ToListAsync(ct);
+
+            var itemsToReturn = new List<(ServicePartDetail Part, decimal Surplus)>();
+
+            // 4. Detect chênh lệch
+            foreach (var usage in actualUsages)
+            {
+                var ledgerRecord = ledgerIssues.FirstOrDefault(l => l.ProductID == usage.ProductID);
+                decimal totalIssued = ledgerRecord?.TotalIssued ?? 0m;
+                
+                decimal surplus = totalIssued - usage.Quantity;
+
+                if (usage.Quantity > totalIssued)
+                {
+                    throw new InvalidOperationException($"Lỗi đồng bộ dữ liệu: Linh kiện {usage.Product?.Code} có số lượng sử dụng ({usage.Quantity}) lớn hơn tổng số lượng thực xuất kho ban đầu ({totalIssued}). KTV cần tạo phiếu xuất kho bổ sung.");
+                }
+
+                if (surplus > 0)
+                {
+                    itemsToReturn.Add((usage, surplus));
+                }
+            }
+
+            if (!itemsToReturn.Any()) return 0; // Không có gì để hoàn
+
+            // 5. Tạo TransferOrder DRAFT
+            var draftOrder = new TransferOrder
+            {
+                Type = "RETURN",
+                Status = "DRAFT", // Nháp
+                Note = $"Thu hồi hàng dư từ ca Cứu hộ #{maintenanceId}",
+                DocumentDate = DateTime.UtcNow,
+                CreatedDate = DateTime.UtcNow,
+                CreateBy = processedByUserId,
+                ApprovedBy = null,
+                RelatedMaintenanceID = maintenanceId
+            };
+            
+            _db.TransferOrders.Add(draftOrder);
+            await _db.SaveChangesAsync(ct); 
+
+            // 6. Thêm Chi tiết Phiếu DRAFT (KHÔNG đụng tới kho hay sổ cái ở đây)
+            foreach (var item in itemsToReturn)
+            {
+                var detail = new TransferOrderDetail
+                {
+                    TransferOrderID = draftOrder.TransferOrderID,
+                    ProductID = item.Part.ProductID,
+                    Quantity = item.Surplus,
+                    UnitPrice = item.Part.UnitPrice,
+                    Notes = $"Thu hồi lại {item.Surplus} sp"
+                };
+                _db.TransferOrderDetails.Add(detail);
+                
+                // BỎ QUA GÁN TRẠNG THÁI VÌ DATABASE CÓ CHECK CONSTRAINT CHO InventoryStatus
+            }
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+
+            return draftOrder.TransferOrderID;
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(ct);
+            throw new Exception(ex.InnerException != null ? ex.Message + " | Inner: " + ex.InnerException.Message : ex.Message);
+        }
+    }
+
+    public async Task ApproveSurplusReturnAsync(int transferOrderId, int approvedByUserId, CancellationToken ct)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            var returnOrder = await _db.TransferOrders
+                .Include(t => t.TransferOrderDetails)
+                .FirstOrDefaultAsync(t => t.TransferOrderID == transferOrderId, ct);
+
+            if (returnOrder == null || returnOrder.Type != "RETURN")
+                throw new Exception("Lỗi: Lệnh hoàn trả không hợp lệ.");
+
+            if (returnOrder.Status == "APPROVED")
+                throw new Exception("Lỗi: Phiếu hoàn trả này đã được phê duyệt.");
+
+            if (returnOrder.Status != "DRAFT" && returnOrder.Status != "PENDING")
+                throw new Exception($"Lỗi: Trạng thái ({returnOrder.Status}) không hợp lệ để duyệt.");
+
+            // 2. Chốt kho: Cộng vô Quantity & Ghi Transaction
+            foreach (var detail in returnOrder.TransferOrderDetails)
+            {
+                var inventory = await _db.ProductInventories.FirstOrDefaultAsync(i => i.ProductID == detail.ProductID, ct);
+                if (inventory != null)
+                {
+                    // Update Stock CHỈ CỘNG, KHÔNG THAY ĐỔI MAC (Giữ giá vốn)
+                    inventory.Quantity += detail.Quantity;
+                    inventory.LastUpdated = DateTime.UtcNow;
+                    _db.ProductInventories.Update(inventory);
+
+                    // Sổ Cái 
+                    var transaction = new InventoryTransaction
+                    {
+                        ProductID = detail.ProductID,
+                        ReferenceID = returnOrder.TransferOrderID,
+                        TransactionType = "RETURN_FROM_RESCUE",
+                        Quantity = detail.Quantity,
+                        Balance = inventory.Quantity,
+                        UnitCost = inventory.AverageCost, // Giữ nguyên cost
+                        TransactionDate = DateTime.UtcNow,
+                        Note = "Xác nhận nhận lại linh kiện"
+                    };
+                    _db.InventoryTransactions.Add(transaction);
+                }
+            }
+
+            // 3. (BỎ QUA CẬP NHẬT InventoryStatus VÌ LÝ DO RÀNG BUỘC CƠ SỞ DỮ LIỆU)
+
+            returnOrder.Status = "APPROVED";
+            returnOrder.ApprovedBy = approvedByUserId;
+            _db.TransferOrders.Update(returnOrder);
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(ct);
+            throw new Exception(ex.InnerException != null ? ex.Message + " | Inner: " + ex.InnerException.Message : ex.Message);
+        }
+    }
+
+    public async Task<List<int>> AutoDetectAndCreateSurplusReturnsAsync(int processedByUserId, CancellationToken ct)
+    {
+        // Chỉ lấy những ca đã có xuất kho thực sự để đối soát
+        var candidateMaintenanceIdsFromParts = await _db.ServicePartDetails
+            .Where(sp => sp.InventoryStatus == "ISSUED")
+            .Select(sp => sp.MaintenanceID)
+            .Distinct()
+            .ToListAsync(ct);
+
+        // Lọc bỏ đi những ca đã có Phiếu Return rồi để không quét trùng
+        var alreadyReturnedMaintenanceIds = await _db.TransferOrders
+            .Where(to => to.Type == "RETURN" && to.RelatedMaintenanceID != null)
+            .Select(to => to.RelatedMaintenanceID!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var candidateMaintenanceIds = candidateMaintenanceIdsFromParts
+            .Except(alreadyReturnedMaintenanceIds)
+            .ToList();
+
+        var createdDraftIds = new List<int>();
+        var errors = new List<string>();
+
+        foreach (var maintenanceId in candidateMaintenanceIds)
+        {
+            try
+            {
+                int newTransferOrderId = await CreateSurplusReturnDraftAsync(maintenanceId, processedByUserId, ct);
+                if (newTransferOrderId > 0)
+                {
+                    createdDraftIds.Add(newTransferOrderId);
+                }
+            }
+            catch (Exception ex)
+            {
+                string errorMessage = ex.Message;
+                if (ex.InnerException != null) errorMessage += " | Inner: " + ex.InnerException.Message;
+                errors.Add($"Ca {maintenanceId} bị lỗi: {errorMessage}");
+                continue;
+            }
+        }
+
+        if (errors.Any() && !createdDraftIds.Any())
+        {
+            throw new Exception("Hệ thống quét không ra linh kiện dư được cấp phép do kẹt dữ liệu: " + string.Join(" | ", errors));
+        }
+
+        return createdDraftIds;
+    }
+
     // ============================================================
     // API 1: Kỹ thuật viên xem danh sách phiếu xuất kho của mình
     // Logic: Lọc TransferOrder qua RelatedMaintenance.AssignedTechnicianID == technicianUserId
