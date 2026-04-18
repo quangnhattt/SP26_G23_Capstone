@@ -342,7 +342,7 @@ public class InventoryRepository : IInventoryRepository
                 LedgerQuantity = _db.InventoryTransactions
                     .Where(t => t.ProductID == inv.ProductID)
                     .Sum(t =>
-                        (t.TransactionType == "GOODS_RECEIPT" || t.TransactionType == "IN" || t.TransactionType == "RETURN" || t.TransactionType == "ADJUST_IN") ? t.Quantity :
+                        (t.TransactionType == "GOODS_RECEIPT" || t.TransactionType == "IN" || t.TransactionType == "RETURN" || t.TransactionType == "ADJUST_IN" || t.TransactionType == "RETURN_FROM_RESCUE") ? t.Quantity :
                         (t.TransactionType == "ISSUE" || t.TransactionType == "OUT" || t.TransactionType == "WRITE_OFF" || t.TransactionType == "ADJUST_OUT") ? -t.Quantity :
                         t.TransactionType == "ADJUST" ? t.Quantity : 0)
             })
