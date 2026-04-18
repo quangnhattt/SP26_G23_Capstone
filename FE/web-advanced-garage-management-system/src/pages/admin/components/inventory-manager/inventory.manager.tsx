@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { HiPlus, HiClipboardCheck, HiAdjustments } from "react-icons/hi";
+import { HiPlus, HiClipboardCheck, HiAdjustments, HiSparkles } from "react-icons/hi";
 import { toast } from "react-toastify";
 import { Table, Tag } from "antd";
 import type { TableColumnsType } from "antd";
@@ -14,6 +14,7 @@ import { getProducts, type IProduct } from "@/services/admin/productService";
 import ImportModal from "./import.modal";
 import AuditModal from "./audit.modal";
 import AdjustModal from "./adjust.modal";
+import ReturnOrdersModal from "./return-orders.modal";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -83,9 +84,11 @@ const InventoryManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
+  const [returnOrdersOpen, setReturnOrdersOpen] = useState(false);
   const [auditMessage, setAuditMessage] = useState("");
   const [auditData, setAuditData] = useState<IAuditDiscrepancy[]>([]);
   const [auditing, setAuditing] = useState(false);
+  const [creatingReturn, setCreatingReturn] = useState(false);
 
   useEffect(() => {
     getProducts({ pageSize: 1000 })
@@ -166,6 +169,24 @@ const InventoryManager = () => {
   const handleImportSuccess = () => {
     setCurrentPage(1);
     fetchTransactions(1, selectedProductId, fromDate, toDate);
+  };
+
+  const handleCloseReturnOrdersModal = () => {
+    setReturnOrdersOpen(false);
+    handleImportSuccess();
+  };
+
+  const handleCreateAutoSurplusReturn = async () => {
+    try {
+      setCreatingReturn(true);
+      await inventoryService.createAutoSurplusReturn();
+      toast.success(t("inventoryAutoReturnSuccess"));
+      handleImportSuccess();
+    } catch {
+      toast.error(t("inventoryAutoReturnError"));
+    } finally {
+      setCreatingReturn(false);
+    }
   };
 
   const columns: TableColumnsType<IInventoryTransaction> = [
@@ -289,6 +310,19 @@ const InventoryManager = () => {
           <HiClipboardCheck size={16} />
           {auditing ? t("inventoryAuditChecking") : t("inventoryAuditButton")}
         </AuditBtn>
+        <ReturnBtn onClick={() => setReturnOrdersOpen(true)}>
+          <HiClipboardCheck size={16} />
+          {t("inventoryReturnOrdersButton")}
+        </ReturnBtn>
+        <AutoReturnBtn
+          onClick={() => void handleCreateAutoSurplusReturn()}
+          disabled={creatingReturn}
+        >
+          <HiSparkles size={16} />
+          {creatingReturn
+            ? t("inventoryAutoReturnCreating")
+            : t("inventoryAutoReturnButton")}
+        </AutoReturnBtn>
         <AdjustBtn onClick={() => setIsAdjustModalOpen(true)}>
           <HiAdjustments size={16} />
           {t("inventoryAdjustButton")}
@@ -343,6 +377,12 @@ const InventoryManager = () => {
         message={auditMessage}
         data={auditData}
         onRebuildSuccess={handleAudit}
+      />
+
+      <ReturnOrdersModal
+        isOpen={returnOrdersOpen}
+        onClose={handleCloseReturnOrdersModal}
+        onApproveSuccess={handleImportSuccess}
       />
     </Container>
   );
@@ -476,6 +516,49 @@ const AdjustBtn = styled.button`
 
   &:hover {
     background: #dbeafe;
+  }
+`;
+
+const ReturnBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  background: #ecfeff;
+  color: #0e7490;
+  border: 1px solid #a5f3fc;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: #cffafe;
+  }
+`;
+
+const AutoReturnBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #e0e7ff;
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
   }
 `;
 

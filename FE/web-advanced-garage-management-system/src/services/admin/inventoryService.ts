@@ -197,6 +197,71 @@ export const getTransferOrderHistory = async (
   return data;
 };
 
+export interface IReturnOrderDetail {
+  orderDetailID: number;
+  productID: number;
+  productCode: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalLineValue: number;
+  inventoryStatus: string;
+  notes: string | null;
+}
+
+export interface IReturnOrderItem {
+  transferOrderID: number;
+  type: string;
+  status: string;
+  note: string | null;
+  documentDate: string;
+  createdDate: string;
+  createdByUserId: number;
+  createdByName: string;
+  approvedByUserId: number | null;
+  approvedByName: string | null;
+  maintenanceID: number;
+  maintenanceStatus: string;
+  technicianID: number;
+  technicianName: string;
+  carLicensePlate: string;
+  carModel: string;
+  details: IReturnOrderDetail[];
+}
+
+export interface IReturnOrdersResponse {
+  message: string;
+  data: {
+    totalCount: number;
+    totalPages: number;
+    currentPage: number;
+    items: IReturnOrderItem[];
+  };
+}
+
+export interface IReturnOrdersParams {
+  PageIndex?: number;
+  PageSize?: number;
+}
+
+export const getReturnOrders = async (
+  params: IReturnOrdersParams
+): Promise<IReturnOrdersResponse> => {
+  const { data } = await AxiosClient.get<IReturnOrdersResponse>(
+    "/api/Inventory/returns",
+    { params }
+  );
+  return data;
+};
+
+export const approveReturnOrder = async (transferOrderId: number): Promise<void> => {
+  await AxiosClient.post(`/api/Inventory/returns/${transferOrderId}/approve`);
+};
+
+export const createAutoSurplusReturn = async (): Promise<void> => {
+  await AxiosClient.post("/api/Inventory/auto-surplus-return");
+};
+
 export const issueTransferOrder = async (transferOrderId: number): Promise<void> => {
   await AxiosClient.post(`/api/Inventory/issue/${transferOrderId}`);
 };
@@ -209,5 +274,8 @@ export const inventoryService = {
   rebuildInventoryBalances,
   getMyTransferOrders,
   getTransferOrderHistory,
+  getReturnOrders,
+  approveReturnOrder,
+  createAutoSurplusReturn,
   issueTransferOrder,
 };
