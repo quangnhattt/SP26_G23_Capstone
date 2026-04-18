@@ -231,7 +231,7 @@ const RescueStepProgress = ({ status, rescueType }: Props) => {
 
   const isTowing =
     rescueType === "TOWING" || TOWING_INDICATOR_STATUSES.includes(status);
-  const isSAOrTech = user?.roleID === 2 || user?.roleID === 3;
+  const isSAOrTech = user?.roleID === 1 || user?.roleID === 2 || user?.roleID === 3;
   const isCustomer = user?.roleID === 4;
 
   const baseSteps = isTowing ? TOWING_STEPS : ON_SITE_STEPS;

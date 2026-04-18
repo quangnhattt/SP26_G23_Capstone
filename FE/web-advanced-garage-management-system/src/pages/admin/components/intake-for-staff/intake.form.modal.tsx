@@ -93,10 +93,10 @@ const IntakeFormModal = ({
 
   useEffect(() => {
     getServices()
-      .then(setServices)
+      .then((data) => setServices(data.filter((s) => s.isActive)))
       .catch(() => {});
     getProducts()
-      .then((res) => setProducts(res.items))
+      .then((res) => setProducts(res.items.filter((p) => p.isActive)))
       .catch(() => {});
     getPackages()
       .then((data) => setPackages(data.filter((pkg) => pkg.isActive)))
