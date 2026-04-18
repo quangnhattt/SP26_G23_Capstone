@@ -66,6 +66,7 @@ public class UserRepository : IUserRepository
         return await _db.Users
             .AsNoTracking()
             .Include(u => u.Role)
+            .Include(u => u.CurrentRank)
             .FirstOrDefaultAsync(u => u.UserID == userId, ct);
     }
 
@@ -176,11 +177,14 @@ public class UserRepository : IUserRepository
     }
     public async Task DecrementTrustScoreAsync(int userId, CancellationToken ct)
     {
-        var entity = await _db.Users.FirstOrDefaultAsync(u => u.UserID == userId, ct);
-        if (entity == null) return;
-
-        // Trừ điểm tin cậy khi khách hủy kéo xe sau khi xe kéo đã tới hiện trường.
         entity.TrustScore = Math.Max(0, entity.TrustScore - 1);
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<int> GetTotalRepairsCountByUserIdAsync(int userId, CancellationToken ct)
+    {
+        return await _db.CarMaintenances
+            .Where(cm => cm.Car.OwnerID == userId && cm.Status == "CLOSED")
+            .CountAsync(ct);
     }
 }

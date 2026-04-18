@@ -19,6 +19,8 @@ public class UserDetailDto
     public decimal TotalSpending { get; set; }
     public int TrustScore { get; set; }
     public int? CurrentRankID { get; set; }
+    public string? RankName { get; set; }
+    public int TotalRepairs { get; set; }
     public bool IsOnRescueMission { get; set; }
     public string? Skills { get; set; }
 }

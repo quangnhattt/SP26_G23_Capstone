@@ -22,6 +22,8 @@ interface IUserInfoApiResponse {
   lastLoginDate: string | null;
   totalSpending: number;
   currentRankID: number | null;
+  rankName: string | null;
+  totalRepairs: number;
   isOnRescueMission: boolean;
   skills: string | null;
 }
@@ -53,11 +55,14 @@ export const userInfo = async (): Promise<IUser> => {
     accountLevel: 0,
     accountType: data.roleName,
     balance: data.totalSpending,
+    totalSpending: data.totalSpending,
     userReferralCode: data.userCode,
     profileProgress: 0,
     avatar: data.image,
     roleID: data.roleID,
     createdDate: data.createdDate,
+    rankName: data.rankName || undefined,
+    totalRepairs: data.totalRepairs,
   };
 };
 

@@ -90,7 +90,10 @@ const ProfilePage = () => {
                 )}
               </Avatar>
               <UserInfo>
-                <FullName>{user.fullName}</FullName>
+                <NameWithRank>
+                  <FullName>{user.fullName}</FullName>
+                  {user.rankName && <RankBadge>{user.rankName}</RankBadge>}
+                </NameWithRank>
                 <Email>{user.email}</Email>
                 <AccountBadge>
                   <StatusDot />
@@ -233,12 +236,18 @@ const ProfilePage = () => {
             <StatsGrid>
               <StatCard>
                 <StatLabel>{t("totalRepairs")}</StatLabel>
-                <StatValue>12</StatValue>
+                <StatValue>{user.totalRepairs || 0}</StatValue>
               </StatCard>
               
               <StatCard>
                 <StatLabel>{t("totalSpending")}</StatLabel>
-                <StatValue>45.5M</StatValue>
+                <StatValue>
+                  {user.totalSpending 
+                    ? user.totalSpending >= 1000000 
+                      ? `${(user.totalSpending / 1000000).toFixed(1)}M` 
+                      : user.totalSpending.toLocaleString()
+                    : "0"}
+                </StatValue>
               </StatCard>
               
               <StatCard>
@@ -355,11 +364,31 @@ const UserInfo = styled.div`
   gap: 0.5rem;
 `;
 
+const NameWithRank = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
 const FullName = styled.h2`
   font-size: 1.5rem;
   font-weight: 700;
   color: #333;
   margin: 0;
+`;
+
+const RankBadge = styled.div`
+  background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+  color: #5c4000;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  box-shadow: 0 2px 4px rgba(255, 165, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const Email = styled.p`

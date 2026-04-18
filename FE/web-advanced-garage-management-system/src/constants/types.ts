@@ -65,6 +65,9 @@ export interface IUser {
   avatar: string;
   roleID: number;
   createdDate?: string;
+  rankName?: string;
+  totalRepairs?: number;
+  totalSpending?: number;
 }
 
 export interface DeviceProps {

@@ -229,7 +229,9 @@ public class UserService : IUserService
         var user = await _userRepository.GetByIdAsync(userId, ct)
                    ?? throw new KeyNotFoundException($"Không tìm thấy người dùng với ID {userId}.");
 
-        return MapToDetail(user);
+        var dto = MapToDetail(user);
+        dto.TotalRepairs = await _userRepository.GetTotalRepairsCountByUserIdAsync(userId, ct);
+        return dto;
     }
 
     public async Task<UserDetailDto> UpdateCurrentUserProfileAsync(int userId, UpdateMyProfileRequest request, CancellationToken ct)
@@ -318,6 +320,7 @@ public class UserService : IUserService
         TotalSpending = u.TotalSpending,
         TrustScore = u.TrustScore,
         CurrentRankID = u.CurrentRankID,
+        RankName = u.CurrentRank?.RankName,
         IsOnRescueMission = u.IsOnRescueMission,
         Skills = u.Skills
     };

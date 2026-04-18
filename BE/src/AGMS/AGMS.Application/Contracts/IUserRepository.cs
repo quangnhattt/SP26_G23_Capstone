@@ -22,4 +22,5 @@ public interface IUserRepository
     /// Cập nhật cờ IsOnRescueMission của kỹ thuật viên — dùng khi assign/release nhiệm vụ cứu hộ
     /// </summary>
     Task SetOnRescueMissionAsync(int userId, bool isOnMission, CancellationToken ct);
+    Task<int> GetTotalRepairsCountByUserIdAsync(int userId, CancellationToken ct);
 }
