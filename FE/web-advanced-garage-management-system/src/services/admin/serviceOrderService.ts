@@ -245,11 +245,12 @@ export type ITransferOrderStatus = "PROCESS_ROADSIDE" | "PROCESS_TOW";
  *  Chuyển báo giá sang phiếu xuất kho */
 export const transferOrder = async (
   id: number,
-  status: ITransferOrderStatus
+  status?: ITransferOrderStatus
 ): Promise<void> => {
-  await AxiosClient.post(`/api/Inventory/service-orders/${id}/transfer-order`, {
-    status,
-  });
+  await AxiosClient.post(
+    `/api/Inventory/service-orders/${id}/transfer-order`,
+    status ? { status } : undefined
+  );
 };
 
 /** POST /api/Inventory/issue/{transferOrderId}
