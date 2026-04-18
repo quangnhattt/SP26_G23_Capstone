@@ -781,7 +781,6 @@ public class RescueRequestService : IRescueRequestService
                         existingPart.Notes = normalizedNote;
                         await _rescueRepo.UpdateServicePartDetailAsync(existingPart, ct);
                     }
-
                     continue;
                 }
 
