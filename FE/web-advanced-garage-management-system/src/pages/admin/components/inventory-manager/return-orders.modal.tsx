@@ -193,8 +193,7 @@ const ReturnOrdersModal = ({ isOpen, onClose, onApproveSuccess }: Props) => {
         dataIndex: "carModel",
         key: "carModel",
         width: 190,
-        render: (_: unknown, record: ReturnOrderRow) =>
-          `${record.carBrand ?? ""} ${record.carModel ?? ""}`.trim() || "-",
+        render: (_: unknown, record: ReturnOrderRow) => record.carModel || "-",
       },
       {
         title: t("inventoryProductCode"),
