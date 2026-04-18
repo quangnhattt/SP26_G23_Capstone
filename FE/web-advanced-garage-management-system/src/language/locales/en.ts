@@ -1063,6 +1063,11 @@ export default {
   rescueMgrTowedToGarageAction: "Vehicle towed to garage",
   rescueMgrSendInvoiceAction: "Send invoice to customer",
   rescueMgrConfirmPaymentAction: "Confirm payment received",
+  rescueMgrTransferOrderAction: "Transfer to warehouse order",
+  rescueMgrTransferOrderMissingMaintenanceId:
+    "No maintenance order ID available for transfer.",
+  rescueMgrTransferOrderSuccess: "Transferred to warehouse order successfully",
+  rescueMgrTransferOrderError: "Failed to transfer to warehouse order",
 
   // Rescue Management - Toast messages
   rescueMgrAcceptJobSuccess: "Technician accepted the job!",
@@ -1331,6 +1336,10 @@ export default {
   rescueCustomerTransactionRefPlaceholder: "E.g.: VCB20260228001234",
   rescueCustomerPayBtn: "Pay",
   rescueCustomerBackBtn: "Back",
+  rescuePaymentDepositAmountLabel: "Deposit amount (VND)",
+  rescuePaymentRefundHint:
+    "You will receive {{amount}} VND back upon payment confirmation.",
+  rescuePaymentRemainingHint: "Remaining amount to pay: {{amount}} VND.",
   rescueCancelTitle: "Cancel rescue request",
   rescueCancelInfo: "Please enter a reason for cancellation. This action cannot be undone.",
   rescueCancelReasonLabel: "Cancellation reason *",
@@ -1931,6 +1940,8 @@ export default {
   orderAssignedMaintenanceStatus_IN_DIAGNOSIS: "In Diagnosis",
   orderAssignedMaintenanceStatus_QUOTED: "Quoted",
   orderAssignedMaintenanceStatus_IN_PROGRESS: "In Progress",
+  orderAssignedMaintenanceStatus_PROCESS_ROADSIDE: "Processing Roadside",
+  orderAssignedMaintenanceStatus_PROCESS_TOW: "Processing Tow",
   orderAssignedMaintenanceStatus_COMPLETED: "Completed",
   orderAssignedMaintenanceStatus_CANCELLED: "Cancelled",
   orderAssignedColAction: "Action",
@@ -1982,6 +1993,9 @@ export default {
   historyTransferOrderMaintenanceStatus_IN_DIAGNOSIS: "In Diagnosis",
   historyTransferOrderMaintenanceStatus_QUOTED: "Quoted",
   historyTransferOrderMaintenanceStatus_IN_PROGRESS: "In Progress",
+  historyTransferOrderMaintenanceStatus_PROCESS_ROADSIDE:
+    "Processing Roadside",
+  historyTransferOrderMaintenanceStatus_PROCESS_TOW: "Processing Tow",
   historyTransferOrderMaintenanceStatus_COMPLETED: "Completed",
   historyTransferOrderMaintenanceStatus_CANCELLED: "Cancelled",
   historyTransferOrderMaintenanceStatus_CLOSED: "Closed",

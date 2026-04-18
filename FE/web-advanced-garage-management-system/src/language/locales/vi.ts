@@ -1053,6 +1053,11 @@ export default {
   rescueMgrTowedToGarageAction: "Xe đã được kéo về xưởng",
   rescueMgrSendInvoiceAction: "Gửi hóa đơn cho KH",
   rescueMgrConfirmPaymentAction: "Xác nhận đã nhận tiền",
+  rescueMgrTransferOrderAction: "Chuyển sang phiếu xuất kho",
+  rescueMgrTransferOrderMissingMaintenanceId:
+    "Chưa có mã phiếu sửa chữa để chuyển xuất kho",
+  rescueMgrTransferOrderSuccess: "Đã chuyển sang phiếu xuất kho",
+  rescueMgrTransferOrderError: "Không thể chuyển sang phiếu xuất kho",
 
   // Rescue Management - Toast messages
   rescueMgrAcceptJobSuccess: "KTV đã nhận job!",
@@ -1316,6 +1321,10 @@ export default {
   rescueCustomerTransactionRefPlaceholder: "VD: VCB20260228001234",
   rescueCustomerPayBtn: "Thanh toán",
   rescueCustomerBackBtn: "Quay lại",
+  rescuePaymentDepositAmountLabel: "Tiền đặt cọc (VND)",
+  rescuePaymentRefundHint:
+    "Bạn sẽ nhận lại {{amount}} VND khi xác nhận thanh toán.",
+  rescuePaymentRemainingHint: "Số tiền còn phải thanh toán: {{amount}} VND.",
   rescueCancelTitle: "Huỷ yêu cầu cứu hộ",
   rescueCancelInfo: "Vui lòng nhập lý do huỷ. Hành động này không thể hoàn tác.",
   rescueCancelReasonLabel: "Lý do huỷ *",
@@ -1917,6 +1926,8 @@ export default {
   orderAssignedMaintenanceStatus_IN_DIAGNOSIS: "Đang chẩn đoán",
   orderAssignedMaintenanceStatus_QUOTED: "Đã báo giá",
   orderAssignedMaintenanceStatus_IN_PROGRESS: "Đang thực hiện",
+  orderAssignedMaintenanceStatus_PROCESS_ROADSIDE: "Đang xử lý cứu hộ tại chỗ",
+  orderAssignedMaintenanceStatus_PROCESS_TOW: "Đang xử lý kéo xe",
   orderAssignedMaintenanceStatus_COMPLETED: "Hoàn thành",
   orderAssignedMaintenanceStatus_CANCELLED: "Đã hủy",
   orderAssignedColAction: "Hành động",
@@ -1968,6 +1979,9 @@ export default {
   historyTransferOrderMaintenanceStatus_IN_DIAGNOSIS: "Đang chẩn đoán",
   historyTransferOrderMaintenanceStatus_QUOTED: "Đã báo giá",
   historyTransferOrderMaintenanceStatus_IN_PROGRESS: "Đang thực hiện",
+  historyTransferOrderMaintenanceStatus_PROCESS_ROADSIDE:
+    "Đang xử lý cứu hộ tại chỗ",
+  historyTransferOrderMaintenanceStatus_PROCESS_TOW: "Đang xử lý kéo xe",
   historyTransferOrderMaintenanceStatus_COMPLETED: "Hoàn thành",
   historyTransferOrderMaintenanceStatus_CANCELLED: "Đã hủy",
   historyTransferOrderMaintenanceStatus_CLOSED: "Đã đóng",
