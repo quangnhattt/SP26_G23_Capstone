@@ -772,14 +772,12 @@ public class RescueRequestService : IRescueRequestService
                         existingPart.Quantity != quantity
                         || existingPart.UnitPrice != item.UnitPrice
                         || existingPart.InventoryStatus != "ISSUED"
-                        || existingPart.IssuedQuantity != quantity
                         || !string.Equals(existingPart.Notes, normalizedNote, StringComparison.Ordinal)
                     )
                     {
                         existingPart.Quantity = quantity;
                         existingPart.UnitPrice = item.UnitPrice;
                         existingPart.InventoryStatus = "ISSUED";
-                        existingPart.IssuedQuantity = quantity;
                         existingPart.Notes = normalizedNote;
                         await _rescueRepo.UpdateServicePartDetailAsync(existingPart, ct);
                     }
