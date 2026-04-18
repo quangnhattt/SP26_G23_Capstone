@@ -64,7 +64,7 @@ const statusConfig: Record<
   RESCHEDULED: { label: "Cần dời lịch", color: "#b45309", bg: "#fef3c7" },
 };
 
-const IN_PROGRESS_STATUSES = ["PENDING", "CONFIRMED", "CHECKED_IN", "RESCHEDULED"];
+
 const IN_PROGRESS_RESCUE_STATUSES = [
   "PENDING",
   "PROPOSED_ROADSIDE",
@@ -156,7 +156,7 @@ const AppointmentsPage = () => {
   const [pageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [summary, setSummary] = useState<IAppointmentStatusSummary>({
-    total: 0, pending: 0, confirmed: 0, checkedIn: 0, cancelled: 0, today: 0
+    total: 0, pending: 0, confirmed: 0, checkedIn: 0, cancelled: 0, rescheduled: 0, done: 0, today: 0
   });
 
   const fetchAppointments = useCallback(async () => {

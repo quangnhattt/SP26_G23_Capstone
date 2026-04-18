@@ -44,7 +44,7 @@ const ManagermentAppointment = () => {
   const [pageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [summary, setSummary] = useState<IAppointmentStatusSummary>({
-    total: 0, pending: 0, confirmed: 0, checkedIn: 0, cancelled: 0, today: 0
+    total: 0, pending: 0, confirmed: 0, checkedIn: 0, cancelled: 0, rescheduled: 0, done: 0, today: 0
   });
 
   // Detail modal
