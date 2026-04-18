@@ -146,7 +146,7 @@ const AppointmentsPage = () => {
 
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
 
   const fetchAppointments = useCallback(async () => {
