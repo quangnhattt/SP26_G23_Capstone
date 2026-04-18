@@ -67,10 +67,10 @@ public class AppointmentService : IAppointmentService
             },
             Customer = new CustomerInfoDto
             {
-                UserId = appointment.CreatedByNavigation.UserID,
-                FullName = appointment.CreatedByNavigation.FullName,
-                Phone = appointment.CreatedByNavigation.Phone,
-                Email = appointment.CreatedByNavigation.Email
+                UserId = appointment.Car.Owner.UserID,
+                FullName = appointment.Car.Owner.FullName,
+                Phone = appointment.Car.Owner.Phone,
+                Email = appointment.Car.Owner.Email
             }
         };
 

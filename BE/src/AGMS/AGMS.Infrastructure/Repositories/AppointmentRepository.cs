@@ -66,10 +66,10 @@ public class AppointmentRepository : IAppointmentRepository
                 CarYear = a.Car.Year,
                 CarColor = a.Car.Color,
                 CurrentOdometer = a.Car.CurrentOdometer,
-                CustomerFullName = a.CreatedByNavigation.FullName,
-                CustomerPhone = a.CreatedByNavigation.Phone,
-                Phone = a.CreatedByNavigation.Phone,
-                CustomerEmail = a.CreatedByNavigation.Email,
+                CustomerFullName = a.Car.Owner.FullName,
+                CustomerPhone = a.Car.Owner.Phone,
+                Phone = a.Car.Owner.Phone,
+                CustomerEmail = a.Car.Owner.Email,
                 PackageName = a.RequestedPackage != null ? a.RequestedPackage.Name : null,
                 PackageCode = a.RequestedPackage != null ? a.RequestedPackage.PackageCode : null,
                 PackageFinalPrice = a.RequestedPackage != null ? a.RequestedPackage.FinalPrice : null
@@ -82,6 +82,7 @@ public class AppointmentRepository : IAppointmentRepository
         var query = _db.Appointments
             .AsNoTracking()
             .Include(a => a.Car)
+                .ThenInclude(c => c.Owner)
             .Include(a => a.CreatedByNavigation)
             .Include(a => a.RequestedPackage)
             .Include(a => a.CarMaintenances)
