@@ -291,10 +291,7 @@ const AppointmentsPage = () => {
 
   const handleRescheduleSuccess = async () => {
     setRescheduleAppointment(null);
-    try {
-      const data = await getAppointments();
-      setAppointments(data);
-    } catch { /* ignore */ }
+    fetchAppointments();
   };
   const closeRescueModal = () => {
     setShowRescueModal(false);
