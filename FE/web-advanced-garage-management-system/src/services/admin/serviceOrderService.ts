@@ -275,7 +275,7 @@ export const processPayment = async (
   id: number,
   payload: IProcessPaymentPayload
 ): Promise<void> => {
-  await AxiosClient.post(`/api/service-orders/${id}/process-payment`, payload);
+  await AxiosClient.post(`/api/service-orders/${id}/pay`, payload);
 };
 
 export const serviceOrderService = {

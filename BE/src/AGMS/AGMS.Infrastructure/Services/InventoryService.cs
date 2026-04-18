@@ -47,6 +47,21 @@ namespace AGMS.Infrastructure.Services
                 ct);
         }
 
+        public async Task<int> CreateSurplusReturnDraftAsync(int maintenanceId, int processedByUserId, CancellationToken ct)
+        {
+            return await _inventoryRepo.CreateSurplusReturnDraftAsync(maintenanceId, processedByUserId, ct);
+        }
+
+        public async Task<List<int>> AutoDetectAndCreateSurplusReturnsAsync(int processedByUserId, CancellationToken ct)
+        {
+            return await _inventoryRepo.AutoDetectAndCreateSurplusReturnsAsync(processedByUserId, ct);
+        }
+
+        public async Task ApproveSurplusReturnAsync(int transferOrderId, int approvedByUserId, CancellationToken ct)
+        {
+            await _inventoryRepo.ApproveSurplusReturnAsync(transferOrderId, approvedByUserId, ct);
+        }
+
         // Hàm Đối soát
         public async Task<List<InventoryDiscrepancyDto>> AuditInventoryAsync(CancellationToken ct)
         {

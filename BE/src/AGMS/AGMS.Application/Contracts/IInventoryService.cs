@@ -17,6 +17,11 @@ namespace AGMS.Application.Contracts
             int createdByUserId,
             CancellationToken ct);
 
+        // Luồng Hoàn trả xuất lố 2 bước (Đối soát bằng Ledger)
+        Task<int> CreateSurplusReturnDraftAsync(int maintenanceId, int processedByUserId, CancellationToken ct);
+        Task<List<int>> AutoDetectAndCreateSurplusReturnsAsync(int processedByUserId, CancellationToken ct);
+        Task ApproveSurplusReturnAsync(int transferOrderId, int approvedByUserId, CancellationToken ct);
+
         // Hàm Đối soát
         Task<List<InventoryDiscrepancyDto>> AuditInventoryAsync(CancellationToken ct);
         Task<PaginatedResult<InventoryTransactionHistoryDto>> GetTransactionHistoryAsync(InventoryTransactionFilterDto filter, CancellationToken ct);

@@ -233,5 +233,61 @@ namespace AGMS.WebApi.Controllers
                 return BadRequest(new { message = ex.Message, detail = ex.InnerException?.Message });
             }
         }
+
+        // ============================================================
+        // API 10: TỰ ĐỘNG QUÉT VÀ TẠO PHIẾU HOÀN TRẢ LÌNH KIỆN DƯ (DRAFT)
+        // Hệ thống sẽ tìm TẤT CẢ các ca cứu hộ có chênh lệch và lên danh sách phiếu nháp
+        // ============================================================
+        [HttpPost("auto-surplus-return")]
+        [Authorize(Roles = Roles.Technician + "," + Roles.Admin + "," + Roles.ServiceAdvisor)]
+        public async Task<IActionResult> AutoDetectSurplusReturnDrafts(CancellationToken ct)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int loggedInUserId))
+                    return Unauthorized(new { message = "Token không hợp lệ." });
+
+                var transferOrderIds = await _inventoryService.AutoDetectAndCreateSurplusReturnsAsync(loggedInUserId, ct);
+
+                if (!transferOrderIds.Any())
+                {
+                    return Ok(new { message = "Hệ thống đã quét và không tìm thấy linh kiện nào dư thừa." });
+                }
+
+                return Ok(new { 
+                    message = $"Đã tự động lên {transferOrderIds.Count} phiếu nháp yêu cầu hoàn trả linh kiện dư!", 
+                    transferOrderIds
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // ============================================================
+        // API 11: THỦ KHO XÁC NHẬN NHẬP KHO LẠI HÀNG DƯ (APPROVE RETURN)
+        // Cộng thẳng tồn kho, bỏ qua xét AverageCost
+        // ============================================================
+        [HttpPost("returns/{transferOrderId:int}/approve")]
+        [Authorize(Roles = Roles.Admin)]
+        public async Task<IActionResult> ApproveSurplusReturn(int transferOrderId, CancellationToken ct)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int loggedInUserId))
+                    return Unauthorized(new { message = "Token không hợp lệ." });
+
+                await _inventoryService.ApproveSurplusReturnAsync(transferOrderId, loggedInUserId, ct);
+
+                return Ok(new { message = "Đã xác nhận nhập kho linh kiện trả lại thành công." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }
