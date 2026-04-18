@@ -27,6 +27,7 @@ import {
   getAppointmentById,
   type IAppointment,
   type IAppointmentDetail,
+  type IAppointmentStatusSummary,
 } from "@/apis/appointments";
 import {
   getRescueRequests,
@@ -59,7 +60,7 @@ const statusConfig: Record<
   RESCHEDULED: { label: "Cần dời lịch", color: "#b45309", bg: "#fef3c7" },
 };
 
-const IN_PROGRESS_STATUSES = ["PENDING", "CONFIRMED", "CHECKED_IN"];
+const IN_PROGRESS_STATUSES = ["PENDING", "CONFIRMED", "CHECKED_IN", "RESCHEDULED"];
 const IN_PROGRESS_RESCUE_STATUSES = [
   "PENDING",
   "PROPOSED_ROADSIDE",
@@ -148,6 +149,9 @@ const AppointmentsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+  const [summary, setSummary] = useState<IAppointmentStatusSummary>({
+    total: 0, pending: 0, confirmed: 0, checkedIn: 0, cancelled: 0, today: 0
+  });
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -160,6 +164,9 @@ const AppointmentsPage = () => {
       });
       setAppointments(data.items);
       setTotalCount(data.totalCount);
+      if (data.summary) {
+        setSummary(data.summary);
+      }
     } catch (error) {
       console.error("Error fetching appointments:", error);
     } finally {
@@ -204,13 +211,9 @@ const AppointmentsPage = () => {
 
   const filteredAppointments = appointments;
 
-  const inProgressCount = appointments.filter((a) =>
-    IN_PROGRESS_STATUSES.includes(a.status),
-  ).length;
-  const completedCount = appointments.filter((a) => a.status === "DONE").length;
-  const cancelledCount = appointments.filter(
-    (a) => a.status === "CANCELLED",
-  ).length;
+  const inProgressCount = summary.pending + summary.confirmed + summary.checkedIn + summary.rescheduled;
+  const completedCount = summary.done;
+  const cancelledCount = summary.cancelled;
   const rescueInProgressCount = rescueRequests.filter((r) =>
     IN_PROGRESS_RESCUE_STATUSES.includes(r.status),
   ).length;

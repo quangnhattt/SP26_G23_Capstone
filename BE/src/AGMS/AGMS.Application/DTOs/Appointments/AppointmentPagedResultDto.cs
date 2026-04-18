@@ -9,6 +9,8 @@ public class AppointmentStatusSummary
     public int Confirmed { get; set; }
     public int CheckedIn { get; set; }
     public int Cancelled { get; set; }
+    public int Rescheduled { get; set; }
+    public int Done { get; set; }
     public int Today { get; set; }
 }
 

@@ -90,6 +90,8 @@ export interface IAppointmentStatusSummary {
   confirmed: number;
   checkedIn: number;
   cancelled: number;
+  rescheduled: number;
+  done: number;
   today: number;
 }
 

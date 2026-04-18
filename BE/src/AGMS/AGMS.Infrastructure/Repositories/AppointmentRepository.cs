@@ -40,8 +40,10 @@ public class AppointmentRepository : IAppointmentRepository
             Pending   = statusGroups.FirstOrDefault(g => g.Status == "PENDING")?.Count ?? 0,
             Confirmed = statusGroups.FirstOrDefault(g => g.Status == "CONFIRMED")?.Count ?? 0,
             CheckedIn = statusGroups.FirstOrDefault(g => g.Status == "CHECKED_IN")?.Count ?? 0,
-            Cancelled = statusGroups.FirstOrDefault(g => g.Status == "CANCELLED")?.Count ?? 0,
-            Today     = todayCount,
+            Cancelled   = statusGroups.FirstOrDefault(g => g.Status == "CANCELLED")?.Count ?? 0,
+            Rescheduled = statusGroups.FirstOrDefault(g => g.Status == "RESCHEDULED")?.Count ?? 0,
+            Done        = statusGroups.FirstOrDefault(g => g.Status == "DONE")?.Count ?? 0,
+            Today       = todayCount,
         };
 
         // ── Apply filters ──────────────────────────────────────────────────
