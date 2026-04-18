@@ -66,6 +66,9 @@ const TYPE_COLOR: Record<string, string> = {
 const isRescueServiceOrder = (maintenanceType?: string | null) =>
   (maintenanceType ?? "").toUpperCase() === RESCUE_MAINTENANCE_TYPE;
 
+const isRescueProcessStatus = (status?: string | null) =>
+  ["PROCESS_ROADSIDE", "PROCESS_TOW"].includes((status ?? "").toUpperCase());
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const ServiceOrderManager = () => {
@@ -401,14 +404,11 @@ const ServiceOrderManager = () => {
       title: t("serviceOrderColStatus"),
       key: "status",
       width: 150,
-      render: (_: unknown, record: IServiceOrder) =>
-        isRescueServiceOrder(record.maintenanceType) ? (
-          <span>—</span>
-        ) : (
-          <Tag color={STATUS_COLOR[record.status] ?? "default"}>
-            {t(`serviceOrderStatus_${record.status}`) || record.status}
-          </Tag>
-        ),
+      render: (_: unknown, record: IServiceOrder) => (
+        <Tag color={STATUS_COLOR[record.status] ?? "default"}>
+          {t(`serviceOrderStatus_${record.status}`) || record.status}
+        </Tag>
+      ),
     },
     {
       title: t("serviceOrderColReceiveDate"),
@@ -432,6 +432,7 @@ const ServiceOrderManager = () => {
       fixed: "right" as const,
       render: (_: unknown, record: IServiceOrder) => {
         const isRescueRecord = isRescueServiceOrder(record.maintenanceType);
+        const isRescueBlocked = isRescueRecord && isRescueProcessStatus(record.status);
         return (
           <ActionGroup>
             <Tooltip title={t("serviceOrderTooltipView")}>
@@ -440,7 +441,7 @@ const ServiceOrderManager = () => {
               </ActionBtn>
             </Tooltip>
 
-            {!isRescueRecord && (
+            {!isRescueBlocked && (
               <>
                 {record.status === "WAITING" && (
                   <Tooltip title={t("serviceOrderTooltipStartDiagnosis")}>
