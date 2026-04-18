@@ -99,7 +99,7 @@ const IntakeFormModal = ({
       .then((res) => setProducts(res.items))
       .catch(() => {});
     getPackages()
-      .then(setPackages)
+      .then((data) => setPackages(data.filter((pkg) => pkg.isActive)))
       .catch(() => {});
     getTechnicians()
       .then(setTechnicians)
