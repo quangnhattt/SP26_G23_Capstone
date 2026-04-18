@@ -58,10 +58,12 @@ const PackageDetailModal = ({
       .then(([servicesRes, partsRes]) => {
         if (servicesRes.status === "fulfilled") {
           setServiceOptions(
-            servicesRes.value.map((s) => ({
+            servicesRes.value
+              .filter((s) => s.isActive)
+              .map((s) => ({
               value: s.id,
               label: s.name,
-            })),
+              })),
           );
         } else {
           setServiceOptions([]);
@@ -69,10 +71,12 @@ const PackageDetailModal = ({
 
         if (partsRes.status === "fulfilled") {
           setPartOptions(
-            partsRes.value.items.map((p) => ({
+            partsRes.value.items
+              .filter((p) => p.isActive)
+              .map((p) => ({
               value: p.id,
               label: p.name,
-            })),
+              })),
           );
         } else {
           setPartOptions([]);

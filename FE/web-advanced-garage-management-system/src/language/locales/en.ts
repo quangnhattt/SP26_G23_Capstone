@@ -2001,6 +2001,7 @@ export default {
   historyTransferOrderUnit: "orders",
   historyTransferOrderType_ISSUE: "Issue",
   historyTransferOrderType_GOODS_RECEIPT: "Goods Receipt",
+  historyTransferOrderType_RETURN: "Return",
   historyTransferOrderStatus_DRAFT: "Draft",
   historyTransferOrderStatus_APPROVED: "Approved",
   historyTransferOrderMaintenanceStatus_PENDING: "Pending",

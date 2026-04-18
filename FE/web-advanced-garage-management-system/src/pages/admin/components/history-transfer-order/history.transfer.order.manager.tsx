@@ -34,6 +34,7 @@ const PAGE_SIZE = 20;
 const TYPE_COLOR: Record<string, string> = {
   ISSUE: "orange",
   GOODS_RECEIPT: "cyan",
+  RETURN: "geekblue",
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -309,6 +310,14 @@ const HistoryTransferOrderManager = () => {
                 label: (
                   <span style={{ color: "#000" }}>
                     {t("historyTransferOrderType_GOODS_RECEIPT")}
+                  </span>
+                ),
+              },
+              {
+                value: "RETURN",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("historyTransferOrderType_RETURN")}
                   </span>
                 ),
               },

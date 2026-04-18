@@ -1987,6 +1987,7 @@ export default {
   historyTransferOrderUnit: "phiếu",
   historyTransferOrderType_ISSUE: "Xuất kho",
   historyTransferOrderType_GOODS_RECEIPT: "Nhập kho",
+  historyTransferOrderType_RETURN: "Hoàn kho",
   historyTransferOrderStatus_DRAFT: "Nháp",
   historyTransferOrderStatus_APPROVED: "Đã duyệt",
   historyTransferOrderMaintenanceStatus_PENDING: "Chờ xử lý",
