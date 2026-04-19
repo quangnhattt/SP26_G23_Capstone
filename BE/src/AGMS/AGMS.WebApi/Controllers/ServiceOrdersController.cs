@@ -27,14 +27,15 @@ public class ServiceOrdersController : ControllerBase
     {
         int? employeeId = null;
         var roleIdClaim = User.FindFirstValue(ClaimTypes.Role);
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         
-        if (roleIdClaim == "3") 
+        if (roleIdClaim == "3" && int.TryParse(userIdClaim, out var techId)) 
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (int.TryParse(userIdClaim, out var userId))
-            {
-                employeeId = userId;
-            }
+            employeeId = techId;
+        }
+        else if (roleIdClaim == "4" && int.TryParse(userIdClaim, out var custId))
+        {
+            query.CustomerId = custId;
         }
 
         var result = await _carMaintenanceService.GetServiceOrdersAsync(query, employeeId, ct);

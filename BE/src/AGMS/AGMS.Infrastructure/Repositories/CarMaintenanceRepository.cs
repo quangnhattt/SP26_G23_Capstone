@@ -33,10 +33,21 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             q = q.Where(m => m.MaintenanceType.ToUpper() == mt);
         }
 
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            var status = query.Status.Trim().ToUpperInvariant();
+            q = q.Where(m => m.Status.ToUpper() == status);
+        }
+
         if (!string.IsNullOrWhiteSpace(query.CustomerName))
         {
             var kw = query.CustomerName.Trim();
             q = q.Where(m => m.Car.Owner.FullName.Contains(kw));
+        }
+
+        if (query.CustomerId.HasValue)
+        {
+            q = q.Where(m => m.Car.OwnerID == query.CustomerId.Value);
         }
 
         if (employeeId.HasValue)
