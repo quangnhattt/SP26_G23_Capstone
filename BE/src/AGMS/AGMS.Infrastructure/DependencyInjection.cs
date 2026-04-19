@@ -63,6 +63,8 @@ public static class DependencyInjection
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IPermissionGroupService, PermissionGroupService>();
         services.AddScoped<ISymptomService, SymptomService>();
+        services.AddScoped<IDashboardRepository, DashboardRepository>();
+        services.AddScoped<IDashboardService, DashboardService>();
         return services;
     }
 }
