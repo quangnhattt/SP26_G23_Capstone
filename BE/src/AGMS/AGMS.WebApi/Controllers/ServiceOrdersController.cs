@@ -40,6 +40,24 @@ public class ServiceOrdersController : ControllerBase
         var result = await _carMaintenanceService.GetServiceOrdersAsync(query, employeeId, ct);
         return Ok(result);
     }
+
+    [HttpGet("customer-history")]
+    [ProducesResponseType(typeof(ServiceOrderPagedResultDto<CustomerServiceHistoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCustomerHistory(
+        [FromQuery] string? status, 
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 10, 
+        CancellationToken ct = default)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var customerId))
+            return Unauthorized(new { message = "Invalid or missing user id claim." });
+
+        var result = await _carMaintenanceService.GetCustomerHistoryAsync(customerId, status, page, pageSize, ct);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(MaintenancePrintDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

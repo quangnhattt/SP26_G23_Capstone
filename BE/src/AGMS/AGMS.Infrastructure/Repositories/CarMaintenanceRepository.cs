@@ -72,6 +72,53 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         };
     }
 
+    public async Task<ServiceOrderPagedResultDto<CustomerServiceHistoryDto>> GetCustomerHistoryAsync(int customerId, string? statusFilter, int page, int pageSize, CancellationToken ct = default)
+    {
+        page = page <= 0 ? 1 : page;
+        pageSize = pageSize <= 0 ? 10 : pageSize;
+
+        var query = _db.CarMaintenances
+            .AsNoTracking()
+            .Include(m => m.Car)
+            .Where(m => m.Car.OwnerID == customerId);
+
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+        {
+            var st = statusFilter.Trim().ToUpperInvariant();
+            query = query.Where(m => m.Status.ToUpper() == st);
+        }
+        else
+        {
+            // Mặc định khách hàng chỉ xem Lịch sử đơn đã hoàn thành (CLOSED)
+            query = query.Where(m => m.Status.ToUpper() == "CLOSED");
+        }
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderByDescending(m => m.CompletedDate ?? m.CreatedDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(m => new CustomerServiceHistoryDto
+            {
+                MaintenanceId = m.MaintenanceID,
+                FinishedDate = m.CompletedDate,
+                LicensePlate = m.Car.LicensePlate ?? string.Empty,
+                MaintenanceType = m.MaintenanceType,
+                FinalAmount = m.FinalAmount ?? (m.TotalAmount - m.DiscountAmount - m.MemberDiscountAmount),
+                Status = m.Status
+            })
+            .ToListAsync(ct);
+
+        return new ServiceOrderPagedResultDto<CustomerServiceHistoryDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
     public async Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId, CancellationToken ct = default)
     {
         var maintenance = await _db.CarMaintenances

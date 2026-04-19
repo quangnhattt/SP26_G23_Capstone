@@ -16,6 +16,10 @@ public class CarMaintenanceService : ICarMaintenanceService
     {
         return await _repository.GetServiceOrdersForStaffAsync(query, employeeId, ct);
     }
+    public async Task<ServiceOrderPagedResultDto<CustomerServiceHistoryDto>> GetCustomerHistoryAsync(int customerId, string? statusFilter, int page, int pageSize, CancellationToken ct = default)
+    {
+        return await _repository.GetCustomerHistoryAsync(customerId, statusFilter, page, pageSize, ct);
+    }
     public async Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId, CancellationToken ct = default)
     {
         return await _repository.GetMaintenancePrintAsync(maintenanceId, ct);

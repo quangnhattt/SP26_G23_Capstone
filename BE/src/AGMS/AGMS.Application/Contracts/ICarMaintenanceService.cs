@@ -5,6 +5,7 @@ namespace AGMS.Application.Contracts;
 public interface ICarMaintenanceService
 {
     Task<ServiceOrderPagedResultDto<ServiceOrderListItemDto>> GetServiceOrdersAsync(ServiceOrderListQueryDto query, int? employeeId = null, CancellationToken ct = default);
+    Task<ServiceOrderPagedResultDto<CustomerServiceHistoryDto>> GetCustomerHistoryAsync(int customerId, string? statusFilter, int page, int pageSize, CancellationToken ct = default);
     Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId, CancellationToken ct = default);
     Task ProposeAdditionalItemsAsync(int maintenanceId, ProposeAdditionalItemsRequest request, CancellationToken ct = default);
 
