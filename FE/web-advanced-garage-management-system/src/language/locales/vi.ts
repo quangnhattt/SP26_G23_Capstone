@@ -1729,6 +1729,8 @@ export default {
   // ── Service Order Manager – bổ sung trạng thái / cột / tooltip ────────────
   serviceOrderStatus_IN_DIAGNOSIS: "Đang chẩn đoán",
   serviceOrderStatus_QUOTED: "Chờ phê duyệt bổ sung",
+  serviceOrderStatus_PROCESS_ROADSIDE: "Đang xử lý cứu hộ tại hiện trường",
+  serviceOrderStatus_PROCESS_TOW: "Đang xử lý kéo xe",
   serviceOrderColNo: "STT",
   serviceOrderColOrderId: "Mã đơn",
   serviceOrderColCustomer: "Khách hàng",
@@ -1852,6 +1854,8 @@ export default {
   invoiceFinalAmount: "Thành tiền",
   invoiceClose: "Đóng",
   invoiceLoadError: "Không thể tải hóa đơn.",
+  invoiceLineTag_RESCUE_PROPOSAL_ACCEPTED: "Đã chấp nhận đề xuất cứu hộ",
+  invoiceSourceType_RESCUE_PROPOSAL_ACCEPTED: "Cứu hộ — đề xuất đã chấp nhận",
   membershipRanksManagement: "Quản lý Hạng Thành Viên",
   membershipRanksManagementSubtitle: "Quản lý các hạng thành viên và chính sách giảm giá cho khách hàng",
   createNewMembershipRank: "Tạo Hạng Mới",

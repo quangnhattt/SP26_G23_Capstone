@@ -244,7 +244,7 @@ const BookingPage = () => {
     }
     const timer = setTimeout(() => {
       setUserSearchLoading(true);
-      searchUsers(phoneSearch.trim())
+      searchUsers(phoneSearch.trim(), { roleId: 4 })
         .then(setSearchedUsers)
         .catch(() => {})
         .finally(() => setUserSearchLoading(false));

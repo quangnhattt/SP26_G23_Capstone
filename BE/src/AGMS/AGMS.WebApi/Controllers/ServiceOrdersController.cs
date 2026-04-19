@@ -40,6 +40,24 @@ public class ServiceOrdersController : ControllerBase
         var result = await _carMaintenanceService.GetServiceOrdersAsync(query, employeeId, ct);
         return Ok(result);
     }
+
+    [HttpGet("customer-history")]
+    [ProducesResponseType(typeof(ServiceOrderPagedResultDto<CustomerServiceHistoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCustomerHistory(
+        [FromQuery] string? status, 
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 10, 
+        CancellationToken ct = default)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var customerId))
+            return Unauthorized(new { message = "Invalid or missing user id claim." });
+
+        var result = await _carMaintenanceService.GetCustomerHistoryAsync(customerId, status, page, pageSize, ct);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(MaintenancePrintDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -122,13 +140,23 @@ public class ServiceOrdersController : ControllerBase
     }
     [HttpGet("{id:int}/additional-items")]
     [ProducesResponseType(typeof(AdditionalItemsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAdditionalItems(int id, CancellationToken ct)
     {
+        var roleIdClaim = User.FindFirstValue(ClaimTypes.Role);
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        int roleId = int.TryParse(roleIdClaim, out var r) ? r : 0;
+        int userId = int.TryParse(userIdClaim, out var u) ? u : 0;
+
         try
         {
-            var result = await _carMaintenanceService.GetAdditionalItemsAsync(id, ct);
+            var result = await _carMaintenanceService.GetAdditionalItemsAsync(id, userId, roleId, ct);
             return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {

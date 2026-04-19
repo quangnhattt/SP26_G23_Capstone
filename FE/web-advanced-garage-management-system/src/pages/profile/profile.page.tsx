@@ -18,6 +18,10 @@ import EditProfileModal from "@/components/modals/EditProfileModal";
 import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
 import { carService } from "@/apis/cars";
 import type { ICar } from "@/apis/cars/types";
+import { getCustomerHistory } from "@/apis/serviceOrders";
+import type { CustomerServiceHistoryDto } from "@/apis/serviceOrders/types";
+import { IconHistory, IconEye } from "@tabler/icons-react";
+import InvoiceModal from "@/pages/admin/components/service-order-manager/invoice.modal";
 
 const ProfilePage = () => {
   const { t } = useTranslation();
@@ -28,6 +32,11 @@ const ProfilePage = () => {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [cars, setCars] = useState<ICar[]>([]);
   const [loadingCars, setLoadingCars] = useState(false);
+
+  const [historyItems, setHistoryItems] = useState<CustomerServiceHistoryDto[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -40,6 +49,7 @@ const ProfilePage = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchCars();
+      fetchHistory();
     }
   }, [isAuthenticated]);
 
@@ -52,6 +62,18 @@ const ProfilePage = () => {
       console.error("Failed to fetch cars:", error);
     } finally {
       setLoadingCars(false);
+    }
+  };
+
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const data = await getCustomerHistory({ page: 1, pageSize: 20 });
+      setHistoryItems(data.items);
+    } catch (error) {
+      console.error("Failed to fetch history:", error);
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
@@ -264,6 +286,51 @@ const ProfilePage = () => {
             </StatsGrid>
           </StatsSection>
 
+          <HistorySection>
+            <HistorySectionHeader>
+              <div>
+                <SectionTitle>Lịch Sử Bảo Dưỡng / Sửa Chữa</SectionTitle>
+                <EmptyText>Danh sách các đơn dịch vụ đã hoàn thành của bạn</EmptyText>
+              </div>
+            </HistorySectionHeader>
+            {loadingHistory ? (
+              <EmptyVehicle>
+                <EmptyText>{t("loading")}</EmptyText>
+              </EmptyVehicle>
+            ) : historyItems.length === 0 ? (
+              <EmptyVehicle>
+                <IconHistory size={64} stroke={1} />
+                <EmptyTitle>Chưa có lịch sử sửa chữa</EmptyTitle>
+                <EmptyText>Xe của bạn chưa có đợt bảo dưỡng nào được ghi nhận.</EmptyText>
+              </EmptyVehicle>
+            ) : (
+              <HistoryList>
+                {historyItems.map((item) => (
+                  <HistoryCard key={item.maintenanceId}>
+                    <HistoryInfo>
+                      <HistoryDate>
+                        {item.finishedDate ? new Date(item.finishedDate).toLocaleDateString("vi-VN") : "N/A"}
+                      </HistoryDate>
+                      <HistoryPlate>{item.licensePlate}</HistoryPlate>
+                      <HistoryAmount>
+                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(item.finalAmount)}
+                      </HistoryAmount>
+                    </HistoryInfo>
+                    <ViewInvoiceBtn 
+                      onClick={() => {
+                        setSelectedInvoiceId(item.maintenanceId);
+                        setShowInvoiceModal(true);
+                      }}
+                    >
+                      <IconEye size={18} />
+                      Chi tiết
+                    </ViewInvoiceBtn>
+                  </HistoryCard>
+                ))}
+              </HistoryList>
+            )}
+          </HistorySection>
+
           <ActionSection>
             <ActionButton onClick={handleLogout}>
               <IconLogout size={20} />
@@ -289,6 +356,15 @@ const ProfilePage = () => {
       {showChangePasswordModal && (
         <ChangePasswordModal
           onClose={() => setShowChangePasswordModal(false)}
+        />
+      )}
+
+      {showInvoiceModal && (
+        <InvoiceModal
+          isOpen={showInvoiceModal}
+          maintenanceId={selectedInvoiceId}
+          mode="view"
+          onClose={() => setShowInvoiceModal(false)}
         />
       )}
     </Container>
@@ -684,3 +760,103 @@ const VehicleInfoValue = styled.span`
   font-weight: 600;
   color: #333;
 `;
+
+const HistorySection = styled.div`
+  padding: 2rem;
+  border-bottom: 1px solid #f0f0f0;
+`;
+
+const HistorySectionHeader = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const HistoryList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const HistoryCard = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+`;
+
+const HistoryInfo = styled.div`
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+`;
+
+const HistoryDate = styled.div`
+  font-weight: 600;
+  color: #475569;
+  font-size: 0.95rem;
+  min-width: 100px;
+`;
+
+const HistoryPlate = styled.div`
+  background: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 1px;
+`;
+
+const HistoryAmount = styled.div`
+  font-weight: 700;
+  color: #16a34a;
+  font-size: 1.1rem;
+`;
+
+const ViewInvoiceBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  color: #3b82f6;
+  border: 1px solid #bfdbfe;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: center;
+  }
+`;
+

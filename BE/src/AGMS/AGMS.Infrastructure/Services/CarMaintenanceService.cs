@@ -16,6 +16,10 @@ public class CarMaintenanceService : ICarMaintenanceService
     {
         return await _repository.GetServiceOrdersForStaffAsync(query, employeeId, ct);
     }
+    public async Task<ServiceOrderPagedResultDto<CustomerServiceHistoryDto>> GetCustomerHistoryAsync(int customerId, string? statusFilter, int page, int pageSize, CancellationToken ct = default)
+    {
+        return await _repository.GetCustomerHistoryAsync(customerId, statusFilter, page, pageSize, ct);
+    }
     public async Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId, CancellationToken ct = default)
     {
         return await _repository.GetMaintenancePrintAsync(maintenanceId, ct);
@@ -26,9 +30,9 @@ public class CarMaintenanceService : ICarMaintenanceService
         await _repository.ProposeAdditionalItemsAsync(maintenanceId, request, ct);
     }
 
-    public async Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, CancellationToken ct = default)
+    public async Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, int currentUserId, int currentRoleId, CancellationToken ct = default)
     {
-        return await _repository.GetAdditionalItemsAsync(maintenanceId, ct);
+        return await _repository.GetAdditionalItemsAsync(maintenanceId, currentUserId, currentRoleId, ct);
     }
 
     public async Task RespondToAdditionalItemsAsync(int maintenanceId, RespondAdditionalItemsRequest request, CancellationToken ct = default)

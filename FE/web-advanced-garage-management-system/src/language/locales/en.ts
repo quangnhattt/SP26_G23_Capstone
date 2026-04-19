@@ -1744,6 +1744,8 @@ export default {
   // ── Service Order Manager – extra status/column/tooltip keys ──────────────
   serviceOrderStatus_IN_DIAGNOSIS: "In Diagnosis",
   serviceOrderStatus_QUOTED: "Awaiting Approval",
+  serviceOrderStatus_PROCESS_ROADSIDE: "Roadside rescue in progress",
+  serviceOrderStatus_PROCESS_TOW: "Tow in progress",
   serviceOrderColNo: "#",
   serviceOrderColOrderId: "Order ID",
   serviceOrderColCustomer: "Customer",
@@ -1866,6 +1868,8 @@ export default {
   invoiceFinalAmount: "Final Amount",
   invoiceClose: "Close",
   invoiceLoadError: "Failed to load invoice.",
+  invoiceLineTag_RESCUE_PROPOSAL_ACCEPTED: "Rescue proposal accepted",
+  invoiceSourceType_RESCUE_PROPOSAL_ACCEPTED: "Rescue — proposal accepted",
   membershipRanksManagement: "Membership Ranks Management",
   membershipRanksManagementSubtitle: "Manage customer membership ranks and discount policies",
   createNewMembershipRank: "Create New Rank",

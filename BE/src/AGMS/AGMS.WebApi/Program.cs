@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 
 // CORS - Development: mở all origin/port cho FE. UAT/Production: chỉ origin trong danh sách.
 builder.Services.AddCors(options =>

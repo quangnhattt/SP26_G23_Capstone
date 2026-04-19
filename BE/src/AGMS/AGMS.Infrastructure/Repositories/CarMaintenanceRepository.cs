@@ -72,6 +72,53 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         };
     }
 
+    public async Task<ServiceOrderPagedResultDto<CustomerServiceHistoryDto>> GetCustomerHistoryAsync(int customerId, string? statusFilter, int page, int pageSize, CancellationToken ct = default)
+    {
+        page = page <= 0 ? 1 : page;
+        pageSize = pageSize <= 0 ? 10 : pageSize;
+
+        var query = _db.CarMaintenances
+            .AsNoTracking()
+            .Include(m => m.Car)
+            .Where(m => m.Car.OwnerID == customerId);
+
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+        {
+            var st = statusFilter.Trim().ToUpperInvariant();
+            query = query.Where(m => m.Status.ToUpper() == st);
+        }
+        else
+        {
+            // Mặc định khách hàng chỉ xem Lịch sử đơn đã hoàn thành (CLOSED)
+            query = query.Where(m => m.Status.ToUpper() == "CLOSED");
+        }
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderByDescending(m => m.CompletedDate ?? m.CreatedDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(m => new CustomerServiceHistoryDto
+            {
+                MaintenanceId = m.MaintenanceID,
+                FinishedDate = m.CompletedDate,
+                LicensePlate = m.Car.LicensePlate ?? string.Empty,
+                MaintenanceType = m.MaintenanceType,
+                FinalAmount = m.FinalAmount ?? (m.TotalAmount - m.DiscountAmount - m.MemberDiscountAmount),
+                Status = m.Status
+            })
+            .ToListAsync(ct);
+
+        return new ServiceOrderPagedResultDto<CustomerServiceHistoryDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
     public async Task<MaintenancePrintDto?> GetMaintenancePrintAsync(int maintenanceId, CancellationToken ct = default)
     {
         var maintenance = await _db.CarMaintenances
@@ -181,32 +228,50 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             PackageId=pu.PackageID,
             PackageCode=pu.Package.PackageCode,
             PackageName=pu.Package.Name,
-            PackagePrice=pu.AppliedPrice,
+            
+            PackagePrice=pu.Package.BasePrice,
             PackageDiscountAmount=pu.DiscountAmount
         }).ToList();
 
-        var serviceItems = maintenance.ServiceDetails.OrderByDescending(sd => sd.FromPackage).ThenBy(sd => sd.ServiceDetailID)
+        var packageItems = maintenance.MaintenancePackageUsages.OrderByDescending(pu => pu.UsageID)
+            .Select(pu => new MaintenanceInvoiceLineItemDto
+            {
+                SourceType = "Gói bảo dưỡng",
+                ItemCode = pu.Package.PackageCode,
+                ItemName = pu.Package.Name,
+                Quantity = 1,
+                UnitPrice = pu.Package.BasePrice,
+                TotalPrice = pu.AppliedPrice,
+                Notes = null,
+                ItemStatus = "COMPLETED"
+            }).ToList();
+
+        var serviceItems = maintenance.ServiceDetails
+            .OrderByDescending(sd => sd.FromPackage)
+            .ThenBy(sd => sd.ServiceDetailID)
             .Select(sd => new MaintenanceInvoiceLineItemDto
             {
-                SourceType = sd.FromPackage ? "Dich vu tu goi" : "Dich vu le",
+                SourceType = sd.FromPackage ? "Dịch vụ từ gói" : "Dịch vụ lẻ",
                 ItemCode = sd.Product.Code,
                 ItemName = sd.Product.Name,
                 Quantity = sd.Quantity,
-                UnitPrice = sd.UnitPrice,
-                TotalPrice = sd.Quantity * sd.UnitPrice,
+                UnitPrice = sd.FromPackage ? 0 : sd.UnitPrice,
+                TotalPrice = sd.FromPackage ? 0 : (sd.Quantity * sd.UnitPrice),
                 Notes = sd.Notes,
                 ItemStatus = sd.ItemStatus,
             }).ToList();
 
-        var partItems = maintenance.ServicePartDetails.OrderByDescending(spd => spd.ServicePartDetailID)
+        var partItems = maintenance.ServicePartDetails
+            .OrderByDescending(spd => spd.FromPackage)
+            .ThenBy(spd => spd.ServicePartDetailID)
             .Select(spd => new MaintenanceInvoiceLineItemDto
             {
-                SourceType = spd.FromPackage ? "Phu tung tu goi" : "Phu tung le",
+                SourceType = spd.FromPackage ? "Phụ tùng từ gói" : "Phụ tùng lẻ",
                 ItemCode = spd.Product.Code,
                 ItemName = spd.Product.Name,
                 Quantity = spd.Quantity,
-                UnitPrice = spd.UnitPrice,
-                TotalPrice = spd.Quantity * spd.UnitPrice,
+                UnitPrice = spd.FromPackage ? 0 : spd.UnitPrice,
+                TotalPrice = spd.FromPackage ? 0 : (spd.Quantity * spd.UnitPrice),
                 Notes = spd.Notes,
                 ItemStatus = spd.ItemStatus,
             }).ToList();
@@ -240,7 +305,11 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             MemberDiscountAmount=memberAmount,
             FinalAmount=finalAmount,
             PackageUsages=packageUsages,
-            LineItems=serviceItems.Concat(partItems).ToList()
+            LineItems=packageItems.Concat(serviceItems).Concat(partItems)
+                .OrderByDescending(x => x.SourceType == "Gói bảo dưỡng")
+                .ThenByDescending(x => x.SourceType.EndsWith("từ gói"))
+                .ThenByDescending(x => x.SourceType.StartsWith("Dịch vụ"))
+                .ToList()
         };
 
     }
@@ -353,12 +422,20 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, CancellationToken ct = default)
+    public async Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, int currentUserId, int currentRoleId, CancellationToken ct = default)
     {
-        var exist = await _db.CarMaintenances.AnyAsync(m => m.MaintenanceID == maintenanceId, ct);
-        if (!exist)
+        var main = await _db.CarMaintenances
+            .Include(m => m.Car)
+            .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+            
+        if (main == null)
         {
             throw new KeyNotFoundException($"Khong tim thay phieu Id = {maintenanceId}.");
+        }
+
+        if (currentRoleId == 4 && main.Car.OwnerID != currentUserId)
+        {
+            throw new UnauthorizedAccessException("Bạn không có quyền xem thông tin phát sinh của khách hàng khác.");
         }
         var services = await _db.ServiceDetails.AsNoTracking().Include(sd => sd.Product)
             .Where(sd => sd.MaintenanceID == maintenanceId && sd.IsAdditional)
