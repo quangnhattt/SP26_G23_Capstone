@@ -336,7 +336,7 @@ namespace AGMS.Infrastructure.Repositories
                 RoleID = roleId,
                 IsActive = true,
                 CreatedDate = DateTime.UtcNow,
-                IsEmailVerified = false
+                IsEmailVerified = true
             };
 
             _db.Users.Add(user);

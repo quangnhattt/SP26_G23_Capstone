@@ -122,13 +122,23 @@ public class ServiceOrdersController : ControllerBase
     }
     [HttpGet("{id:int}/additional-items")]
     [ProducesResponseType(typeof(AdditionalItemsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAdditionalItems(int id, CancellationToken ct)
     {
+        var roleIdClaim = User.FindFirstValue(ClaimTypes.Role);
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        int roleId = int.TryParse(roleIdClaim, out var r) ? r : 0;
+        int userId = int.TryParse(userIdClaim, out var u) ? u : 0;
+
         try
         {
-            var result = await _carMaintenanceService.GetAdditionalItemsAsync(id, ct);
+            var result = await _carMaintenanceService.GetAdditionalItemsAsync(id, userId, roleId, ct);
             return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {

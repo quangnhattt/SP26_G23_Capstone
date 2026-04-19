@@ -26,9 +26,9 @@ public class CarMaintenanceService : ICarMaintenanceService
         await _repository.ProposeAdditionalItemsAsync(maintenanceId, request, ct);
     }
 
-    public async Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, CancellationToken ct = default)
+    public async Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, int currentUserId, int currentRoleId, CancellationToken ct = default)
     {
-        return await _repository.GetAdditionalItemsAsync(maintenanceId, ct);
+        return await _repository.GetAdditionalItemsAsync(maintenanceId, currentUserId, currentRoleId, ct);
     }
 
     public async Task RespondToAdditionalItemsAsync(int maintenanceId, RespondAdditionalItemsRequest request, CancellationToken ct = default)
