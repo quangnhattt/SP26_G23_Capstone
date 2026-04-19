@@ -11,6 +11,7 @@ public static class RescueStatus
     public const string ProposedTowing = "PROPOSED_TOWING"; // SA đề xuất kéo xe về xưởng.
     public const string ProposalAccepted = "PROPOSAL_ACCEPTED"; // Khách hàng đã đồng ý đề xuất.
     public const string Dispatched = "DISPATCHED"; // Dùng cho nhánh roadside khi đã phân công kỹ thuật viên.
+    public const string WaitingForTechnician = "WAITING_FOR_TECHNICIAN"; // Dùng cho nhánh roadside khi đã phân công và chờ KTV nhận linh kiện.
     public const string EnRoute = "EN_ROUTE"; // Kỹ thuật viên đang di chuyển tới hiện trường.
     public const string OnSite = "ON_SITE"; // Kỹ thuật viên đã tới hiện trường.
     public const string Diagnosing = "DIAGNOSING"; // Đang chẩn đoán tại chỗ.

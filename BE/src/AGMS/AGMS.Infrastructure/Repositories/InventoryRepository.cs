@@ -1,3 +1,4 @@
+using AGMS.Application.Constants;
 using AGMS.Application.Contracts;
 using AGMS.Application.DTOs.Inventory;
 using AGMS.Domain.Entities;
@@ -275,6 +276,40 @@ public class InventoryRepository : IInventoryRepository
             transferOrder.ApprovedBy = approvedByUserId; // Ghi nhận thợ nào đã tự bấm duyệt
             _db.TransferOrders.Update(transferOrder);
 
+            if (transferOrder.RelatedMaintenanceID.HasValue)
+            {
+                var maintenanceStatus = await _db.CarMaintenances
+                    .AsNoTracking()
+                    .Where(m => m.MaintenanceID == transferOrder.RelatedMaintenanceID.Value)
+                    .Select(m => m.Status)
+                    .FirstOrDefaultAsync(ct);
+
+                if (
+                    maintenanceStatus != null
+                    && maintenanceStatus.ToUpperInvariant() == "PROCESS_ROADSIDE"
+                )
+                {
+                    var rescueRequest = await _db.RescueRequests.FirstOrDefaultAsync(
+                        r => r.ResultingMaintenanceID == transferOrder.RelatedMaintenanceID.Value,
+                        ct
+                    );
+
+                    if (rescueRequest != null)
+                    {
+                        if (rescueRequest.Status == RescueStatus.WaitingForTechnician)
+                        {
+                            rescueRequest.Status = RescueStatus.EnRoute;
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(
+                                $"Không thể kích hoạt phiếu xuất kho cho rescue liên kết với maintenance #{transferOrder.RelatedMaintenanceID.Value}. Trạng thái hiện tại của rescue phải là {RescueStatus.WaitingForTechnician} nhưng đang là {rescueRequest.Status}."
+                            );
+                        }
+                    }
+                }
+            }
+
             // 5. LƯU VÀ ĐÓNG GÓI TRANSACTION
             await _db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
@@ -415,6 +450,12 @@ public class InventoryRepository : IInventoryRepository
                 $"Không tìm thấy service order với ID = {maintenanceId}."
             );
 
+        var isRoadsideMaintenance = string.Equals(
+            maintenanceStatus,
+            CarMaintenanceStatus.ProcessRoadside,
+            StringComparison.OrdinalIgnoreCase
+        );
+
         if (
             maintenanceStatus.ToUpperInvariant() != "IN_PROGRESS"
             && maintenanceStatus.ToUpperInvariant() != "PROCESS_ROADSIDE"
@@ -486,6 +527,19 @@ public class InventoryRepository : IInventoryRepository
 
                 part.ReservedTransferOrderID = transferOrder.TransferOrderID;
                 part.InventoryStatus = "RESERVED";
+            }
+
+            if (isRoadsideMaintenance)
+            {
+                var rescueRequest = await _db.RescueRequests.FirstOrDefaultAsync(
+                    r => r.ResultingMaintenanceID == maintenanceId,
+                    ct
+                );
+
+                if (rescueRequest != null)
+                {
+                    rescueRequest.Status = RescueStatus.WaitingForTechnician;
+                }
             }
 
             await _db.SaveChangesAsync(ct);
