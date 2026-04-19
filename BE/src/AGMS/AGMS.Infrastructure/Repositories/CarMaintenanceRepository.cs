@@ -152,7 +152,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
                 Quantity = 1,
                 UnitPrice = pu.Package.BasePrice,
                 Notes = null,
-                ItemStatus = "COMPLETED"
+                ItemStatus = "APPROVED"
             }).ToList();
 
         var serviceItems = maintenance.ServiceDetails
