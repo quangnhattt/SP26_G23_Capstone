@@ -143,31 +143,50 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         {
             return null;
         }
+        var packageItems = maintenance.MaintenancePackageUsages.OrderByDescending(pu => pu.UsageID)
+            .Select(pu => new MaintenanceLineItemDto
+            {
+                SourceType = "Gói bảo dưỡng",
+                ItemCode = pu.Package.PackageCode,
+                ItemName = pu.Package.Name,
+                Quantity = 1,
+                UnitPrice = pu.Package.BasePrice,
+                Notes = null,
+                ItemStatus = "COMPLETED"
+            }).ToList();
+
         var serviceItems = maintenance.ServiceDetails
-        .OrderByDescending(sd => sd.FromPackage)
-        .ThenBy(sd => sd.ServiceDetailID)
-        .Select(sd => new MaintenanceLineItemDto
-        {
-            SourceType = sd.FromPackage ? "Dich vu tu goi" : "Dich vu le",
-            ItemCode = sd.Product.Code,
-            ItemName = sd.Product.Name,
-            Quantity = sd.Quantity,
-            UnitPrice = sd.UnitPrice,
-            Notes = sd.Notes,
-            ItemStatus = sd.ItemStatus
-        });
+            .Select(sd => new MaintenanceLineItemDto
+            {
+                SourceType = sd.FromPackage ? "Dịch vụ từ gói" : "Dịch vụ lẻ",
+                ItemCode = sd.Product.Code,
+                ItemName = sd.Product.Name,
+                Quantity = sd.Quantity,
+                UnitPrice = sd.FromPackage ? 0 : sd.UnitPrice,
+                Notes = sd.Notes,
+                ItemStatus = sd.ItemStatus
+            }).ToList();
+
         var partItems = maintenance.ServicePartDetails
-            .OrderBy(spd => spd.ServicePartDetailID)
             .Select(spd => new MaintenanceLineItemDto
             {
-                SourceType = spd.FromPackage ? "Phu tung tu goi" : "Phu tung le",
+                SourceType = spd.FromPackage ? "Phụ tùng từ gói" : "Phụ tùng lẻ",
                 ItemCode = spd.Product.Code,
                 ItemName = spd.Product.Name,
                 Quantity = spd.Quantity,
-                UnitPrice = spd.UnitPrice,
+                UnitPrice = spd.FromPackage ? 0 : spd.UnitPrice,
                 Notes = spd.Notes,
                 ItemStatus = spd.ItemStatus
-            });
+            }).ToList();
+
+        var allItems = packageItems.Concat(serviceItems).Concat(partItems)
+            .OrderBy(x => x.SourceType == "Gói bảo dưỡng" ? 0 :
+                          x.SourceType == "Dịch vụ từ gói" ? 1 :
+                          x.SourceType == "Phụ tùng từ gói" ? 2 :
+                          x.SourceType == "Dịch vụ lẻ" ? 3 : 4)
+            .ThenBy(x => x.ItemCode)
+            .ToList();
+
         return new MaintenancePrintDto
         {
             MaintenanceId = maintenance.MaintenanceID,
@@ -184,7 +203,7 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
             TechnicianFullName = maintenance.AssignedTechnician?.FullName,
             TechnicianPhone = maintenance.AssignedTechnician?.Phone,
             TechnicianEmail = maintenance.AssignedTechnician?.Email,
-            LineItems = serviceItems.Concat(partItems).ToList()
+            LineItems = allItems
         };
     }
     public async Task<MaintenanceInvoiceDto?> GetMaintenanceInvoiceAsync(int maintenanceId, CancellationToken ct = default)
