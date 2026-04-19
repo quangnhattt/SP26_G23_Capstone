@@ -1158,6 +1158,9 @@ public class RescueRequestService : IRescueRequestService
         rescue.CompletedDate = now;
         await _rescueRepo.UpdateAsync(rescue, ct);
 
+        if (rescue.AssignedTechnicianID.HasValue)
+            await _userRepo.SetOnRescueMissionAsync(rescue.AssignedTechnicianID.Value, false, ct);
+
         return new CompleteTowingResultDto
         {
             RescueId = rescueId,
