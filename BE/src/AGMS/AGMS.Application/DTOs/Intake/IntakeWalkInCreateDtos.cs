@@ -140,4 +140,5 @@ public class IntakeWalkInCreateResponseDto
     public int PartDetailsCount { get; set; }
     public int VehicleIntakeConditionsCount { get; set; }
     public DateTime CreatedDateUtc { get; set; }
+    public string? Notes { get; set; }
 }

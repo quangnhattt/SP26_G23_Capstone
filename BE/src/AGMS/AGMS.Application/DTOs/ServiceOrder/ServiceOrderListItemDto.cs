@@ -12,4 +12,5 @@ public class ServiceOrderListItemDto
     public string MaintenanceType { get; set; } = null!;
     public string Status { get; set; } = null!;
     public string? TechnicianName { get; set; }
+    public string? Notes { get; set; }
 }

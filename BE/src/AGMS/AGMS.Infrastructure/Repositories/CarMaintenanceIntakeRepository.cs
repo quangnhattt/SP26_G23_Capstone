@@ -64,7 +64,8 @@ namespace AGMS.Infrastructure.Repositories
                     CompletedDate = m.CompletedDate,
                     MaintenanceType = m.MaintenanceType,
                     Status = m.Status,
-                    TechnicianName = m.AssignedTechnician != null ? m.AssignedTechnician.FullName : null
+                    TechnicianName = m.AssignedTechnician != null ? m.AssignedTechnician.FullName : null,
+                    Notes = m.Notes
                 })
                 .ToListAsync(ct);
 
@@ -263,7 +264,8 @@ namespace AGMS.Infrastructure.Repositories
                     ServiceDetailsCount = serviceDetails.Count,
                     PartDetailsCount = partDetails.Count,
                     VehicleIntakeConditionsCount = intakeConditions.Count,
-                    CreatedDateUtc = maintenance.CreatedDate
+                    CreatedDateUtc = maintenance.CreatedDate,
+                    Notes = maintenance.Notes
                 };
             }
             catch

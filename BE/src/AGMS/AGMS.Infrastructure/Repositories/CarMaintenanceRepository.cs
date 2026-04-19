@@ -70,7 +70,8 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
                 CompletedDate = m.CompletedDate,
                 MaintenanceType = m.MaintenanceType,
                 Status = m.Status,
-                TechnicianName = m.AssignedTechnician != null ? m.AssignedTechnician.FullName : null
+                TechnicianName = m.AssignedTechnician != null ? m.AssignedTechnician.FullName : null,
+                Notes = m.Notes
             })
             .ToListAsync(ct);
 
