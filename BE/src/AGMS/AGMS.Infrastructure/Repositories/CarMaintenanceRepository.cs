@@ -422,12 +422,20 @@ public class CarMaintenanceRepository : ICarMaintenanceRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, CancellationToken ct = default)
+    public async Task<AdditionalItemsDto> GetAdditionalItemsAsync(int maintenanceId, int currentUserId, int currentRoleId, CancellationToken ct = default)
     {
-        var exist = await _db.CarMaintenances.AnyAsync(m => m.MaintenanceID == maintenanceId, ct);
-        if (!exist)
+        var main = await _db.CarMaintenances
+            .Include(m => m.Car)
+            .FirstOrDefaultAsync(m => m.MaintenanceID == maintenanceId, ct);
+            
+        if (main == null)
         {
             throw new KeyNotFoundException($"Khong tim thay phieu Id = {maintenanceId}.");
+        }
+
+        if (currentRoleId == 4 && main.Car.OwnerID != currentUserId)
+        {
+            throw new UnauthorizedAccessException("Bạn không có quyền xem thông tin phát sinh của khách hàng khác.");
         }
         var services = await _db.ServiceDetails.AsNoTracking().Include(sd => sd.Product)
             .Where(sd => sd.MaintenanceID == maintenanceId && sd.IsAdditional)
