@@ -442,7 +442,7 @@ public class RescueRequestService : IRescueRequestService
             {
                 rescue.AssignedTechnicianID = request.TechnicianId;
                 rescue.EstimatedArrivalDateTime = request.EstimatedArrivalDateTime;
-                rescue.Status = RescueStatus.EnRoute;
+                rescue.Status = RescueStatus.Dispatched;
                 await _rescueRepo.UpdateAsync(rescue, token);
 
                 if (rescue.ResultingMaintenanceID.HasValue)
@@ -649,7 +649,9 @@ public class RescueRequestService : IRescueRequestService
             );
             maintenance =
                 await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID!.Value, ct)
-                ?? throw new InvalidOperationException("Không thể tạo Repair Order cho yêu cầu cứu hộ.");
+                ?? throw new InvalidOperationException(
+                    "Không thể tạo Repair Order cho yêu cầu cứu hộ."
+                );
         }
 
         maintenance.AssignedTechnicianID = techId;
@@ -725,7 +727,11 @@ public class RescueRequestService : IRescueRequestService
                     if (
                         existingService.Quantity != item.Quantity
                         || existingService.UnitPrice != item.UnitPrice
-                        || !string.Equals(existingService.Notes, normalizedNote, StringComparison.Ordinal)
+                        || !string.Equals(
+                            existingService.Notes,
+                            normalizedNote,
+                            StringComparison.Ordinal
+                        )
                     )
                     {
                         existingService.Quantity = item.Quantity;
@@ -772,7 +778,11 @@ public class RescueRequestService : IRescueRequestService
                         existingPart.Quantity != quantity
                         || existingPart.UnitPrice != item.UnitPrice
                         || existingPart.InventoryStatus != "ISSUED"
-                        || !string.Equals(existingPart.Notes, normalizedNote, StringComparison.Ordinal)
+                        || !string.Equals(
+                            existingPart.Notes,
+                            normalizedNote,
+                            StringComparison.Ordinal
+                        )
                     )
                     {
                         existingPart.Quantity = quantity;
@@ -1019,7 +1029,7 @@ public class RescueRequestService : IRescueRequestService
             await _rescueRepo.GetByIdAsync(rescueId, ct)
             ?? throw new InvalidOperationException(
                 "Không thể tải yêu cầu cứu hộ sau khi cập nhật."
-        );
+            );
         return await MapToDetailAsync(updated, ct);
     }
 
@@ -1141,7 +1151,9 @@ public class RescueRequestService : IRescueRequestService
             );
             maintenance =
                 await _rescueRepo.GetMaintenanceByIdAsync(rescue.ResultingMaintenanceID!.Value, ct)
-                ?? throw new InvalidOperationException("Không thể tạo Repair Order cho yêu cầu kéo xe.");
+                ?? throw new InvalidOperationException(
+                    "Không thể tạo Repair Order cho yêu cầu kéo xe."
+                );
         }
 
         maintenance.Notes = AppendAuditNote(
@@ -1924,7 +1936,7 @@ public class RescueRequestService : IRescueRequestService
         int actorId,
         string triggerReason,
         CancellationToken ct
-   )
+    )
     {
         await _transactionManager.ExecuteInTransactionAsync(
             async token =>
@@ -2103,10 +2115,7 @@ public class RescueRequestService : IRescueRequestService
             : $"{AcceptedProposalSeedNotePrefix} {trimmedNote}";
     }
 
-    private static string BuildInitialMaintenanceNotes(
-        RescueRequest rescue,
-        string triggerReason
-    )
+    private static string BuildInitialMaintenanceNotes(RescueRequest rescue, string triggerReason)
     {
         var notes = new List<string> { $"[RESCUE INIT] {triggerReason}" };
 
@@ -2175,8 +2184,9 @@ public class RescueRequestService : IRescueRequestService
             if (suggestedParts.Count == 0)
                 suggestedParts = await DeserializeSuggestedPartsAsync(r.SuggestedPartsJson, ct);
 
-            repairItems = (await _rescueRepo.GetRepairItemsAsync(r.ResultingMaintenanceID.Value, ct))
-                .ToArray();
+            repairItems = (
+                await _rescueRepo.GetRepairItemsAsync(r.ResultingMaintenanceID.Value, ct)
+            ).ToArray();
             repairSubtotal = repairItems.Sum(i => i.TotalPrice);
         }
         else
