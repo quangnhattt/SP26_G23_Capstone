@@ -39,9 +39,20 @@ export const getUsers = async (): Promise<IUsersResponse> => {
   return data;
 };
 
-export const searchUsers = async (phone: string): Promise<IUsersResponse> => {
+export type SearchUsersOptions = {
+  /** Lọc theo vai trò (ví dụ 4 = khách hàng) — gửi kèm query khi có giá trị. */
+  roleId?: number;
+};
+
+export const searchUsers = async (
+  phone: string,
+  options?: SearchUsersOptions,
+): Promise<IUsersResponse> => {
   const { data } = await AxiosClient.get<IUsersResponse>("/api/users", {
-    params: { phone },
+    params: {
+      phone,
+      ...(options?.roleId != null ? { roleId: options.roleId } : {}),
+    },
   });
   return data;
 };

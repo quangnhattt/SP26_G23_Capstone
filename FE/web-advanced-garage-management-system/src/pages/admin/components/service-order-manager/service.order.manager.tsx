@@ -51,6 +51,8 @@ const STATUS_COLOR: Record<string, string> = {
   IN_DIAGNOSIS: "volcano",
   QUOTED: "gold",
   IN_PROGRESS: "blue",
+  PROCESS_ROADSIDE: "cyan",
+  PROCESS_TOW: "geekblue",
   COMPLETED: "green",
   WAITING_FOR_PAYMENT: "purple",
   CLOSED: "cyan",
@@ -406,7 +408,9 @@ const ServiceOrderManager = () => {
       width: 150,
       render: (_: unknown, record: IServiceOrder) => (
         <Tag color={STATUS_COLOR[record.status] ?? "default"}>
-          {t(`serviceOrderStatus_${record.status}`) || record.status}
+          {t(`serviceOrderStatus_${record.status}`, {
+            defaultValue: record.status,
+          })}
         </Tag>
       ),
     },
@@ -613,6 +617,22 @@ const ServiceOrderManager = () => {
                 label: (
                   <span style={{ color: "#000" }}>
                     {t("serviceOrderStatus_IN_PROGRESS")}
+                  </span>
+                ),
+              },
+              {
+                value: "PROCESS_ROADSIDE",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderStatus_PROCESS_ROADSIDE")}
+                  </span>
+                ),
+              },
+              {
+                value: "PROCESS_TOW",
+                label: (
+                  <span style={{ color: "#000" }}>
+                    {t("serviceOrderStatus_PROCESS_TOW")}
                   </span>
                 ),
               },

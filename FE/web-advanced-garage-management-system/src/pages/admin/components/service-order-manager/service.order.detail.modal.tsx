@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { HiX, HiTruck } from "react-icons/hi";
@@ -8,6 +8,10 @@ import {
   serviceOrderService,
   type IServiceOrderDetail,
 } from "@/services/admin/serviceOrderService";
+import {
+  formatLineItemBracketLines,
+  formatLineItemSourceTypeDisplay,
+} from "./lineItemDisplayFormatting";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,6 +44,8 @@ const formatCurrency = (value: number) =>
 const STATUS_MAP: Record<string, { color: string }> = {
   PENDING: { color: "default" },
   IN_PROGRESS: { color: "blue" },
+  PROCESS_ROADSIDE: { color: "cyan" },
+  PROCESS_TOW: { color: "geekblue" },
   COMPLETED: { color: "green" },
   CANCELLED: { color: "red" },
 };
@@ -61,6 +67,8 @@ const ServiceOrderDetailModal = ({
   const [detail, setDetail] = useState<IServiceOrderDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lineTableScrollY, setLineTableScrollY] = useState(360);
+  const lineTableCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen || maintenanceId === null) return;
@@ -97,6 +105,47 @@ const ServiceOrderDetailModal = ({
     };
   }, [isOpen]);
 
+  useLayoutEffect(() => {
+    if (!isOpen || loading || !detail) return;
+
+    let ro: ResizeObserver | null = null;
+    let cancelled = false;
+
+    const attach = () => {
+      const el = lineTableCardRef.current;
+      if (!el || cancelled) return;
+
+      const measure = () => {
+        const h = Math.floor(el.getBoundingClientRect().height);
+        const thead = el.querySelector(".ant-table-thead");
+        const summary = el.querySelector(".ant-table-summary");
+        const theadH = thead
+          ? Math.ceil(thead.getBoundingClientRect().height)
+          : 52;
+        const summaryH = summary
+          ? Math.ceil(summary.getBoundingClientRect().height)
+          : 52;
+        // Scrollbar ngang, viền, làm tròn subpixel (tránh cắt dòng cuối / tổng)
+        const fudge = 28;
+        const reserved = theadH + summaryH + fudge;
+        setLineTableScrollY(Math.max(160, h - reserved));
+      };
+
+      measure();
+      requestAnimationFrame(measure);
+      ro = new ResizeObserver(measure);
+      ro.observe(el);
+    };
+
+    const raf = requestAnimationFrame(attach);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+    };
+  }, [isOpen, loading, detail?.maintenanceId, detail?.lineItems?.length]);
+
   if (!isOpen) return null;
 
   const statusMeta = detail
@@ -131,84 +180,99 @@ const ServiceOrderDetailModal = ({
 
           {!loading && !error && detail && (
             <>
-              {/* Status row */}
-              <StatusRow>
-                <Tag color={statusMeta?.color}>
-                  {t(`serviceOrderStatus_${detail.status}`) || detail.status}
-                </Tag>
-              </StatusRow>
+              <DetailTop>
+                {/* Status row */}
+                <StatusRow>
+                  <Tag color={statusMeta?.color}>
+                    {t(`serviceOrderStatus_${detail.status}`, {
+                      defaultValue: detail.status,
+                    })}
+                  </Tag>
+                </StatusRow>
 
-              {/* Vehicle info */}
-              <SectionTitle>{t("serviceOrderDetailVehicleInfo")}</SectionTitle>
-              <InfoGrid>
-                <InfoItem>
-                  <InfoLabel>{t("serviceOrderDetailBrand")}</InfoLabel>
-                  <InfoValue>{detail.brand || "—"}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("serviceOrderDetailModel")}</InfoLabel>
-                  <InfoValue>{detail.model || "—"}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("serviceOrderDetailColor")}</InfoLabel>
-                  <InfoValue>{detail.color || "—"}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("serviceOrderDetailLicensePlate")}</InfoLabel>
-                  <InfoValue>{detail.licensePlate || "—"}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("serviceOrderDetailEngine")}</InfoLabel>
-                  <InfoValue>{detail.engineNumber || "—"}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("serviceOrderDetailChassis")}</InfoLabel>
-                  <InfoValue>{detail.chassisNumber || "—"}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("serviceOrderDetailOdometer")}</InfoLabel>
-                  <InfoValue>
-                    {detail.odometer != null
-                      ? detail.odometer.toLocaleString("vi-VN") + " km"
-                      : "—"}
-                  </InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("serviceOrderDetailCreatedDate")}</InfoLabel>
-                  <InfoValue>{formatDate(detail.createdDate)}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>
-                    {t("serviceOrderDetailMaintenanceDate")}
-                  </InfoLabel>
-                  <InfoValue>{formatDate(detail.maintenanceDate)}</InfoValue>
-                </InfoItem>
-              </InfoGrid>
+                {/* Vehicle info */}
+                <SectionTitle>{t("serviceOrderDetailVehicleInfo")}</SectionTitle>
+                <InfoGrid>
+                  <InfoItem>
+                    <InfoLabel>{t("serviceOrderDetailBrand")}</InfoLabel>
+                    <InfoValue>{detail.brand || "—"}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("serviceOrderDetailModel")}</InfoLabel>
+                    <InfoValue>{detail.model || "—"}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("serviceOrderDetailColor")}</InfoLabel>
+                    <InfoValue>{detail.color || "—"}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("serviceOrderDetailLicensePlate")}</InfoLabel>
+                    <InfoValue>{detail.licensePlate || "—"}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("serviceOrderDetailEngine")}</InfoLabel>
+                    <InfoValue>{detail.engineNumber || "—"}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("serviceOrderDetailChassis")}</InfoLabel>
+                    <InfoValue>{detail.chassisNumber || "—"}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("serviceOrderDetailOdometer")}</InfoLabel>
+                    <InfoValue>
+                      {detail.odometer != null
+                        ? detail.odometer.toLocaleString("vi-VN") + " km"
+                        : "—"}
+                    </InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("serviceOrderDetailCreatedDate")}</InfoLabel>
+                    <InfoValue>{formatDate(detail.createdDate)}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>
+                      {t("serviceOrderDetailMaintenanceDate")}
+                    </InfoLabel>
+                    <InfoValue>{formatDate(detail.maintenanceDate)}</InfoValue>
+                  </InfoItem>
+                </InfoGrid>
 
-              {(detail.technicianFullName ||
-                detail.technicianPhone ||
-                detail.technicianEmail) && (
-                <>
-                  <SectionTitle>{t("serviceOrderDetailTechnicianInfo")}</SectionTitle>
-                  <InfoGrid>
-                    <InfoItem>
-                      <InfoLabel>{t("serviceOrderDetailTechnicianName")}</InfoLabel>
-                      <InfoValue>{detail.technicianFullName || "—"}</InfoValue>
-                    </InfoItem>
-                    <InfoItem>
-                      <InfoLabel>{t("serviceOrderDetailTechnicianPhone")}</InfoLabel>
-                      <InfoValue>{detail.technicianPhone || "—"}</InfoValue>
-                    </InfoItem>
-                    <InfoItem>
-                      <InfoLabel>{t("serviceOrderDetailTechnicianEmail")}</InfoLabel>
-                      <InfoValue>{detail.technicianEmail || "—"}</InfoValue>
-                    </InfoItem>
-                  </InfoGrid>
-                </>
-              )}
+                {(detail.technicianFullName ||
+                  detail.technicianPhone ||
+                  detail.technicianEmail) && (
+                  <>
+                    <SectionTitle>
+                      {t("serviceOrderDetailTechnicianInfo")}
+                    </SectionTitle>
+                    <InfoGrid>
+                      <InfoItem>
+                        <InfoLabel>
+                          {t("serviceOrderDetailTechnicianName")}
+                        </InfoLabel>
+                        <InfoValue>{detail.technicianFullName || "—"}</InfoValue>
+                      </InfoItem>
+                      <InfoItem>
+                        <InfoLabel>
+                          {t("serviceOrderDetailTechnicianPhone")}
+                        </InfoLabel>
+                        <InfoValue>{detail.technicianPhone || "—"}</InfoValue>
+                      </InfoItem>
+                      <InfoItem>
+                        <InfoLabel>
+                          {t("serviceOrderDetailTechnicianEmail")}
+                        </InfoLabel>
+                        <InfoValue>{detail.technicianEmail || "—"}</InfoValue>
+                      </InfoItem>
+                    </InfoGrid>
+                  </>
+                )}
+              </DetailTop>
 
-              {/* Line items */}
-              <SectionTitle>{t("serviceOrderDetailLineItems")}</SectionTitle>
+              {/* Line items: flex fills modal so table body can use scroll.y */}
+              <LineItemsBlock>
+                <LineItemsHeading>
+                  <SectionTitle>{t("serviceOrderDetailLineItems")}</SectionTitle>
+                </LineItemsHeading>
               {(() => {
                 type LineItem = (typeof detail.lineItems)[number];
                 const lineItemColumns: ColumnsType<LineItem> = [
@@ -225,14 +289,17 @@ const ServiceOrderDetailModal = ({
                     title: t("serviceOrderDetailItemType"),
                     dataIndex: "sourceType",
                     key: "sourceType",
-                    render: (val: string) => val || "—",
+                    render: (val: string) =>
+                      formatLineItemSourceTypeDisplay(val || "", t),
                   },
                   {
                     title: t("serviceOrderDetailColCode"),
                     dataIndex: "itemCode",
                     key: "itemCode",
                     render: (val: string) => (
-                      <span style={{ color: "#9ca3af", fontSize: 13 }}>{val || "—"}</span>
+                      <span style={{ color: "#374151", fontSize: 13 }}>
+                        {val || "—"}
+                      </span>
                     ),
                   },
                   {
@@ -241,10 +308,21 @@ const ServiceOrderDetailModal = ({
                     key: "itemName",
                     render: (val: string, record: LineItem) => (
                       <div>
-                        <div style={{ color: "#374151" }}>{val || "—"}</div>
+                        <div style={{ color: "#111827", fontWeight: 500 }}>
+                          {val
+                            ? formatLineItemBracketLines(val, t)
+                            : "—"}
+                        </div>
                         {record.notes && (
-                          <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
-                            {record.notes}
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#111827",
+                              marginTop: 4,
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            {formatLineItemBracketLines(record.notes, t)}
                           </div>
                         )}
                       </div>
@@ -293,13 +371,13 @@ const ServiceOrderDetailModal = ({
                 }));
 
                 return (
-                  <TableCard>
+                  <TableCard ref={lineTableCardRef}>
                     <AntTable
                       columns={lineItemColumns}
                       dataSource={dataWithIndex}
                       rowKey="_rowKey"
                       pagination={false}
-                      scroll={{ x: "max-content" }}
+                      scroll={{ x: "max-content", y: lineTableScrollY }}
                       summary={() => (
                         <AntTable.Summary.Row>
                           <AntTable.Summary.Cell index={0} colSpan={6}>
@@ -319,6 +397,7 @@ const ServiceOrderDetailModal = ({
                   </TableCard>
                 );
               })()}
+              </LineItemsBlock>
             </>
           )}
         </Body>
@@ -365,6 +444,7 @@ const Box = styled.div`
 `;
 
 const ModalHeader = styled.div`
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -404,13 +484,40 @@ const CloseBtn = styled.button`
 
 const Body = styled.div`
   padding: 14px 16px;
-  overflow-y: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   min-height: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 10px;
+`;
+
+const DetailTop = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: min(40dvh, 320px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  @media (min-width: 640px) {
+    max-height: min(36dvh, 380px);
+  }
+`;
+
+const LineItemsBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+  gap: 8px;
+`;
+
+const LineItemsHeading = styled.div`
+  flex-shrink: 0;
 `;
 
 const StatusRow = styled.div`
@@ -459,10 +566,12 @@ const InfoValue = styled.span`
 `;
 
 const TableCard = styled.div`
+  flex: 1 1 0%;
+  min-height: 0;
   background: #fff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
-  overflow-x: auto;
+  overflow: hidden;
 
   .ant-table {
     color: #374151;
@@ -482,9 +591,16 @@ const TableCard = styled.div`
     background: #f9fafb;
     border-top: 2px solid #e5e7eb;
   }
+  .ant-table-body {
+    scroll-padding-bottom: 12px;
+  }
 `;
 
 const LoadingText = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 40px 0;
   text-align: center;
   color: #6b7280;
@@ -501,6 +617,7 @@ const ErrorBox = styled.div`
 `;
 
 const Footer = styled.div`
+  flex-shrink: 0;
   padding: 14px 20px;
   border-top: 1px solid #e5e7eb;
   display: flex;

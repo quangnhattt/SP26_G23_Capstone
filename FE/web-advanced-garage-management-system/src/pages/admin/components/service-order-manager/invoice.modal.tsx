@@ -8,6 +8,10 @@ import {
   type IInvoice,
 } from "@/services/admin/serviceOrderService";
 import { toast } from "react-toastify";
+import {
+  formatLineItemBracketLines,
+  formatLineItemSourceTypeDisplay,
+} from "./lineItemDisplayFormatting";
 
 interface Props {
   isOpen: boolean;
@@ -109,114 +113,124 @@ const InvoiceModal = ({
 
           {!loading && invoice && (
             <>
-              {/* Customer */}
-              <SectionLabel>{t("invoiceCustomerInfo")}</SectionLabel>
-              <InfoGrid>
-                <InfoItem>
-                  <InfoLabel>{t("invoiceCustomerFullName")}</InfoLabel>
-                  <InfoValue>{invoice.customer.fullName}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("invoiceCustomerPhone")}</InfoLabel>
-                  <InfoValue>{invoice.customer.phone}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("invoiceCustomerEmail")}</InfoLabel>
-                  <InfoValue>{invoice.customer.email}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("invoiceCustomerMembership")}</InfoLabel>
-                  <InfoValue>{invoice.membershipRankApplied || "—"}</InfoValue>
-                </InfoItem>
-              </InfoGrid>
+              <BodyIntro>
+                {/* Customer */}
+                <SectionLabel>{t("invoiceCustomerInfo")}</SectionLabel>
+                <InfoGrid>
+                  <InfoItem>
+                    <InfoLabel>{t("invoiceCustomerFullName")}</InfoLabel>
+                    <InfoValue>{invoice.customer.fullName}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("invoiceCustomerPhone")}</InfoLabel>
+                    <InfoValue>{invoice.customer.phone}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("invoiceCustomerEmail")}</InfoLabel>
+                    <InfoValue>{invoice.customer.email}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("invoiceCustomerMembership")}</InfoLabel>
+                    <InfoValue>{invoice.membershipRankApplied || "—"}</InfoValue>
+                  </InfoItem>
+                </InfoGrid>
 
-              {/* Vehicle */}
-              <SectionLabel>{t("invoiceVehicleInfo")}</SectionLabel>
-              <InfoGrid>
-                <InfoItem>
-                  <InfoLabel>{t("invoiceVehicleBrandModel")}</InfoLabel>
-                  <InfoValue>
-                    {invoice.brand} {invoice.model}
-                  </InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("invoiceVehiclePlate")}</InfoLabel>
-                  <InfoValue>{invoice.licensePlate}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("invoiceVehicleColor")}</InfoLabel>
-                  <InfoValue>{invoice.color}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>{t("invoiceVehicleReceiveDate")}</InfoLabel>
-                  <InfoValue>{formatDate(invoice.maintenanceDate)}</InfoValue>
-                </InfoItem>
-              </InfoGrid>
+                {/* Vehicle */}
+                <SectionLabel>{t("invoiceVehicleInfo")}</SectionLabel>
+                <InfoGrid>
+                  <InfoItem>
+                    <InfoLabel>{t("invoiceVehicleBrandModel")}</InfoLabel>
+                    <InfoValue>
+                      {invoice.brand} {invoice.model}
+                    </InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("invoiceVehiclePlate")}</InfoLabel>
+                    <InfoValue>{invoice.licensePlate}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("invoiceVehicleColor")}</InfoLabel>
+                    <InfoValue>{invoice.color}</InfoValue>
+                  </InfoItem>
+                  <InfoItem>
+                    <InfoLabel>{t("invoiceVehicleReceiveDate")}</InfoLabel>
+                    <InfoValue>{formatDate(invoice.maintenanceDate)}</InfoValue>
+                  </InfoItem>
+                </InfoGrid>
 
-              {/* Packages */}
-              {invoice.packageUsages?.length > 0 && (
-                <>
-                  <SectionLabel>{t("invoicePackages")}</SectionLabel>
-                  <PackageList>
-                    {invoice.packageUsages.map((pkg, i) => (
-                      <PackageRow key={i}>
-                        <PackageName>
-                          {pkg.packageName}{" "}
-                          <PackageCode>({pkg.packageCode})</PackageCode>
-                        </PackageName>
-                        <PackageDiscount>
-                          -{formatCurrency(pkg.packageDiscountAmount)}
-                        </PackageDiscount>
-                      </PackageRow>
-                    ))}
-                  </PackageList>
-                </>
-              )}
+                {/* Packages */}
+                {invoice.packageUsages?.length > 0 && (
+                  <>
+                    <SectionLabel>{t("invoicePackages")}</SectionLabel>
+                    <PackageList>
+                      {invoice.packageUsages.map((pkg, i) => (
+                        <PackageRow key={i}>
+                          <PackageName>
+                            {pkg.packageName}{" "}
+                            <PackageCode>({pkg.packageCode})</PackageCode>
+                          </PackageName>
+                          <PackageDiscount>
+                            -{formatCurrency(pkg.packageDiscountAmount)}
+                          </PackageDiscount>
+                        </PackageRow>
+                      ))}
+                    </PackageList>
+                  </>
+                )}
+              </BodyIntro>
 
-              {/* Line items */}
-              <SectionLabel>{t("invoiceLineItems")}</SectionLabel>
-              <TableWrapper>
-                <LineTable>
-                  <thead>
-                    <tr>
-                      <Th style={{ width: 40 }}>{t("invoiceColNo")}</Th>
-                      <Th>{t("invoiceColType")}</Th>
-                      <Th>{t("invoiceColName")}</Th>
-                      <Th style={{ textAlign: "right" }}>
-                        {t("invoiceColQty")}
-                      </Th>
-                      <Th style={{ textAlign: "right" }}>
-                        {t("invoiceColUnitPrice")}
-                      </Th>
-                      <Th style={{ textAlign: "right" }}>
-                        {t("invoiceColTotal")}
-                      </Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoice.lineItems.map((item, idx) => (
-                      <Tr key={idx}>
-                        <TdMuted>{idx + 1}</TdMuted>
-                        <Td>{item.sourceType}</Td>
-                        <Td>
-                          <div>{item.itemName}</div>
-                          {item.notes && <NoteText>{item.notes}</NoteText>}
-                        </Td>
-                        <TdRight>{item.quantity}</TdRight>
-                        <TdRight>{formatCurrency(item.unitPrice)}</TdRight>
-                        <TdRight>{formatCurrency(item.totalPrice)}</TdRight>
-                      </Tr>
-                    ))}
-                  </tbody>
-                </LineTable>
-              </TableWrapper>
+              {/* Line items: scroll only this block so more rows fit on small screens */}
+              <LineItemsSection>
+                <SectionLabel>{t("invoiceLineItems")}</SectionLabel>
+                <TableScrollArea>
+                  <LineTable>
+                    <thead>
+                      <tr>
+                        <Th style={{ width: 40 }}>{t("invoiceColNo")}</Th>
+                        <Th>{t("invoiceColType")}</Th>
+                        <Th>{t("invoiceColName")}</Th>
+                        <Th style={{ textAlign: "right" }}>
+                          {t("invoiceColQty")}
+                        </Th>
+                        <Th style={{ textAlign: "right" }}>
+                          {t("invoiceColUnitPrice")}
+                        </Th>
+                        <Th style={{ textAlign: "right" }}>
+                          {t("invoiceColTotal")}
+                        </Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoice.lineItems.map((item, idx) => (
+                        <Tr key={idx}>
+                          <TdMuted>{idx + 1}</TdMuted>
+                          <Td>
+                            {formatLineItemSourceTypeDisplay(item.sourceType, t)}
+                          </Td>
+                          <TdName>
+                            <NamePrimary>
+                              {item.itemName
+                                ? formatLineItemBracketLines(item.itemName, t)
+                                : "—"}
+                            </NamePrimary>
+                            {item.notes && (
+                              <NameNote>
+                                {formatLineItemBracketLines(item.notes, t)}
+                              </NameNote>
+                            )}
+                          </TdName>
+                          <TdRight>{item.quantity}</TdRight>
+                          <TdRight>{formatCurrency(item.unitPrice)}</TdRight>
+                          <TdRight>{formatCurrency(item.totalPrice)}</TdRight>
+                        </Tr>
+                      ))}
+                    </tbody>
+                  </LineTable>
+                </TableScrollArea>
+              </LineItemsSection>
 
               {/* Summary */}
               <SummaryBox>
-                <SummaryRow>
-                  <span>{t("invoiceTotalService")}</span>
-                  <span>{formatCurrency(invoice.totalAmount)}</span>
-                </SummaryRow>
                 {invoice.membershipDiscountAmount > 0 && (
                   <SummaryRow>
                     <span>
@@ -257,7 +271,11 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 24px;
+  padding: 8px;
+  overflow: hidden;
+  @media (min-width: 640px) {
+    padding: 24px;
+  }
 `;
 
 const Box = styled.div`
@@ -265,13 +283,20 @@ const Box = styled.div`
   border-radius: 14px;
   width: 100%;
   max-width: 900px;
-  max-height: 90vh;
+  max-height: calc(100dvh - 16px);
+  height: min(92dvh, calc(100dvh - 16px));
+  min-height: 0;
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  @media (min-width: 640px) {
+    max-height: min(92dvh, calc(100dvh - 48px));
+    height: min(92dvh, calc(100dvh - 48px));
+  }
 `;
 
 const ModalHeader = styled.div`
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -309,16 +334,54 @@ const CloseBtn = styled.button`
 `;
 
 const Body = styled.div`
-  padding: 20px;
-  overflow-y: auto;
+  padding: 16px;
+  overflow: hidden;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  @media (min-width: 640px) {
+    padding: 20px;
+  }
+`;
+
+const BodyIntro = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  max-height: 38dvh;
+  overscroll-behavior: contain;
+  @media (min-width: 640px) {
+    max-height: 34vh;
+  }
+`;
+
+const LineItemsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+  gap: 8px;
+`;
+
+const TableScrollArea = styled.div`
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const Center = styled.div`
   display: flex;
+  flex: 1;
+  align-items: center;
   justify-content: center;
   padding: 40px 0;
 `;
@@ -393,12 +456,6 @@ const PackageDiscount = styled.span`
   color: #16a34a;
 `;
 
-const TableWrapper = styled.div`
-  overflow-x: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-`;
-
 const LineTable = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -406,13 +463,17 @@ const LineTable = styled.table`
 `;
 
 const Th = styled.th`
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding: 9px 12px;
   text-align: left;
   font-weight: 600;
   color: #374151;
-  background: #f9fafb;
+  background: #f3f4f6;
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
+  box-shadow: inset 0 -1px 0 #e5e7eb;
 `;
 
 const Tr = styled.tr`
@@ -429,6 +490,25 @@ const Td = styled.td`
   color: #374151;
 `;
 
+const TdName = styled(Td)`
+  padding: 9px 12px;
+  color: #111827;
+  vertical-align: top;
+`;
+
+const NamePrimary = styled.div`
+  color: #111827;
+  font-weight: 500;
+  line-height: 1.45;
+`;
+
+const NameNote = styled.div`
+  margin-top: 4px;
+  font-size: 12px;
+  color: #111827;
+  line-height: 1.45;
+`;
+
 const TdMuted = styled(Td)`
   color: #9ca3af;
   font-size: 12px;
@@ -440,16 +520,12 @@ const TdRight = styled(Td)`
   white-space: nowrap;
 `;
 
-const NoteText = styled.div`
-  font-size: 11px;
-  color: #9ca3af;
-  margin-top: 2px;
-`;
-
 const SummaryBox = styled.div`
+  flex-shrink: 0;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   overflow: hidden;
+  background: #fff;
 `;
 
 const SummaryRow = styled.div`
@@ -484,6 +560,7 @@ const TotalValue = styled.span`
 `;
 
 const Footer = styled.div`
+  flex-shrink: 0;
   padding: 14px 20px;
   border-top: 1px solid #e5e7eb;
   display: flex;
